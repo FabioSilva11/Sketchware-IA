@@ -8,11 +8,12 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Constants
-GITHUB_REPO = "Sketchware-Pro/Sketchware-Pro"
+GITHUB_REPO = "FabioSilva11/Sketchware-IA"
 GITHUB_TOKEN = os.getenv("GH_ABOUT_APP_WORKFLOW_TOKEN")
 GITHUB_API_BASE = "https://api.github.com"
 GITHUB_ABOUT_APP_FILE = "about.json"
-GITHUB_ABOUT_APP_URL = f"https://raw.githubusercontent.com/Sketchware-Pro/Sketchware-Pro/refs/heads/host/{GITHUB_ABOUT_APP_FILE}"
+GITHUB_ABOUT_APP_URL = f"https://raw.githubusercontent.com/FabioSilva11/Sketchware-IA/refs/heads/host/{GITHUB_ABOUT_APP_FILE}"
+
 
 HEADERS = {
   "Accept": "application/vnd.github+json",
