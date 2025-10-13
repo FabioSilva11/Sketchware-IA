@@ -1,5 +1,9 @@
-def secrets = System.getenv("GOOGLE_SERVICES_JSON")
-def analyticsEnabled = secrets != null
+def googleServicesJson = System.getenv("GOOGLE_SERVICES_JSON")
+def googleServicesJsonBase64 = System.getenv("GOOGLE_SERVICES_JSON_BASE64")
+def decodedBase64 = googleServicesJsonBase64 != null ? new String(java.util.Base64.decoder.decode(googleServicesJsonBase64), "UTF-8") : null
+def secrets = googleServicesJson != null ? googleServicesJson : decodedBase64
+def googleServicesFile = file("$projectDir/google-services.json")
+def analyticsEnabled = (secrets != null) || googleServicesFile.exists()
 
 apply plugin: "com.android.application"
 apply plugin: "kotlin-android"
@@ -152,8 +156,8 @@ dependencies {
     }
 
     // Analytics and Crashlytics
-    if (analyticsEnabled) {
-        new File("$projectDir/google-services.json").text = secrets
+    if (secrets != null) {
+        googleServicesFile.text = secrets
     }
     implementation platform("com.google.firebase:firebase-bom:34.3.0")
     implementation "com.google.firebase:firebase-crashlytics"

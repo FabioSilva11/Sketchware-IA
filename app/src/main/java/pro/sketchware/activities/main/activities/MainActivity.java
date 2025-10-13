@@ -75,6 +75,9 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     private Fragment activeFragment;
     @IdRes
     private int currentNavItemId = R.id.item_projects;
+    private static final String PREFS_ADS_NOTICE = "main_prefs";
+    private static final String KEY_ADS_NOTICE_SHOWN = "ads_notice_shown";
+    private androidx.appcompat.app.AlertDialog adsNoticeDialog;
 
     private static boolean isFirebaseInitialized(Context context) {
         try {
@@ -210,6 +213,8 @@ public class MainActivity extends BasePermissionAppCompatActivity {
             allFilesAccessCheck();
         }
 
+        maybeShowAdsNoticeOnce();
+
         if (Intent.ACTION_VIEW.equals(getIntent().getAction())) {
             Uri data = getIntent().getData();
             if (data != null) {
@@ -295,6 +300,48 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         }
 
         navigateToProjectsFragment();
+    }
+
+    private void maybeShowAdsNoticeOnce() {
+        if (adsNoticeDialog != null && adsNoticeDialog.isShowing()) return;
+        boolean shown = getSharedPreferences(PREFS_ADS_NOTICE, MODE_PRIVATE).getBoolean(KEY_ADS_NOTICE_SHOWN, false);
+        if (shown) return;
+
+        View content = getLayoutInflater().inflate(R.layout.bottomsheet_ads_notice, null);
+        adsNoticeDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setView(content)
+                .create();
+        adsNoticeDialog.setCanceledOnTouchOutside(false);
+        adsNoticeDialog.setCancelable(false);
+
+        View close = content.findViewById(R.id.close);
+        View copy = content.findViewById(R.id.copy);
+        close.setEnabled(false);
+
+        close.postDelayed(() -> {
+            if (adsNoticeDialog == null) return;
+            if (close instanceof android.widget.Button) {
+                ((android.widget.Button) close).setText("Close");
+            }
+            adsNoticeDialog.setCancelable(true);
+            close.setEnabled(true);
+        }, 10000L);
+
+        close.setOnClickListener(v -> {
+            if (!v.isEnabled()) return;
+            getSharedPreferences(PREFS_ADS_NOTICE, MODE_PRIVATE)
+                    .edit().putBoolean(KEY_ADS_NOTICE_SHOWN, true).apply();
+            adsNoticeDialog.dismiss();
+        });
+
+        copy.setOnClickListener(v -> {
+            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            android.content.ClipData clip = android.content.ClipData.newPlainText("Sketchware Notice", ((android.widget.TextView) content.findViewById(R.id.body)).getText());
+            cm.setPrimaryClip(clip);
+            SketchwareUtil.toast("Copied to clipboard");
+        });
+
+        adsNoticeDialog.show();
     }
 
     private Fragment getFragmentForNavId(int navItemId) {

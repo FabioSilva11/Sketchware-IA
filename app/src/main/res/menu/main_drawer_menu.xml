@@ -29,8 +29,8 @@
         <menu>
             <item
                 android:id="@+id/social_discord"
-                android:icon="@drawable/ic_discord"
-                android:title="Discord" />
+                android:icon="@drawable/ic_youtube"
+                android:title="YouTube" />
 
             <item
                 android:id="@+id/social_telegram"

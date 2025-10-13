@@ -2121,7 +2121,6 @@ Please try again later"</string>
     <string name="title_company_tel">Telephone</string>
     <string name="title_company_url">Website</string>
     <string name="title_compatible_chrome_browser">Chrome Browser Required</string>
-    <string name="title_discord_community">Discord</string>
     <string name="title_telegram_community">Telegram</string>
     <string name="title_sketchware">Sketchware IA</string>
     <string name="view_panel_title_layouts">Layouts</string>
@@ -2226,19 +2225,22 @@ Please try again later"</string>
     <string name="about_beta_changes_title">Beta Changes</string>
     <string name="about_loading_title">Getting data…</string>
     <string name="about_loading_subtitle">Don\'t worry, it won\'t take more than a second.</string>
-    <string name="about_joindiscord">Join our Discord server</string>
+    <string name="about_jointelegram">Join our Telegram</string>
 
     <!--  links  -->
-    <string name="link_github_release">https://github.com/Sketchware-Pro/Sketchware-Pro/releases</string>
+    <string name="link_github_release">https://github.com/FabioSilva11/Sketchware-IA/releases</string>
     <string name="link_docs_url">https://docs.sketchware.pro</string>
-    <string name="link_ideas_url">https://discord.gg/4uxhMwCt</string>
-    <string name="link_discord_invite">https://discord.gg/kq39yhT4rX</string>
+    <string name="link_youtube_url">https://youtube.com/@sketchware-ia?si=C4xJ-0xfeXxUnnB7</string>
     <string name="link_telegram_invite">https://t.me/sketchwarepro</string>
+    <string name="about_joindiscord">Join our Discord</string>
+    <string name="title_discord_community">Discord</string>
+    <string name="link_discord_invite">https://discord.com/invite/</string>
     <string name="link_about_team">https://sketchware-pro.github.io/Sketchware-Pro/about.json</string>
-    <string name="link_github_commits_url"><![CDATA[https://api.github.com/repos/Sketchware-Pro/Sketchware-Pro/commits?per_page=%s&page=%s]]></string>
+    <string name="link_about_teamm">https://raw.githubusercontent.com/FabioSilva11/Sketchware-IA/main/about.json</string>
+    <string name="link_github_commits_url"><![CDATA[https://api.github.com/repos/FabioSilva11/Sketchware-IA/commits?per_page=%s&page=%s]]></string>
     <string name="github_api_error_message">Something went wrong. Please wait and try again.</string>
     <string name="github_api_date_unavailable">Date unavailable</string>
-    <string name="link_github_url">https://github.com/Sketchware-Pro/Sketchware-Pro</string>
+    <string name="link_github_url">https://github.com/FabioSilva11/Sketchware-IA</string>
     <string name="change_launcher_activity_dialog_title">Launcher Activity</string>
     <string name="common_word_add_activtiy">Add Activity</string>
     <string name="delete_custom_activity_dialog_message">All features related to %1$s will be removed. Are you sure?</string>

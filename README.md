@@ -2,14 +2,13 @@
   <img src="assets/Sketchware-Pro.png" style="width: 30%;" />
 </p>
 
-# Sketchware Pro
-[![GitHub contributors](https://img.shields.io/github/contributors/Sketchware-Pro/Sketchware-Pro)](https://github.com/Sketchware-Pro/Sketchware-Pro/graphs/contributors)
-[![GitHub last commit](https://img.shields.io/github/last-commit/Sketchware-Pro/Sketchware-Pro)](https://github.com/Sketchware-Pro/Sketchware-Pro/commits/)
-[![Discord server stats](https://img.shields.io/discord/790686719753846785)](http://discord.gg/kq39yhT4rX)
-[![Total downloads](https://img.shields.io/github/downloads/Sketchware-Pro/Sketchware-Pro/total)](https://github.com/Sketchware-Pro/Sketchware-Pro/releases)
-[![Repository Size](https://img.shields.io/github/repo-size/Sketchware-Pro/Sketchware-Pro)](https://github.com/Sketchware-Pro/Sketchware-Pro)
+# Sketchware IA
+[![GitHub contributors](https://img.shields.io/github/contributors/FabioSilva11/Sketchware-IA)](https://github.com/FabioSilva11/Sketchware-IA/graphs/contributors)
+[![GitHub last commit](https://img.shields.io/github/last-commit/FabioSilva11/Sketchware-IA)](https://github.com/FabioSilva11/Sketchware-IA/commits/)
+[![Total downloads](https://img.shields.io/github/downloads/FabioSilva11/Sketchware-IA/total)](https://github.com/FabioSilva11/Sketchware-IA/releases)
+[![Repository Size](https://img.shields.io/github/repo-size/FabioSilva11/Sketchware-IA)](https://github.com/FabioSilva11/Sketchware-IA)
 
-Welcome to Sketchware Pro! Here you'll find the source code of many classes in Sketchware Pro and, most importantly, the place to contribute to Sketchware Pro.
+Welcome to Sketchware IA! Here you'll find the source code of many classes used in the app and, most importantly, the place to contribute to Sketchware IA.
 
 ## Building the App
 To build the app, you must use Gradle. It's highly recommended to use Android Studio for the best experience.
@@ -32,7 +31,7 @@ To build the app, you must use Gradle. It's highly recommended to use Android St
 
 ## Contributing
 
-If you'd like to contribute to Sketchware Pro, follow these steps:
+If you'd like to contribute to Sketchware IA, follow these steps:
 
 1. Fork this repository.
 2. Make changes in your forked repository.
@@ -66,13 +65,13 @@ Examples:
 
 ## Thanks for Contributing
 
-Thank you for contributing to Sketchware Pro! Your contributions help keep Sketchware Pro alive. Each accepted contribution will be noted down in the "About Team" activity. We'll use your GitHub name and profile picture initially, but they can be changed, of course.
+Thank you for contributing to Sketchware IA! Your contributions help keep the project alive. Each accepted contribution will be noted down in the "About Team" activity. We'll use your GitHub name and profile picture initially, but they can be changed, of course.
 
-## Discord
+## Telegram
 
-Want to chat with us, discuss changes, or just hang out? We have a Discord server just for that.
+Quer conversar, sugerir mudanças ou acompanhar as novidades? Junte-se ao nosso Telegram:
 
-[![Join our Discord server!](https://invidget.switchblade.xyz/kq39yhT4rX)](http://discord.gg/kq39yhT4rX)
+`https://t.me/sketcware_ia`
 
 ## Disclaimer
 

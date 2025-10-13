@@ -54,10 +54,8 @@ public class AboutActivity extends BaseAppCompatActivity {
     private void initViews() {
         binding.toolbar.setNavigationOnClickListener(Helper.getBackPressedClickListener(this));
         binding.discordButton.setOnClickListener(v -> {
-            String discordLink = aboutAppData.getDiscordInviteLink().getValue();
-            if (discordLink != null) {
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(discordLink)));
-            }
+            String telegramLink = Helper.getResString(R.string.link_telegram_invite);
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(telegramLink)));
         });
         AboutAdapter adapter = new AboutAdapter(this);
         binding.viewPager.setOffscreenPageLimit(3);
@@ -74,11 +72,11 @@ public class AboutActivity extends BaseAppCompatActivity {
         binding.viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
-                if (position == 0) {
-                    binding.discordButton.extend();
-                } else {
-                    binding.discordButton.shrink();
-                }
+            if (position == 0) {
+                binding.discordButton.extend();
+            } else {
+                binding.discordButton.shrink();
+            }
             }
         });
 

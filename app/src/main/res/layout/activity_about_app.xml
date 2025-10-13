@@ -56,10 +56,10 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center|bottom"
         android:layout_margin="16dp"
-        android:text="@string/about_joindiscord"
+        android:text="@string/about_jointelegram"
         android:textColor="#FFF"
-        app:backgroundTint="#5865F2"
-        app:icon="@drawable/ic_discord"
+        app:backgroundTint="#24A1DE"
+        app:icon="@drawable/ic_telegram"
         app:iconTint="#FFF" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
