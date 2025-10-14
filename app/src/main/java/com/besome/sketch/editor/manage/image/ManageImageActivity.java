@@ -12,9 +12,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
-
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
-
 import java.lang.ref.WeakReference;
 
 import a.a.a.MA;
@@ -22,6 +20,7 @@ import a.a.a.Op;
 import a.a.a.fu;
 import a.a.a.mB;
 import a.a.a.pu;
+import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageImageBinding;
 
@@ -31,9 +30,15 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
     private fu collectionImagesFragment;
     private ManageImageBinding binding;
 
+
     public static int getImageGridColumnCount(Context context) {
         var displayMetrics = context.getResources().getDisplayMetrics();
         return (int) (displayMetrics.widthPixels / displayMetrics.density) / 100;
+    }
+
+    private String getTranslatedString(int resId) {
+        // Fallback to standard getString; replace with translation logic if available
+        return getString(resId);
     }
 
     @Override
@@ -80,7 +85,7 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
         }
 
         setSupportActionBar(binding.topAppBar);
-        binding.topAppBar.setTitle(R.string.design_actionbar_title_manager_image);
+        binding.topAppBar.setTitle(Helper.getResString(R.string.design_actionbar_title_manager_image));
         binding.topAppBar.setNavigationOnClickListener(v -> {
             if (!mB.a()) {
                 onBackPressed();
@@ -163,8 +168,8 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
         public PagerAdapter(FragmentManager manager) {
             super(manager);
             labels = new String[2];
-            labels[0] = getString(R.string.design_manager_tab_title_this_project);
-            labels[1] = getString(R.string.design_manager_tab_title_my_collection);
+            labels[0] = Helper.getResString(R.string.design_manager_tab_title_this_project);
+            labels[1] = Helper.getResString(R.string.design_manager_tab_title_my_collection);
         }
 
         @Override

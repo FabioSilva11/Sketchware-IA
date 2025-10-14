@@ -1,4 +1,11 @@
 <resources>
+    <!-- Added for Lottie Manager and Image Web Search -->
+    <string name="design_drawer_menu_title_lottie">Lottie</string>
+    <string name="design_drawer_menu_description_lottie">Manage Lottie animations</string>
+    <string name="design_manager_lottie_hint_enter_animation_name">Enter the animation name</string>
+    <string name="design_manager_lottie_title_add_lottie">Add Lottie animation</string>
+    <string name="search_menu_title">Search</string>
+    <string name="search">Search</string>
     <string name="app_name">Sketchware IA</string>
     <string name="appbar_scrolling_view_behavior">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
     <string name="besome_blog_url">http://medium.com/sketchware</string>
@@ -1285,6 +1292,7 @@ You must enter the API key to operate the map normally."</string>
     <string name="design_tab_title_component">Component</string>
     <string name="design_tab_title_event">Event</string>
     <string name="design_tab_title_view">View</string>
+    <string name="design_tab_title_strings">Strings</string>
     <string name="developer_tools_component_add_var">Additional Variables</string>
     <string name="developer_tools_component_build_class">Build Class</string>
     <string name="developer_tools_component_define_add_var">Define Additional Variables</string>
@@ -1378,10 +1386,10 @@ Do you want to continue?"</string>
     <string name="event_title_add_new_component">Add new component</string>
     <string name="event_title_add_new_event">Add new event</string>
     <string name="event_title_edit_component">Edit component</string>
-    <string name="facebook_url">https://fb.com/sketchware</string>
+    <string name="facebook_url">aa</string>
     <string name="firebase_database_url">https://dependable-flag-825.firebaseio.com</string>
     <string name="ga_trackingId">UA-80718117-1</string>
-    <string name="ideas_url">https://ideas.sketchware.io/</string>
+    <string name="ideas_url">https://t.me/sketcware_ia</string>
     <string name="invalid_component">Invalid component</string>
     <string name="invalid_icon_id">Invalid icon ID</string>
     <string name="invalid_required_fields">Some required fields are empty</string>
@@ -1545,7 +1553,7 @@ But, components should be added manually for working correctly."</string>
     <string name="manage_export_url_tab_title_apk">Signed APK</string>
     <string name="manage_export_url_tab_title_data">Exported Data</string>
     <string name="manage_export_url_word_extend">Expand</string>
-    <string name="medium_url">https://medium.com/sketchware</string>
+    <string name="medium_url">https://t.me/sketcware_ia</string>
     <string name="message_compatible_chrome_brower">The following page is compatible with Google Chrome. Would you like to install Chrome?</string>
     <string name="message_device_not_support">Your device does not support this hardware. This component may not function properly</string>
     <string name="message_device_not_supported">"This device is not supported. Google Play Services aren't installed."</string>
@@ -2102,8 +2110,8 @@ Please try again later"</string>
     <string name="sign_apk_desc_generate_apk_file">Click sign button below and generate an APK file!</string>
     <string name="sign_apk_title_apk_file_save_path">Save Directory</string>
     <string name="sign_apk_title_export_apk_file">Generate APK File Complete</string>
-    <string name="slack_url_primary">http://slack.sketchware.io</string>
-    <string name="slack_url_secondary">http://sketchware.slack.com</string>
+    <string name="slack_url_primary">https://t.me/sketcware_ia</string>
+    <string name="slack_url_secondary">https://t.me/sketcware_ia</string>
     <string name="system_information_developer_options">Developer options</string>
     <string name="system_information_dpi">DPI</string>
     <string name="system_information_model_name">Model name</string>
@@ -2229,12 +2237,12 @@ Please try again later"</string>
 
     <!--  links  -->
     <string name="link_github_release">https://github.com/FabioSilva11/Sketchware-IA/releases</string>
-    <string name="link_docs_url">https://docs.sketchware.pro</string>
+    <string name="link_docs_url">https://t.me/sketcware_ia</string>
     <string name="link_youtube_url">https://youtube.com/@sketchware-ia?si=C4xJ-0xfeXxUnnB7</string>
-    <string name="link_telegram_invite">https://t.me/sketchwarepro</string>
+    <string name="link_telegram_invite">https://t.me/sketcware_ia</string>
     <string name="about_joindiscord">Join our Discord</string>
     <string name="title_discord_community">Discord</string>
-    <string name="link_discord_invite">https://discord.com/invite/</string>
+    <string name="link_discord_invite">https://t.me/sketcware_ia</string>
     <string name="link_about_team">https://sketchware-pro.github.io/Sketchware-Pro/about.json</string>
     <string name="link_about_teamm">https://raw.githubusercontent.com/FabioSilva11/Sketchware-IA/main/about.json</string>
     <string name="link_github_commits_url"><![CDATA[https://api.github.com/repos/FabioSilva11/Sketchware-IA/commits?per_page=%s&page=%s]]></string>
@@ -2252,10 +2260,11 @@ Please try again later"</string>
     <string name="review_firebase_config_title">Review</string>
     <string name="edit_view_properties_title">Edit Properties</string>
     <string name="search_in_palettes_dialog_title">Search palettes</string>
-    <string name="search">Search</string>
+    <string name="searchh">Search</string>
     <string name="cancel">Cancel</string>
     <string name="restore">Restore</string>
     <string name="searching">Searching…</string>
+    <string name="search_empty_message">No images to display</string>
     <string name="restoring">Restoring…</string>
     <string name="search_error_message">Nothing found,\ntry again with something else</string>
     <string name="search_header">"  Search…"</string>

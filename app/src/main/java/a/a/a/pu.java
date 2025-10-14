@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.besome.sketch.beans.ProjectResourceBean;
 import com.besome.sketch.editor.manage.image.AddImageActivity;
+import com.besome.sketch.editor.manage.image.ManageImageWebSearchActivity;
 import com.besome.sketch.editor.manage.image.ManageImageActivity;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool;
@@ -84,6 +85,24 @@ public class pu extends qA {
 
             addImage(icon);
             bB.a(requireActivity(), getString(R.string.design_manager_message_add_complete), bB.TOAST_NORMAL).show();
+        }
+    });
+    private final ActivityResultLauncher<Intent> openImageWebSearchActivity = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        if (result.getResultCode() == Activity.RESULT_OK) {
+            assert result.getData() != null;
+            ArrayList<ProjectResourceBean> addedImages;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                addedImages = result.getData().getParcelableArrayListExtra("images", ProjectResourceBean.class);
+            } else {
+                addedImages = result.getData().getParcelableArrayListExtra("images");
+            }
+            if (addedImages != null && !addedImages.isEmpty()) {
+                images.addAll(addedImages);
+                adapter.notifyItemRangeInserted(images.size() - addedImages.size(), addedImages.size());
+                updateGuideVisibility();
+                ((ManageImageActivity) requireActivity()).l().refreshData();
+                bB.a(requireActivity(), getString(R.string.design_manager_message_add_complete), bB.TOAST_NORMAL).show();
+            }
         }
     });
     private final ActivityResultLauncher<Intent> showAddImageDialog = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -276,6 +295,12 @@ public class pu extends qA {
         openImportIconActivity.launch(intent);
     }
 
+    private void openImageWebSearchActivity() {
+        Intent intent = new Intent(requireActivity(), ManageImageWebSearchActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        openImageWebSearchActivity.launch(intent);
+    }
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -352,6 +377,8 @@ public class pu extends qA {
             a(!isSelecting);
         } else if (id == R.id.menu_image_import) {
             openImportIconActivity();
+        } else if (id == R.id.menu_image_web_search) {
+            openImageWebSearchActivity();
         }
         return super.onOptionsItemSelected(item);
     }

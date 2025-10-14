@@ -132,6 +132,9 @@
             android:name="com.besome.sketch.editor.manage.image.ManageImageImportActivity"
             android:configChanges="orientation|screenSize" />
         <activity
+            android:name="com.besome.sketch.editor.manage.image.ManageImageWebSearchActivity"
+            android:configChanges="orientation|screenSize" />
+        <activity
             android:name="com.besome.sketch.editor.manage.font.ManageFontActivity"
             android:configChanges="orientation|screenSize" />
         <activity

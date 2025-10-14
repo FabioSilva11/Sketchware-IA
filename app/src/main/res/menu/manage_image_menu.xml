@@ -6,6 +6,11 @@
         android:title="@string/common_word_import"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/menu_image_web_search"
+        android:icon="@drawable/ic_mtrl_search"
+        android:title="@string/search_menu_title"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/menu_image_delete"
         android:icon="@drawable/ic_mtrl_delete"
         android:title="@string/common_word_delete"
