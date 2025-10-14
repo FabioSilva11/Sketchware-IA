@@ -39,6 +39,7 @@ import com.bumptech.glide.request.target.BitmapImageViewTarget;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigationrail.NavigationRailView;
 
 import java.io.File;
@@ -895,10 +896,26 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
                     }
                 });
                 cardView.setOnLongClickListener(v -> {
-                    changeDeletingItemsState(true);
                     lastSelectedItemPosition = getLayoutPosition();
-                    checkBox.setChecked(!checkBox.isChecked());
-                    currentCollectionTypeItems.get(lastSelectedItemPosition).isSelected = checkBox.isChecked();
+                    if (selectingToBeDeletedItems) {
+                        checkBox.setChecked(!checkBox.isChecked());
+                        currentCollectionTypeItems.get(lastSelectedItemPosition).isSelected = checkBox.isChecked();
+                        return true;
+                    }
+
+                    MoreBlockCollectionBean bean = (MoreBlockCollectionBean) currentCollectionTypeItems.get(lastSelectedItemPosition);
+                    new MaterialAlertDialogBuilder(ManageCollectionActivity.this)
+                            .setTitle("Excluir " + bean.name + "?")
+                            .setPositiveButton(R.string.common_word_delete, (dialog, which) -> {
+                                Pp.h().a(bean.name, false);
+                                Pp.h().e();
+                                loadMoreBlocks();
+                                bB.a(getApplicationContext(), Helper.getResString(R.string.common_message_complete_delete), 1).show();
+                                collectionAdapter.notifyDataSetChanged();
+                            })
+                            .setNegativeButton(R.string.common_word_cancel, null)
+                            .create()
+                            .show();
                     return true;
                 });
             }

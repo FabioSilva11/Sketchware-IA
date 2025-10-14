@@ -1511,6 +1511,7 @@ But, components should be added manually for working correctly."</string>
     <string name="logic_more_block_title_add_variable_resource">Variable And Resource Add Automatically</string>
     <string name="logic_more_block_title_change_block_name">Edit Moreblock Name</string>
     <string name="logic_more_block_title_select_more_block">Select More Block</string>
+    <string name="logic_more_block_message_select_more_block">Please select a more block</string>
     <string name="logic_variable_type_boolean">Boolean</string>
     <string name="logic_variable_type_list_map">List Map</string>
     <string name="logic_variable_type_list_number">List Number</string>

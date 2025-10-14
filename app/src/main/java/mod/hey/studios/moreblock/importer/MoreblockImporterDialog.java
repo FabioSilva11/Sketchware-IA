@@ -16,6 +16,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
+import a.a.a.Pp;
+import a.a.a.bB;
 import mod.hey.studios.util.Helper;
 import mod.jbk.util.BlockUtil;
 import pro.sketchware.R;
@@ -27,16 +29,18 @@ public class MoreblockImporterDialog extends MaterialAlertDialogBuilder {
 
     private final ArrayList<MoreBlockCollectionBean> moreBlockCollectionList;
     private final MoreBlockAdapter adapter;
+    private final ArrayList<MoreBlockCollectionBean> originalBeanList;
 
     public MoreblockImporterDialog(Activity activity, ArrayList<MoreBlockCollectionBean> beanList, CallBack callback) {
         super(activity);
 
         SearchWithRecyclerViewBinding binding = SearchWithRecyclerViewBinding.inflate(LayoutInflater.from(getContext()));
 
+        originalBeanList = beanList;
         moreBlockCollectionList = new ArrayList<>(beanList);
         adapter = new MoreBlockAdapter(moreBlockCollectionList);
 
-        setTitle("Select a more block");
+        setTitle(R.string.logic_more_block_title_select_more_block);
         setIcon(R.drawable.more_block_96dp);
 
         binding.searchInput.addTextChangedListener(new TextWatcher() {
@@ -62,7 +66,7 @@ public class MoreblockImporterDialog extends MaterialAlertDialogBuilder {
             MoreBlockCollectionBean selectedBean = adapter.getSelectedItem();
 
             if (selectedBean == null) {
-                SketchwareUtil.toastError("Select a more block");
+                SketchwareUtil.toastError(Helper.getResString(R.string.logic_more_block_message_select_more_block));
             } else {
                 callback.onSelected(selectedBean);
                 v.dismiss();
@@ -94,7 +98,7 @@ public class MoreblockImporterDialog extends MaterialAlertDialogBuilder {
         void onSelected(MoreBlockCollectionBean bean);
     }
 
-    private static class MoreBlockAdapter extends RecyclerView.Adapter<MoreBlockAdapter.ViewHolder> {
+    private class MoreBlockAdapter extends RecyclerView.Adapter<MoreBlockAdapter.ViewHolder> {
 
         private final ArrayList<MoreBlockCollectionBean> collectionList;
         private int selectedPosition = -1;
@@ -133,6 +137,39 @@ public class MoreblockImporterDialog extends MaterialAlertDialogBuilder {
             holder.binding.transparentOverlay.setOnClickListener(v -> {
                 selectedPosition = holder.getAbsoluteAdapterPosition();
                 notifyDataSetChanged();
+            });
+
+            holder.binding.transparentOverlay.setOnLongClickListener(v -> {
+                new MaterialAlertDialogBuilder(holder.itemView.getContext())
+                        .setTitle(R.string.event_context_menu_title_delete_more_block)
+                        .setMessage(R.string.event_dialog_confirm_delete_moreblock)
+                        .setPositiveButton(R.string.common_word_delete, (dialog, which) -> {
+                            int adapterPosition = holder.getAbsoluteAdapterPosition();
+                            if (adapterPosition < 0 || adapterPosition >= collectionList.size()) return;
+
+                            MoreBlockCollectionBean toDelete = collectionList.get(adapterPosition);
+
+                            // Persist deletion in collections
+                            Pp.h().a(toDelete.name, false);
+                            Pp.h().e();
+
+                            // Update lists in this dialog
+                            collectionList.remove(adapterPosition);
+                            originalBeanList.removeIf(b -> b.name.equals(toDelete.name));
+                            if (selectedPosition == adapterPosition) {
+                                selectedPosition = -1;
+                            } else if (selectedPosition > adapterPosition) {
+                                selectedPosition--;
+                            }
+
+                            notifyItemRemoved(adapterPosition);
+                            notifyItemRangeChanged(adapterPosition, getItemCount());
+
+                            bB.a(getContext(), Helper.getResString(R.string.common_message_complete_delete), 0).show();
+                        })
+                        .setNegativeButton(R.string.common_word_cancel, null)
+                        .show();
+                return true;
             });
         }
 
