@@ -147,6 +147,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
     private TextView fileName;
     private String currentJavaFileName;
     private ViewEditorFragment viewTabAdapter;
+    private StringsTabFragment stringsTabAdapter;
     private final ActivityResultLauncher<Intent> openCollectionManager = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (result.getResultCode() == RESULT_OK) {
             if (viewTabAdapter != null) {
@@ -256,12 +257,14 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                 xmlFileName = ProjectFileBean.DEFAULT_XML_NAME;
             }
             fileName.setText(xmlFileName);
-        } else {
+        } else if (viewPager.getCurrentItem() == 1 || viewPager.getCurrentItem() == 2) {
             if (!ProjectFileBean.DEFAULT_JAVA_NAME.equals(currentJavaFileName) && jC.b(sc_id).a(currentJavaFileName) == null) {
                 projectFile = getDefaultProjectFile();
                 currentJavaFileName = ProjectFileBean.DEFAULT_JAVA_NAME;
             }
             fileName.setText(currentJavaFileName);
+        } else if (viewPager.getCurrentItem() == 3) {
+            fileName.setText("strings.xml");
         }
     }
 
@@ -295,11 +298,21 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
 
     private void refresh() {
         refreshFileSelector();
-        if (viewPager.getCurrentItem() == 0) {
+        int tab = viewPager.getCurrentItem();
+        if (tab == 0) {
             refreshViewTabAdapter();
-        } else {
+        } else if (tab == 1) {
             refreshEventTabAdapter();
+        } else if (tab == 2) {
             refreshComponentTabAdapter();
+        } else if (tab == 3) {
+            refreshStringsTabAdapter();
+        }
+    }
+
+    private void refreshStringsTabAdapter() {
+        if (stringsTabAdapter != null) {
+            stringsTabAdapter.refreshList();
         }
     }
 
@@ -523,7 +536,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         xmlLayoutOrientation = findViewById(R.id.img_orientation);
         viewPager = findViewById(R.id.viewpager);
         viewPager.setAdapter(new ViewPagerAdapter(getSupportFragmentManager()));
-        viewPager.setOffscreenPageLimit(3);
+        viewPager.setOffscreenPageLimit(4);
         viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
 
             @Override
@@ -558,7 +571,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                             eventTabAdapter.refreshEvents();
                         }
                     }
-                } else {
+                } else if (position == 2) {
                     bottomMenu.findItem(7).setVisible(false);
                     if (viewTabAdapter != null) {
                         xmlLayoutOrientation.setImageResource(R.drawable.ic_mtrl_code);
@@ -566,6 +579,15 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                         if (componentTabAdapter != null) {
                             componentTabAdapter.refreshData();
                         }
+                    }
+                } else if (position == 3) {
+                    bottomMenu.findItem(7).setVisible(false);
+                    if (viewTabAdapter != null) {
+                        xmlLayoutOrientation.setImageResource(R.drawable.ic_mtrl_code);
+                        viewTabAdapter.showHidePropertyView(false);
+                    }
+                    if (stringsTabAdapter != null) {
+                        stringsTabAdapter.refreshList();
                     }
                 }
                 refresh();
@@ -1497,12 +1519,13 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             labels = new String[]{
                     Helper.getResString(R.string.design_tab_title_view),
                     Helper.getResString(R.string.design_tab_title_event),
-                    Helper.getResString(R.string.design_tab_title_component)};
+                    Helper.getResString(R.string.design_tab_title_component),
+                    Helper.getResString(R.string.design_tab_title_strings)};
         }
 
         @Override
         public int getCount() {
-            return 3;
+            return 4;
         }
 
         @Override
@@ -1518,8 +1541,10 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                 viewTabAdapter = (ViewEditorFragment) fragment;
             } else if (position == 1) {
                 eventTabAdapter = (rs) fragment;
-            } else {
+            } else if (position == 2) {
                 componentTabAdapter = (br) fragment;
+            } else if (position == 3) {
+                stringsTabAdapter = (StringsTabFragment) fragment;
             }
 
             return fragment;
@@ -1530,8 +1555,12 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         public Fragment getItem(int position) {
             if (position == 0) {
                 return new ViewEditorFragment();
+            } else if (position == 1) {
+                return new rs();
+            } else if (position == 2) {
+                return new br();
             } else {
-                return position == 1 ? new rs() : new br();
+                return new StringsTabFragment();
             }
         }
     }

@@ -148,7 +148,11 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
 
     public void setValue(String value) {
         this.value = value;
-        tvValue.setText(value);
+        String displayValue = value;
+        if ("property_text".equals(key) || "property_hint".equals(key)) {
+            displayValue = resolveStringReference(displayValue);
+        }
+        tvValue.setText(displayValue);
     }
 
     public void setBean(ViewBean bean) {
@@ -525,7 +529,11 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
             setupAutoCompleteTextView(binding.edTiAutoCompleteInput);
         }
 
-        lengthValidator.a(value);
+        String initialValue = value;
+        if (!isInject && ("property_text".equals(key) || "property_hint".equals(key))) {
+            initialValue = resolveStringReference(initialValue);
+        }
+        lengthValidator.a(initialValue);
         dialog.setView(binding.getRoot());
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_save), (v, which) ->
                 handleSave(lengthValidator, binding.edInput, binding.edTiAutoCompleteInput, binding.tiAutoCompleteInput, isInject, v));
@@ -548,6 +556,27 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
             }
         });
         alertDialog.show();
+    }
+
+    private String resolveStringReference(String input) {
+        if (input == null) return null;
+        String value = input.trim();
+        if (!value.startsWith(stringsStart)) return input;
+
+        // Ensure list map is loaded
+        if (stringsListMap.isEmpty()) {
+            loadStringsListMap();
+        }
+
+        String keyOnly = value.substring(stringsStart.length());
+        for (HashMap<String, Object> map : stringsListMap) {
+            Object keyObj = map.get("key");
+            if (keyObj != null && keyOnly.equals(String.valueOf(keyObj))) {
+                Object textObj = map.get("text");
+                if (textObj != null) return String.valueOf(textObj);
+            }
+        }
+        return input;
     }
 
     private void setupAutoCompleteTextView(MaterialAutoCompleteTextView autoCompleteTextView) {
