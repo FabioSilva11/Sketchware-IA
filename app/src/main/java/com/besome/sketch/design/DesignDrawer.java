@@ -41,6 +41,7 @@ public class DesignDrawer extends LinearLayout {
             case R.id.item_library_manager -> designActivity.toLibraryManager();
             case R.id.item_view_manager -> designActivity.toViewManager();
             case R.id.item_image_manager -> designActivity.toImageManager();
+            case R.id.item_lottie_manager -> designActivity.toLottieManager();
             case R.id.item_sound_manager -> designActivity.toSoundManager();
             case R.id.item_font_manager -> designActivity.toFontManager();
             case R.id.item_java_manager -> designActivity.toJavaManager();
@@ -100,6 +101,7 @@ public class DesignDrawer extends LinearLayout {
         addDrawerItem(R.id.item_library_manager, R.drawable.ic_mtrl_category, R.string.design_drawer_menu_title_library, R.string.design_drawer_menu_description_library, content);
         addDrawerItem(R.id.item_view_manager, R.drawable.ic_mtrl_devices, R.string.design_drawer_menu_title_view, R.string.design_drawer_menu_description_view, content);
         addDrawerItem(R.id.item_image_manager, R.drawable.ic_mtrl_image, R.string.design_drawer_menu_title_image, R.string.design_drawer_menu_description_image, content);
+        addDrawerItem(R.id.item_lottie_manager, R.drawable.ic_mtrl_animation, R.string.design_drawer_menu_title_lottie, R.string.design_drawer_menu_description_lottie, content);
         addDrawerItem(R.id.item_sound_manager, R.drawable.ic_mtrl_music, R.string.design_drawer_menu_title_sound, R.string.design_drawer_menu_description_sound, content);
         addDrawerItem(R.id.item_font_manager, R.drawable.ic_mtrl_font, R.string.design_drawer_menu_title_font, R.string.design_drawer_menu_description_font, content);
         addDrawerItem(R.id.item_java_manager, R.drawable.ic_mtrl_java, R.string.text_title_menu_java, R.string.text_subtitle_menu_java, content);
