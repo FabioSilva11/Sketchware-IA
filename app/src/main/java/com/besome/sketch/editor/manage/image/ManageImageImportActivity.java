@@ -224,7 +224,7 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
         Glide.with(getApplicationContext())
                 .asBitmap()
                 .load(selectedCollections.get(index).resFullName)
-                .centerCrop()
+                .fitCenter()
                 .error(R.drawable.ic_remove_grey600_24dp)
                 .into(new BitmapImageViewTarget(img).getView());
     }
