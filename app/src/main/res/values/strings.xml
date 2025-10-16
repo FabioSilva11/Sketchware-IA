@@ -1,6 +1,6 @@
 <resources>
     <!-- Added for Lottie Manager and Image Web Search -->
-    <string name="design_drawer_menu_title_lottie">Lottie</string>
+    <string name="design_drawer_menu_title_lottie">Lottie Manage</string>
     <string name="design_drawer_menu_description_lottie">Manage Lottie animations</string>
     <string name="design_manager_lottie_hint_enter_animation_name">Enter the animation name</string>
     <string name="design_manager_lottie_title_add_lottie">Add Lottie animation</string>

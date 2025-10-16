@@ -3,15 +3,23 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="8dp">
 
     <TextView
-        android:id="@+id/empty_text"
+        android:id="@+id/tv_guide"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lotties"
-        android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
+        android:text="@string/design_manager_lottie_description_guide_add_animation"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        android:visibility="gone" />
 
-    <!-- Placeholder content; replace with RecyclerView/list when implementing data -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/image_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp" />
 
 </LinearLayout>

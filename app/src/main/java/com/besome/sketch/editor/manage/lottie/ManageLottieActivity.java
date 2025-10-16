@@ -1,35 +1,96 @@
 package com.besome.sketch.editor.manage.lottie;
 
+import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
+import android.os.Handler;
+import android.view.View;
+import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
-
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
+import java.lang.ref.WeakReference;
 
+import a.a.a.MA;
+import a.a.a.Op;
+import a.a.a.mB;
+import com.besome.sketch.editor.manage.lottie.LottieProjectFragment;
+import com.besome.sketch.editor.manage.lottie.LottieCollectionFragment;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageLottieBinding;
 
 public class ManageLottieActivity extends BaseAppCompatActivity implements ViewPager.OnPageChangeListener {
-
     private String sc_id;
+    private LottieProjectFragment projectLottiesFragment;
+    private LottieCollectionFragment collectionLottiesFragment;
     private ManageLottieBinding binding;
 
+
+    public static int getLottieGridColumnCount(Context context) {
+        var displayMetrics = context.getResources().getDisplayMetrics();
+        return (int) (displayMetrics.widthPixels / displayMetrics.density) / 100;
+    }
+
+    private String getTranslatedString(int resId) {
+        // Fallback to standard getString; replace with translation logic if available
+        return getString(resId);
+    }
+
     @Override
-    public void onCreate(@Nullable Bundle savedInstanceState) {
+    public void onPageScrollStateChanged(int state) {
+    }
+
+    @Override
+    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+    }
+
+    public void f(int i) {
+        binding.viewPager.setCurrentItem(i);
+    }
+
+    public LottieCollectionFragment l() {
+        return collectionLottiesFragment;
+    }
+
+    public LottieProjectFragment m() {
+        return projectLottiesFragment;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (projectLottiesFragment.isSelecting) {
+            projectLottiesFragment.a(false);
+        } else if (collectionLottiesFragment.isSelecting()) {
+            collectionLottiesFragment.unselectAll();
+            binding.layoutBtnImport.setVisibility(View.GONE);
+        } else {
+            k();
+            new Handler().postDelayed(() -> new SaveLottiesAsyncTask(this).execute(), 500L);
+        }
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ManageLottieBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        setSupportActionBar(binding.topAppBar);
-        binding.topAppBar.setTitle(Helper.getResString(R.string.design_drawer_menu_title_lottie));
-        binding.topAppBar.setNavigationOnClickListener(v -> onBackPressed());
+        if (!super.isStoragePermissionGranted()) {
+            finish();
+        }
 
+        setSupportActionBar(binding.topAppBar);
+        binding.topAppBar.setTitle("Lottie Manage");
+        binding.topAppBar.setNavigationOnClickListener(v -> {
+            if (!mB.a()) {
+                onBackPressed();
+            }
+        });
         if (savedInstanceState == null) {
             sc_id = getIntent().getStringExtra("sc_id");
         } else {
@@ -43,33 +104,62 @@ public class ManageLottieActivity extends BaseAppCompatActivity implements ViewP
     }
 
     @Override
-    public void onPageScrollStateChanged(int state) {
+    public void onResume() {
+        super.onResume();
+        if (!super.isStoragePermissionGranted()) {
+            finish();
+        }
     }
 
     @Override
-    public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putString("sc_id", sc_id);
+        super.onSaveInstanceState(outState);
     }
 
     @Override
     public void onPageSelected(int position) {
-        binding.layoutBtnGroup.setVisibility(android.view.View.GONE);
-        binding.layoutBtnImport.setVisibility(android.view.View.GONE);
+        binding.layoutBtnGroup.setVisibility(View.GONE);
+        binding.layoutBtnImport.setVisibility(View.GONE);
 
         if (position == 0) {
             binding.fab.animate().translationY(0F).setDuration(200L).start();
             binding.fab.show();
+            collectionLottiesFragment.unselectAll();
         } else {
             binding.fab.animate().translationY(400F).setDuration(200L).start();
             binding.fab.hide();
+            projectLottiesFragment.a(false);
         }
     }
 
-    @Override
-    protected void onSaveInstanceState(@Nullable Bundle outState) {
-        if (outState != null) {
-            outState.putString("sc_id", sc_id);
+    private static class SaveLottiesAsyncTask extends MA {
+        private final WeakReference<ManageLottieActivity> activity;
+
+        public SaveLottiesAsyncTask(ManageLottieActivity activity) {
+            super(activity);
+            this.activity = new WeakReference<>(activity);
+            activity.a(this);
         }
-        super.onSaveInstanceState(outState);
+
+        @Override
+        public void a() {
+            var activity = this.activity.get();
+            activity.h();
+            activity.setResult(Activity.RESULT_OK);
+            activity.finish();
+            Op.g().d();
+        }
+
+        @Override
+        public void b() {
+            activity.get().projectLottiesFragment.saveImages();
+        }
+
+        @Override
+        public void a(String str) {
+            activity.get().h();
+        }
     }
 
     private class PagerAdapter extends FragmentPagerAdapter {
@@ -88,14 +178,29 @@ public class ManageLottieActivity extends BaseAppCompatActivity implements ViewP
         }
 
         @Override
-        public CharSequence getPageTitle(int position) {
-            return labels[position];
+        @NonNull
+        public Object instantiateItem(@NonNull ViewGroup container, int position) {
+            Fragment fragment = (Fragment) super.instantiateItem(container, position);
+            if (position == 0) {
+                projectLottiesFragment = (LottieProjectFragment) fragment;
+            } else {
+                collectionLottiesFragment = (LottieCollectionFragment) fragment;
+            }
+            return fragment;
         }
 
         @Override
         @NonNull
         public Fragment getItem(int position) {
-            return position == 0 ? new ProjectLottiesFragment() : new CollectionLottiesFragment();
+            if (position != 0) {
+                return new LottieCollectionFragment();
+            }
+            return new LottieProjectFragment();
+        }
+
+        @Override
+        public CharSequence getPageTitle(int position) {
+            return labels[position];
         }
     }
 }
