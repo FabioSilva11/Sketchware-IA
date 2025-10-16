@@ -2298,6 +2298,24 @@ Please try again later"</string>
     <string name="save_to_collection">Save to collection</string>
     <string name="unknown_attr">Unknown Attribute</string>
     <string name="attr_already_exist">This attribute already exists</string>
+    <string name="ia_settings_title">AI Settings</string>
+    <string name="ia_settings_subtitle">Manage API keys for AI providers</string>
+    <string name="ia_settings_description">Enter and manage your API keys for Groq, OpenAI, and Claude. These keys stay on your device only.</string>
+    <string name="ia_label_groq_api_key">Groq API Key</string>
+    <string name="ia_label_openai_api_key">OpenAI API Key</string>
+    <string name="ia_label_claude_api_key">Claude API Key</string>
+    <string name="ia_hint_api_key">Paste your key here</string>
+    <string name="ia_link_get_groq_api_key">Get Groq key</string>
+    <string name="ia_link_get_openai_api_key">Get OpenAI key</string>
+    <string name="ia_link_get_claude_api_key">Get Claude key</string>
+    <string name="url_groq_api_keys">https://console.groq.com/keys</string>
+    <string name="url_openai_api_keys">https://platform.openai.com/api-keys</string>
+    <string name="url_claude_api_keys">https://console.anthropic.com/settings/keys</string>
+    <string name="ia_toggle_groq">Enable Groq</string>
+    <string name="ia_toggle_openai">Enable OpenAI</string>
+    <string name="ia_toggle_claude">Enable Claude</string>
+    <string name="ia_open_link_error">Unable to open the link</string>
 
 
 </resources>
+

@@ -305,6 +305,7 @@
             android:theme="@style/Theme.SketchwarePro.ProjectPreview" />
 
         <activity android:name="pro.sketchware.activities.settings.SettingsActivity" />
+        <activity android:name="pro.sketchware.activities.settings.IaSettingsActivity" />
 
         <activity android:name="pro.sketchware.activities.resourceseditor.ResourcesEditorActivity" />
 
