@@ -139,12 +139,12 @@
             android:configChanges="orientation|screenSize" />
         <activity
             android:name="com.besome.sketch.editor.manage.lottie.AddLottieActivity"
-            android:configChanges="orientation|screenSize"
-            android:theme="@style/Theme.AppCompat.Light.NoActionBar.Translucent"
             android:windowSoftInputMode="adjustResize|stateHidden" />
         <activity
             android:name="com.besome.sketch.editor.manage.lottie.ManageLottieImportActivity"
-            android:configChanges="orientation|screenSize" />
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar.Translucent"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
         <activity
             android:name="com.besome.sketch.editor.manage.font.ManageFontActivity"
             android:configChanges="orientation|screenSize" />

@@ -366,7 +366,7 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
     }
 
     private void addToMyCollection(ProjectResourceBean lottie) throws By {
-        String destDir = wq.a() + File.separator + "lottie" + File.separator + "data";
+        String destDir = wq.a() + File.separator + "assets";
         new oB().f(destDir);
         String destName = lottie.resName.toLowerCase().endsWith(".json") ? lottie.resName : lottie.resName + ".json";
         File src = new File(lottie.resFullName);

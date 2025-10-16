@@ -292,7 +292,7 @@ public class ManageLottieImportActivity extends BaseAppCompatActivity implements
         @Override
         @NonNull
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.manage_import_list_item, parent, false));
+            return new ViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.manage_lottie_import_list_item, parent, false));
         }
 
         @Override

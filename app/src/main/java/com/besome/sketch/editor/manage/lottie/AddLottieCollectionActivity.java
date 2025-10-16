@@ -383,7 +383,7 @@ public class AddLottieCollectionActivity extends BaseDialogActivity implements V
     }
 
     private void addToMyCollection(ProjectResourceBean lottie) throws By {
-        String destDirPath = wq.a() + File.separator + "lottie" + File.separator + "data";
+        String destDirPath = wq.a() + File.separator + "assets";
         File destDir = new File(destDirPath);
         if (!destDir.exists()) destDir.mkdirs();
 

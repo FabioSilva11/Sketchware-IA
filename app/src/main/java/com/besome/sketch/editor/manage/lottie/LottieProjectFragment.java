@@ -173,8 +173,8 @@ public class LottieProjectFragment extends qA {
 
     private void initialize() {
         sc_id = requireActivity().getIntent().getStringExtra("sc_id");
-        // Use project assets/lottie directory, not the image directory
-        projectLottiesDirectory = fpu.getPathAssets(sc_id) + File.separator + "lottie";
+        // Use project assets directory
+        projectLottiesDirectory = fpu.getPathAssets(sc_id);
         // Ensure directory exists
         new oB().f(projectLottiesDirectory);
 

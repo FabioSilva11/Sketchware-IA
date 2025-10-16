@@ -68,10 +68,61 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
     private Button btnImport;
     private MaterialCardView layoutBtnImport;
 
+    private boolean isValidLottieJson(String json) {
+        if (json == null || json.isEmpty()) {
+            return false;
+        }
+        try {
+            // Verifica se o JSON contém elementos básicos de uma animação Lottie
+            return json.contains("\"v\"") && 
+                   (json.contains("\"assets\"") || json.contains("\"layers\""));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public void refreshData() {
-        collectionLotties = Op.g().f();
+        collectionLotties = new ArrayList<>();
+
+        // Lista diretamente os arquivos .json dentro de .sketchware/collection/assets
+        File assetsDir = new File(wq.a() + File.separator + "assets");
+        if (!assetsDir.exists()) {
+            // Caso a pasta não exista ainda, evita NullPointer e apenas atualiza a UI
+            adapter.notifyDataSetChanged();
+            updateGuideVisibility();
+            return;
+        }
+
+        File[] files = assetsDir.listFiles((dir, name) -> name != null && name.toLowerCase().endsWith(".json"));
+        if (files != null) {
+            for (File file : files) {
+                String jsonContent = readFileContents(file.getAbsolutePath());
+                if (isValidLottieJson(jsonContent)) {
+                    String resFullName = file.getName();
+                    String resName = resFullName.substring(0, Math.max(0, resFullName.lastIndexOf('.')));
+                    collectionLotties.add(new ProjectResourceBean(ProjectResourceBean.PROJECT_RES_TYPE_FILE, resName, resFullName));
+                }
+            }
+        }
+
         adapter.notifyDataSetChanged();
         updateGuideVisibility();
+    }
+
+    private String readFileContents(String filePath) {
+        try (FileInputStream fis = new FileInputStream(filePath)) {
+            byte[] buffer = new byte[8192];
+            int read;
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            while ((read = fis.read(buffer)) != -1) {
+                baos.write(buffer, 0, read);
+            }
+            return baos.toString("UTF-8"); // Especifica UTF-8 para correta leitura de caracteres
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public void unselectAll() {
@@ -98,7 +149,7 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
         ArrayList<ProjectResourceBean> selectedCollections = new ArrayList<>();
         for (ProjectResourceBean lottie : collectionLotties) {
             if (lottie.isSelected) {
-                selectedCollections.add(new ProjectResourceBean(ProjectResourceBean.PROJECT_RES_TYPE_FILE, lottie.resName, wq.a() + File.separator + "lottie" + File.separator + "data" + File.separator + lottie.resFullName));
+                selectedCollections.add(new ProjectResourceBean(ProjectResourceBean.PROJECT_RES_TYPE_FILE, lottie.resName, wq.a() + File.separator + "assets" + File.separator + lottie.resFullName));
             }
         }
         if (!selectedCollections.isEmpty()) {
@@ -172,38 +223,31 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
         super.onSaveInstanceState(outState);
     }
 
-    private String readFileContents(String filePath) {
-        try (FileInputStream fis = new FileInputStream(filePath)) {
-            var buffer = new byte[8192];
-            int read;
-            var baos = new java.io.ByteArrayOutputStream();
-            while ((read = fis.read(buffer)) != -1) {
-                baos.write(buffer, 0, read);
-            }
-            return baos.toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     private class Adapter extends RecyclerView.Adapter<Adapter.ViewHolder> {
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             ProjectResourceBean lottie = collectionLotties.get(position);
             holder.binding.chkSelect.setVisibility(View.VISIBLE);
-            holder.binding.lottieAnimationIndicator.setVisibility(View.VISIBLE); // Show animation indicator for Lottie files
+            holder.binding.lottieAnimationIndicator.setVisibility(View.VISIBLE);
             
-            // Tenta carregar a animação Lottie a partir do JSON da coleção
-            String jsonPath = wq.a() + File.separator + "lottie" + File.separator + "data" + File.separator + lottie.resFullName;
+            String jsonPath = wq.a() + File.separator + "assets" + File.separator + lottie.resFullName;
             String json = readFileContents(jsonPath);
-            if (json != null && !json.isEmpty()) {
-                holder.binding.lottie.setAnimationFromJson(json, lottie.resFullName);
-                holder.binding.lottie.playAnimation();
-                holder.binding.lottieAnimationIndicator.setVisibility(View.GONE);
-            } else {
-                // Fallback para um placeholder caso o arquivo não esteja acessível
+            
+            try {
+                if (json != null && isValidLottieJson(json)) {
+                    holder.binding.lottie.setAnimationFromJson(json, lottie.resFullName);
+                    holder.binding.lottie.setRepeatCount(3); // Limita repetições da animação
+                    holder.binding.lottie.playAnimation();
+                    holder.binding.lottieAnimationIndicator.setVisibility(View.GONE);
+                } else {
+                    holder.binding.lottie.cancelAnimation();
+                    holder.binding.lottie.setImageResource(R.drawable.ic_mtrl_animation);
+                    holder.binding.lottieAnimationIndicator.setVisibility(View.VISIBLE);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                holder.binding.lottie.cancelAnimation();
                 holder.binding.lottie.setImageResource(R.drawable.ic_mtrl_animation);
                 holder.binding.lottieAnimationIndicator.setVisibility(View.VISIBLE);
             }
