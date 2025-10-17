@@ -2301,6 +2301,7 @@ Please try again later"</string>
     <string name="ia_settings_title">AI Settings</string>
     <string name="ia_settings_subtitle">Manage API keys for AI providers</string>
     <string name="ia_settings_description">Enter and manage your API keys for Groq, OpenAI, and Claude. These keys stay on your device only.</string>
+    <string name="ia_device_language_notice_template" translatable="false">Device language: %1$s. The AI will respond in the detected language.</string>
     <string name="ia_label_groq_api_key">Groq API Key</string>
     <string name="ia_label_openai_api_key">OpenAI API Key</string>
     <string name="ia_label_claude_api_key">Claude API Key</string>

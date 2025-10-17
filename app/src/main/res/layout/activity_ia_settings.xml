@@ -39,6 +39,16 @@
                 android:layout_marginTop="16dp"
                 android:text="@string/ia_settings_description" />
 
+            <TextView
+                android:id="@+id/tv_device_language_notice"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="14sp"
+                android:ellipsize="end"
+                android:maxLines="3" />
+
             <!-- Groq -->
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/switch_groq"

@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
@@ -14,6 +15,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
+import java.util.Locale;
 
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
@@ -31,6 +33,18 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
 
         binding.topAppBar.setTitle(R.string.ia_settings_title);
         binding.topAppBar.setNavigationOnClickListener(Helper.getBackPressedClickListener(this));
+
+        // Show device language and an English notice that AI will respond in the detected language
+        {
+            Locale locale = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
+                    ? getResources().getConfiguration().getLocales().get(0)
+                    : getResources().getConfiguration().locale;
+            String deviceLanguageName = locale.getDisplayLanguage(locale);
+            if (binding.tvDeviceLanguageNotice != null) {
+                binding.tvDeviceLanguageNotice.setText(getString(R.string.ia_device_language_notice_template, deviceLanguageName));
+                binding.tvDeviceLanguageNotice.setVisibility(View.VISIBLE);
+            }
+        }
 
         {
             View view = binding.appBarLayout;
