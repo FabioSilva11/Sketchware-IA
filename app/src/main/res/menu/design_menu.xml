@@ -8,6 +8,14 @@
         android:title="@string/design_option_menu_title_save_project"
         app:showAsAction="always" />
 
+
+    <item
+        android:id="@+id/design_option_menu_ai_generate_layout"
+        android:icon="@drawable/ic_mtrl_code"
+        android:orderInCategory="120"
+        android:title="IA"
+        app:showAsAction="always" />
+
     <item
         android:id="@+id/design_actionbar_titleopen_drawer"
         android:icon="@drawable/selector_ic_more_tinted_24"

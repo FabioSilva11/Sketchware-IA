@@ -21,6 +21,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
@@ -64,6 +65,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.progressindicator.LinearProgressIndicator;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.topjohnwu.superuser.Shell;
 
@@ -74,7 +76,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
 import a.a.a.DB;
 import a.a.a.GB;
 import a.a.a.Ox;
@@ -646,9 +647,51 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             }
         } else if (itemId == R.id.design_option_menu_title_save_project) {
             saveProject();
+        } else if (itemId == R.id.design_option_menu_ai_generate_layout) {
+            launchAiGenerateLayout();
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void launchAiGenerateLayout() {
+        // Check if API is configured
+        try {
+            var currentFile = Helper.getText(fileName);
+
+            // Criar layout customizado para o dialog
+            View dialogView = getLayoutInflater().inflate(R.layout.dialog_ai_layout_generation, null);
+
+            var dialog = new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.ai_layout_generator_title)
+                    .setMessage(R.string.ai_layout_generator_message)
+                    .setView(dialogView)
+                    .setPositiveButton(R.string.common_word_generate, (d, w) -> {
+                        var promptView = dialogView.findViewById(R.id.input_text);
+                        var preserveCurrentCheckbox = dialogView.findViewById(R.id.checkbox_preserve_current);
+                        var styleConsistencyCheckbox = dialogView.findViewById(R.id.checkbox_style_consistency);
+
+                        if (promptView instanceof TextInputEditText edit) {
+                            String prompt = String.valueOf(edit.getText());
+                            boolean preserveCurrent = preserveCurrentCheckbox instanceof CheckBox && ((CheckBox) preserveCurrentCheckbox).isChecked();
+                            boolean styleConsistency = styleConsistencyCheckbox instanceof CheckBox && ((CheckBox) styleConsistencyCheckbox).isChecked();
+
+                            generateAndApplyLayoutAsync(currentFile, prompt, preserveCurrent, styleConsistency);
+                        }
+                    })
+                    .setNegativeButton(R.string.common_word_cancel, null)
+                    .create();
+            dialog.show();
+        } catch (Exception e) {
+            e.printStackTrace();
+            SketchwareUtil.toastError(e.toString());
+        }
+    }
+
+    private void generateAndApplyLayoutAsync(String currentFile, String prompt, boolean preserveCurrent, boolean styleConsistency) {
+
+            SketchwareUtil.toastError("layout gerado e pronto: ");
+
     }
 
     @Override
@@ -755,6 +798,27 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         dialog.setMessage(Helper.getResString(R.string.common_message_insufficient_storage_space));
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_ok), null);
         dialog.show();
+    }
+
+    /**
+     * Extrai o valor de um atributo XML do layout
+     * @param xml O código XML do layout
+     * @param attribute O nome do atributo a ser extraído (ex: "android:textColor")
+     * @return O valor do atributo ou null se não encontrado
+     */
+    private String extractAttribute(String xml, String attribute) {
+        try {
+            int start = xml.indexOf(attribute + "=\"");
+            if (start < 0) return null;
+            
+            start += attribute.length() + 2;
+            int end = xml.indexOf("\"", start);
+            if (end < 0) return null;
+            
+            return xml.substring(start, end);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private void askIfToRestoreOldUnsavedProjectData() {

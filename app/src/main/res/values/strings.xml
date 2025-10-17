@@ -2282,6 +2282,17 @@ Please try again later"</string>
     <string name="add_to">Add to category</string>
     <string name="title_activity_icon_creator">IconCreatorActivity</string>
 
+    <string name="groq_api_key_not_configured_title">API Key Not Configured</string>
+    <string name="groq_api_key_not_configured_message">The Groq API key is not configured. Would you like to configure it now?</string>
+    <string name="groq_api_key_configure">Configure API Key</string>
+    <string name="groq_api_key_cancel">Cancel</string>
+    <string name="groq_api_error_generic">An error occurred while processing your request</string>
+
+    <!-- AI Layout Generator Strings -->
+    <string name="ai_layout_generator_title">AI Generate Layout</string>
+    <string name="ai_layout_generator_message">Describe the layout you want to generate or modify.</string>
+    <string name="common_word_generate">Generate</string>
+
     <string name="used_custom_blocks">Used Custom Blocks</string>
     <string name="property_enter_value">Enter %s value</string>
 
