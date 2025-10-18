@@ -2329,5 +2329,12 @@ Please try again later"</string>
     <string name="ia_open_link_error">Unable to open the link</string>
 
 
+    <!-- Donation dialog and drawer -->
+    <string name="donation_dialog_title">Support the project</string>
+    <string name="donation_dialog_message">If you enjoy Sketchware IA, consider making a donation to support ongoing development and keep the project alive.</string>
+    <string name="donation_button_donate">Donate</string>
+    <string name="donation_button_cancel">Cancel</string>
+    <string name="main_drawer_title_donate">Donate</string>
+    <string name="link_donation_url">https://buy.stripe.com/6oU3cw0po1l90Ik52s0co00</string>
 </resources>
 

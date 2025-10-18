@@ -288,41 +288,33 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
     private void maybeShowAdsNoticeOnce() {
         if (adsNoticeDialog != null && adsNoticeDialog.isShowing()) return;
-        boolean shown = getSharedPreferences(PREFS_ADS_NOTICE, MODE_PRIVATE).getBoolean(KEY_ADS_NOTICE_SHOWN, false);
+        boolean shown = false;
         if (shown) return;
 
         View content = getLayoutInflater().inflate(R.layout.bottomsheet_ads_notice, null);
         adsNoticeDialog = new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
                 .setView(content)
                 .create();
-        adsNoticeDialog.setCanceledOnTouchOutside(false);
-        adsNoticeDialog.setCancelable(false);
+        adsNoticeDialog.setCanceledOnTouchOutside(true);
+        adsNoticeDialog.setCancelable(true);
 
         View close = content.findViewById(R.id.close);
-        View copy = content.findViewById(R.id.copy);
-        close.setEnabled(false);
-
-        close.postDelayed(() -> {
-            if (adsNoticeDialog == null) return;
-            if (close instanceof android.widget.Button) {
-                ((android.widget.Button) close).setText("Close");
-            }
-            adsNoticeDialog.setCancelable(true);
-            close.setEnabled(true);
-        }, 10000L);
+        View donate = content.findViewById(R.id.donate);
 
         close.setOnClickListener(v -> {
-            if (!v.isEnabled()) return;
             getSharedPreferences(PREFS_ADS_NOTICE, MODE_PRIVATE)
                     .edit().putBoolean(KEY_ADS_NOTICE_SHOWN, true).apply();
             adsNoticeDialog.dismiss();
         });
 
-        copy.setOnClickListener(v -> {
-            android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            android.content.ClipData clip = android.content.ClipData.newPlainText("Sketchware Notice", ((android.widget.TextView) content.findViewById(R.id.body)).getText());
-            cm.setPrimaryClip(clip);
-            SketchwareUtil.toast("Copied to clipboard");
+        donate.setOnClickListener(v -> {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.link_donation_url)));
+                startActivity(intent);
+            } catch (Exception ignored) { }
+            getSharedPreferences(PREFS_ADS_NOTICE, MODE_PRIVATE)
+                    .edit().putBoolean(KEY_ADS_NOTICE_SHOWN, true).apply();
+            adsNoticeDialog.dismiss();
         });
 
         adsNoticeDialog.show();

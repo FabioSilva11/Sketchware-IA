@@ -25,6 +25,11 @@
         android:icon="@drawable/ic_mtrl_settings"
         android:title="Settings" />
 
+    <item
+        android:id="@+id/donate"
+        android:icon="@drawable/receive_cash_48"
+        android:title="@string/main_drawer_title_donate" />
+
     <item android:title="Related links">
         <menu>
             <item
