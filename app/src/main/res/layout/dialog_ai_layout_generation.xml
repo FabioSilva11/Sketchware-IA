@@ -30,48 +30,4 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Generation options:"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:textColor="?android:attr/textColorPrimary"
-        android:layout_marginBottom="8dp" />
-
-    <CheckBox
-        android:id="@+id/checkbox_preserve_current"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Preserve existing elements"
-        android:textSize="13sp"
-        android:checked="true"
-        android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Keeps existing views and IDs, adding only new elements"
-        android:textSize="11sp"
-        android:textColor="?android:attr/textColorSecondary"
-        android:layout_marginStart="32dp"
-        android:layout_marginBottom="8dp" />
-
-    <CheckBox
-        android:id="@+id/checkbox_style_consistency"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Maintain style consistency"
-        android:textSize="13sp"
-        android:checked="true"
-        android:layout_marginBottom="8dp" />
-
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Applies the same color, spacing and style patterns from the current layout"
-        android:textSize="11sp"
-        android:textColor="?android:attr/textColorSecondary"
-        android:layout_marginStart="32dp" />
-
 </LinearLayout>

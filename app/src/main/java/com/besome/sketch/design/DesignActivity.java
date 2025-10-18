@@ -127,6 +127,9 @@ import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.ThemeUtils;
 import pro.sketchware.utility.apk.ApkSignatures;
+import com.besome.sketch.beans.HistoryViewBean;
+import pro.sketchware.managers.inject.InjectRootLayoutManager;
+import pro.sketchware.tools.ViewBeanParser;
 
 public class DesignActivity extends BaseAppCompatActivity implements View.OnClickListener {
     public static String sc_id;
@@ -655,11 +658,8 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
     }
 
     private void launchAiGenerateLayout() {
-        // Check if API is configured
         try {
             var currentFile = Helper.getText(fileName);
-
-            // Criar layout customizado para o dialog
             View dialogView = getLayoutInflater().inflate(R.layout.dialog_ai_layout_generation, null);
 
             var dialog = new MaterialAlertDialogBuilder(this)
@@ -668,15 +668,10 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                     .setView(dialogView)
                     .setPositiveButton(R.string.common_word_generate, (d, w) -> {
                         var promptView = dialogView.findViewById(R.id.input_text);
-                        var preserveCurrentCheckbox = dialogView.findViewById(R.id.checkbox_preserve_current);
-                        var styleConsistencyCheckbox = dialogView.findViewById(R.id.checkbox_style_consistency);
-
                         if (promptView instanceof TextInputEditText edit) {
                             String prompt = String.valueOf(edit.getText());
-                            boolean preserveCurrent = preserveCurrentCheckbox instanceof CheckBox && ((CheckBox) preserveCurrentCheckbox).isChecked();
-                            boolean styleConsistency = styleConsistencyCheckbox instanceof CheckBox && ((CheckBox) styleConsistencyCheckbox).isChecked();
-
-                            generateAndApplyLayoutAsync(currentFile, prompt, preserveCurrent, styleConsistency);
+                            // Chama sem os parâmetros removidos
+                            generateAndApplyLayoutAsync(currentFile, prompt);
                         }
                     })
                     .setNegativeButton(R.string.common_word_cancel, null)
@@ -688,11 +683,76 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         }
     }
 
-    private void generateAndApplyLayoutAsync(String currentFile, String prompt, boolean preserveCurrent, boolean styleConsistency) {
+    private void generateAndApplyLayoutAsync(String currentFile, String prompt) {
+        if (projectFile == null) {
+            runOnUiThread(() -> SketchwareUtil.toastError("Nenhum arquivo de layout selecionado."));
+            return;
+        }
+        new Thread(() -> {
+            try {
+                pro.sketchware.ia.GeradorDeLayout gerador = new pro.sketchware.ia.GeradorDeLayout(prompt);
+                String xmlGerado = gerador.gerarLayout();
 
-            SketchwareUtil.toastError("layout gerado e pronto: ");
+                String cleanXml = xmlGerado.trim();
 
+// Remove cabeçalho XML duplicado, se existir
+                if (cleanXml.startsWith("<?xml")) {
+                    int endIndex = cleanXml.indexOf("?>");
+                    if (endIndex != -1) {
+                        cleanXml = cleanXml.substring(endIndex + 2).trim();
+                    }
+                }
+
+// Monta o XML final corretamente
+                String preparedXml = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+                        + "<LinearLayout\n"
+                        + "    xmlns:android=\"http://schemas.android.com/apk/res/android\"\n"
+                        + "    xmlns:app=\"http://schemas.android.com/apk/res-auto\"\n"
+                        + "    xmlns:tools=\"http://schemas.android.com/tools\"\n"
+                        + "    android:layout_width=\"match_parent\"\n"
+                        + "    android:layout_height=\"match_parent\"\n"
+                        + "    android:orientation=\"vertical\">\n"
+                        + cleanXml + "\n"
+                        + "</LinearLayout>";
+                runOnUiThread(() -> {
+                    try {
+                        var parser = new ViewBeanParser(preparedXml);
+                        parser.setSkipRoot(true);
+                        var parsedLayout = parser.parse();
+                        var root = parser.getRootAttributes();
+
+                        String xmlName = projectFile.getXmlName();
+
+                        var rootLayoutManager = new InjectRootLayoutManager(sc_id);
+                        rootLayoutManager.set(xmlName, InjectRootLayoutManager.toRoot(root));
+
+                        var bean = new HistoryViewBean();
+                        bean.actionOverride(parsedLayout, jC.a(sc_id).d(xmlName));
+                        var cc = cC.c(sc_id);
+                        if (!cc.c.containsKey(xmlName)) {
+                            cc.e(xmlName);
+                        }
+                        cc.a(xmlName);
+                        cc.a(xmlName, bean);
+
+                        jC.a(sc_id).c.put(xmlName, parsedLayout);
+
+                        if (viewTabAdapter != null) {
+                            viewTabAdapter.i();
+                            refreshViewTabAdapter();
+                        }
+
+                        SketchwareUtil.toast("Layout aplicado em " + xmlName);
+                    } catch (Exception parseExp) {
+                        SketchwareUtil.toastError("Falha ao aplicar layout: " + parseExp.getMessage());
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> SketchwareUtil.toastError("Erro ao gerar layout: " + e.getMessage()));
+            }
+        }).start();
     }
+
 
     @Override
     public void onPostCreate(Bundle savedInstanceState) {
