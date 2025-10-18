@@ -254,8 +254,8 @@ public class MainActivity extends BasePermissionAppCompatActivity {
             }
         }
 
-        // Ocultar a aba/fragmento de loja na navegação inferior
-        binding.bottomNav.getMenu().findItem(R.id.item_sketchub).setVisible(false);
+        // Exibir a aba/fragmento de loja na navegação inferior
+        binding.bottomNav.getMenu().findItem(R.id.item_sketchub).setVisible(true);
 
         binding.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
