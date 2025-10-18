@@ -303,6 +303,10 @@
             android:name="pro.sketchware.activities.main.fragments.projects_store.ProjectPreviewActivity"
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.SketchwarePro.ProjectPreview" />
+        <activity
+            android:name="pro.sketchware.activities.main.fragments.projects_store.ProjectWebViewActivity"
+            android:configChanges="orientation|screenSize"
+            android:theme="@style/Theme.SketchwarePro" />
 
         <activity android:name="pro.sketchware.activities.settings.SettingsActivity" />
         <activity android:name="pro.sketchware.activities.settings.IaSettingsActivity" />

@@ -73,7 +73,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.filesize.setText("Size: " + project.getProjectSize());
         binding.timestamp.setText("Released: " + DateFormat.getDateInstance().format(new Date(Long.parseLong(project.getPublishedTimestamp()))));
         binding.btnComments.setOnClickListener(v -> openCommentsSheet());
-        binding.btnDownload.setOnClickListener(v -> SketchwareUtil.toastError("Downloading projects is unavailable right now!"));
+        binding.btnDownload.setOnClickListener(v -> openProjectInApp());
         binding.btnOpenIn.setOnClickListener(v -> openProject());
         binding.btnBack.setOnClickListener(v -> finish());
 
@@ -157,6 +157,12 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
     private void openProject() {
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setData(Uri.parse("https://web.sketchub.in/p/" + project.getId()));
+        startActivity(intent);
+    }
+
+    private void openProjectInApp() {
+        Intent intent = new Intent(this, ProjectWebViewActivity.class);
+        intent.putExtra("url", "https://web.sketchub.in/p/" + project.getId());
         startActivity(intent);
     }
 }
