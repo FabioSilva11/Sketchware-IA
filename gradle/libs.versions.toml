@@ -1,5 +1,5 @@
 [versions]
-activity = "1.11.0"
+activity = "1.13.0"
 appcompat = "1.7.1"
 desugar_jdk_libs_nio = "2.1.5"
 firebaseBom = "34.3.0"
