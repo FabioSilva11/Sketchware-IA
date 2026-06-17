@@ -14,6 +14,7 @@ import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
@@ -21,16 +22,15 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.GravityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.widget.TextViewCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import pro.sketchware.utility.TranslationFunction;
@@ -56,17 +56,18 @@ import pro.sketchware.activities.chat.AiChatSettingsHelper;
 import pro.sketchware.activities.chat.port.VoidPortRefreshModelService;
 import pro.sketchware.activities.chat.port.VoidPortSettings;
 import pro.sketchware.databinding.ActivityIaSettingsBinding;
-import pro.sketchware.utility.TranslationFunction;
+import pro.sketchware.databinding.ItemProviderRowBinding;
 
+/**
+ * Providers list — the new entry point for AI Settings, redesigned to match
+ * the Kelivo-style provider list (icon, name, ON/OFF badge, chevron). Tapping
+ * a row opens {@link ProviderDetailActivity}. Advanced sections (Feature
+ * Options, MCP servers, custom Models) remain available as feature option
+ * entry points below the providers list.
+ */
 public class IaSettingsActivity extends BaseAppCompatActivity {
 
     private static final String PREFS_NAME = VoidPortSettings.PREFS_NAME;
-
-    private static final String SECTION_MODELS = "models";
-    private static final String SECTION_LOCAL_PROVIDERS = "local_providers";
-    private static final String SECTION_MAIN_PROVIDERS = "main_providers";
-    private static final String SECTION_FEATURE_OPTIONS = "feature_options";
-    private static final String SECTION_MCP = "mcp";
 
     private static final String PREF_CURRENT_PROVIDER = VoidPortSettings.PREF_CURRENT_PROVIDER;
     private static final String PREF_CURRENT_MODEL = VoidPortSettings.PREF_CURRENT_MODEL;
@@ -77,18 +78,11 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
     private ActivityIaSettingsBinding binding;
     private SharedPreferences prefs;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
-    private final Map<String, MaterialButton> menuButtons = new LinkedHashMap<>();
-    private final Map<String, View> sectionViews = new LinkedHashMap<>();
     private LinearLayout mcpServersContainer;
     private String pendingOllamaEndpointRefresh = "";
-    private final OnBackPressedCallback closeDrawerCallback = new OnBackPressedCallback(false) {
-        @Override
-        public void handleOnBackPressed() {
-            if (binding != null) {
-                binding.drawerLayout.closeDrawer(GravityCompat.START);
-            }
-        }
-    };
+
+    private final List<VoidPortSettings.ProviderCardSpec> allProviders = new ArrayList<>();
+    private ProvidersAdapter providersAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -98,17 +92,14 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
         binding = ActivityIaSettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        getOnBackPressedDispatcher().addCallback(this, closeDrawerCallback);
 
         setupToolbar();
         setupInsets();
-        setupDrawer();
-        setupHeader();
-        bindSections();
-        setupMenu();
-        buildAllSections();
+        setupProvidersList();
+        setupSearch();
+        setupFeatureOptionsEntryPoints();
+        binding.fabAddProvider.setOnClickListener(v -> showAddCustomProviderDialog());
         VoidPortRefreshModelService.startAutoRefresh(this);
-        selectSection(SECTION_MODELS);
     }
 
     @Override
@@ -118,139 +109,263 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
 
     private void setupToolbar() {
         binding.topAppBar.setTitle(R.string.ia_settings_title);
-        binding.topAppBar.setNavigationOnClickListener(v -> {
-            if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                binding.drawerLayout.closeDrawer(GravityCompat.START);
-            } else {
-                binding.drawerLayout.openDrawer(GravityCompat.START);
-            }
-        });
+        binding.topAppBar.setNavigationOnClickListener(v -> finish());
     }
 
     private void setupInsets() {
-        {
-            View view = binding.appBarLayout;
-            int left = view.getPaddingLeft();
-            int top = view.getPaddingTop();
-            int right = view.getPaddingRight();
-            int bottom = view.getPaddingBottom();
+        View appBar = binding.appBarLayout;
+        int abLeft = appBar.getPaddingLeft(), abTop = appBar.getPaddingTop(),
+                abRight = appBar.getPaddingRight(), abBottom = appBar.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(appBar, (v, insets) -> {
+            Insets sys = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            v.setPadding(abLeft + sys.left, abTop + sys.top, abRight + sys.right, abBottom);
+            return insets;
+        });
 
-            ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
-                Insets systemInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
-                v.setPadding(left + systemInsets.left, top + systemInsets.top, right + systemInsets.right, bottom);
-                return insets;
-            });
-        }
-
-        {
-            View view = binding.settingsBody;
-            int left = view.getPaddingLeft();
-            int top = view.getPaddingTop();
-            int right = view.getPaddingRight();
-            int bottom = view.getPaddingBottom();
-
-            ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
-                Insets systemInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-                v.setPadding(left + systemInsets.left, top, right + systemInsets.right, bottom + systemInsets.bottom);
-                return insets;
-            });
-        }
-
-        {
-            View view = binding.menuScroll;
-            int left = view.getPaddingLeft();
-            int top = view.getPaddingTop();
-            int right = view.getPaddingRight();
-            int bottom = view.getPaddingBottom();
-
-            ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
-                Insets systemInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
-                v.setPadding(left + systemInsets.left, top + systemInsets.top, right, bottom + systemInsets.bottom);
-                return insets;
-            });
-        }
+        View body = binding.settingsBody;
+        int bLeft = body.getPaddingLeft(), bTop = body.getPaddingTop(),
+                bRight = body.getPaddingRight(), bBottom = body.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(body, (v, insets) -> {
+            Insets sys = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(bLeft + sys.left, bTop, bRight + sys.right, bBottom + sys.bottom);
+            return insets;
+        });
     }
 
-    private void setupDrawer() {
-        binding.drawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
-            @Override
-            public void onDrawerOpened(@NonNull View drawerView) {
-                closeDrawerCallback.setEnabled(true);
-            }
+    // ─────────────────────────────────────────────────────────────────────
+    // Providers list (main screen)
+    // ─────────────────────────────────────────────────────────────────────
 
+    private void setupProvidersList() {
+        allProviders.clear();
+        allProviders.addAll(VoidPortSettings.getProviderCards());
+
+        providersAdapter = new ProvidersAdapter(allProviders);
+        binding.rvProviders.setLayoutManager(new LinearLayoutManager(this));
+        binding.rvProviders.setAdapter(providersAdapter);
+    }
+
+    private void setupSearch() {
+        binding.etSearchProviders.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
             @Override
-            public void onDrawerClosed(@NonNull View drawerView) {
-                closeDrawerCallback.setEnabled(false);
+            public void afterTextChanged(Editable s) {
+                filterProviders(s == null ? "" : s.toString());
             }
         });
     }
 
-    private void setupHeader() {
-        Locale locale = Build.VERSION.SDK_INT >= Build.VERSION_CODES.N
-                ? getResources().getConfiguration().getLocales().get(0)
-                : getResources().getConfiguration().locale;
-        String deviceLanguageName = locale.getDisplayLanguage(locale);
-        binding.tvDeviceLanguageNotice.setText(getString(R.string.ia_device_language_notice_template, deviceLanguageName));
+    private void filterProviders(String query) {
+        String normalized = query.trim().toLowerCase(Locale.ROOT);
+        List<VoidPortSettings.ProviderCardSpec> filtered = new ArrayList<>();
+        for (VoidPortSettings.ProviderCardSpec p : allProviders) {
+            if (normalized.isEmpty() || p.title.toLowerCase(Locale.ROOT).contains(normalized)) {
+                filtered.add(p);
+            }
+        }
+        providersAdapter.updateData(filtered);
     }
 
-    private void bindSections() {
-        menuButtons.put(SECTION_MODELS, binding.btnMenuModels);
-        menuButtons.put(SECTION_LOCAL_PROVIDERS, binding.btnMenuLocalProviders);
-        menuButtons.put(SECTION_MAIN_PROVIDERS, binding.btnMenuMainProviders);
-        menuButtons.put(SECTION_FEATURE_OPTIONS, binding.btnMenuFeatureOptions);
-        menuButtons.put(SECTION_MCP, binding.btnMenuMcp);
-
-        sectionViews.put(SECTION_MODELS, binding.sectionModels);
-        sectionViews.put(SECTION_LOCAL_PROVIDERS, binding.sectionLocalProviders);
-        sectionViews.put(SECTION_MAIN_PROVIDERS, binding.sectionMainProviders);
-        sectionViews.put(SECTION_FEATURE_OPTIONS, binding.sectionFeatureOptions);
-        sectionViews.put(SECTION_MCP, binding.sectionMcp);
+    private boolean isProviderEnabled(VoidPortSettings.ProviderCardSpec spec) {
+        VoidPortSettings.FieldSpec primary = spec.fields.isEmpty() ? null : spec.fields.get(0);
+        if (primary != null && primary.enabledKey != null) {
+            return prefs.getBoolean(primary.enabledKey, true);
+        }
+        for (VoidPortSettings.FieldSpec field : spec.fields) {
+            String value = prefs.getString(field.prefKey, "");
+            if (value != null && !value.trim().isEmpty()) return true;
+        }
+        return false;
     }
 
-    private void setupMenu() {
-        for (Map.Entry<String, MaterialButton> entry : menuButtons.entrySet()) {
-            String sectionKey = entry.getKey();
-            MaterialButton button = entry.getValue();
-            button.setOnClickListener(v -> selectSection(sectionKey));
+    private void openProviderDetail(VoidPortSettings.ProviderCardSpec spec) {
+        Intent intent = new Intent(this, ProviderDetailActivity.class);
+        intent.putExtra(ProviderDetailActivity.EXTRA_PROVIDER_TITLE, spec.title);
+        startActivity(intent);
+    }
+
+    private void showAddCustomProviderDialog() {
+        Toast.makeText(this, "Custom OpenAI-compatible providers can be added under 'OpenAI-Compatible' in the list.",
+                Toast.LENGTH_LONG).show();
+        for (VoidPortSettings.ProviderCardSpec p : allProviders) {
+            if ("OpenAI-Compatible".equals(p.title)) {
+                openProviderDetail(p);
+                return;
+            }
         }
     }
 
-    private void buildAllSections() {
-        buildModelsSection();
-        buildLocalProvidersSection();
-        buildMainProvidersSection();
-        buildFeatureOptionsSection();
-        buildMcpSection();
-        ensureValidCurrentSelection();
+    /**
+     * Recyclable adapter for the providers list. Reused from
+     * {@link VoidPortSettings#getProviderCards()} — every row maps 1:1 to a
+     * {@link VoidPortSettings.ProviderCardSpec}, so adding a provider there
+     * automatically surfaces it here with zero extra UI code.
+     */
+    private final class ProvidersAdapter extends RecyclerView.Adapter<ProvidersAdapter.Holder> {
+        private List<VoidPortSettings.ProviderCardSpec> data;
+
+        ProvidersAdapter(List<VoidPortSettings.ProviderCardSpec> data) {
+            this.data = data;
+        }
+
+        void updateData(List<VoidPortSettings.ProviderCardSpec> newData) {
+            this.data = newData;
+            notifyDataSetChanged();
+        }
+
+        @NonNull
+        @Override
+        public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            ItemProviderRowBinding rowBinding = ItemProviderRowBinding.inflate(
+                    LayoutInflater.from(parent.getContext()), parent, false);
+            return new Holder(rowBinding);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull Holder holder, int position) {
+            VoidPortSettings.ProviderCardSpec spec = data.get(position);
+            holder.binding.providerName.setText(spec.title);
+            holder.binding.providerIcon.setImageResource(iconForProvider(spec.title));
+
+            boolean enabled = isProviderEnabled(spec);
+            holder.binding.providerStatusBadge.setSelected(enabled);
+            holder.binding.providerStatusBadge.setText(enabled
+                    ? getString(R.string.ia_status_on)
+                    : getString(R.string.ia_status_off));
+            holder.binding.providerStatusBadge.setTextColor(getColor(enabled
+                    ? R.color.provider_status_on_text
+                    : R.color.provider_status_off_text));
+
+            holder.binding.getRoot().setOnClickListener(v -> openProviderDetail(spec));
+        }
+
+        @Override
+        public int getItemCount() {
+            return data.size();
+        }
+
+        final class Holder extends RecyclerView.ViewHolder {
+            final ItemProviderRowBinding binding;
+
+            Holder(ItemProviderRowBinding binding) {
+                super(binding.getRoot());
+                this.binding = binding;
+            }
+        }
     }
 
-    private void selectSection(@NonNull String sectionKey) {
-        for (Map.Entry<String, View> entry : sectionViews.entrySet()) {
-            entry.getValue().setVisibility(entry.getKey().equals(sectionKey) ? View.VISIBLE : View.GONE);
-        }
-        updateMenuState(sectionKey);
-        if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-            binding.drawerLayout.closeDrawer(GravityCompat.START);
-        }
-        binding.contentScroll.post(() -> binding.contentScroll.smoothScrollTo(0, 0));
+    private int iconForProvider(String title) {
+        String t = title.toLowerCase(Locale.ROOT);
+        if (t.contains("openai") && !t.contains("compatible")) return R.drawable.kelivo_icon_openai;
+        if (t.contains("anthropic")) return R.drawable.kelivo_icon_anthropic;
+        if (t.contains("gemini") || t.contains("google") || t.contains("vertex")) return R.drawable.kelivo_icon_gemini_color;
+        if (t.contains("openrouter")) return R.drawable.kelivo_icon_openrouter;
+        if (t.contains("deepseek")) return R.drawable.kelivo_icon_deepseek_color;
+        if (t.contains("grok") || t.contains("xai")) return R.drawable.kelivo_icon_xai;
+        if (t.contains("mistral")) return R.drawable.kelivo_icon_mistral_color;
+        if (t.contains("azure") || t.contains("bedrock") || t.contains("aws")) return R.drawable.kelivo_icon_alibabacloud_color;
+        return R.drawable.ic_mtrl_settings;
     }
 
-    private void updateMenuState(@NonNull String selectedSection) {
-        int selectedBg = ContextCompat.getColor(this, R.color.chat_accent);
-        int selectedText = ContextCompat.getColor(this, android.R.color.white);
-        int normalBg = ContextCompat.getColor(this, R.color.chat_surface_soft);
-        int normalText = ContextCompat.getColor(this, R.color.chat_text_primary);
+    // ─────────────────────────────────────────────────────────────────────
+    // Feature options entry points (Advanced settings, MCP, custom models)
+    // Kept below the providers list as compact entry-point cards instead of
+    // a separate drawer section, preserving every underlying setting.
+    // ─────────────────────────────────────────────────────────────────────
 
-        for (Map.Entry<String, MaterialButton> entry : menuButtons.entrySet()) {
-            boolean isSelected = entry.getKey().equals(selectedSection);
-            MaterialButton button = entry.getValue();
-            button.setBackgroundTintList(ColorStateList.valueOf(isSelected ? selectedBg : normalBg));
-            button.setTextColor(isSelected ? selectedText : normalText);
-        }
+    private void setupFeatureOptionsEntryPoints() {
+        LinearLayout container = binding.sectionFeatureOptions;
+        container.removeAllViews();
+
+        container.addView(createEntryPointCard(
+                "Custom Models",
+                "Add or remove model IDs that aren't auto-detected.",
+                v -> buildModelsDialog()
+        ));
+        container.addView(createEntryPointCard(
+                "Feature Options",
+                "Autocomplete, apply mode, tool approvals, and editor behavior.",
+                v -> buildFeatureOptionsDialog()
+        ));
+        container.addView(createEntryPointCard(
+                "MCP Servers",
+                "Connect external tools to the AI agent via JSON-RPC over HTTP.",
+                v -> buildMcpDialog()
+        ));
     }
 
-    private void buildModelsSection() {
-        LinearLayout container = binding.sectionModels;
+    private MaterialCardView createEntryPointCard(String title, String subtitle, View.OnClickListener onClick) {
+        MaterialCardView card = createCard();
+        card.setClickable(true);
+        card.setFocusable(true);
+        card.setOnClickListener(onClick);
+        LinearLayout content = createCardContent(card);
+        content.setOrientation(LinearLayout.HORIZONTAL);
+        content.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout textCol = new LinearLayout(this);
+        textCol.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        textCol.setLayoutParams(textParams);
+        textCol.addView(createSubheading(title));
+        textCol.addView(createMutedText(subtitle));
+        content.addView(textCol);
+
+        android.widget.ImageView chevron = new android.widget.ImageView(this);
+        chevron.setImageResource(R.drawable.ic_mtrl_chevron_right_24);
+        chevron.setColorFilter(getColor(R.color.chat_text_secondary));
+        LinearLayout.LayoutParams chevronParams = new LinearLayout.LayoutParams(dp(20), dp(20));
+        chevronParams.leftMargin = dp(8);
+        chevron.setLayoutParams(chevronParams);
+        content.addView(chevron);
+
+        return card;
+    }
+
+    private void buildModelsDialog() {
+        LinearLayout dialogContent = new LinearLayout(this);
+        dialogContent.setOrientation(LinearLayout.VERTICAL);
+        dialogContent.setPadding(dp(24), dp(8), dp(24), 0);
+        buildModelsSectionInto(dialogContent);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Custom Models")
+                .setView(wrapScrollable(dialogContent))
+                .setPositiveButton("Close", null)
+                .show();
+    }
+
+    private void buildFeatureOptionsDialog() {
+        LinearLayout dialogContent = new LinearLayout(this);
+        dialogContent.setOrientation(LinearLayout.VERTICAL);
+        dialogContent.setPadding(dp(24), dp(8), dp(24), 0);
+        buildFeatureOptionsSectionInto(dialogContent);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Feature Options")
+                .setView(wrapScrollable(dialogContent))
+                .setPositiveButton("Close", null)
+                .show();
+    }
+
+    private void buildMcpDialog() {
+        LinearLayout dialogContent = new LinearLayout(this);
+        dialogContent.setOrientation(LinearLayout.VERTICAL);
+        dialogContent.setPadding(dp(24), dp(8), dp(24), 0);
+        buildMcpSectionInto(dialogContent);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("MCP Servers")
+                .setView(wrapScrollable(dialogContent))
+                .setPositiveButton("Close", null)
+                .show();
+    }
+
+    private android.widget.ScrollView wrapScrollable(View content) {
+        android.widget.ScrollView scrollView = new android.widget.ScrollView(this);
+        scrollView.addView(content);
+        return scrollView;
+    }
+
+    private void buildModelsSectionInto(LinearLayout container) {
         container.removeAllViews();
 
         addSectionHeader(
@@ -352,104 +467,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
         return row;
     }
 
-    private void buildLocalProvidersSection() {
-        LinearLayout container = binding.sectionLocalProviders;
-        container.removeAllViews();
-
-        addSectionHeader(
-                container,
-                "Local Providers",
-                "Configure the local engines you want Sketchware IA to detect and query. These values stay on your device."
-        );
-
-        container.addView(createOllamaLocalProviderCard());
-
-        container.addView(createTextFieldCard(
-                "vLLM",
-                "Endpoint",
-                "local_provider_vllm_url",
-                "http://localhost:8000",
-                false,
-                null,
-                "Use the OpenAI-compatible endpoint exposed by your vLLM instance."
-        ));
-
-        container.addView(createTextFieldCard(
-                "LM Studio",
-                "Endpoint",
-                "local_provider_lm_studio_url",
-                "http://localhost:1234",
-                false,
-                null,
-                "Point this to the local server exposed by LM Studio."
-        ));
-    }
-
-    private MaterialCardView createOllamaLocalProviderCard() {
-        MaterialCardView card = createCard();
-        LinearLayout content = createCardContent(card);
-        content.addView(createSubheading("Ollama"));
-        content.addView(createMutedText("Local Ollama server endpoint. Sketchware IA lists installed models with GET /api/tags and sends chat to /api/chat."));
-        content.addView(createPreferenceInput(
-                "Endpoint",
-                "local_provider_ollama_url",
-                "http://127.0.0.1:11434",
-                false,
-                null,
-                this::scheduleOllamaModelsRefresh
-        ));
-
-        List<String> models = getModelsForProvider("ollama");
-        String currentProvider = prefs.getString(PREF_CURRENT_PROVIDER, "");
-        String currentModel = prefs.getString(PREF_CURRENT_MODEL, "");
-        String selectedModel = "ollama".equals(currentProvider) && models.contains(currentModel)
-                ? currentModel
-                : (models.isEmpty() ? "" : models.get(0));
-
-        MaterialAutoCompleteTextView modelInput = createDropdown(models, selectedModel);
-        modelInput.setEnabled(!models.isEmpty());
-        TextInputLayout modelLayout = createDropdownLayout("Modelo Ollama", modelInput);
-        modelInput.setOnItemClickListener((parentView, view, position, id) -> {
-            String model = modelInput.getText() == null ? "" : modelInput.getText().toString().trim();
-            if (model.isEmpty()) {
-                return;
-            }
-            prefs.edit()
-                    .putString(PREF_CURRENT_PROVIDER, "ollama")
-                    .putString(PREF_CURRENT_MODEL, model)
-                    .apply();
-            ensureValidCurrentSelection();
-            buildModelsSection();
-        });
-        content.addView(modelLayout);
-
-        if (models.isEmpty()) {
-            content.addView(createMutedText("Salve o IP do servidor ou toque em Refresh para carregar os modelos instalados no Ollama."));
-        }
-
-        MaterialButton refreshButton = createTextButton("Refresh Ollama models");
-        refreshButton.setOnClickListener(v -> refreshOllamaModelsIntoLocalSpinner(modelInput));
-        content.addView(refreshButton);
-        return card;
-    }
-
-    private void buildMainProvidersSection() {
-        LinearLayout container = binding.sectionMainProviders;
-        container.removeAllViews();
-
-        addSectionHeader(
-                container,
-                "Main Providers",
-                "Configure remote providers, API keys, and compatibility endpoints. Supported chat providers already stay wired to the existing backend keys."
-        );
-
-        for (VoidPortSettings.ProviderCardSpec provider : VoidPortSettings.getProviderCards()) {
-            container.addView(createProviderCard(provider));
-        }
-    }
-
-    private void buildFeatureOptionsSection() {
-        LinearLayout container = binding.sectionFeatureOptions;
+    private void buildFeatureOptionsSectionInto(LinearLayout container) {
         container.removeAllViews();
 
         addSectionHeader(
@@ -531,8 +549,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
         container.addView(portCard);
     }
 
-    private void buildMcpSection() {
-        LinearLayout container = binding.sectionMcp;
+    private void buildMcpSectionInto(LinearLayout container) {
         container.removeAllViews();
 
         addSectionHeader(

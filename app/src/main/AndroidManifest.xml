@@ -319,6 +319,7 @@
 
         <activity android:name="pro.sketchware.activities.settings.SettingsActivity" />
         <activity android:name="pro.sketchware.activities.settings.IaSettingsActivity" />
+        <activity android:name="pro.sketchware.activities.settings.ProviderDetailActivity" />
         <activity android:name="pro.sketchware.activities.settings.GithubSettingsActivity" />
 
         <activity android:name="pro.sketchware.activities.resourceseditor.ResourcesEditorActivity" />

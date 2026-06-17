@@ -1,0 +1,549 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_kelivo_bottom_sheet"
+    android:orientation="vertical"
+    android:paddingBottom="24dp">
+
+    <!-- Drag handle -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="14dp"
+        android:background="@drawable/bg_kelivo_sheet_handle" />
+
+    <!-- Header: X + title -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="16dp">
+
+        <ImageButton
+            android:id="@+id/btn_close_add_model"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/common_word_cancel"
+            android:padding="8dp"
+            android:src="@drawable/ic_mtrl_close"
+            android:tint="@color/chat_text_primary" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/ia_add_model_title"
+            android:textColor="@color/chat_text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <View
+            android:layout_width="40dp"
+            android:layout_height="40dp" />
+    </LinearLayout>
+
+    <!-- Segmented tab control: Basic / Advanced / Built-in Tools -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bg_segmented_control_track"
+        android:orientation="horizontal"
+        android:padding="3dp">
+
+        <TextView
+            android:id="@+id/tab_basic"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_segmented_tab_selected"
+            android:gravity="center"
+            android:paddingVertical="9dp"
+            android:text="@string/ia_tab_basic"
+            android:textColor="@color/chat_accent"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tab_advanced"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingVertical="9dp"
+            android:text="@string/ia_tab_advanced"
+            android:textColor="@color/chat_text_primary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tab_builtin_tools"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingVertical="9dp"
+            android:text="@string/ia_tab_builtin_tools"
+            android:textColor="@color/chat_text_primary"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:fillViewport="true"
+        android:overScrollMode="never">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="280dp"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="20dp">
+
+            <!-- ════════════════ PANEL: BASIC ════════════════ -->
+            <LinearLayout
+                android:id="@+id/panel_basic"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="visible">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/ia_model_id_label"
+                    android:textColor="@color/chat_text_secondary"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="18dp"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:boxStrokeColor="@color/chat_border"
+                    app:hintEnabled="false">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_model_id"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/ia_model_id_hint"
+                        android:textColor="@color/chat_text_primary"
+                        android:textColorHint="@color/chat_text_secondary"
+                        android:textSize="16sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/ia_model_name_label"
+                    android:textColor="@color/chat_text_secondary"
+                    android:textSize="13sp" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="18dp"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:boxStrokeColor="@color/chat_border"
+                    app:hintEnabled="false">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_model_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/chat_text_primary"
+                        android:textSize="16sp" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/ia_model_type_label"
+                    android:textColor="@color/chat_text_secondary"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="18dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/chip_type_chat"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/ia_model_type_chat"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chat_accent"
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_mtrl_check"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/chat_accent"
+                        app:strokeColor="@color/chat_accent" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/chip_type_embedding"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/ia_model_type_embedding"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chat_text_secondary"
+                        app:cornerRadius="12dp"
+                        app:strokeColor="@color/chat_border" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/ia_input_modes_label"
+                    android:textColor="@color/chat_text_secondary"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="18dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/chip_input_text"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/ia_modality_text"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chat_accent"
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_mtrl_check"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/chat_accent"
+                        app:strokeColor="@color/chat_accent" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/chip_input_image"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/ia_modality_image"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chat_text_secondary"
+                        app:cornerRadius="12dp"
+                        app:strokeColor="@color/chat_border" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/ia_output_modes_label"
+                    android:textColor="@color/chat_text_secondary"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="18dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/chip_output_text"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/ia_modality_text"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chat_accent"
+                        app:cornerRadius="12dp"
+                        app:icon="@drawable/ic_mtrl_check"
+                        app:iconGravity="textStart"
+                        app:iconTint="@color/chat_accent"
+                        app:strokeColor="@color/chat_accent" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/chip_output_image"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/ia_modality_image"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chat_text_secondary"
+                        app:cornerRadius="12dp"
+                        app:strokeColor="@color/chat_border" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/ia_abilities_label"
+                    android:textColor="@color/chat_text_secondary"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/chip_ability_tools"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/ia_ability_tools"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chat_text_secondary"
+                        app:cornerRadius="12dp"
+                        app:strokeColor="@color/chat_border" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/chip_ability_reasoning"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/ia_ability_reasoning"
+                        android:textAllCaps="false"
+                        android:textColor="@color/chat_text_secondary"
+                        app:cornerRadius="12dp"
+                        app:strokeColor="@color/chat_border" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- ════════════════ PANEL: ADVANCED ════════════════ -->
+            <LinearLayout
+                android:id="@+id/panel_advanced"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/ia_provider_overrides_desc"
+                    android:textColor="@color/chat_text_secondary"
+                    android:textSize="14sp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_add_provider_override"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:text="@string/ia_add_provider_override"
+                    android:textAllCaps="false"
+                    android:textColor="@color/chat_accent"
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/ic_mtrl_add"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/chat_accent"
+                    app:strokeColor="@color/chat_accent" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/ia_custom_headers_title"
+                    android:textColor="@color/chat_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_add_header"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="24dp"
+                    android:text="@string/ia_add_header"
+                    android:textAllCaps="false"
+                    android:textColor="@color/chat_accent"
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/ic_mtrl_add"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/chat_accent"
+                    app:strokeColor="@color/chat_accent" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:text="@string/ia_custom_body_title"
+                    android:textColor="@color/chat_text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_add_body"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ia_add_body"
+                    android:textAllCaps="false"
+                    android:textColor="@color/chat_accent"
+                    app:cornerRadius="14dp"
+                    app:icon="@drawable/ic_mtrl_add"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/chat_accent"
+                    app:strokeColor="@color/chat_accent" />
+
+            </LinearLayout>
+
+            <!-- ════════════════ PANEL: BUILT-IN TOOLS ════════════════ -->
+            <LinearLayout
+                android:id="@+id/panel_builtin_tools"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ia_builtin_tools_official_only"
+                    android:textColor="@color/chat_text_primary"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="18dp"
+                    android:text="@string/ia_builtin_tools_requires_response_api"
+                    android:textColor="@color/chat_text_secondary"
+                    android:textSize="14sp" />
+
+                <LinearLayout
+                    android:id="@+id/row_code_interpreter"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:background="@drawable/bg_disabled_tool_row"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/ia_code_interpreter_title"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/ia_code_interpreter_desc"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_code_interpreter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:enabled="false" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/row_image_generation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_disabled_tool_row"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="14dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="@string/ia_image_generation_title"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/ia_image_generation_desc"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.materialswitch.MaterialSwitch
+                        android:id="@+id/switch_image_generation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:enabled="false" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </FrameLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Add button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_confirm_add_model"
+        style="@style/Widget.Material3.Button"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="16dp"
+        android:text="@string/ia_add_model"
+        android:textAllCaps="false"
+        app:backgroundTint="@color/chat_accent_soft"
+        app:cornerRadius="14dp"
+        app:icon="@drawable/ic_mtrl_add"
+        app:iconGravity="textStart"
+        app:iconTint="@color/chat_accent"
+        android:textColor="@color/chat_accent" />
+
+</LinearLayout>

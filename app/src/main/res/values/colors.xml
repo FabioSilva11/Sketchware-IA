@@ -117,6 +117,10 @@
     <color name="chat_text_hint">#AEAEB2</color>
     <color name="chat_divider">#E5E5EA</color>
     <color name="chat_border">#E5E5EA</color>
+    <color name="provider_status_on_bg">#DCF5E3</color>
+    <color name="provider_status_on_text">#1F9D55</color>
+    <color name="provider_status_off_bg">#FCEFD9</color>
+    <color name="provider_status_off_text">#C77A1F</color>
     <color name="chat_diff_background">#00000000</color>
     <color name="chat_diff_header">#F8FAFC</color>
     <color name="chat_diff_hunk">#EAF3FF</color>

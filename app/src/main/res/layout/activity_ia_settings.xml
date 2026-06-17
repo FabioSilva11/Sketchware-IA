@@ -1,240 +1,113 @@
-<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/drawer_layout"
+    android:id="@+id/settings_body"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/chat_background">
 
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
-        android:id="@+id/settings_body"
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/app_bar_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/chat_background">
+        android:layout_height="wrap_content"
+        android:background="@color/chat_background"
+        android:elevation="0dp">
 
-        <com.google.android.material.appbar.AppBarLayout
-            android:id="@+id/app_bar_layout"
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/top_app_bar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/chat_background">
-
-            <com.google.android.material.appbar.MaterialToolbar
-                android:id="@+id/top_app_bar"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:background="@drawable/bg_chat_toolbar"
-                app:navigationIcon="@drawable/ic_drawer"
-                app:navigationIconTint="@color/chat_text_primary"
-                app:title="@string/ia_settings_title"
-                app:titleTextColor="@color/chat_text_primary" />
-        </com.google.android.material.appbar.AppBarLayout>
-
-        <androidx.core.widget.NestedScrollView
-            android:id="@+id/content_scroll"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:fillViewport="true"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-            <LinearLayout
-                android:id="@+id/content"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingStart="16dp"
-                android:paddingTop="16dp"
-                android:paddingEnd="16dp"
-                android:paddingBottom="24dp"
-                android:background="@color/chat_background">
-
-                <TextView
-                    android:id="@+id/tv_settings_heading"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/ia_settings_title"
-                    android:textColor="@color/chat_text_primary"
-                    android:textAppearance="?attr/textAppearanceHeadlineSmall" />
-
-                <TextView
-                    android:id="@+id/tv_settings_subtitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/ia_settings_subtitle"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="@color/chat_text_secondary" />
-
-                <TextView
-                    android:id="@+id/tv_device_language_notice"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:textAppearance="?attr/textAppearanceBodySmall"
-                    android:textColor="@color/chat_text_secondary" />
-
-                <LinearLayout
-                    android:id="@+id/section_models"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:orientation="vertical" />
-
-                <LinearLayout
-                    android:id="@+id/section_local_providers"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:orientation="vertical"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/section_main_providers"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:orientation="vertical"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/section_feature_options"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:orientation="vertical"
-                    android:visibility="gone" />
-
-                <LinearLayout
-                    android:id="@+id/section_mcp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:orientation="vertical"
-                    android:visibility="gone" />
-
-            </LinearLayout>
-        </androidx.core.widget.NestedScrollView>
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+            android:layout_height="?attr/actionBarSize"
+            android:background="@color/chat_background"
+            app:navigationIcon="@drawable/ic_mtrl_back"
+            app:navigationIconTint="@color/chat_text_primary"
+            app:title="@string/ia_settings_title"
+            app:titleTextColor="@color/chat_text_primary" />
+    </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
-        android:id="@+id/menu_scroll"
-        android:layout_width="320dp"
+        android:id="@+id/content_scroll"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="start"
-        android:background="@color/chat_surface"
         android:clipToPadding="false"
         android:fillViewport="true"
-        android:overScrollMode="never">
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
-            android:id="@+id/menu_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingStart="16dp"
-            android:paddingTop="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="24dp">
+            android:orientation="vertical">
 
-            <TextView
+            <!-- ── Search bar ─────────────────────────────────────────────── -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_search_providers"
+                style="@style/Widget.Material3.TextInputLayout.FilledBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/ia_settings_title"
-                android:textColor="@color/chat_text_primary"
-                android:textAppearance="?attr/textAppearanceHeadlineSmall" />
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp"
+                android:hint="@string/ia_search_providers_hint"
+                app:boxBackgroundColor="@color/chat_surface_soft"
+                app:boxCornerRadiusBottomEnd="14dp"
+                app:boxCornerRadiusBottomStart="14dp"
+                app:boxCornerRadiusTopEnd="14dp"
+                app:boxCornerRadiusTopStart="14dp"
+                app:boxStrokeWidth="0dp"
+                app:boxStrokeWidthFocused="0dp"
+                app:startIconDrawable="@drawable/ic_mtrl_search"
+                app:startIconTint="@color/chat_text_secondary">
 
-            <TextView
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_search_providers"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="@android:color/transparent"
+                    android:textColor="@color/chat_text_primary"
+                    android:textSize="15sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- ── Providers list card ────────────────────────────────────── -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_providers_list"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:layout_marginBottom="20dp"
-                android:text="@string/ia_settings_subtitle"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="@color/chat_text_secondary" />
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/chat_surface"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/chat_border"
+                app:strokeWidth="1dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_menu_models"
-                style="@style/Widget.Material3.Button"
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_providers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:overScrollMode="never" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ── Feature options / extra settings entry points ─────────── -->
+            <LinearLayout
+                android:id="@+id/section_feature_options"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:gravity="start|center_vertical"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:minHeight="48dp"
-                android:paddingHorizontal="14dp"
-                android:text="Models"
-                android:textColor="@color/chat_text_primary"
-                android:textAllCaps="false"
-                app:backgroundTint="@color/chat_surface_soft"
-                app:cornerRadius="8dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_menu_local_providers"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:gravity="start|center_vertical"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:minHeight="48dp"
-                android:paddingHorizontal="14dp"
-                android:text="Local Providers"
-                android:textColor="@color/chat_text_primary"
-                android:textAllCaps="false"
-                app:backgroundTint="@color/chat_surface_soft"
-                app:cornerRadius="8dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_menu_main_providers"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:gravity="start|center_vertical"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:minHeight="48dp"
-                android:paddingHorizontal="14dp"
-                android:text="Main Providers"
-                android:textColor="@color/chat_text_primary"
-                android:textAllCaps="false"
-                app:backgroundTint="@color/chat_surface_soft"
-                app:cornerRadius="8dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_menu_feature_options"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
-                android:gravity="start|center_vertical"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:minHeight="48dp"
-                android:paddingHorizontal="14dp"
-                android:text="Feature Options"
-                android:textColor="@color/chat_text_primary"
-                android:textAllCaps="false"
-                app:backgroundTint="@color/chat_surface_soft"
-                app:cornerRadius="8dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_menu_mcp"
-                style="@style/Widget.Material3.Button"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="start|center_vertical"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:minHeight="48dp"
-                android:paddingHorizontal="14dp"
-                android:text="MCP"
-                android:textColor="@color/chat_text_primary"
-                android:textAllCaps="false"
-                app:backgroundTint="@color/chat_surface_soft"
-                app:cornerRadius="8dp" />
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginBottom="24dp"
+                android:orientation="vertical" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-</androidx.drawerlayout.widget.DrawerLayout>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_add_provider"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        android:contentDescription="@string/ia_add_provider"
+        android:src="@drawable/ic_mtrl_add"
+        app:backgroundTint="@color/chat_accent"
+        app:layout_anchorGravity="bottom|end"
+        app:tint="@android:color/white" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
