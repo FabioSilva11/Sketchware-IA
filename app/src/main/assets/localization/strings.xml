@@ -2335,10 +2335,12 @@ Please try again later"</string>
     <string name="save_to_collection">Save to collection</string>
     <string name="unknown_attr">Unknown Attribute</string>
     <string name="attr_already_exist">This attribute already exists</string>
-    <string name="ia_settings_title">AI Settings</string>
-    <string name="ia_settings_subtitle">Models, providers, feature flags, and MCP servers</string>
-    <string name="ia_settings_description">Configure your AI workspace, choose active models, and manage provider credentials locally on this device.</string>
+    <string name="ia_settings_title">Providers</string>
+    <string name="ia_settings_subtitle">Manage AI providers</string>
+    <string name="ia_settings_description">Manage provider credentials locally on this device.</string>
     <string name="ia_device_language_notice_template" translatable="false">Device language: %1$s. The AI will respond in the detected language.</string>
+    <string name="ia_action_check_providers">Refresh providers</string>
+    <string name="ia_providers_checked">Providers checked</string>
     <string name="ia_label_groq_api_key">Groq API Key</string>
     <string name="ia_label_morph_api_key">Morph API Key</string>
     <string name="ia_hint_api_key">Paste your key here</string>

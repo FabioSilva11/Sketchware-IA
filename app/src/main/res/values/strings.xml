@@ -2496,13 +2496,15 @@ Please try again later"</string>
     <string name="save_to_collection">Save to collection</string>
     <string name="unknown_attr">Unknown Attribute</string>
     <string name="attr_already_exist">This attribute already exists</string>
-    <string name="ia_settings_title">AI Settings</string>
-    <string name="ia_settings_subtitle">Models, providers, feature flags, and MCP servers</string>
-    <string name="ia_settings_description">Configure your AI workspace, choose active models, and manage provider credentials locally on this device.</string>
+    <string name="ia_settings_title">Providers</string>
+    <string name="ia_settings_subtitle">Manage AI providers</string>
+    <string name="ia_settings_description">Manage provider credentials locally on this device.</string>
 
     <!-- Kelivo-style redesign strings -->
     <string name="ia_search_providers_hint">Search providers or groups</string>
     <string name="ia_add_provider">Add provider</string>
+    <string name="ia_action_check_providers">Refresh providers</string>
+    <string name="ia_providers_checked">Providers checked</string>
     <string name="ia_manage_label">Manage</string>
     <string name="ia_provider_type_label">Provider Type</string>
     <string name="ia_group_label">Group</string>

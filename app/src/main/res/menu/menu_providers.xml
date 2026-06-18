@@ -1,0 +1,21 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_check_providers"
+        android:icon="@drawable/ic_mtrl_progress_check"
+        android:title="@string/ia_action_check_providers"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_import_provider"
+        android:icon="@drawable/ic_mtrl_download"
+        android:title="@string/common_word_import"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_add_provider"
+        android:icon="@drawable/ic_mtrl_add"
+        android:title="@string/ia_add_provider"
+        app:showAsAction="always" />
+</menu>

@@ -315,50 +315,31 @@ public final class VoidPortSettings {
                 "ministral-8b-latest"
         ))));
         groups.add(new ProviderGroup("litellm", "liteLLM", "LiteLLM", false, new ArrayList<>()));
-        groups.add(new ProviderGroup("vertex_ai", "googleVertex", "Google Vertex AI", false, new ArrayList<>()));
-        groups.add(new ProviderGroup("azure_openai", "microsoftAzure", "Microsoft Azure OpenAI", false, new ArrayList<>()));
-        groups.add(new ProviderGroup("bedrock", "awsBedrock", "AWS Bedrock", false, new ArrayList<>()));
-        groups.add(new ProviderGroup("morph", "morph", "Morph", false, new ArrayList<>()));
         return groups;
     }
 
     public static List<ProviderCardSpec> getProviderCards() {
         List<ProviderCardSpec> providers = new ArrayList<>();
-        providers.add(new ProviderCardSpec("Anthropic", "Get your API key here.", "https://console.anthropic.com/settings/keys")
-                .addField("API Key", "anthropic_api_key", "", true, null));
         providers.add(new ProviderCardSpec("OpenAI", "Get your API key here.", "https://platform.openai.com/api-keys")
                 .addField("API Key", "openai_api_key", "", true, "openai_enabled"));
-        providers.add(new ProviderCardSpec("DeepSeek", "Get your API key here.", "https://platform.deepseek.com/api_keys")
-                .addField("API Key", "deepseek_api_key", "", true, null));
+        providers.add(new ProviderCardSpec("Anthropic", "Get your API key here.", "https://console.anthropic.com/settings/keys")
+                .addField("API Key", "anthropic_api_key", "", true, null));
+        providers.add(new ProviderCardSpec("Gemini", "Google AI Studio OpenAI-compatible endpoint.", "https://aistudio.google.com/apikey")
+                .addField("API Key", "gemini_api_key", "", true, "gemini_enabled"));
         providers.add(new ProviderCardSpec("OpenRouter", "Get your API key here. Rate limits depend on the selected model.", "https://openrouter.ai/keys")
                 .addField("API Key", "openrouter_api_key", "", true, null));
+        providers.add(new ProviderCardSpec("DeepSeek", "Get your API key here.", "https://platform.deepseek.com/api_keys")
+                .addField("API Key", "deepseek_api_key", "", true, null));
+        providers.add(new ProviderCardSpec("Groq", "Use Groq-hosted OpenAI-compatible models.", "https://console.groq.com/keys")
+                .addField("API Key", "groq_api_key", "", true, "groq_enabled"));
+        providers.add(new ProviderCardSpec("Mistral", "Mistral API access.", "https://console.mistral.ai/api-keys/")
+                .addField("API Key", "mistral_api_key", "", true, null));
         providers.add(new ProviderCardSpec("OpenAI-Compatible", "Use any provider that exposes an OpenAI-compatible endpoint.", null)
                 .addField("Base URL", "openai_compatible_base_url", "https://my-endpoint.example/v1", false, null)
                 .addField("API Key", "openai_compatible_api_key", "", true, null)
                 .addField("Headers JSON", "openai_compatible_headers", "{}", false, null));
-        providers.add(new ProviderCardSpec("Gemini", "Google AI Studio OpenAI-compatible endpoint.", "https://aistudio.google.com/apikey")
-                .addField("API Key", "gemini_api_key", "", true, "gemini_enabled"));
-        providers.add(new ProviderCardSpec("Groq", "Use Groq-hosted OpenAI-compatible models.", "https://console.groq.com/keys")
-                .addField("API Key", "groq_api_key", "", true, "groq_enabled"));
-        providers.add(new ProviderCardSpec("Grok (xAI)", "xAI-hosted models and API access.", "https://console.x.ai/")
-                .addField("API Key", "grok_xai_api_key", "", true, null));
-        providers.add(new ProviderCardSpec("Mistral", "Mistral API access.", "https://console.mistral.ai/api-keys/")
-                .addField("API Key", "mistral_api_key", "", true, null));
         providers.add(new ProviderCardSpec("LiteLLM", "Point this to a LiteLLM proxy if you use one.", null)
                 .addField("Base URL", "litellm_base_url", "http://localhost:4000", false, null));
-        providers.add(new ProviderCardSpec("Google Vertex AI", "Stored for Void-compatible settings. Android chat does not launch Vertex directly; use an OpenAI-compatible proxy for chat.", null)
-                .addField("Region", "vertex_region", "us-west2", false, null)
-                .addField("Project", "vertex_project", "my-project", false, null));
-        providers.add(new ProviderCardSpec("Microsoft Azure OpenAI", "Uses the selected model id as the Azure deployment name in chat.", null)
-                .addField("Resource", "azure_openai_resource", "my-resource", false, null)
-                .addField("API Key", "azure_openai_api_key", "", true, null)
-                .addField("API Version", "azure_openai_version", "2024-05-01-preview", false, null));
-        providers.add(new ProviderCardSpec("AWS Bedrock", "Connect through an OpenAI-compatible Bedrock gateway or proxy.", null)
-                .addField("API Key", "bedrock_api_key", "", true, null)
-                .addField("Region", "bedrock_region", "us-east-1", false, null)
-                .addField("Endpoint", "bedrock_endpoint", "http://localhost:4000/v1", false, null));
-        providers.add(new ProviderCardSpec("Morph", "Used by the existing code-editing flow. It is not a Void chat provider.", "https://morphllm.com/dashboard/api-keys")
-                .addField("API Key", "morph_api_key", "", true, "morph_enabled"));
         return providers;
     }
 
