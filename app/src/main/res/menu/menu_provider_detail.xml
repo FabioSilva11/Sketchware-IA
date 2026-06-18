@@ -1,0 +1,21 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_test_provider"
+        android:icon="@drawable/ic_mtrl_link_check"
+        android:title="@string/ia_test_provider"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_share_provider"
+        android:icon="@drawable/ic_mtrl_upload"
+        android:title="@string/ia_share_provider"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_delete_provider"
+        android:icon="@drawable/ic_mtrl_delete"
+        android:title="@string/ia_delete_provider"
+        app:showAsAction="never" />
+</menu>

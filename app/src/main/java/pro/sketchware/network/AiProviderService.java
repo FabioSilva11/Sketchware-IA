@@ -12,6 +12,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.Credentials;
 import okhttp3.Headers;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -463,7 +466,7 @@ public class AiProviderService {
     private void executeWithRetry(Request request, int retryCount, String providerId, StreamListener listener,
                                   ResponseHandler responseHandler) {
         final long requestStartedAt = SystemClock.elapsedRealtime();
-        Call call = client.newCall(request);
+        Call call = clientForProvider(providerId).newCall(request);
         currentStreamingCall = call;
         call.enqueue(new Callback() {
             @Override
@@ -556,6 +559,45 @@ public class AiProviderService {
     private void scheduleRetry(Request request, int retryCount, String providerId, StreamListener listener,
                                ResponseHandler responseHandler) {
         scheduleRetry(request, retryCount, providerId, listener, responseHandler, -1);
+    }
+
+    private OkHttpClient clientForProvider(String providerId) {
+        SharedPreferences prefs = context.getSharedPreferences(AiChatSettingsHelper.PREFS_NAME, Context.MODE_PRIVATE);
+        JSONObject custom = pro.sketchware.activities.chat.port.VoidPortSettings.getProviderConfigObject(prefs, providerId);
+        boolean enabled = prefs.getBoolean("provider_proxy_enabled_" + providerId,
+                custom != null && custom.optBoolean("proxyEnabled", false));
+        String host = prefs.getString("provider_proxy_host_" + providerId,
+                custom == null ? "" : custom.optString("proxyHost", "")).trim();
+        String portRaw = prefs.getString("provider_proxy_port_" + providerId,
+                custom == null ? "8080" : custom.optString("proxyPort", "8080")).trim();
+        if (!enabled || host.isEmpty()) {
+            return client;
+        }
+
+        int port;
+        try {
+            port = Integer.parseInt(portRaw);
+        } catch (NumberFormatException e) {
+            port = 8080;
+        }
+        String type = prefs.getString("provider_proxy_type_" + providerId,
+                custom == null ? "http" : custom.optString("proxyType", "http"))
+                .trim()
+                .toLowerCase(java.util.Locale.US);
+        Proxy.Type proxyType = "socks5".equals(type) ? Proxy.Type.SOCKS : Proxy.Type.HTTP;
+        OkHttpClient.Builder builder = client.newBuilder()
+                .proxy(new Proxy(proxyType, new InetSocketAddress(host, port)));
+
+        String username = prefs.getString("provider_proxy_username_" + providerId,
+                custom == null ? "" : custom.optString("proxyUsername", "")).trim();
+        String password = prefs.getString("provider_proxy_password_" + providerId,
+                custom == null ? "" : custom.optString("proxyPassword", "")).trim();
+        if (!username.isEmpty() && proxyType == Proxy.Type.HTTP) {
+            builder.proxyAuthenticator((route, response) -> response.request().newBuilder()
+                    .header("Proxy-Authorization", Credentials.basic(username, password))
+                    .build());
+        }
+        return builder.build();
     }
 
     private void readOpenAiEventStream(BufferedSource source, ContextBuilder.Result requestContext,

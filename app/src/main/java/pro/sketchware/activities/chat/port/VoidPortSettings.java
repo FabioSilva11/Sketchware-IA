@@ -19,6 +19,7 @@ public final class VoidPortSettings {
     public static final String PREF_CURRENT_PROVIDER = "current_ai_provider";
     public static final String PREF_CURRENT_MODEL = "current_ai_model";
     public static final String PREF_CUSTOM_MODELS = "custom_models_json";
+    public static final String PREF_PROVIDER_CONFIGS = "provider_configs_v1";
     public static final String PREF_CHAT_MODE = "chat_mode";
     public static final String PREF_MCP_CONFIG = "mcp_config_json";
 
@@ -88,15 +89,23 @@ public final class VoidPortSettings {
     }
 
     public static final class ProviderCardSpec {
+        public final String providerId;
         public final String title;
         public final String description;
         public final String helpUrl;
+        public final boolean custom;
         public final List<FieldSpec> fields = new ArrayList<>();
 
         public ProviderCardSpec(String title, String description, String helpUrl) {
+            this(slugify(title), title, description, helpUrl, false);
+        }
+
+        public ProviderCardSpec(String providerId, String title, String description, String helpUrl, boolean custom) {
+            this.providerId = providerId == null ? slugify(title) : providerId;
             this.title = title;
             this.description = description;
             this.helpUrl = helpUrl;
+            this.custom = custom;
         }
 
         public ProviderCardSpec addField(String label, String prefKey, String defaultValue, boolean password, String enabledKey) {
@@ -194,14 +203,26 @@ public final class VoidPortSettings {
                 || "mistral".equals(providerId)
                 || "openai_compatible".equals(providerId)
                 || "litellm".equals(providerId)
-                || "azure_openai".equals(providerId)
-                || "bedrock".equals(providerId)
                 || "ollama".equals(providerId)
                 || "vllm".equals(providerId)
-                || "lm_studio".equals(providerId);
+                || "lm_studio".equals(providerId)
+                || (providerId != null && providerId.startsWith("custom_"));
     }
 
     public static boolean isProviderConfigured(SharedPreferences prefs, String providerId) {
+        JSONObject custom = getProviderConfigObject(prefs, providerId);
+        if (custom != null) {
+            if (!custom.optBoolean("enabled", true)) {
+                return false;
+            }
+            String type = providerType(custom);
+            String baseUrl = custom.optString("baseUrl", "").trim();
+            String apiKey = custom.optString("apiKey", "").trim();
+            if ("openai".equals(type) || "anthropic".equals(type) || "gemini".equals(type)) {
+                return !apiKey.isEmpty() && !baseUrl.isEmpty();
+            }
+            return !baseUrl.isEmpty();
+        }
         return switch (providerId) {
             case "ollama" -> !getPreferenceValue(prefs, "local_provider_ollama_url", "http://127.0.0.1:11434").isEmpty();
             case "vllm" -> !getPreferenceValue(prefs, "local_provider_vllm_url", "http://localhost:8000").isEmpty();
@@ -216,13 +237,7 @@ public final class VoidPortSettings {
             case "grok_xai" -> !getPreferenceValue(prefs, "grok_xai_api_key", "").isEmpty();
             case "mistral" -> !getPreferenceValue(prefs, "mistral_api_key", "").isEmpty();
             case "litellm" -> !getPreferenceValue(prefs, "litellm_base_url", "").isEmpty();
-            case "vertex_ai" -> !getPreferenceValue(prefs, "vertex_project", "").isEmpty();
-            case "azure_openai" -> !getPreferenceValue(prefs, "azure_openai_resource", "").isEmpty()
-                    && !getPreferenceValue(prefs, "azure_openai_api_key", "").isEmpty();
-            case "bedrock" -> !getPreferenceValue(prefs, "bedrock_api_key", "").isEmpty()
-                    && !getPreferenceValue(prefs, "bedrock_endpoint", "").isEmpty();
-            case "morph" -> !getPreferenceValue(prefs, "morph_api_key", "").isEmpty();
-            default -> true;
+            default -> false;
         };
     }
 
@@ -232,6 +247,9 @@ public final class VoidPortSettings {
 
     public static List<ProviderGroup> getAllProviderGroups(SharedPreferences prefs) {
         List<ProviderGroup> groups = getCatalogProviderGroups();
+        for (ProviderGroup providerConfigGroup : getProviderConfigGroups(prefs)) {
+            groups.add(providerConfigGroup);
+        }
         for (ProviderGroup customGroup : getCustomProviderGroups(prefs)) {
             boolean merged = false;
             for (ProviderGroup group : groups) {
@@ -320,27 +338,250 @@ public final class VoidPortSettings {
 
     public static List<ProviderCardSpec> getProviderCards() {
         List<ProviderCardSpec> providers = new ArrayList<>();
-        providers.add(new ProviderCardSpec("OpenAI", "Get your API key here.", "https://platform.openai.com/api-keys")
+        providers.add(new ProviderCardSpec("openai", "OpenAI", "Get your API key here.", "https://platform.openai.com/api-keys", false)
                 .addField("API Key", "openai_api_key", "", true, "openai_enabled"));
-        providers.add(new ProviderCardSpec("Anthropic", "Get your API key here.", "https://console.anthropic.com/settings/keys")
+        providers.add(new ProviderCardSpec("anthropic", "Anthropic", "Get your API key here.", "https://console.anthropic.com/settings/keys", false)
                 .addField("API Key", "anthropic_api_key", "", true, null));
-        providers.add(new ProviderCardSpec("Gemini", "Google AI Studio OpenAI-compatible endpoint.", "https://aistudio.google.com/apikey")
+        providers.add(new ProviderCardSpec("gemini", "Gemini", "Google AI Studio OpenAI-compatible endpoint.", "https://aistudio.google.com/apikey", false)
                 .addField("API Key", "gemini_api_key", "", true, "gemini_enabled"));
-        providers.add(new ProviderCardSpec("OpenRouter", "Get your API key here. Rate limits depend on the selected model.", "https://openrouter.ai/keys")
+        providers.add(new ProviderCardSpec("openrouter", "OpenRouter", "Get your API key here. Rate limits depend on the selected model.", "https://openrouter.ai/keys", false)
                 .addField("API Key", "openrouter_api_key", "", true, null));
-        providers.add(new ProviderCardSpec("DeepSeek", "Get your API key here.", "https://platform.deepseek.com/api_keys")
+        providers.add(new ProviderCardSpec("deepseek", "DeepSeek", "Get your API key here.", "https://platform.deepseek.com/api_keys", false)
                 .addField("API Key", "deepseek_api_key", "", true, null));
-        providers.add(new ProviderCardSpec("Groq", "Use Groq-hosted OpenAI-compatible models.", "https://console.groq.com/keys")
+        providers.add(new ProviderCardSpec("groq", "Groq", "Use Groq-hosted OpenAI-compatible models.", "https://console.groq.com/keys", false)
                 .addField("API Key", "groq_api_key", "", true, "groq_enabled"));
-        providers.add(new ProviderCardSpec("Mistral", "Mistral API access.", "https://console.mistral.ai/api-keys/")
+        providers.add(new ProviderCardSpec("mistral", "Mistral", "Mistral API access.", "https://console.mistral.ai/api-keys/", false)
                 .addField("API Key", "mistral_api_key", "", true, null));
-        providers.add(new ProviderCardSpec("OpenAI-Compatible", "Use any provider that exposes an OpenAI-compatible endpoint.", null)
+        providers.add(new ProviderCardSpec("openai_compatible", "OpenAI-Compatible", "Use any provider that exposes an OpenAI-compatible endpoint.", null, false)
                 .addField("Base URL", "openai_compatible_base_url", "https://my-endpoint.example/v1", false, null)
                 .addField("API Key", "openai_compatible_api_key", "", true, null)
                 .addField("Headers JSON", "openai_compatible_headers", "{}", false, null));
-        providers.add(new ProviderCardSpec("LiteLLM", "Point this to a LiteLLM proxy if you use one.", null)
+        providers.add(new ProviderCardSpec("litellm", "LiteLLM", "Point this to a LiteLLM proxy if you use one.", null, false)
                 .addField("Base URL", "litellm_base_url", "http://localhost:4000", false, null));
         return providers;
+    }
+
+    public static List<ProviderCardSpec> getProviderCards(SharedPreferences prefs) {
+        List<ProviderCardSpec> providers = getProviderCards();
+        JSONArray configs = readProviderConfigs(prefs);
+        for (int i = 0; i < configs.length(); i++) {
+            JSONObject config = configs.optJSONObject(i);
+            if (config == null) {
+                continue;
+            }
+            String providerId = config.optString("id", "").trim();
+            String name = config.optString("name", providerId).trim();
+            if (providerId.isEmpty() || name.isEmpty()) {
+                continue;
+            }
+            ProviderCardSpec spec = new ProviderCardSpec(providerId, name, "Custom provider", null, true)
+                    .addField("API Key", providerPrefKey(providerId, "api_key"), "", true, providerPrefKey(providerId, "enabled"))
+                    .addField("Base URL", providerPrefKey(providerId, "base_url"), defaultBaseForProviderType(providerType(config)), false, null)
+                    .addField("Headers JSON", providerPrefKey(providerId, "headers"), "{}", false, null);
+            providers.add(spec);
+        }
+        return providers;
+    }
+
+    public static JSONArray readProviderConfigs(SharedPreferences prefs) {
+        return readJsonArrayPreference(prefs, PREF_PROVIDER_CONFIGS);
+    }
+
+    public static JSONObject getProviderConfigObject(SharedPreferences prefs, String providerId) {
+        if (prefs == null || providerId == null || providerId.trim().isEmpty()) {
+            return null;
+        }
+        JSONArray configs = readProviderConfigs(prefs);
+        for (int i = 0; i < configs.length(); i++) {
+            JSONObject config = configs.optJSONObject(i);
+            if (config != null && providerId.equals(config.optString("id", ""))) {
+                return config;
+            }
+        }
+        return null;
+    }
+
+    public static JSONObject getProviderConfigForTitle(SharedPreferences prefs, String title) {
+        if (title == null) {
+            return null;
+        }
+        JSONArray configs = readProviderConfigs(prefs);
+        for (int i = 0; i < configs.length(); i++) {
+            JSONObject config = configs.optJSONObject(i);
+            if (config != null && title.equals(config.optString("name", ""))) {
+                return config;
+            }
+        }
+        return null;
+    }
+
+    public static void saveProviderConfig(SharedPreferences prefs, JSONObject config) {
+        if (prefs == null || config == null) {
+            return;
+        }
+        String providerId = config.optString("id", "").trim();
+        if (providerId.isEmpty()) {
+            return;
+        }
+        JSONArray existing = readProviderConfigs(prefs);
+        JSONArray next = new JSONArray();
+        boolean updated = false;
+        for (int i = 0; i < existing.length(); i++) {
+            JSONObject item = existing.optJSONObject(i);
+            if (item == null) {
+                continue;
+            }
+            if (providerId.equals(item.optString("id", ""))) {
+                next.put(config);
+                updated = true;
+            } else {
+                next.put(item);
+            }
+        }
+        if (!updated) {
+            next.put(config);
+        }
+        writeProviderConfigPrefs(prefs, config);
+        prefs.edit().putString(PREF_PROVIDER_CONFIGS, next.toString()).apply();
+    }
+
+    public static void updateProviderConfigValue(SharedPreferences prefs, String providerId, String key, Object value) {
+        JSONObject config = getProviderConfigObject(prefs, providerId);
+        if (config == null || key == null || key.trim().isEmpty()) {
+            return;
+        }
+        try {
+            config.put(key, value);
+            saveProviderConfig(prefs, config);
+        } catch (Exception ignored) {
+        }
+    }
+
+    public static void removeProviderConfig(SharedPreferences prefs, String providerId) {
+        if (prefs == null || providerId == null || providerId.trim().isEmpty()) {
+            return;
+        }
+        JSONArray existing = readProviderConfigs(prefs);
+        JSONArray next = new JSONArray();
+        for (int i = 0; i < existing.length(); i++) {
+            JSONObject item = existing.optJSONObject(i);
+            if (item != null && !providerId.equals(item.optString("id", ""))) {
+                next.put(item);
+            }
+        }
+        prefs.edit()
+                .putString(PREF_PROVIDER_CONFIGS, next.toString())
+                .remove(providerPrefKey(providerId, "enabled"))
+                .remove(providerPrefKey(providerId, "api_key"))
+                .remove(providerPrefKey(providerId, "base_url"))
+                .remove(providerPrefKey(providerId, "headers"))
+                .remove(providerPrefKey(providerId, "api_path"))
+                .apply();
+    }
+
+    public static String uniqueProviderId(SharedPreferences prefs, String seed) {
+        String base = "custom_" + slugify(seed == null || seed.trim().isEmpty() ? "provider" : seed);
+        if ("custom_".equals(base)) {
+            base = "custom_provider";
+        }
+        String candidate = base;
+        int suffix = 2;
+        while (getProviderConfigObject(prefs, candidate) != null || isBuiltInProviderId(candidate)) {
+            candidate = base + "_" + suffix;
+            suffix++;
+        }
+        return candidate;
+    }
+
+    public static String providerPrefKey(String providerId, String key) {
+        return "provider_config_" + slugify(providerId) + "_" + key;
+    }
+
+    public static String providerType(JSONObject config) {
+        String raw = config == null ? "" : config.optString("providerType", config.optString("type", ""));
+        String normalized = raw.trim().toLowerCase(Locale.US);
+        if ("google".equals(normalized) || "gemini".equals(normalized)) {
+            return "gemini";
+        }
+        if ("claude".equals(normalized) || "anthropic".equals(normalized)) {
+            return "anthropic";
+        }
+        if ("openai-compatible".equals(normalized) || "openai_compatible".equals(normalized)) {
+            return "openai_compatible";
+        }
+        return "openai";
+    }
+
+    public static String defaultBaseForProviderType(String type) {
+        String normalized = type == null ? "openai" : type;
+        return switch (normalized) {
+            case "gemini" -> "https://generativelanguage.googleapis.com/v1beta";
+            case "anthropic" -> "https://api.anthropic.com/v1";
+            case "openai_compatible" -> "";
+            default -> "https://api.openai.com/v1";
+        };
+    }
+
+    public static String defaultChatPathForProviderType(String type) {
+        String normalized = type == null ? "openai" : type;
+        return switch (normalized) {
+            case "gemini", "anthropic" -> "";
+            default -> "/chat/completions";
+        };
+    }
+
+    private static List<ProviderGroup> getProviderConfigGroups(SharedPreferences prefs) {
+        List<ProviderGroup> groups = new ArrayList<>();
+        JSONArray configs = readProviderConfigs(prefs);
+        for (int i = 0; i < configs.length(); i++) {
+            JSONObject config = configs.optJSONObject(i);
+            if (config == null) {
+                continue;
+            }
+            String providerId = config.optString("id", "").trim();
+            String label = config.optString("name", providerId).trim();
+            if (providerId.isEmpty() || label.isEmpty()) {
+                continue;
+            }
+            List<String> models = new ArrayList<>();
+            JSONArray configModels = config.optJSONArray("models");
+            for (int j = 0; configModels != null && j < configModels.length(); j++) {
+                String model = configModels.optString(j, "").trim();
+                if (!model.isEmpty() && !models.contains(model)) {
+                    models.add(model);
+                }
+            }
+            if (!models.isEmpty()) {
+                groups.add(new ProviderGroup(providerId, toVoidProviderName(providerId), label, false, models));
+            }
+        }
+        return groups;
+    }
+
+    private static void writeProviderConfigPrefs(SharedPreferences prefs, JSONObject config) {
+        String providerId = config.optString("id", "").trim();
+        if (providerId.isEmpty()) {
+            return;
+        }
+        prefs.edit()
+                .putBoolean(providerPrefKey(providerId, "enabled"), config.optBoolean("enabled", true))
+                .putString(providerPrefKey(providerId, "api_key"), config.optString("apiKey", ""))
+                .putString(providerPrefKey(providerId, "base_url"), config.optString("baseUrl", defaultBaseForProviderType(providerType(config))))
+                .putString(providerPrefKey(providerId, "headers"), config.optString("headers", "{}"))
+                .putString(providerPrefKey(providerId, "api_path"), config.optString("chatPath", defaultChatPathForProviderType(providerType(config))))
+                .apply();
+    }
+
+    private static boolean isBuiltInProviderId(String providerId) {
+        if (providerId == null) {
+            return false;
+        }
+        for (ProviderCardSpec spec : getProviderCards()) {
+            if (providerId.equals(spec.providerId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static List<ProviderGroup> getCustomProviderGroups(SharedPreferences prefs) {
@@ -574,9 +815,6 @@ public final class VoidPortSettings {
             case "grok_xai" -> "xAI";
             case "lm_studio" -> "lmStudio";
             case "litellm" -> "liteLLM";
-            case "vertex_ai" -> "googleVertex";
-            case "azure_openai" -> "microsoftAzure";
-            case "bedrock" -> "awsBedrock";
             case "vllm" -> "vLLM";
             default -> providerId;
         };
