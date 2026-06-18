@@ -748,7 +748,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
                         prefs.edit().putString(PREF_CUSTOM_MODELS, models.toString()).apply();
                     } catch (Exception ignored) {
                     }
-                    buildModelsSection();
+                    ensureValidCurrentSelection();
                 })
                 .show();
     }
@@ -914,7 +914,6 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
     private void refreshLocalModels(String providerId) {
         Toast.makeText(this, "Refreshing " + providerId + " models...", Toast.LENGTH_SHORT).show();
         VoidPortRefreshModelService.refreshProviderAsync(this, providerId, true, result -> {
-            buildModelsSection();
             ensureValidCurrentSelection();
             if (result.state == VoidPortRefreshModelService.RefreshState.FINISHED) {
                 Toast.makeText(this,
@@ -931,8 +930,6 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
     private void refreshOllamaModelsIntoLocalSpinner(@Nullable MaterialAutoCompleteTextView modelInput) {
         Toast.makeText(this, "Loading Ollama models...", Toast.LENGTH_SHORT).show();
         VoidPortRefreshModelService.refreshProviderAsync(this, "ollama", true, result -> {
-            buildModelsSection();
-            buildLocalProvidersSection();
             ensureValidCurrentSelection();
             if (modelInput != null && result.state == VoidPortRefreshModelService.RefreshState.FINISHED) {
                 modelInput.setSimpleItems(result.models.toArray(new String[0]));
@@ -1122,10 +1119,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
                     editor.putBoolean(enabledKey, s != null && s.toString().trim().length() > 0);
                 }
                 editor.apply();
-                if (sectionViews.containsKey(SECTION_MODELS)) {
-                    buildModelsSection();
-                    ensureValidCurrentSelection();
-                }
+                ensureValidCurrentSelection();
                 if (afterSave != null) {
                     afterSave.run();
                 }
