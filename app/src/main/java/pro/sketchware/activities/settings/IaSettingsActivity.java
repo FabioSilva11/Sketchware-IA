@@ -69,7 +69,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
     }
 
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         reloadProviders();
     }
