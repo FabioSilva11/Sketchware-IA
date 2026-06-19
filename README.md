@@ -1,6 +1,6 @@
 # Sketchware IA
 
-![Sketchware IA Logo](https://github.com/FabioSilva11/Sketchware-IA/blob/main/assets/logo.png?raw=true)
+![Sketchware IA Logo](app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp)
 
 O **Sketchware IA** é uma continuação do Sketchware para Android, mantida pela comunidade, com desenvolvimento ativo, melhorias no editor e lançamentos de APKs para download. Nosso objetivo é transformar o desenvolvimento mobile em uma experiência mais inteligente e acessível, integrando inteligência artificial diretamente no ambiente de criação de aplicativos.
 
