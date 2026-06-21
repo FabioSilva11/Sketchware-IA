@@ -64,7 +64,7 @@ Este projeto busca manter viva a ideia do Sketchware original, mas com uma visã
 
 📱 Demonstração
 
-https://github.com/FabioSilva11/Sketchware-IA/blob/main/Screenrecorder-2026-06-21-02-56-46-49.mp4
+https://github.com/user-attachments/assets/651ff6f4-8d62-4327-a524-92030e795eb3
 
 Ideias para o GIF:
 
