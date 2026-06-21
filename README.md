@@ -1,201 +1,422 @@
-# Sketchware IA
+Sketchware IA
 
-![Sketchware IA Logo](app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp)
+<p align="center">
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="120" alt="Sketchware IA Logo">
+</p><h3 align="center">
+  Crie apps Android direto do celular com blocos, Java/Kotlin e inteligência artificial.
+</h3><p align="center">
+  O <strong>Sketchware IA</strong> é uma IDE mobile baseada no Sketchware, mantida pela comunidade, com foco em editor visual, desenvolvimento Android no celular e integração com IA.
+</p><p align="center">
+  <a href="https://github.com/FabioSilva11/Sketchware-IA/releases">
+    <strong>Baixar APK</strong>
+  </a>
+  ·
+  <a href="#como-contribuir">
+    <strong>Contribuir</strong>
+  </a>
+  ·
+  <a href="#roadmap">
+    <strong>Roadmap</strong>
+  </a>
+  ·
+  <a href="https://github.com/FabioSilva11/Sketchware-IA/issues">
+    <strong>Reportar bug</strong>
+  </a>
+</p><p align="center">
+  <img src="https://img.shields.io/github/stars/FabioSilva11/Sketchware-IA?style=social" alt="GitHub Stars">
+  <img src="https://img.shields.io/github/forks/FabioSilva11/Sketchware-IA?style=social" alt="GitHub Forks">
+  <img src="https://img.shields.io/github/v/release/FabioSilva11/Sketchware-IA?include_prereleases" alt="Latest Release">
+  <img src="https://img.shields.io/badge/platform-Android-green" alt="Android">
+  <img src="https://img.shields.io/badge/language-Java%20%2F%20Kotlin-blue" alt="Java Kotlin">
+  <img src="https://img.shields.io/badge/license-source--available-orange" alt="Source Available">
+</p>
 
-O **Sketchware IA** é uma continuação do Sketchware para Android, mantida pela comunidade, com desenvolvimento ativo, melhorias no editor e lançamentos de APKs para download. Nosso objetivo é transformar o desenvolvimento mobile em uma experiência mais inteligente e acessível, integrando inteligência artificial diretamente no ambiente de criação de aplicativos.
+---
+✨ O que é o Sketchware IA?
 
-> [!NOTE]
-> ### 🤖 O que é o Sketchware IA?
-> O Sketchware IA é um fork do projeto original Sketchware, que foi descontinuado. Nosso foco é modernizar a plataforma, adicionar recursos de IA e manter o projeto vivo com a ajuda da comunidade.
+O Sketchware IA é uma continuação moderna do Sketchware para Android, criada para permitir que pessoas desenvolvam aplicativos diretamente pelo celular.
+
+A proposta é unir:
+
+- editor visual com blocos;
+- desenvolvimento Android com Java/Kotlin;
+- assistente de IA integrado;
+- correção de erros de código;
+- geração de funcionalidades;
+- compilação de APK no próprio dispositivo;
+- comunidade colaborativa para manter o projeto vivo.
+
+«O objetivo é transformar o celular em um ambiente real de desenvolvimento mobile.»
 
 ---
 
-## Recursos Principais
+🚀 Por que este projeto existe?
 
-- **Editor Visual Aprimorado**: Interface de arrastar e soltar blocos para criar lógica de aplicativo sem código.
-- **Integração com IA**: Ferramentas de inteligência artificial para auxiliar no desenvolvimento, desde a geração de código até a otimização de funcionalidades.
-- **Chat Interativo**: Um assistente de chat integrado para tirar dúvidas, obter sugestões e resolver problemas de programação.
-- **Compilação Rápida**: Construa e teste seus aplicativos Android diretamente no dispositivo.
-- **Comunidade Ativa**: Suporte e colaboração de uma comunidade dedicada de desenvolvedores.
-- **Atualizações Constantes**: Novas funcionalidades e melhorias implementadas regularmente.
+Muita gente quer criar aplicativos Android, mas nem todo mundo tem acesso a um computador potente, Android Studio ou uma estrutura profissional de desenvolvimento.
 
----
+O Sketchware IA nasce para resolver isso:
 
-## Instalação
+«Criar, editar, corrigir e compilar apps Android direto do celular, com ajuda de IA.»
 
-You can download the latest version of Sketchware IA directly from the [Releases](https://github.com/FabioSilva11/Sketchware-IA/releases) page.
+Este projeto busca manter viva a ideia do Sketchware original, mas com uma visão mais moderna: inteligência artificial, colaboração, versionamento, novos blocos, melhorias no editor e uma comunidade ativa de desenvolvimento.
 
 ---
 
-## Uso
+📱 Demonstração
 
-1.  **Crie um Novo Projeto**: Abra o Sketchware IA e inicie um novo projeto.
-2.  **Arraste e Solte Blocos**: Use os blocos visuais para construir a lógica do seu aplicativo.
-3.  **Utilize a IA**: Interaja com o assistente de IA para obter ajuda e sugestões.
-4.  **Compile e Teste**: Compile seu aplicativo e teste-o em seu dispositivo Android.
+«Adicione aqui um GIF ou vídeo curto mostrando o app em funcionamento.»
 
----
+Sugestão de demonstração:
 
-## Integração com GitHub — versionamento de projetos
+![Demonstração do Sketchware IA](docs/assets/demo.gif)
 
-> 🔜 **Funcionalidade planejada**
+Ideias para o GIF:
 
-Uma das próximas grandes entregas é a **integração direta do GitHub com os projetos do Sketchware IA**, transformando o app em um ambiente profissional de desenvolvimento mobile com versionamento completo — tudo direto do celular.
-
-### Funcionalidades planejadas
-
-**✅ Login com GitHub**
-- Conectar conta GitHub
-- Vincular repositórios existentes ou criar novos
-- Sincronização automática de projetos
-
-**✅ Backup automático na nuvem**
-- Projetos enviados automaticamente para o GitHub
-- Nunca perca um projeto ao trocar de celular ou formatar o aparelho
-
-**✅ Histórico completo de versões**
-- Cada alteração gera commits automáticos
-- Restaure qualquer versão anterior com um toque
-- Compare mudanças entre versões
-- Trabalhe com branches para funcionalidades separadas
-
-**✅ Colaboração em equipe**
-- Compartilhe projetos com outras pessoas
-- Receba contribuições via pull requests
-- Trabalhe em equipe no mesmo app
+- criando um novo projeto;
+- usando blocos visuais;
+- pedindo ajuda para a IA;
+- corrigindo um erro de compilação;
+- gerando um APK no próprio celular.
 
 ---
 
-## Visão de futuro — Migração para Flutter
+🔥 Recursos principais
 
-> 🔮 **Roadmap de longo prazo**
+🧩 Editor visual com blocos
 
-A intenção é **migrar o Sketchware IA completamente para Flutter** — tanto a interface quanto a arquitetura interna.
+Crie interfaces e lógicas de aplicativo usando blocos visuais, eventos e componentes Android.
 
-### Por que Flutter?
+💻 Java e Kotlin
 
-- Interface consistente e moderna em todas as versões Android
-- Performance superior com rendering próprio
-- Codebase única para múltiplas plataformas
-- Ecossistema rico de widgets e bibliotecas
-- Expansão natural para desktop e web
+Use código customizado em Java/Kotlin para expandir seus projetos além dos blocos tradicionais.
 
-### Compilação multiplataforma com Dart
+🤖 IA integrada
 
-Com a migração para Flutter e **Dart** como linguagem base, o Sketchware IA ganhará a capacidade de compilar projetos criados no app para múltiplas plataformas:
+Use inteligência artificial para:
 
-| Plataforma | Suporte |
-|------------|---------|
-| Android | ✅ |
-| iOS | ✅ |
-| Web | ✅ |
-| Windows | ✅ |
-| Linux | ✅ |
-| macOS | ✅ |
+- gerar código;
+- explicar erros;
+- sugerir melhorias;
+- refatorar trechos;
+- criar funcionalidades;
+- ajudar na criação de módulos.
 
-Um app criado no Sketchware IA poderá rodar em qualquer dispositivo e sistema operacional, mantendo a mesma experiência de desenvolvimento visual com blocos arrastáveis.
+🛠️ Correção de erros
 
-> **Importante:** mesmo com essa visão futura, o desenvolvimento atual em Java/Kotlin continua ativo e continuará recebendo melhorias constantemente.
+O objetivo é permitir que a IA ajude a interpretar erros de build e sugira correções diretamente no ambiente mobile.
+
+📦 Compilação no Android
+
+Crie, compile e teste seus projetos Android diretamente no celular.
+
+🌎 Projeto mantido pela comunidade
+
+O Sketchware IA é mantido por pessoas interessadas em desenvolvimento Android mobile, IA, ferramentas visuais e educação tecnológica.
 
 ---
 
-## Contribuindo
+📥 Instalação
 
-O Sketchware IA é um projeto aberto para a comunidade. Contribuições são extremamente bem-vindas.
+Baixe a versão mais recente na página de releases:
 
-### Enriquecendo seu Portfólio com o Sketchware IA
+👉 "Download do APK" (https://github.com/FabioSilva11/Sketchware-IA/releases)
 
-Contribuir para o Sketchware IA é uma excelente oportunidade para desenvolvedores que desejam **enriquecer seus portfólios** com projetos práticos e inovadores. Ao participar, você pode demonstrar suas habilidades em:
+«Recomendação: baixe APKs apenas pela página oficial de Releases deste repositório.»
 
--   **Desenvolvimento Android/Kotlin/Java**: Contribuindo com novos recursos, otimizações e correções de bugs na base de código existente.
--   **Integração de IA e Chat**: Aprimorando as funcionalidades de inteligência artificial e as interações de chat, o que é altamente valorizado no mercado atual.
--   **Design de UI/UX**: Propondo e implementando melhorias na interface do usuário, tornando o aplicativo mais intuitivo e agradável.
--   **Desenvolvimento de Ferramentas e Blocos**: Criando novos blocos visuais e funcionalidades que expandem as capacidades do Sketchware IA, mostrando sua capacidade de inovação.
--   **Versionamento e Colaboração**: Utilizando ferramentas de controle de versão como Git/GitHub em um projeto ativo, o que é fundamental para o trabalho em equipe.
+---
 
-Sua participação não só ajuda a comunidade, mas também serve como um testemunho tangível de suas competências para futuros empregadores ou clientes.
+⚡ Como usar
 
-### O que você pode contribuir
+1. Baixe e instale o APK.
+2. Abra o Sketchware IA.
+3. Crie um novo projeto.
+4. Monte a interface usando o editor visual.
+5. Use blocos, Java ou Kotlin para criar a lógica.
+6. Peça ajuda para a IA quando precisar.
+7. Compile e teste seu aplicativo no próprio Android.
 
-Estamos sempre buscando contribuições nas seguintes áreas:
+---
 
--   **Novos blocos e funções**: Expanda o editor visual com novas funcionalidades e blocos personalizados.
--   **Modificações e melhorias na UI**: Ajude a refinar a interface do usuário para uma experiência mais fluida e moderna.
--   **Correção de erros em funcionalidades de IA e Chat**: Aprimore a precisão e a usabilidade das ferramentas de inteligência artificial e do chat interativo.
--   **Ferramentas MCP e integrações externas**: Desenvolva novas integrações e ferramentas para expandir o ecossistema do Sketchware IA.
--   **Melhorias no agente de IA e nos prompts**: Otimize o desempenho do agente de IA e a qualidade dos prompts.
--   **Novos módulos e funcionalidades**: Adicione recursos inovadores que tornem o Sketchware IA ainda mais poderoso.
--   **Integração com GitHub (versionamento de projetos)**: Contribua para a implementação da integração completa com o GitHub.
--   **Correções de bugs, atualizações e otimizações**: Ajude a manter o projeto estável, seguro e com alta performance.
--   **Traduções e documentação**: Ajude a tornar o Sketchware IA acessível a mais pessoas e a documentar suas funcionalidades.
--   **Testes automatizados**: Garanta a qualidade do código com a criação de testes.
+👨‍💻 Para desenvolvedores
 
-### Como começar
+O projeto é uma oportunidade para contribuir com uma ferramenta real usada por pessoas que criam apps pelo celular.
 
-```bash
-# 1. Faça um fork do repositório
-# 2. Crie uma branch para sua funcionalidade
+Você pode contribuir com:
+
+- Android;
+- Java;
+- Kotlin;
+- UI/UX;
+- IA e prompts;
+- correção de bugs;
+- performance;
+- documentação;
+- testes;
+- novos blocos;
+- ferramentas MCP;
+- integração com GitHub;
+- melhorias no sistema de build.
+
+---
+
+🧭 Roadmap
+
+✅ Atual
+
+- Continuação comunitária do Sketchware.
+- Editor visual Android.
+- Suporte a blocos.
+- Suporte a Java/Kotlin.
+- Builds e releases no GitHub.
+- Integração inicial com recursos de IA.
+
+🔜 Próximos passos
+
+- Melhorar onboarding para novos usuários.
+- Criar exemplos e templates prontos.
+- Melhorar estabilidade do editor.
+- Melhorar o assistente de IA.
+- Criar documentação para contribuidores.
+- Organizar issues com "good first issue".
+- Melhorar sistema de feedback e reporte de bugs.
+- Publicar changelogs mais detalhados nas releases.
+
+🧠 IA e automação
+
+- Melhorar prompts de correção de erro.
+- Criar ferramentas para análise de projeto.
+- Permitir sugestões automáticas de código.
+- Explorar integrações com MCP.
+- Criar fluxos para IA auxiliar em commits, PRs e documentação.
+
+🔗 Integração com GitHub
+
+Funcionalidade planejada para transformar o Sketchware IA em um ambiente de desenvolvimento mobile com versionamento completo.
+
+Ideias previstas:
+
+- login com GitHub;
+- criação de repositórios;
+- backup automático dos projetos;
+- histórico de versões;
+- commits automáticos;
+- comparação de mudanças;
+- colaboração via pull requests.
+
+🔮 Futuro: migração para Flutter
+
+Existe uma visão de longo prazo para migrar gradualmente o Sketchware IA para Flutter/Dart, modernizando a interface e permitindo expansão futura para múltiplas plataformas.
+
+Possibilidades futuras:
+
+Plataforma| Objetivo
+Android| Suporte principal
+Web| Planejado
+Windows| Planejado
+Linux| Planejado
+macOS| Planejado
+iOS| Planejado
+
+«Importante: a base atual em Java/Kotlin continua ativa e seguirá recebendo melhorias.»
+
+---
+
+🗂️ Estrutura rápida do projeto
+
+Sketchware-IA/
+├── app/                  # Código principal do app Android
+├── assets/               # Recursos auxiliares
+├── gradle/               # Configurações do Gradle
+├── scripts/              # Scripts auxiliares
+├── .github/              # Workflows, templates e automações
+├── build.gradle          # Configuração principal de build
+├── settings.gradle       # Configuração dos módulos
+├── CONTRIBUTING.md       # Guia de contribuição
+├── LICENSE.md            # Licença e observações legais
+└── README.md             # Documentação principal
+
+«Uma documentação mais completa da arquitetura pode ser criada em "ARCHITECTURE.md".»
+
+---
+
+🧑‍🤝‍🧑 Como contribuir
+
+Contribuições são bem-vindas.
+
+1. Escolha uma tarefa
+
+Veja as issues abertas:
+
+👉 "Issues do projeto" (https://github.com/FabioSilva11/Sketchware-IA/issues)
+
+Boas primeiras contribuições devem ser marcadas com:
+
+- "good first issue"
+- "help wanted"
+- "documentation"
+- "ui/ux"
+- "bug"
+- "android"
+- "ai"
+
+2. Faça um fork
+
+git clone https://github.com/FabioSilva11/Sketchware-IA.git
+cd Sketchware-IA
+
+3. Crie uma branch
+
 git checkout -b feat/minha-funcionalidade
 
-# 3. Faça suas alterações
-# 4. Abra um Pull Request com descrição clara
-```
+4. Faça sua alteração
 
-Issues marcadas com `good first issue` são ótimas entradas para quem está começando.
+Mantenha o foco em uma mudança por pull request.
 
----
+Exemplos:
 
-> [!TIP]
-> ### 🤖 Use IA para contribuir com o projeto
->
-> **Você pode usar inteligência artificial — inclusive o próprio Sketchware IA — para criar novos módulos, ferramentas e melhorias para o projeto.**
->
-> A IA integrada pode ajudar a:
-> - Criar código e novos módulos
-> - Refatorar sistemas existentes
-> - Desenvolver ferramentas MCP personalizadas
-> - Automatizar partes do desenvolvimento
-> - Criar commits e abrir PRs diretamente via GitHub MCP
->
-> A ideia do projeto é justamente expandir os limites do desenvolvimento mobile usando IA. Use-a para contribuir.
+fix: corrigir crash ao abrir projeto antigo
+feat: adicionar novo bloco visual
+docs: melhorar instruções de build
+refactor: organizar módulo de IA
+
+5. Abra um Pull Request
+
+No PR, explique:
+
+- o que foi alterado;
+- por que a mudança é necessária;
+- como testar;
+- prints ou vídeos, se houver mudança visual.
 
 ---
 
-## Build do projeto
+🧪 Build do projeto
 
-### Pré-requisitos
+Pré-requisitos
 
-- Android Studio Hedgehog ou superior
-- JDK 17
-- Android SDK 35
+- Android Studio Hedgehog ou superior;
+- JDK 17;
+- Android SDK 35;
+- Gradle configurado corretamente.
 
-### Compilar
+Compilar localmente
 
-```bash
 git clone https://github.com/FabioSilva11/Sketchware-IA.git
 cd Sketchware-IA
 ./gradlew assembleDebug
-```
 
-### Variáveis de ambiente para CI
+No Windows:
 
-| Variável | Descrição |
-|----------|-----------|
-| `SKETCHUB_API_KEY` | Chave da API do Sketchub (opcional) |
-| `KEYSTORE_FILE` | Keystore em base64 para assinar o APK |
-| `KEY_ALIAS` | Alias da chave no keystore |
-| `KEY_PASSWORD` | Senha da chave |
-| `KEYSTORE_PASSWORD` | Senha do keystore |
+gradlew.bat assembleDebug
 
 ---
 
-## Licença
+🔐 Variáveis de ambiente para CI
 
-O Sketchware IA é **source-available**, não um projeto open source convencional. Leia [LICENSE.md](LICENSE.md) antes de reutilizar código fora deste repositório.
+Variável| Descrição
+"SKETCHUB_API_KEY"| Chave da API do Sketchub, opcional
+"KEYSTORE_FILE"| Keystore em base64 para assinar o APK
+"KEY_ALIAS"| Alias da chave
+"KEY_PASSWORD"| Senha da chave
+"KEYSTORE_PASSWORD"| Senha do keystore
+
+«Nunca publique chaves privadas, tokens ou credenciais pessoais no repositório.»
 
 ---
+
+🛡️ Segurança dos APKs
+
+Para segurança dos usuários:
+
+- baixe o APK apenas pela aba oficial de Releases;
+- verifique se o APK veio deste repositório;
+- evite builds compartilhados por terceiros;
+- sempre que possível, confira o hash/checksum publicado na release.
+
+Sugestão para releases futuras:
+
+SHA-256:
+adicione_aqui_o_hash_do_apk
+
+---
+
+🤖 Use IA para contribuir
+
+Você pode usar inteligência artificial para ajudar no desenvolvimento do próprio Sketchware IA.
+
+A IA pode ajudar a:
+
+- entender partes antigas do código;
+- documentar classes;
+- sugerir refatorações;
+- criar testes;
+- gerar novos blocos;
+- melhorar prompts;
+- revisar pull requests;
+- criar exemplos;
+- escrever tutoriais.
+
+A ideia do projeto é justamente expandir os limites do desenvolvimento mobile usando IA.
+
+---
+
+📢 Ajude a divulgar
+
+Se você acredita no projeto, ajude compartilhando.
+
+Sugestão de texto:
+
+Conheça o Sketchware IA 🚀
+
+Uma IDE Android com blocos visuais, Java/Kotlin e inteligência artificial, criada para desenvolver apps direto do celular.
+
+O projeto é mantido pela comunidade e está buscando contribuidores em Android, Java, Kotlin, IA, UI/UX e documentação.
+
+GitHub:
+https://github.com/FabioSilva11/Sketchware-IA
+
+---
+
+📌 Ideias para primeiras contribuições
+
+Se você quer contribuir mas não sabe por onde começar, aqui estão algumas ideias:
+
+- melhorar este README;
+- criar README em inglês;
+- criar screenshots do app;
+- criar GIF de demonstração;
+- revisar textos da interface;
+- corrigir bugs simples;
+- criar templates de projetos;
+- documentar o sistema de build;
+- melhorar mensagens de erro;
+- criar exemplos de uso da IA;
+- testar o app em versões diferentes do Android.
+
+---
+
+⚖️ Licença
+
+O Sketchware IA é um projeto source-available, não um projeto open source convencional.
+
+Leia o arquivo "LICENSE.md" (LICENSE.md) antes de reutilizar código fora deste repositório.
+
+Algumas partes do projeto têm origem em bases anteriores do ecossistema Sketchware, então a reutilização em projetos externos deve ser feita com cuidado.
+
+---
+
+❤️ Comunidade
+
+Este projeto existe porque a comunidade ainda acredita no potencial de criar aplicativos Android direto do celular.
+
+Se você é desenvolvedor, estudante, designer, criador de conteúdo ou entusiasta de IA, sua contribuição pode ajudar a tornar o Sketchware IA melhor para todos.
 
 <p align="center">
-  Feito com ❤️ pela comunidade Sketchware IA<br>
-  <a href="https://github.com/FabioSilva11/Sketchware-IA/issues">Reportar bug</a> · <a href="https://github.com/FabioSilva11/Sketchware-IA/pulls">Contribuir</a>
+  <a href="https://github.com/FabioSilva11/Sketchware-IA/releases">Baixar APK</a>
+  ·
+  <a href="https://github.com/FabioSilva11/Sketchware-IA/issues">Reportar bug</a>
+  ·
+  <a href="https://github.com/FabioSilva11/Sketchware-IA/pulls">Contribuir</a>
+</p><p align="center">
+  Feito com ❤️ pela comunidade Sketchware IA
 </p>
