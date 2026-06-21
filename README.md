@@ -64,11 +64,7 @@ Este projeto busca manter viva a ideia do Sketchware original, mas com uma visã
 
 📱 Demonstração
 
-«Adicione aqui um GIF ou vídeo curto mostrando o app em funcionamento.»
-
-Sugestão de demonstração:
-
-![Demonstração do Sketchware IA](docs/assets/demo.gif)
+https://github.com/FabioSilva11/Sketchware-IA/blob/main/Screenrecorder-2026-06-21-02-56-46-49.mp4
 
 Ideias para o GIF:
 
