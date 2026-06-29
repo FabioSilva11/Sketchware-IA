@@ -13,6 +13,7 @@ public final class VoidPortLlmMessage {
     }
 
     public static final class ProviderConfig {
+        public final String providerId;
         public final ProviderFamily family;
         public final String baseUrl;
         public final String apiKey;
@@ -21,11 +22,22 @@ public final class VoidPortLlmMessage {
         public final boolean includeModelInBody;
 
         public ProviderConfig(ProviderFamily family, String baseUrl, String apiKey, JSONObject extraHeaders, boolean supportsNativeTools) {
-            this(family, baseUrl, apiKey, extraHeaders, supportsNativeTools, true);
+            this("", family, baseUrl, apiKey, extraHeaders, supportsNativeTools, true);
         }
 
         public ProviderConfig(ProviderFamily family, String baseUrl, String apiKey, JSONObject extraHeaders,
                               boolean supportsNativeTools, boolean includeModelInBody) {
+            this("", family, baseUrl, apiKey, extraHeaders, supportsNativeTools, includeModelInBody);
+        }
+
+        public ProviderConfig(String providerId, ProviderFamily family, String baseUrl, String apiKey,
+                              JSONObject extraHeaders, boolean supportsNativeTools) {
+            this(providerId, family, baseUrl, apiKey, extraHeaders, supportsNativeTools, true);
+        }
+
+        public ProviderConfig(String providerId, ProviderFamily family, String baseUrl, String apiKey,
+                              JSONObject extraHeaders, boolean supportsNativeTools, boolean includeModelInBody) {
+            this.providerId = providerId == null ? "" : providerId.trim();
             this.family = family;
             this.baseUrl = baseUrl == null ? "" : baseUrl.trim();
             this.apiKey = apiKey == null ? "" : apiKey.trim();
@@ -48,6 +60,7 @@ public final class VoidPortLlmMessage {
         }
         return switch (providerId) {
             case "anthropic" -> new ProviderConfig(
+                    "anthropic",
                     ProviderFamily.ANTHROPIC,
                     configuredRequestUrl(prefs, "anthropic", "https://api.anthropic.com/v1", "/messages"),
                     activeApiKey(prefs, "anthropic", prefs.getString("anthropic_api_key", "")),
@@ -55,6 +68,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "openai" -> new ProviderConfig(
+                    "openai",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     configuredRequestUrl(prefs, "openai", "https://api.openai.com/v1", "/chat/completions"),
                     activeApiKey(prefs, "openai", prefs.getString("openai_api_key", "")),
@@ -62,6 +76,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "gemini" -> new ProviderConfig(
+                    "gemini",
                     ProviderFamily.GEMINI,
                     configuredBaseUrl(prefs, "gemini", "https://generativelanguage.googleapis.com/v1beta"),
                     activeApiKey(prefs, "gemini", prefs.getString("gemini_api_key", "")),
@@ -69,6 +84,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "groq" -> new ProviderConfig(
+                    "groq",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     configuredRequestUrl(prefs, "groq", "https://api.groq.com/openai/v1", "/chat/completions"),
                     activeApiKey(prefs, "groq", prefs.getString("groq_api_key", "")),
@@ -76,6 +92,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "deepseek" -> new ProviderConfig(
+                    "deepseek",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     configuredRequestUrl(prefs, "deepseek", "https://api.deepseek.com", "/chat/completions"),
                     activeApiKey(prefs, "deepseek", prefs.getString("deepseek_api_key", "")),
@@ -83,6 +100,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "openrouter" -> new ProviderConfig(
+                    "openrouter",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     configuredRequestUrl(prefs, "openrouter", "https://openrouter.ai/api/v1", "/chat/completions"),
                     activeApiKey(prefs, "openrouter", prefs.getString("openrouter_api_key", "")),
@@ -90,6 +108,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "openai_compatible" -> new ProviderConfig(
+                    "openai_compatible",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     configuredRequestUrl(prefs, "openai_compatible", prefs.getString("openai_compatible_base_url", ""), "/chat/completions"),
                     activeApiKey(prefs, "openai_compatible", prefs.getString("openai_compatible_api_key", "")),
@@ -97,6 +116,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "grok_xai" -> new ProviderConfig(
+                    "grok_xai",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     configuredRequestUrl(prefs, "grok_xai", "https://api.x.ai/v1", "/chat/completions"),
                     activeApiKey(prefs, "grok_xai", prefs.getString("grok_xai_api_key", "")),
@@ -104,6 +124,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "mistral" -> new ProviderConfig(
+                    "mistral",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     configuredRequestUrl(prefs, "mistral", "https://api.mistral.ai/v1", "/chat/completions"),
                     activeApiKey(prefs, "mistral", prefs.getString("mistral_api_key", "")),
@@ -111,6 +132,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "litellm" -> new ProviderConfig(
+                    "litellm",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     configuredRequestUrl(prefs, "litellm", prefs.getString("litellm_base_url", ""), "/chat/completions"),
                     "",
@@ -118,6 +140,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "ollama" -> new ProviderConfig(
+                    "ollama",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     normalizeOllamaUrl(prefs.getString("local_provider_ollama_url", "http://127.0.0.1:11434")),
                     "",
@@ -125,6 +148,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "vllm" -> new ProviderConfig(
+                    "vllm",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     normalizeOpenAiLocalUrl(prefs.getString("local_provider_vllm_url", "http://localhost:8000")),
                     "",
@@ -132,6 +156,7 @@ public final class VoidPortLlmMessage {
                     true
             );
             case "lm_studio" -> new ProviderConfig(
+                    "lm_studio",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     normalizeOpenAiLocalUrl(prefs.getString("local_provider_lm_studio_url", "http://localhost:1234")),
                     "",
@@ -143,11 +168,7 @@ public final class VoidPortLlmMessage {
     }
 
     public static int maxOutputTokens(String providerId, String modelName) {
-        VoidPortModelCapabilities.Capabilities capabilities =
-                VoidPortModelCapabilities.getModelCapabilities(providerId, modelName);
-        boolean reasoningEnabled = capabilities.reasoningCapabilities.supportsReasoning
-                && !capabilities.reasoningCapabilities.canTurnOffReasoning;
-        return capabilities.effectiveReservedOutputTokenSpace(reasoningEnabled);
+        return VoidPortProviderMaxTokens.resolve(providerId, modelName, VoidPortProviderMaxTokens.DEFAULT_MAX_TOKENS);
     }
 
     public static boolean shouldUseNativeTools(String providerId, String modelName, ProviderConfig providerConfig) {
@@ -192,6 +213,7 @@ public final class VoidPortLlmMessage {
 
         if ("gemini".equals(type)) {
             return new ProviderConfig(
+                    providerId,
                     ProviderFamily.GEMINI,
                     trimTrailingSlash(baseUrl),
                     apiKey,
@@ -201,6 +223,7 @@ public final class VoidPortLlmMessage {
         }
         if ("anthropic".equals(type)) {
             return new ProviderConfig(
+                    providerId,
                     ProviderFamily.ANTHROPIC,
                     configuredCustomRequestUrl(baseUrl, chatPath, "/messages"),
                     apiKey,
@@ -209,6 +232,7 @@ public final class VoidPortLlmMessage {
             );
         }
         return new ProviderConfig(
+                providerId,
                 ProviderFamily.OPENAI_COMPATIBLE,
                 configuredCustomRequestUrl(baseUrl, chatPath, "/chat/completions"),
                 apiKey,
@@ -297,6 +321,13 @@ public final class VoidPortLlmMessage {
         }
         try {
             body.put("model", modelName);
+            if (providerConfig.family == ProviderFamily.OPENAI_COMPATIBLE && !body.has("max_tokens")) {
+                body.put("max_tokens", VoidPortProviderMaxTokens.resolve(
+                        providerConfig.providerId,
+                        modelName,
+                        VoidPortProviderMaxTokens.DEFAULT_MAX_TOKENS
+                ));
+            }
         } catch (Exception ignored) {
         }
         return body;
