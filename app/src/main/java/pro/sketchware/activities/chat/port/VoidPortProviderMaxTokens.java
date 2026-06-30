@@ -27,7 +27,7 @@ public final class VoidPortProviderMaxTokens {
     }
 
     public static int resolve(String providerId, String modelName) {
-        return resolve(providerId, modelName, DEFAULT_MAX_TOKENS);
+        return resolve(providerId, modelName, -1);
     }
 
     public static int resolve(String providerId, String modelName, int requestedDefault) {
@@ -40,7 +40,10 @@ public final class VoidPortProviderMaxTokens {
     }
 
     public static int resolve(SharedPreferences prefs, String providerId, String modelName, int requestedDefault) {
-        int fallback = requestedDefault > 0 ? requestedDefault : DEFAULT_MAX_TOKENS;
+        int fallback = requestedDefault > 0
+                ? requestedDefault
+                : parsePositiveInt(prefs == null ? null : prefs.getString(VoidPortSettings.PREF_GLOBAL_MAX_TOKENS, ""),
+                DEFAULT_MAX_TOKENS);
         if (prefs == null) {
             return clamp(fallback);
         }

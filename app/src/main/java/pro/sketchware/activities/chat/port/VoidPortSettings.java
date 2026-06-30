@@ -20,6 +20,7 @@ public final class VoidPortSettings {
     public static final String PREF_CURRENT_MODEL = "current_ai_model";
     public static final String PREF_CUSTOM_MODELS = "custom_models_json";
     public static final String PREF_PROVIDER_CONFIGS = "provider_configs_v1";
+    public static final String PREF_GLOBAL_MAX_TOKENS = "global_chat_max_tokens";
     public static final String PREF_CHAT_MODE = "chat_mode";
     public static final String PREF_MCP_CONFIG = "mcp_config_json";
 

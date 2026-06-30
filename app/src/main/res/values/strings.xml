@@ -2499,6 +2499,12 @@ Please try again later"</string>
     <string name="ia_settings_title">Providers</string>
     <string name="ia_settings_subtitle">Manage AI providers</string>
     <string name="ia_settings_description">Manage provider credentials locally on this device.</string>
+    <string name="ia_max_tokens_title">Chat max tokens</string>
+    <string name="ia_max_tokens_current_value">Current global fallback: %1$d tokens</string>
+    <string name="ia_max_tokens_default_value">Use the global fallback token limit.</string>
+    <string name="ia_max_tokens_hint">Set the fallback max token value used when a provider or model does not define its own limit.</string>
+    <string name="ia_max_tokens_edit">Edit</string>
+    <string name="ia_max_tokens_saved">Max token value saved</string>
 
     <!-- Kelivo-style redesign strings -->
     <string name="ia_search_providers_hint">Search providers or groups</string>

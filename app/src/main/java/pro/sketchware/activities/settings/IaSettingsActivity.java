@@ -14,6 +14,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.DrawableRes;
@@ -41,6 +42,7 @@ import java.util.List;
 import java.util.Locale;
 
 import pro.sketchware.R;
+import pro.sketchware.activities.chat.port.VoidPortProviderMaxTokens;
 import pro.sketchware.activities.chat.port.VoidPortSettings;
 import pro.sketchware.databinding.ActivityIaSettingsBinding;
 import pro.sketchware.databinding.ItemProviderRowBinding;
@@ -63,6 +65,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
         prefs = VoidPortSettings.prefs(this);
 
         setupToolbar();
+        setupMaxTokensCard();
         setupInsets();
         setupProvidersList();
         setupSearch();
@@ -71,6 +74,9 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
+        if (binding != null) {
+            updateMaxTokensLabel();
+        }
         reloadProviders();
     }
 
@@ -98,6 +104,54 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
             }
             return false;
         });
+    }
+
+    private void setupMaxTokensCard() {
+        updateMaxTokensLabel();
+        binding.btnEditMaxTokens.setOnClickListener(v -> showMaxTokensDialog());
+    }
+
+    private void updateMaxTokensLabel() {
+        int current = parsePositiveInt(
+                prefs.getString(VoidPortSettings.PREF_GLOBAL_MAX_TOKENS, ""),
+                VoidPortProviderMaxTokens.DEFAULT_MAX_TOKENS
+        );
+        binding.tvMaxTokensValue.setText(getString(R.string.ia_max_tokens_current_value, current));
+    }
+
+    private void showMaxTokensDialog() {
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(4), dp(4), dp(4), 0);
+
+        TextView hint = new TextView(this);
+        hint.setText(R.string.ia_max_tokens_hint);
+        hint.setTextColor(getColor(R.color.chat_text_secondary));
+        hint.setTextSize(13);
+        LinearLayout.LayoutParams hintParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        hintParams.bottomMargin = dp(10);
+        hint.setLayoutParams(hintParams);
+        container.addView(hint);
+
+        TextInputEditText input = addInput(container, R.string.ia_max_tokens_title, false, false);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setText(prefs.getString(VoidPortSettings.PREF_GLOBAL_MAX_TOKENS,
+                String.valueOf(VoidPortProviderMaxTokens.DEFAULT_MAX_TOKENS)));
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.ia_max_tokens_title)
+                .setView(container)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.ia_save, (dialog, which) -> {
+                    int value = parsePositiveInt(textOf(input), VoidPortProviderMaxTokens.DEFAULT_MAX_TOKENS);
+                    prefs.edit().putString(VoidPortSettings.PREF_GLOBAL_MAX_TOKENS, String.valueOf(value)).apply();
+                    updateMaxTokensLabel();
+                    Toast.makeText(this, R.string.ia_max_tokens_saved, Toast.LENGTH_SHORT).show();
+                })
+                .show();
     }
 
     private void setupInsets() {
@@ -610,6 +664,18 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
 
     private int dp(int value) {
         return (int) (value * getResources().getDisplayMetrics().density);
+    }
+
+    private int parsePositiveInt(String value, int fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            int parsed = Integer.parseInt(value.trim());
+            return parsed > 0 ? parsed : fallback;
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
     }
 
     private static final class ProviderItem {
