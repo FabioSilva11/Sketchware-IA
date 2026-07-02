@@ -13,12 +13,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.widget.CheckBox;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 
 import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.transition.MaterialFadeThrough;
 
 import java.util.ArrayList;
@@ -39,14 +45,19 @@ public class ProjectsStoreFragment extends Fragment {
     private SketchwareStoreApi storeApi;
     private StoreProjectsAdapter adapter;
     private final ArrayList<ProjectModel.Project> projects = new ArrayList<>();
+    private final ArrayList<ProjectModel.Category> categories = new ArrayList<>();
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
 
     private String selectedKind = "all";
     private String selectedSort = "newest";
     private String selectedCategory;
+    private boolean selectedFree;
+    private boolean selectedOpenSource;
+    private boolean selectedFeatured;
     private int nextOffset;
     private int totalResults;
     private boolean loading;
+    private int requestGeneration;
     private Runnable pendingSearch;
     private ObjectAnimator shimmerAnimator;
 
@@ -72,7 +83,7 @@ public class ProjectsStoreFragment extends Fragment {
 
         setupOfficialStoreLink();
         setupGrid();
-        setupStaticChips();
+        setupFilterFab();
         setupSearch();
         setupPaging();
         loadStats();
@@ -81,6 +92,7 @@ public class ProjectsStoreFragment extends Fragment {
 
         UI.addSystemWindowInsetToMargin(binding.cardWarning, true, false, true, false);
         UI.addSystemWindowInsetToPadding(binding.storeContent, true, false, true, true);
+        UI.addSystemWindowInsetToMargin(binding.filterFab, false, false, true, true);
     }
 
     @Override
@@ -107,29 +119,8 @@ public class ProjectsStoreFragment extends Fragment {
         binding.publicationsGrid.setClipChildren(false);
     }
 
-    private void setupStaticChips() {
-        addSelectableChip(binding.kindChips, "All", "all", true);
-        addSelectableChip(binding.kindChips, "APK", "apk", false);
-        addSelectableChip(binding.kindChips, "SWB", "swb", false);
-        binding.kindChips.setOnCheckedChangeListener((group, checkedId) -> {
-            Chip chip = group.findViewById(checkedId);
-            selectedKind = chip == null ? "all" : String.valueOf(chip.getTag());
-            fetchPublications(true);
-        });
-
-        addSelectableChip(binding.sortChips, "Newest", "newest", true);
-        addSelectableChip(binding.sortChips, "Downloads", "downloads", false);
-        addSelectableChip(binding.sortChips, "Rating", "rating", false);
-        addSelectableChip(binding.sortChips, "Updated", "updated", false);
-        binding.sortChips.setOnCheckedChangeListener((group, checkedId) -> {
-            Chip chip = group.findViewById(checkedId);
-            selectedSort = chip == null ? "newest" : String.valueOf(chip.getTag());
-            fetchPublications(true);
-        });
-
-        binding.freeChip.setOnCheckedChangeListener((buttonView, isChecked) -> fetchPublications(true));
-        binding.openSourceChip.setOnCheckedChangeListener((buttonView, isChecked) -> fetchPublications(true));
-        binding.featuredChip.setOnCheckedChangeListener((buttonView, isChecked) -> fetchPublications(true));
+    private void setupFilterFab() {
+        binding.filterFab.setOnClickListener(v -> showFiltersDialog());
     }
 
     private void setupSearch() {
@@ -174,25 +165,138 @@ public class ProjectsStoreFragment extends Fragment {
     }
 
     private void loadCategories() {
-        binding.categoryChips.removeAllViews();
-        addCategoryChip("All", null, true);
         storeApi.getCategories(categories -> {
             if (binding == null || categories == null) {
                 return;
             }
-            for (ProjectModel.Category category : categories) {
-                addCategoryChip(category.getName(), category.getSlug(), false);
+            this.categories.clear();
+            this.categories.addAll(categories);
+            if (!loading) {
+                binding.resultSummary.setText(resultSummaryText());
             }
-            binding.categoryChips.setOnCheckedChangeListener((group, checkedId) -> {
-                Chip chip = group.findViewById(checkedId);
-                selectedCategory = chip == null ? null : (String) chip.getTag();
-                fetchPublications(true);
-            });
         });
     }
 
+    private void showFiltersDialog() {
+        if (binding == null) {
+            return;
+        }
+
+        ScrollView scrollView = new ScrollView(requireContext());
+        LinearLayout content = new LinearLayout(requireContext());
+        content.setOrientation(LinearLayout.VERTICAL);
+        int padding = dp(20);
+        content.setPadding(padding, 0, padding, 0);
+        scrollView.addView(content);
+
+        addSectionTitle(content, R.string.store_filter_type);
+        ChipGroup kindGroup = createSelectionGroup(true);
+        addSelectableChip(kindGroup, "All", "all", "all".equals(selectedKind));
+        addSelectableChip(kindGroup, "APK", "apk", "apk".equals(selectedKind));
+        addSelectableChip(kindGroup, "SWB", "swb", "swb".equals(selectedKind));
+        content.addView(kindGroup);
+
+        addSectionTitle(content, R.string.store_filter_sort);
+        ChipGroup sortGroup = createSelectionGroup(true);
+        addSelectableChip(sortGroup, "Newest", "newest", "newest".equals(selectedSort));
+        addSelectableChip(sortGroup, "Downloads", "downloads", "downloads".equals(selectedSort));
+        addSelectableChip(sortGroup, "Rating", "rating", "rating".equals(selectedSort));
+        addSelectableChip(sortGroup, "Updated", "updated", "updated".equals(selectedSort));
+        content.addView(sortGroup);
+
+        addSectionTitle(content, R.string.store_filter_flags);
+        CheckBox freeCheck = createCheckBox(R.string.store_filter_free, selectedFree);
+        CheckBox openSourceCheck = createCheckBox(R.string.store_filter_open_source, selectedOpenSource);
+        CheckBox featuredCheck = createCheckBox(R.string.store_filter_featured, selectedFeatured);
+        content.addView(freeCheck);
+        content.addView(openSourceCheck);
+        content.addView(featuredCheck);
+
+        addSectionTitle(content, R.string.store_filter_category);
+        ChipGroup categoryGroup = createSelectionGroup(false);
+        addSelectableChip(categoryGroup, "All", null, selectedCategory == null);
+        for (ProjectModel.Category category : categories) {
+            addSelectableChip(categoryGroup, category.getName(), category.getSlug(), category.getSlug().equals(selectedCategory));
+        }
+        content.addView(categoryGroup);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.store_filters_title)
+                .setView(scrollView)
+                .setNeutralButton(R.string.store_filters_clear, (dialog, which) -> {
+                    resetFilters();
+                    fetchPublications(true);
+                })
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.store_filters_apply, (dialog, which) -> {
+                    selectedKind = checkedStringTag(kindGroup, "all");
+                    selectedSort = checkedStringTag(sortGroup, "newest");
+                    selectedCategory = checkedNullableStringTag(categoryGroup);
+                    selectedFree = freeCheck.isChecked();
+                    selectedOpenSource = openSourceCheck.isChecked();
+                    selectedFeatured = featuredCheck.isChecked();
+                    fetchPublications(true);
+                })
+                .show();
+    }
+
+    private ChipGroup createSelectionGroup(boolean singleLine) {
+        ChipGroup group = new ChipGroup(requireContext());
+        group.setSingleSelection(true);
+        group.setSelectionRequired(true);
+        group.setPadding(0, 4, 0, dp(8));
+        return group;
+    }
+
+    private void addSectionTitle(LinearLayout content, int titleResId) {
+        TextView title = new TextView(requireContext());
+        title.setText(titleResId);
+        title.setTextColor(requireContext().getColor(R.color.chat_text_primary));
+        title.setTextSize(14f);
+        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
+        title.setPadding(0, dp(12), 0, 0);
+        content.addView(title);
+    }
+
+    private CheckBox createCheckBox(int textResId, boolean checked) {
+        CheckBox checkBox = new CheckBox(requireContext());
+        checkBox.setText(textResId);
+        checkBox.setChecked(checked);
+        checkBox.setTextColor(requireContext().getColor(R.color.chat_text_primary));
+        checkBox.setPadding(0, 0, 0, 0);
+        return checkBox;
+    }
+
+    private void resetFilters() {
+        selectedKind = "all";
+        selectedSort = "newest";
+        selectedCategory = null;
+        selectedFree = false;
+        selectedOpenSource = false;
+        selectedFeatured = false;
+    }
+
+    private String checkedStringTag(ChipGroup group, String fallback) {
+        Object tag = checkedTag(group);
+        return tag instanceof String ? (String) tag : fallback;
+    }
+
+    private String checkedNullableStringTag(ChipGroup group) {
+        Object tag = checkedTag(group);
+        return tag instanceof String ? (String) tag : null;
+    }
+
+    private Object checkedTag(ChipGroup group) {
+        Chip chip = group.findViewById(group.getCheckedChipId());
+        return chip == null ? null : chip.getTag();
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
     private void fetchPublications(boolean reset) {
-        if (binding == null || loading) {
+        if (binding == null || (loading && !reset)) {
             return;
         }
 
@@ -205,6 +309,7 @@ public class ProjectsStoreFragment extends Fragment {
         }
 
         loading = true;
+        int generation = ++requestGeneration;
         binding.emptyState.setVisibility(View.GONE);
         binding.loadMoreButton.setVisibility(View.GONE);
         binding.resultSummary.setText(R.string.store_loading);
@@ -214,13 +319,13 @@ public class ProjectsStoreFragment extends Fragment {
                 selectedKind,
                 selectedCategory,
                 currentQuery(),
-                binding.freeChip.isChecked() ? Boolean.TRUE : null,
-                binding.openSourceChip.isChecked() ? Boolean.TRUE : null,
-                binding.featuredChip.isChecked() ? Boolean.TRUE : null,
+                selectedFree ? Boolean.TRUE : null,
+                selectedOpenSource ? Boolean.TRUE : null,
+                selectedFeatured ? Boolean.TRUE : null,
                 SketchwareStoreApi.DEFAULT_PAGE_SIZE,
                 nextOffset,
                 projectModel -> {
-                    if (binding == null) {
+                    if (binding == null || generation != requestGeneration) {
                         return;
                     }
                     loading = false;
@@ -296,7 +401,33 @@ public class ProjectsStoreFragment extends Fragment {
                 projects.size(),
                 totalResults,
                 selectedSort,
-                "all".equals(selectedKind) ? "all types" : selectedKind.toUpperCase(Locale.US));
+                filterSummary());
+    }
+
+    private String filterSummary() {
+        StringBuilder builder = new StringBuilder("all".equals(selectedKind) ? "all types" : selectedKind.toUpperCase(Locale.US));
+        if (selectedCategory != null) {
+            builder.append(" - ").append(selectedCategoryName());
+        }
+        if (selectedFree) {
+            builder.append(" - free");
+        }
+        if (selectedOpenSource) {
+            builder.append(" - open");
+        }
+        if (selectedFeatured) {
+            builder.append(" - featured");
+        }
+        return builder.toString();
+    }
+
+    private String selectedCategoryName() {
+        for (ProjectModel.Category category : categories) {
+            if (category.getSlug().equals(selectedCategory)) {
+                return category.getName();
+            }
+        }
+        return selectedCategory;
     }
 
     private void debounceSearch() {
@@ -309,11 +440,6 @@ public class ProjectsStoreFragment extends Fragment {
 
     private String currentQuery() {
         return binding.searchInput.getText() == null ? "" : binding.searchInput.getText().toString().trim();
-    }
-
-    private void addCategoryChip(String text, String slug, boolean checked) {
-        Chip chip = addSelectableChip(binding.categoryChips, text, slug, checked);
-        chip.setMaxLines(1);
     }
 
     private Chip addSelectableChip(ViewGroup group, String text, String tag, boolean checked) {

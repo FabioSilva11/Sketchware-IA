@@ -22,6 +22,9 @@
     <string name="store_filter_free">Free</string>
     <string name="store_filter_open_source">Open source</string>
     <string name="store_filter_featured">Featured</string>
+    <string name="store_filters_title">Filters</string>
+    <string name="store_filters_apply">Apply</string>
+    <string name="store_filters_clear">Clear</string>
     <string name="store_loading">Loading store...</string>
     <string name="store_empty">No publications found.</string>
     <string name="store_load_more">Load more</string>

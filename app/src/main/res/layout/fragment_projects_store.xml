@@ -1,13 +1,17 @@
-<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/chat_background"
-    android:clipToPadding="false"
-    android:fadingEdgeLength="30dp"
-    android:requiresFadingEdge="vertical"
-    android:transitionGroup="true">
+    android:background="@color/chat_background">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fadingEdgeLength="30dp"
+        android:requiresFadingEdge="vertical"
+        android:transitionGroup="true">
 
     <LinearLayout
         android:id="@+id/store_content"
@@ -167,103 +171,10 @@
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:paddingHorizontal="16dp"
-            android:text="@string/store_filter_type"
-            android:textColor="@color/chat_text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/kind_chips"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="14dp"
-            app:singleLine="true"
-            app:singleSelection="true"
-            app:selectionRequired="true" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:text="@string/store_filter_sort"
-            android:textColor="@color/chat_text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/sort_chips"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="14dp"
-            app:singleLine="true"
-            app:singleSelection="true"
-            app:selectionRequired="true" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:text="@string/store_filter_flags"
-            android:textColor="@color/chat_text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/filter_chips"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="14dp"
-            app:singleLine="true">
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/free_chip"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/store_filter_free" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/open_source_chip"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/store_filter_open_source" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/featured_chip"
-                style="@style/Widget.Material3.Chip.Filter"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/store_filter_featured" />
-        </com.google.android.material.chip.ChipGroup>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="16dp"
-            android:text="@string/store_filter_category"
-            android:textColor="@color/chat_text_primary"
-            android:textSize="14sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/category_chips"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingHorizontal="14dp"
-            app:singleLine="false"
-            app:singleSelection="true"
-            app:selectionRequired="true" />
-
-        <TextView
             android:id="@+id/result_summary"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="14dp"
             android:paddingHorizontal="16dp"
             android:text="@string/store_loading"
             android:textColor="@color/chat_text_secondary"
@@ -640,4 +551,14 @@
             android:visibility="gone"
             tools:visibility="visible" />
     </LinearLayout>
-</androidx.core.widget.NestedScrollView>
+    </androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/filter_fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="24dp"
+        android:text="@string/store_filters_title"
+        app:icon="@drawable/ic_mtrl_tune" />
+</FrameLayout>

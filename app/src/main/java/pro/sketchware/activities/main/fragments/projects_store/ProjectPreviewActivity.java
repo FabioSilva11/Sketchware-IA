@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.core.widget.NestedScrollView;
 
@@ -68,7 +69,8 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         }
 
         binding.name.setText(project.getTitle());
-        binding.author.setText(project.getUserName());
+        String developerName = isEmpty(project.getUserName()) ? "Unknown developer" : project.getUserName();
+        binding.author.setText(developerName);
         binding.description.setText(project.getDescription());
 
         String whatIsNew = project.getWhatsnew();
@@ -108,11 +110,18 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
             addChip("Sketchware " + project.getSketchwareCompat());
         }
 
+        binding.detailDeveloper.setText("Developer: " + developerName);
+        binding.detailVersion.setText("Version: " + (isEmpty(project.getCurrentVersion()) ? "Unknown" : project.getCurrentVersion()));
+        binding.detailRating.setText("Rating: " + project.getRating());
+        binding.detailComments.setText("Comments: " + project.getReviews());
         binding.downloads.setText("Downloads: " + project.getDownloads());
         String projectSize = project.getProjectSize();
         binding.filesize.setText("Size: " + (isEmpty(projectSize) ? "Unknown" : projectSize));
         String publishedDate = project.getPublishedDate();
         binding.timestamp.setText("Released: " + (isEmpty(publishedDate) ? "Unknown" : publishedDate));
+        bindOptionalLink(binding.detailWebsite, "Website: ", project.getWebsite());
+        bindOptionalLink(binding.detailGithub, "GitHub: ", project.getGithub());
+        bindOptionalLink(binding.detailPrivacy, "Privacy: ", project.getPrivacyPolicy());
 
         binding.btnComments.setVisibility(View.VISIBLE);
         binding.btnComments.setText("Comments (" + project.getReviews() + ")");
@@ -123,13 +132,17 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
 
         binding.toolbarTitle.setSelected(true);
         binding.toolbarTitle.setText(project.getTitle());
-        binding.toolbarSubtitle.setText(project.getUserName());
+        binding.toolbarSubtitle.setText(developerName);
 
         ArrayList<String> screenshots = project.getScreenshotUrls();
         binding.screenshots.setAdapter(new ProjectScreenshotsAdapter(screenshots));
 
         if (!isEmpty(project.getIcon())) {
             UI.loadImageFromUrl(binding.icon, project.getIcon());
+        }
+        binding.developerAvatar.setImageResource(R.drawable.ic_mtrl_profile);
+        if (!isEmpty(project.getUserProfilePic())) {
+            UI.loadImageFromUrl(binding.developerAvatar, project.getUserProfilePic());
         }
         UI.addSystemWindowInsetToPadding(binding.content, true, true, true, true);
         UI.addSystemWindowInsetToMargin(binding.buttonsContainer, true, false, true, true);
@@ -177,6 +190,17 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.chipsContainer.addView(chip, params);
     }
 
+    private void bindOptionalLink(TextView textView, String label, String url) {
+        if (isEmpty(url)) {
+            textView.setVisibility(View.GONE);
+            textView.setOnClickListener(null);
+            return;
+        }
+        textView.setVisibility(View.VISIBLE);
+        textView.setText(label + url);
+        textView.setOnClickListener(v -> openUrl(url));
+    }
+
     private void openCommentsSheet() {
         CommentsBottomSheet sheet = CommentsBottomSheet.newInstance(project.getSlug());
         sheet.show(getSupportFragmentManager(), /* tag= */ CommentsBottomSheet.class.getSimpleName());
@@ -192,6 +216,11 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         }
         Intent intent = new Intent(Intent.ACTION_VIEW);
         intent.setData(Uri.parse(url));
+        startActivity(intent);
+    }
+
+    private void openUrl(String url) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
         startActivity(intent);
     }
 

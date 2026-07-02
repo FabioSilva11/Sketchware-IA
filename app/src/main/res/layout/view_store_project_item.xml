@@ -8,7 +8,7 @@
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
-    android:minHeight="246dp"
+    android:minHeight="202dp"
     android:orientation="vertical"
     android:padding="7dp"
     android:transitionGroup="true">
@@ -62,33 +62,6 @@
         android:textStyle="bold"
         tools:text="Sketchware Nexus" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="30dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/author_avatar"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
-            android:scaleType="centerCrop"
-            app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Full"
-            app:srcCompat="@drawable/ic_mtrl_profile" />
-
-        <TextView
-            android:id="@+id/author_name"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="5dp"
-            android:layout_weight="1"
-            android:ellipsize="end"
-            android:singleLine="true"
-            android:textColor="@color/chat_text_secondary"
-            android:textSize="10sp"
-            tools:text="Developer" />
-    </LinearLayout>
-
     <TextView
         android:id="@+id/category"
         android:layout_width="match_parent"
@@ -99,17 +72,6 @@
         android:textColor="@color/chat_text_secondary"
         android:textSize="10sp"
         tools:text="Tools" />
-
-    <TextView
-        android:id="@+id/version"
-        android:layout_width="match_parent"
-        android:layout_height="18dp"
-        android:ellipsize="end"
-        android:gravity="center"
-        android:singleLine="true"
-        android:textColor="@color/chat_text_secondary"
-        android:textSize="10sp"
-        tools:text="v1.0.0" />
 
     <TextView
         android:id="@+id/tags"
@@ -197,25 +159,5 @@
             android:textSize="10sp"
             android:textStyle="bold"
             tools:text="23" />
-
-        <ImageView
-            android:layout_width="12dp"
-            android:layout_height="12dp"
-            android:layout_marginStart="6dp"
-            app:srcCompat="@drawable/ic_comment"
-            app:tint="@color/chat_accent" />
-
-        <TextView
-            android:id="@+id/comments"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="2dp"
-            android:ellipsize="end"
-            android:maxWidth="42dp"
-            android:singleLine="true"
-            android:textColor="@color/chat_text_secondary"
-            android:textSize="10sp"
-            android:textStyle="bold"
-            tools:text="4" />
     </LinearLayout>
 </LinearLayout>
