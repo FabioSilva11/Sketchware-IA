@@ -62,7 +62,7 @@ public class ProjectWebViewActivity extends BaseAppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         progressHandler.removeCallbacks(progressRunnable);
         super.onDestroy();
     }
