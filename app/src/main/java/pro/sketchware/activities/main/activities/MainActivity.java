@@ -432,11 +432,24 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         }
         activeFragment = fragment;
         currentNavItemId = pageToNavId(page);
+        binding.searchHint.setText(page == PAGE_STORE ? R.string.store_search_hint : R.string.main_search_projects_hint);
         if (page == PAGE_PROJECTS) {
             binding.createNewProject.show();
         } else {
             binding.createNewProject.hide();
         }
+    }
+
+    public boolean isStorePageActive() {
+        return activeFragment instanceof ProjectsStoreFragment;
+    }
+
+    public boolean handleMainSearchQuery(String query) {
+        if (activeFragment instanceof ProjectsStoreFragment && projectsStoreFragment != null) {
+            projectsStoreFragment.setSearchQuery(query);
+            return true;
+        }
+        return false;
     }
 
     private Fragment findPagerFragment(int page) {

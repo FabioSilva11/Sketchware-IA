@@ -49,6 +49,7 @@
                     tools:menu="@menu/projects_fragment_menu">
 
                     <TextView
+                        android:id="@+id/search_hint"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:ellipsize="end"

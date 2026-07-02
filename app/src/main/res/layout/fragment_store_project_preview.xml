@@ -180,8 +180,11 @@
                         android:id="@+id/detail_developer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_profile"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="Developer: Modders Team" />
 
                     <TextView
@@ -189,8 +192,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_update"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="Version: 1.0.0" />
 
                     <TextView
@@ -198,8 +204,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_star"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="Rating: 4.8" />
 
                     <TextView
@@ -207,8 +216,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_comment"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="Comments: 4" />
 
                     <TextView
@@ -216,8 +228,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_download"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="Downloads: 140920" />
 
                     <TextView
@@ -225,8 +240,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_file"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="Size: 112 MB" />
 
                     <TextView
@@ -234,19 +252,39 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_calendar"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="Released: 2024-09-26" />
+
+                    <TextView
+                        android:id="@+id/detail_video"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textColor="@color/chat_accent"
+                        android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_video"
+                        app:drawableTint="@color/chat_accent"
+                        tools:text="Video: https://youtube.com/watch?v=..." />
 
                     <TextView
                         android:id="@+id/detail_website"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
                         android:ellipsize="end"
                         android:singleLine="true"
                         android:textColor="@color/chat_accent"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_web"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="Website: https://example.com" />
 
                     <TextView
@@ -254,10 +292,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
                         android:ellipsize="end"
                         android:singleLine="true"
                         android:textColor="@color/chat_accent"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_link"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="GitHub: https://github.com/example/repo" />
 
                     <TextView
@@ -265,10 +306,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="6dp"
+                        android:drawablePadding="8dp"
                         android:ellipsize="end"
                         android:singleLine="true"
                         android:textColor="@color/chat_accent"
                         android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_info"
+                        app:drawableTint="@color/chat_accent"
                         tools:text="Privacy: https://example.com/privacy" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -280,7 +324,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginHorizontal="24dp"
                 android:layout_marginTop="16dp"
-                android:layout_marginBottom="88dp"
                 app:cardBackgroundColor="@color/chat_surface"
                 app:cardCornerRadius="8dp"
                 app:cardElevation="0dp"
@@ -295,6 +338,32 @@
                     android:textIsSelectable="true"
                     tools:text="Sketchware Pro's sources in Java. Now anyone can contribute to Sketchware Pro." />
             </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:id="@+id/more_from_developer_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="24dp"
+                android:paddingTop="18dp"
+                android:paddingBottom="10dp"
+                android:text="@string/store_more_from_developer"
+                android:textAppearance="?attr/textAppearanceTitleLargeEmphasized"
+                android:textColor="@color/chat_text_primary"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/more_from_developer_grid"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="112dp"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:paddingHorizontal="20dp"
+                android:visibility="gone"
+                tools:itemCount="3"
+                tools:listitem="@layout/view_store_project_item"
+                tools:visibility="visible" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

@@ -185,8 +185,11 @@ public class ProjectsFragment extends DA {
                     projectsSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                         @Override
                         public boolean onQueryTextChange(String s) {
+                            if (getActivity() instanceof MainActivity && ((MainActivity) getActivity()).handleMainSearchQuery(s)) {
+                                return true;
+                            }
                             projectsAdapter.filterData(s);
-                            return false;
+                            return true;
                         }
 
                         @Override
@@ -261,7 +264,7 @@ public class ProjectsFragment extends DA {
                 projectsList.clear();
                 projectsList.addAll(loadedProjects);
                 diffResult.dispatchUpdatesTo(projectsAdapter);
-                if (projectsSearchView != null)
+                if (projectsSearchView != null && !(getActivity() instanceof MainActivity && ((MainActivity) getActivity()).isStorePageActive()))
                     projectsAdapter.filterData(projectsSearchView.getQuery().toString());
             });
         });

@@ -7,12 +7,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -39,7 +36,7 @@ import pro.sketchware.databinding.FragmentProjectsStoreBinding;
 import pro.sketchware.utility.UI;
 
 public class ProjectsStoreFragment extends Fragment {
-    private static final int GRID_SPAN_COUNT = 4;
+    private static final int GRID_SPAN_COUNT = 3;
 
     private FragmentProjectsStoreBinding binding;
     private SketchwareStoreApi storeApi;
@@ -51,6 +48,7 @@ public class ProjectsStoreFragment extends Fragment {
     private String selectedKind = "all";
     private String selectedSort = "newest";
     private String selectedCategory;
+    private String searchQuery = "";
     private boolean selectedFree;
     private boolean selectedOpenSource;
     private boolean selectedFeatured;
@@ -84,7 +82,6 @@ public class ProjectsStoreFragment extends Fragment {
         setupOfficialStoreLink();
         setupGrid();
         setupFilterFab();
-        setupSearch();
         setupPaging();
         loadStats();
         loadCategories();
@@ -123,33 +120,19 @@ public class ProjectsStoreFragment extends Fragment {
         binding.filterFab.setOnClickListener(v -> showFiltersDialog());
     }
 
-    private void setupSearch() {
-        binding.searchInput.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                fetchPublications(true);
-                return true;
-            }
-            return false;
-        });
-
-        binding.searchInput.addTextChangedListener(new TextWatcher() {
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                debounceSearch();
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-            }
-        });
-    }
-
     private void setupPaging() {
         binding.loadMoreButton.setOnClickListener(v -> fetchPublications(false));
+    }
+
+    public void setSearchQuery(String query) {
+        String normalizedQuery = query == null ? "" : query.trim();
+        if (normalizedQuery.equals(searchQuery)) {
+            return;
+        }
+        searchQuery = normalizedQuery;
+        if (binding != null) {
+            debounceSearch();
+        }
     }
 
     private void loadStats() {
@@ -190,14 +173,14 @@ public class ProjectsStoreFragment extends Fragment {
         scrollView.addView(content);
 
         addSectionTitle(content, R.string.store_filter_type);
-        ChipGroup kindGroup = createSelectionGroup(true);
+        ChipGroup kindGroup = createSelectionGroup();
         addSelectableChip(kindGroup, "All", "all", "all".equals(selectedKind));
         addSelectableChip(kindGroup, "APK", "apk", "apk".equals(selectedKind));
         addSelectableChip(kindGroup, "SWB", "swb", "swb".equals(selectedKind));
         content.addView(kindGroup);
 
         addSectionTitle(content, R.string.store_filter_sort);
-        ChipGroup sortGroup = createSelectionGroup(true);
+        ChipGroup sortGroup = createSelectionGroup();
         addSelectableChip(sortGroup, "Newest", "newest", "newest".equals(selectedSort));
         addSelectableChip(sortGroup, "Downloads", "downloads", "downloads".equals(selectedSort));
         addSelectableChip(sortGroup, "Rating", "rating", "rating".equals(selectedSort));
@@ -213,7 +196,7 @@ public class ProjectsStoreFragment extends Fragment {
         content.addView(featuredCheck);
 
         addSectionTitle(content, R.string.store_filter_category);
-        ChipGroup categoryGroup = createSelectionGroup(false);
+        ChipGroup categoryGroup = createSelectionGroup();
         addSelectableChip(categoryGroup, "All", null, selectedCategory == null);
         for (ProjectModel.Category category : categories) {
             addSelectableChip(categoryGroup, category.getName(), category.getSlug(), category.getSlug().equals(selectedCategory));
@@ -240,7 +223,7 @@ public class ProjectsStoreFragment extends Fragment {
                 .show();
     }
 
-    private ChipGroup createSelectionGroup(boolean singleLine) {
+    private ChipGroup createSelectionGroup() {
         ChipGroup group = new ChipGroup(requireContext());
         group.setSingleSelection(true);
         group.setSelectionRequired(true);
@@ -439,7 +422,7 @@ public class ProjectsStoreFragment extends Fragment {
     }
 
     private String currentQuery() {
-        return binding.searchInput.getText() == null ? "" : binding.searchInput.getText().toString().trim();
+        return searchQuery;
     }
 
     private Chip addSelectableChip(ViewGroup group, String text, String tag, boolean checked) {

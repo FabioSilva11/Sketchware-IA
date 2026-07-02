@@ -128,6 +128,20 @@ public class SketchwareStoreApi {
         });
     }
 
+    public void getDeveloperPublications(String username, Consumer<ProjectModel> consumer) {
+        if (isEmpty(username)) {
+            consumer.accept(null);
+            return;
+        }
+
+        Uri uri = Uri.parse(BASE_URL + "/developers/" + Uri.encode(username) + "/publications")
+                .buildUpon()
+                .appendQueryParameter("limit", "12")
+                .appendQueryParameter("offset", "0")
+                .build();
+        requestPublications(uri.toString(), consumer);
+    }
+
     public void getComments(String slug, Consumer<List<ProjectModel.Comment>> consumer) {
         if (isEmpty(slug)) {
             consumer.accept(null);

@@ -2907,6 +2907,7 @@ Please try again later"</string>
     <string name="store_preview_about_project">About this project</string>
     <string name="store_preview_comments">Comments</string>
     <string name="store_preview_download">Download</string>
+    <string name="store_more_from_developer">More from this developer</string>
     <string name="export_project_title_export_aab">Export AAB (Android App Bundle)</string>
     <string name="export_project_button_export_aab">Export AAB</string>
 </resources>

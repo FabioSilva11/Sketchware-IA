@@ -128,48 +128,6 @@
                 tools:text="5\nDownloads" />
         </LinearLayout>
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/search_card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="14dp"
-            android:layout_marginTop="12dp"
-            app:cardBackgroundColor="@color/chat_surface"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/chat_border"
-            app:strokeWidth="1dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="12dp">
-
-                <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
-                    app:srcCompat="@drawable/ic_mtrl_search"
-                    app:tint="@color/chat_text_secondary" />
-
-                <EditText
-                    android:id="@+id/search_input"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:background="@null"
-                    android:hint="@string/store_search_hint"
-                    android:imeOptions="actionSearch"
-                    android:inputType="text"
-                    android:singleLine="true"
-                    android:textColor="@color/chat_text_primary"
-                    android:textColorHint="@color/chat_text_hint"
-                    android:textSize="14sp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
         <TextView
             android:id="@+id/result_summary"
             android:layout_width="match_parent"
@@ -313,44 +271,6 @@
                         android:background="@color/chat_surface_soft" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="170dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_chat_thread_item"
-                    android:orientation="vertical"
-                    android:padding="10dp">
-
-                    <View
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:background="@color/chat_surface_soft" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="14dp"
-                        android:layout_marginTop="14dp"
-                        android:background="@color/chat_surface_soft" />
-
-                    <View
-                        android:layout_width="70dp"
-                        android:layout_height="12dp"
-                        android:layout_marginTop="10dp"
-                        android:background="@color/chat_surface_soft" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="10dp"
-                        android:layout_marginTop="18dp"
-                        android:background="@color/chat_surface_soft" />
-
-                    <View
-                        android:layout_width="56dp"
-                        android:layout_height="10dp"
-                        android:layout_marginTop="10dp"
-                        android:background="@color/chat_surface_soft" />
-                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
@@ -476,44 +396,6 @@
                         android:background="@color/chat_surface_soft" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="170dp"
-                    android:layout_margin="4dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_chat_thread_item"
-                    android:orientation="vertical"
-                    android:padding="10dp">
-
-                    <View
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:background="@color/chat_surface_soft" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="14dp"
-                        android:layout_marginTop="14dp"
-                        android:background="@color/chat_surface_soft" />
-
-                    <View
-                        android:layout_width="70dp"
-                        android:layout_height="12dp"
-                        android:layout_marginTop="10dp"
-                        android:background="@color/chat_surface_soft" />
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="10dp"
-                        android:layout_marginTop="18dp"
-                        android:background="@color/chat_surface_soft" />
-
-                    <View
-                        android:layout_width="56dp"
-                        android:layout_height="10dp"
-                        android:layout_marginTop="10dp"
-                        android:background="@color/chat_surface_soft" />
-                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
 
@@ -558,7 +440,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="104dp"
         android:text="@string/store_filters_title"
         app:icon="@drawable/ic_mtrl_tune" />
 </FrameLayout>

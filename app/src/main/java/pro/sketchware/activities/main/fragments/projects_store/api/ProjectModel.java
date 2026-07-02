@@ -221,6 +221,9 @@ public class ProjectModel {
         @SerializedName("github")
         @Expose
         private String github;
+        @SerializedName("video_url")
+        @Expose
+        private String videoUrl;
         @SerializedName("is_featured")
         @Expose
         private boolean featured;
@@ -309,7 +312,7 @@ public class ProjectModel {
         }
 
         public String getVideoUrl() {
-            return "";
+            return safe(videoUrl);
         }
 
         public String getIcon() {
@@ -427,6 +430,16 @@ public class ProjectModel {
                 String name = firstNonEmpty(developer.displayName, developer.username);
                 if (!name.isEmpty()) {
                     return name;
+                }
+            }
+            return safe(developerName);
+        }
+
+        public String getDeveloperUsername() {
+            if (developer != null) {
+                String username = safe(developer.username);
+                if (!username.isEmpty()) {
+                    return username;
                 }
             }
             return safe(developerName);

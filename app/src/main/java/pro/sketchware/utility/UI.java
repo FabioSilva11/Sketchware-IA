@@ -2,10 +2,12 @@ package pro.sketchware.utility;
 
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.RippleDrawable;
+import android.os.Build;
 import android.transition.AutoTransition;
 import android.transition.TransitionManager;
 import android.view.View;
@@ -25,7 +27,22 @@ import pro.sketchware.R;
 
 public class UI {
     public static void loadImageFromUrl(ImageView image, String url) {
-        Glide.with(image.getContext()).load(url).into(image);
+        if (image == null || url == null || url.trim().isEmpty()) {
+            return;
+        }
+        Context context = image.getContext();
+        if (context instanceof Activity) {
+            Activity activity = (Activity) context;
+            if (activity.isFinishing()
+                    || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 && activity.isDestroyed())) {
+                return;
+            }
+        }
+        try {
+            Glide.with(context).load(url).into(image);
+        } catch (IllegalArgumentException ignored) {
+            // The view can outlive the Activity while async API callbacks are still returning.
+        }
     }
 
     public static void advancedCorners(View view, int color) {
