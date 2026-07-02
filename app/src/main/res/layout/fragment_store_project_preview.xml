@@ -211,6 +211,18 @@
                         app:drawableTint="@color/chat_accent"
                         tools:text="Rating: 4.8" />
 
+                    <RatingBar
+                        android:id="@+id/detail_rating_bar"
+                        style="?android:attr/ratingBarStyleSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="28dp"
+                        android:layout_marginTop="2dp"
+                        android:isIndicator="true"
+                        android:numStars="5"
+                        android:rating="4"
+                        android:stepSize="0.1" />
+
                     <TextView
                         android:id="@+id/detail_comments"
                         android:layout_width="match_parent"
