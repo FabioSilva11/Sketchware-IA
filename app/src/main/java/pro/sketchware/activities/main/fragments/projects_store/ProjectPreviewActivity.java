@@ -95,13 +95,26 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
             addChip("v" + project.getCurrentVersion());
         }
 
+        addChip("Rating " + project.getRating());
+        addChip("Comments " + project.getReviews());
+        if (!isEmpty(project.getLanguage())) {
+            addChip(project.getLanguage());
+        }
+        if (!isEmpty(project.getLicense())) {
+            addChip(project.getLicense());
+        }
+        if (!isEmpty(project.getSketchwareCompat())) {
+            addChip("Sketchware " + project.getSketchwareCompat());
+        }
+
         binding.downloads.setText("Downloads: " + project.getDownloads());
         String projectSize = project.getProjectSize();
         binding.filesize.setText("Size: " + (isEmpty(projectSize) ? "Unknown" : projectSize));
         String publishedDate = project.getPublishedDate();
         binding.timestamp.setText("Released: " + (isEmpty(publishedDate) ? "Unknown" : publishedDate));
 
-        binding.btnComments.setVisibility(project.hasComments() ? View.VISIBLE : View.GONE);
+        binding.btnComments.setVisibility(View.VISIBLE);
+        binding.btnComments.setText("Comments (" + project.getReviews() + ")");
         binding.btnComments.setOnClickListener(v -> openCommentsSheet());
         binding.btnDownload.setOnClickListener(v -> openProjectInApp());
         binding.btnOpenIn.setOnClickListener(v -> openProject());

@@ -2,6 +2,9 @@ package pro.sketchware.activities.main.fragments.projects_store.api;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +21,9 @@ public class ProjectModel {
     @SerializedName("projects")
     @Expose
     private List<Project> projects;
+    private int total;
+    private int limit;
+    private int offset;
 
     public String getStatus() {
         return status;
@@ -41,6 +47,65 @@ public class ProjectModel {
 
     public void setProjects(List<Project> projects) {
         this.projects = projects;
+    }
+
+    public int getTotal() {
+        return total;
+    }
+
+    public void setTotal(int total) {
+        this.total = total;
+    }
+
+    public int getLimit() {
+        return limit;
+    }
+
+    public void setLimit(int limit) {
+        this.limit = limit;
+    }
+
+    public int getOffset() {
+        return offset;
+    }
+
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
+
+    public static class StoreStats {
+        @SerializedName("apks")
+        @Expose
+        private int apks;
+        @SerializedName("swbs")
+        @Expose
+        private int swbs;
+        @SerializedName("users")
+        @Expose
+        private int users;
+        @SerializedName("downloads")
+        @Expose
+        private int downloads;
+
+        public int getApks() {
+            return apks;
+        }
+
+        public int getSwbs() {
+            return swbs;
+        }
+
+        public int getUsers() {
+            return users;
+        }
+
+        public int getDownloads() {
+            return downloads;
+        }
+
+        public int getPublications() {
+            return apks + swbs;
+        }
     }
 
     public static class Comment {
@@ -120,6 +185,30 @@ public class ProjectModel {
         @SerializedName("changelog")
         @Expose
         private String changelog;
+        @SerializedName("language")
+        @Expose
+        private String language;
+        @SerializedName("tags")
+        @Expose
+        private List<String> tags;
+        @SerializedName("license")
+        @Expose
+        private String license;
+        @SerializedName("privacy_policy")
+        @Expose
+        private String privacyPolicy;
+        @SerializedName("sketchware_compat")
+        @Expose
+        private String sketchwareCompat;
+        @SerializedName("dependencies")
+        @Expose
+        private JsonElement dependencies;
+        @SerializedName("libraries")
+        @Expose
+        private JsonElement libraries;
+        @SerializedName("permissions")
+        @Expose
+        private JsonElement permissions;
         @SerializedName("kind")
         @Expose
         private String kind;
@@ -210,6 +299,11 @@ public class ProjectModel {
             return safe(kind);
         }
 
+        public String getTypeLabel() {
+            String type = safe(kind).toUpperCase(Locale.US);
+            return type.isEmpty() ? "APP" : type;
+        }
+
         public String getDemoLink() {
             return safe(website);
         }
@@ -271,6 +365,25 @@ public class ProjectModel {
 
         public String getLikes() {
             return String.valueOf(likesCount);
+        }
+
+        public String getRating() {
+            if (ratingAverage <= 0) {
+                return "0.0";
+            }
+            return String.format(Locale.US, "%.1f", ratingAverage);
+        }
+
+        public float getRatingValue() {
+            return (float) Math.max(0d, Math.min(5d, ratingAverage));
+        }
+
+        public String getRatingLabel() {
+            return "Rating " + getRating();
+        }
+
+        public String getReviews() {
+            return String.valueOf(reviewsCount);
         }
 
         public String getComments() {
@@ -335,6 +448,69 @@ public class ProjectModel {
             return safe(currentVersion);
         }
 
+        public String getLanguage() {
+            return safe(language);
+        }
+
+        public String getLicense() {
+            return safe(license);
+        }
+
+        public String getPrivacyPolicy() {
+            return safe(privacyPolicy);
+        }
+
+        public String getSketchwareCompat() {
+            return safe(sketchwareCompat);
+        }
+
+        public String getTagsLabel() {
+            if (tags == null || tags.isEmpty()) {
+                return "";
+            }
+            StringBuilder builder = new StringBuilder();
+            int count = Math.min(3, tags.size());
+            for (int i = 0; i < count; i++) {
+                String tag = safe(tags.get(i));
+                if (tag.isEmpty()) {
+                    continue;
+                }
+                if (builder.length() > 0) {
+                    builder.append(" / ");
+                }
+                builder.append(tag);
+            }
+            return builder.toString();
+        }
+
+        public String getDependenciesSummary() {
+            return jsonSummary(dependencies);
+        }
+
+        public String getLibrariesSummary() {
+            return jsonSummary(libraries);
+        }
+
+        public String getPermissionsSummary() {
+            return jsonSummary(permissions);
+        }
+
+        public boolean isFree() {
+            return free;
+        }
+
+        public boolean isOpenSource() {
+            return openSource;
+        }
+
+        public boolean isFeatured() {
+            return featured;
+        }
+
+        public String getPriceLabel() {
+            return free ? "Free" : "Paid";
+        }
+
         public boolean hasComments() {
             return reviewsCount > 0;
         }
@@ -371,6 +547,14 @@ public class ProjectModel {
         @SerializedName("name_en")
         @Expose
         private String nameEn;
+
+        public String getSlug() {
+            return safe(slug);
+        }
+
+        public String getName() {
+            return firstNonEmpty(namePt, nameEn, slug);
+        }
     }
 
     public static class Screenshot {
@@ -418,6 +602,69 @@ public class ProjectModel {
         for (String value : values) {
             if (!safe(value).isEmpty()) {
                 return value;
+            }
+        }
+        return "";
+    }
+
+    private static String jsonSummary(JsonElement element) {
+        if (element == null || element.isJsonNull()) {
+            return "";
+        }
+        if (element.isJsonPrimitive()) {
+            return safe(element.getAsString());
+        }
+        if (element.isJsonArray()) {
+            return jsonArraySummary(element.getAsJsonArray());
+        }
+        if (element.isJsonObject()) {
+            JsonObject object = element.getAsJsonObject();
+            String namedValue = firstJsonString(object, "name", "title", "label", "id");
+            if (!namedValue.isEmpty()) {
+                return namedValue;
+            }
+            StringBuilder builder = new StringBuilder();
+            for (String key : object.keySet()) {
+                JsonElement value = object.get(key);
+                if (value == null || value.isJsonNull()) {
+                    continue;
+                }
+                if (builder.length() > 0) {
+                    builder.append(" / ");
+                }
+                builder.append(key);
+                if (builder.length() > 48) {
+                    break;
+                }
+            }
+            return builder.toString();
+        }
+        return "";
+    }
+
+    private static String jsonArraySummary(JsonArray array) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < array.size() && i < 3; i++) {
+            String item = jsonSummary(array.get(i));
+            if (item.isEmpty()) {
+                continue;
+            }
+            if (builder.length() > 0) {
+                builder.append(" / ");
+            }
+            builder.append(item);
+        }
+        return builder.toString();
+    }
+
+    private static String firstJsonString(JsonObject object, String... keys) {
+        for (String key : keys) {
+            JsonElement value = object.get(key);
+            if (value != null && value.isJsonPrimitive()) {
+                String text = safe(value.getAsString());
+                if (!text.isEmpty()) {
+                    return text;
+                }
             }
         }
         return "";

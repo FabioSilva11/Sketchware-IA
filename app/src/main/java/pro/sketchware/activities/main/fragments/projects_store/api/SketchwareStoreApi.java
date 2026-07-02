@@ -18,8 +18,9 @@ public class SketchwareStoreApi {
 
     public static final String SITE_URL = "https://sketchware-nexus.lovable.app";
     public static final String BASE_URL = SITE_URL + "/api/public";
+    public static final int DEFAULT_PAGE_SIZE = 24;
+
     private static final String TAG = "SketchwareStoreApi";
-    private static final int PAGE_SIZE = 20;
 
     private final Network network = new Network();
     private final Gson gson = new Gson();
@@ -40,6 +41,69 @@ public class SketchwareStoreApi {
 
     public void getRecentProjects(int pageNumber, Consumer<ProjectModel> consumer) {
         getProjects("newest", false, pageNumber, consumer);
+    }
+
+    public void getStoreStats(Consumer<ProjectModel.StoreStats> consumer) {
+        network.get(BASE_URL + "/stats", response -> {
+            if (isEmpty(response)) {
+                consumer.accept(null);
+                return;
+            }
+
+            try {
+                StoreStatsResponse statsResponse = gson.fromJson(response, StoreStatsResponse.class);
+                consumer.accept(statsResponse == null ? null : statsResponse.data);
+            } catch (JsonSyntaxException e) {
+                Log.e(TAG, "Failed to parse store stats", e);
+                consumer.accept(null);
+            }
+        });
+    }
+
+    public void getCategories(Consumer<List<ProjectModel.Category>> consumer) {
+        network.get(BASE_URL + "/categories", response -> {
+            if (isEmpty(response)) {
+                consumer.accept(null);
+                return;
+            }
+
+            try {
+                CategoriesResponse categoriesResponse = gson.fromJson(response, CategoriesResponse.class);
+                consumer.accept(categoriesResponse == null ? null : categoriesResponse.data);
+            } catch (JsonSyntaxException e) {
+                Log.e(TAG, "Failed to parse categories", e);
+                consumer.accept(null);
+            }
+        });
+    }
+
+    public void getPublications(String sort, String kind, String category, String query,
+                                Boolean free, Boolean openSource, Boolean featured,
+                                int limit, int offset, Consumer<ProjectModel> consumer) {
+        Uri.Builder builder = Uri.parse(BASE_URL + "/publications")
+                .buildUpon()
+                .appendQueryParameter("kind", isEmpty(kind) ? "all" : kind)
+                .appendQueryParameter("sort", isEmpty(sort) ? "newest" : sort)
+                .appendQueryParameter("limit", String.valueOf(Math.max(1, Math.min(100, limit))))
+                .appendQueryParameter("offset", String.valueOf(Math.max(0, offset)));
+
+        if (!isEmpty(category)) {
+            builder.appendQueryParameter("category", category);
+        }
+        if (!isEmpty(query)) {
+            builder.appendQueryParameter("q", query);
+        }
+        if (free != null) {
+            builder.appendQueryParameter("free", String.valueOf(free));
+        }
+        if (openSource != null) {
+            builder.appendQueryParameter("open", String.valueOf(openSource));
+        }
+        if (featured != null) {
+            builder.appendQueryParameter("featured", String.valueOf(featured));
+        }
+
+        requestPublications(builder.build().toString(), consumer);
     }
 
     public void getProjectDetails(String slug, Consumer<ProjectModel.Project> consumer) {
@@ -120,18 +184,12 @@ public class SketchwareStoreApi {
 
     private void getProjects(String sort, boolean featured, int pageNumber, Consumer<ProjectModel> consumer) {
         int page = Math.max(1, pageNumber);
-        Uri.Builder builder = Uri.parse(BASE_URL + "/publications")
-                .buildUpon()
-                .appendQueryParameter("kind", "all")
-                .appendQueryParameter("sort", sort)
-                .appendQueryParameter("limit", String.valueOf(PAGE_SIZE))
-                .appendQueryParameter("offset", String.valueOf((page - 1) * PAGE_SIZE));
+        getPublications(sort, "all", null, null, null, null, featured ? true : null,
+                DEFAULT_PAGE_SIZE, (page - 1) * DEFAULT_PAGE_SIZE, consumer);
+    }
 
-        if (featured) {
-            builder.appendQueryParameter("featured", "true");
-        }
-
-        network.get(builder.build().toString(), response -> {
+    private void requestPublications(String url, Consumer<ProjectModel> consumer) {
+        network.get(url, response -> {
             if (isEmpty(response)) {
                 consumer.accept(null);
                 return;
@@ -142,6 +200,9 @@ public class SketchwareStoreApi {
                 ProjectModel projectModel = new ProjectModel();
                 projectModel.setStatus("success");
                 projectModel.setProjects(publicationsResponse.data);
+                projectModel.setTotal(publicationsResponse.total);
+                projectModel.setLimit(publicationsResponse.limit);
+                projectModel.setOffset(publicationsResponse.offset);
                 projectModel.setTotalPages(calculateTotalPages(publicationsResponse.total, publicationsResponse.limit));
                 consumer.accept(projectModel);
             } catch (JsonSyntaxException e) {
@@ -208,6 +269,16 @@ public class SketchwareStoreApi {
         return value == null || value.trim().isEmpty();
     }
 
+    private static class StoreStatsResponse {
+        @SerializedName("data")
+        ProjectModel.StoreStats data;
+    }
+
+    private static class CategoriesResponse {
+        @SerializedName("data")
+        List<ProjectModel.Category> data;
+    }
+
     private static class PublicationsResponse {
         @SerializedName("data")
         List<ProjectModel.Project> data;
@@ -215,6 +286,8 @@ public class SketchwareStoreApi {
         int total;
         @SerializedName("limit")
         int limit;
+        @SerializedName("offset")
+        int offset;
     }
 
     private static class PublicationDetailResponse {
