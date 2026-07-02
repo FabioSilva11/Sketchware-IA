@@ -15,6 +15,7 @@ import com.google.gson.Gson;
 
 import java.util.ArrayList;
 
+import pro.sketchware.R;
 import pro.sketchware.activities.main.fragments.projects_store.adapters.ProjectScreenshotsAdapter;
 import pro.sketchware.activities.main.fragments.projects_store.api.ProjectModel;
 import pro.sketchware.activities.main.fragments.projects_store.api.SketchwareStoreApi;
@@ -195,12 +196,15 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
     }
 
     private void openProjectInApp() {
+        CharSequence previousDownloadText = binding.btnDownload.getText();
         binding.btnDownload.setEnabled(false);
+        binding.btnDownload.setText(R.string.store_download_preparing);
         storeApi.getDownloadUrl(project.getSlug(), downloadUrl -> {
             if (binding == null) {
                 return;
             }
             binding.btnDownload.setEnabled(true);
+            binding.btnDownload.setText(previousDownloadText);
 
             String url = isEmpty(downloadUrl) ? project.getFirstVersionFileUrl() : downloadUrl;
             if (isEmpty(url)) {

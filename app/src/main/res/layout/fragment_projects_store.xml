@@ -269,6 +269,343 @@
             android:textColor="@color/chat_text_secondary"
             android:textSize="13sp" />
 
+        <LinearLayout
+            android:id="@+id/shimmer_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="10dp"
+            android:paddingTop="8dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="170dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chat_thread_item"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="70dp"
+                        android:layout_height="12dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="56dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="170dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chat_thread_item"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="70dp"
+                        android:layout_height="12dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="56dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="170dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chat_thread_item"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="70dp"
+                        android:layout_height="12dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="56dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="170dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chat_thread_item"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="70dp"
+                        android:layout_height="12dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="56dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="170dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chat_thread_item"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="70dp"
+                        android:layout_height="12dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="56dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="170dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chat_thread_item"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="70dp"
+                        android:layout_height="12dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="56dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="170dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chat_thread_item"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="70dp"
+                        android:layout_height="12dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="56dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="170dp"
+                    android:layout_margin="4dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_chat_thread_item"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <View
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="14dp"
+                        android:layout_marginTop="14dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="70dp"
+                        android:layout_height="12dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="18dp"
+                        android:background="@color/chat_surface_soft" />
+
+                    <View
+                        android:layout_width="56dp"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="10dp"
+                        android:background="@color/chat_surface_soft" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/publications_grid"
             android:layout_width="match_parent"

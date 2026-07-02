@@ -1,5 +1,7 @@
 package pro.sketchware.activities.main.fragments.projects_store;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -46,6 +48,7 @@ public class ProjectsStoreFragment extends Fragment {
     private int totalResults;
     private boolean loading;
     private Runnable pendingSearch;
+    private ObjectAnimator shimmerAnimator;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -86,6 +89,7 @@ public class ProjectsStoreFragment extends Fragment {
         if (pendingSearch != null) {
             searchHandler.removeCallbacks(pendingSearch);
         }
+        stopShimmer();
         binding = null;
     }
 
@@ -197,6 +201,7 @@ public class ProjectsStoreFragment extends Fragment {
             totalResults = 0;
             projects.clear();
             adapter.setProjects(projects);
+            showShimmer(true);
         }
 
         loading = true;
@@ -225,6 +230,8 @@ public class ProjectsStoreFragment extends Fragment {
     }
 
     private void handlePublications(ProjectModel projectModel, boolean reset) {
+        showShimmer(false);
+
         List<ProjectModel.Project> loaded = projectModel == null ? null : projectModel.getProjects();
         totalResults = projectModel == null ? 0 : projectModel.getTotal();
 
@@ -241,9 +248,44 @@ public class ProjectsStoreFragment extends Fragment {
         }
 
         boolean isEmpty = projects.isEmpty();
+        binding.publicationsGrid.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
         binding.emptyState.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
         binding.loadMoreButton.setVisibility(!isEmpty && nextOffset < totalResults ? View.VISIBLE : View.GONE);
         binding.resultSummary.setText(resultSummaryText());
+    }
+
+    private void showShimmer(boolean show) {
+        if (binding == null) {
+            return;
+        }
+        binding.shimmerContainer.setVisibility(show ? View.VISIBLE : View.GONE);
+        binding.publicationsGrid.setVisibility(show ? View.GONE : View.VISIBLE);
+        if (show) {
+            startShimmer();
+        } else {
+            stopShimmer();
+        }
+    }
+
+    private void startShimmer() {
+        if (binding == null || shimmerAnimator != null) {
+            return;
+        }
+        shimmerAnimator = ObjectAnimator.ofFloat(binding.shimmerContainer, View.ALPHA, 0.45f, 1f);
+        shimmerAnimator.setDuration(650L);
+        shimmerAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        shimmerAnimator.setRepeatMode(ValueAnimator.REVERSE);
+        shimmerAnimator.start();
+    }
+
+    private void stopShimmer() {
+        if (shimmerAnimator != null) {
+            shimmerAnimator.cancel();
+            shimmerAnimator = null;
+        }
+        if (binding != null) {
+            binding.shimmerContainer.setAlpha(1f);
+        }
     }
 
     private String resultSummaryText() {
