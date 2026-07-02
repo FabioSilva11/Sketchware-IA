@@ -3,8 +3,9 @@ package pro.sketchware.activities.main.fragments.projects_store.api;
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;
 
+import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Locale;
 
 public class ProjectModel {
 
@@ -42,9 +43,49 @@ public class ProjectModel {
         this.projects = projects;
     }
 
-    // not supported right now due of API requirements
     public static class Comment {
+        @SerializedName("id")
+        @Expose
+        private String id;
+        @SerializedName("body")
+        @Expose
+        private String body;
+        @SerializedName("created_at")
+        @Expose
+        private String createdAt;
+        @SerializedName("is_developer")
+        @Expose
+        private boolean developer;
+        @SerializedName("user")
+        @Expose
+        private User user;
 
+        public String getId() {
+            return id;
+        }
+
+        public String getBody() {
+            return safe(body);
+        }
+
+        public String getCreatedAt() {
+            return safe(createdAt);
+        }
+
+        public boolean isDeveloper() {
+            return developer;
+        }
+
+        public String getUserName() {
+            if (user == null) {
+                return "";
+            }
+            return firstNonEmpty(user.displayName, user.username);
+        }
+
+        public String getUserAvatar() {
+            return user == null ? "" : safe(user.avatarUrl);
+        }
     }
 
     public static class Project {
@@ -52,289 +93,355 @@ public class ProjectModel {
         @SerializedName("id")
         @Expose
         private String id;
-        @SerializedName("title")
+        @SerializedName("slug")
         @Expose
-        private String title;
+        private String slug;
+        @SerializedName("name")
+        @Expose
+        private String name;
+        @SerializedName("short_description")
+        @Expose
+        private String shortDescription;
         @SerializedName("description")
         @Expose
         private String description;
-        @SerializedName("whatsnew")
+        @SerializedName("icon_url")
         @Expose
-        private String whatsnew;
+        private String iconUrl;
+        @SerializedName("banner_url")
+        @Expose
+        private String bannerUrl;
+        @SerializedName("current_version")
+        @Expose
+        private String currentVersion;
+        @SerializedName("file_size")
+        @Expose
+        private long fileSize;
+        @SerializedName("changelog")
+        @Expose
+        private String changelog;
+        @SerializedName("kind")
+        @Expose
+        private String kind;
+        @SerializedName("developer_name")
+        @Expose
+        private String developerName;
+        @SerializedName("website")
+        @Expose
+        private String website;
+        @SerializedName("github")
+        @Expose
+        private String github;
+        @SerializedName("is_featured")
+        @Expose
+        private boolean featured;
+        @SerializedName("is_open_source")
+        @Expose
+        private boolean openSource;
+        @SerializedName("is_free")
+        @Expose
+        private boolean free;
+        @SerializedName("downloads_count")
+        @Expose
+        private int downloadsCount;
+        @SerializedName("likes_count")
+        @Expose
+        private int likesCount;
+        @SerializedName("reviews_count")
+        @Expose
+        private int reviewsCount;
+        @SerializedName("rating_avg")
+        @Expose
+        private double ratingAverage;
+        @SerializedName("published_at")
+        @Expose
+        private String publishedAt;
+        @SerializedName("updated_at")
+        @Expose
+        private String updatedAt;
         @SerializedName("category")
         @Expose
-        private String category;
-        @SerializedName("project_type")
+        private Category category;
+        @SerializedName("developer")
         @Expose
-        private String projectType;
-        @SerializedName("demo_link")
+        private User developer;
+        @SerializedName("screenshots")
         @Expose
-        private String demoLink;
-        @SerializedName("video_url")
+        private List<Screenshot> screenshots;
+        @SerializedName("versions")
         @Expose
-        private String videoUrl;
-        @SerializedName("icon")
-        @Expose
-        private String icon;
-        @SerializedName("screenshot1")
-        @Expose
-        private String screenshot1;
-        @SerializedName("screenshot2")
-        @Expose
-        private String screenshot2;
-        @SerializedName("screenshot3")
-        @Expose
-        private String screenshot3;
-        @SerializedName("screenshot4")
-        @Expose
-        private String screenshot4;
-        @SerializedName("screenshot5")
-        @Expose
-        private String screenshot5;
-        @SerializedName("project_size")
-        @Expose
-        private String projectSize;
-        @SerializedName("likes")
-        @Expose
-        private String likes;
-        @SerializedName("comments")
-        @Expose
-        private String comments;
-        @SerializedName("downloads")
-        @Expose
-        private String downloads;
-        @SerializedName("uid")
-        @Expose
-        private String uid;
-        @SerializedName("timestamp")
-        @Expose
-        private String timestamp;
-        @SerializedName("published_timestamp")
-        @Expose
-        private String publishedTimestamp;
-        @SerializedName("is_verified")
-        @Expose
-        private String isVerified;
-        @SerializedName("is_editor_choice")
-        @Expose
-        private String isEditorChoice;
-        @SerializedName("user_name")
-        @Expose
-        private String userName;
-        @SerializedName("user_profile_pic")
-        @Expose
-        private String userProfilePic;
-        @SerializedName("user_badge")
-        @Expose
-        private String userBadge;
+        private List<Version> versions;
 
         public String getId() {
-            return id;
+            return safe(id);
         }
 
-        public void setId(String id) {
-            this.id = id;
+        public String getSlug() {
+            return firstNonEmpty(slug, id);
         }
 
         public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
+            return safe(name);
         }
 
         public String getDescription() {
-            return description;
+            return firstNonEmpty(description, shortDescription);
         }
 
-        public void setDescription(String description) {
-            this.description = description;
+        public String getShortDescription() {
+            return firstNonEmpty(shortDescription, description);
         }
 
         public String getWhatsnew() {
-            return whatsnew;
-        }
-
-        public void setWhatsnew(String whatsnew) {
-            this.whatsnew = whatsnew;
+            return safe(changelog);
         }
 
         public String getCategory() {
-            return category;
-        }
-
-        public void setCategory(String category) {
-            this.category = category;
+            if (category != null) {
+                String categoryName = firstNonEmpty(category.namePt, category.nameEn, category.slug);
+                if (!categoryName.isEmpty()) {
+                    return categoryName;
+                }
+            }
+            return safe(kind).toUpperCase(Locale.US);
         }
 
         public String getProjectType() {
-            return projectType;
-        }
-
-        public void setProjectType(String projectType) {
-            this.projectType = projectType;
+            return safe(kind);
         }
 
         public String getDemoLink() {
-            return demoLink;
-        }
-
-        public void setDemoLink(String demoLink) {
-            this.demoLink = demoLink;
+            return safe(website);
         }
 
         public String getVideoUrl() {
-            return videoUrl;
-        }
-
-        public void setVideoUrl(String videoUrl) {
-            this.videoUrl = videoUrl;
+            return "";
         }
 
         public String getIcon() {
-            return icon;
+            return firstNonEmpty(iconUrl, bannerUrl);
         }
 
-        public void setIcon(String icon) {
-            this.icon = icon;
+        public String getBannerUrl() {
+            return safe(bannerUrl);
         }
 
         public String getScreenshot1() {
-            return screenshot1;
-        }
-
-        public void setScreenshot1(String screenshot1) {
-            this.screenshot1 = screenshot1;
+            return getScreenshot(0);
         }
 
         public String getScreenshot2() {
-            return screenshot2;
-        }
-
-        public void setScreenshot2(String screenshot2) {
-            this.screenshot2 = screenshot2;
+            return getScreenshot(1);
         }
 
         public String getScreenshot3() {
-            return screenshot3;
-        }
-
-        public void setScreenshot3(String screenshot3) {
-            this.screenshot3 = screenshot3;
+            return getScreenshot(2);
         }
 
         public String getScreenshot4() {
-            return screenshot4;
-        }
-
-        public void setScreenshot4(String screenshot4) {
-            this.screenshot4 = screenshot4;
+            return getScreenshot(3);
         }
 
         public String getScreenshot5() {
-            return screenshot5;
+            return getScreenshot(4);
         }
 
-        public void setScreenshot5(String screenshot5) {
-            this.screenshot5 = screenshot5;
+        public ArrayList<String> getScreenshotUrls() {
+            ArrayList<String> urls = new ArrayList<>();
+            if (screenshots != null) {
+                for (Screenshot screenshot : screenshots) {
+                    if (screenshot == null) {
+                        continue;
+                    }
+                    String url = screenshot.getUrl();
+                    if (!url.isEmpty()) {
+                        urls.add(url);
+                    }
+                }
+            }
+            if (urls.isEmpty() && !safe(bannerUrl).isEmpty()) {
+                urls.add(bannerUrl);
+            }
+            return urls;
         }
 
         public String getProjectSize() {
-            return projectSize;
-        }
-
-        public void setProjectSize(String projectSize) {
-            this.projectSize = projectSize;
+            return formatFileSize(fileSize);
         }
 
         public String getLikes() {
-            return likes;
-        }
-
-        public void setLikes(String likes) {
-            this.likes = likes;
+            return String.valueOf(likesCount);
         }
 
         public String getComments() {
-            return comments;
-        }
-
-        public void setComments(String comments) {
-            this.comments = comments;
+            return String.valueOf(reviewsCount);
         }
 
         public String getDownloads() {
-            return downloads;
-        }
-
-        public void setDownloads(String downloads) {
-            this.downloads = downloads;
+            return String.valueOf(downloadsCount);
         }
 
         public String getUid() {
-            return uid;
-        }
-
-        public void setUid(String uid) {
-            this.uid = uid;
+            return "";
         }
 
         public String getTimestamp() {
-            return timestamp;
-        }
-
-        public void setTimestamp(String timestamp) {
-            this.timestamp = timestamp;
+            return safe(updatedAt);
         }
 
         public String getPublishedTimestamp() {
-            return publishedTimestamp;
+            return safe(publishedAt);
         }
 
-        public void setPublishedTimestamp(String publishedTimestamp) {
-            this.publishedTimestamp = publishedTimestamp;
+        public String getPublishedDate() {
+            String value = firstNonEmpty(publishedAt, updatedAt);
+            if (value.length() >= 10) {
+                return value.substring(0, 10);
+            }
+            return value;
         }
 
         public String getIsVerified() {
-            return isVerified;
-        }
-
-        public void setIsVerified(String isVerified) {
-            this.isVerified = isVerified;
+            return openSource ? "1" : "0";
         }
 
         public String getIsEditorChoice() {
-            return isEditorChoice;
-        }
-
-        public void setIsEditorChoice(String isEditorChoice) {
-            this.isEditorChoice = isEditorChoice;
+            return featured ? "1" : "0";
         }
 
         public String getUserName() {
-            return userName;
-        }
-
-        public void setUserName(String userName) {
-            this.userName = userName;
+            if (developer != null) {
+                String name = firstNonEmpty(developer.displayName, developer.username);
+                if (!name.isEmpty()) {
+                    return name;
+                }
+            }
+            return safe(developerName);
         }
 
         public String getUserProfilePic() {
-            return userProfilePic;
+            return developer == null ? "" : safe(developer.avatarUrl);
         }
 
-        public void setUserProfilePic(String userProfilePic) {
-            this.userProfilePic = userProfilePic;
+        public String getWebsite() {
+            return safe(website);
         }
 
-        public String getUserBadge() {
-            return userBadge;
+        public String getGithub() {
+            return safe(github);
         }
 
-        public void setUserBadge(String userBadge) {
-            this.userBadge = userBadge;
+        public String getCurrentVersion() {
+            return safe(currentVersion);
         }
 
+        public boolean hasComments() {
+            return reviewsCount > 0;
+        }
+
+        public String getFirstVersionFileUrl() {
+            if (versions == null) {
+                return "";
+            }
+            for (Version version : versions) {
+                if (version == null) {
+                    continue;
+                }
+                String url = version.getFileUrl();
+                if (!url.isEmpty()) {
+                    return url;
+                }
+            }
+            return "";
+        }
+
+        private String getScreenshot(int index) {
+            ArrayList<String> urls = getScreenshotUrls();
+            return index >= 0 && index < urls.size() ? urls.get(index) : "";
+        }
+    }
+
+    public static class Category {
+        @SerializedName("slug")
+        @Expose
+        private String slug;
+        @SerializedName("name_pt")
+        @Expose
+        private String namePt;
+        @SerializedName("name_en")
+        @Expose
+        private String nameEn;
+    }
+
+    public static class Screenshot {
+        @SerializedName("url")
+        @Expose
+        private String url;
+        @SerializedName("image_url")
+        @Expose
+        private String imageUrl;
+        @SerializedName("file_url")
+        @Expose
+        private String fileUrl;
+        @SerializedName("public_url")
+        @Expose
+        private String publicUrl;
+
+        public String getUrl() {
+            return firstNonEmpty(url, imageUrl, fileUrl, publicUrl);
+        }
+    }
+
+    public static class Version {
+        @SerializedName("file_url")
+        @Expose
+        private String fileUrl;
+
+        public String getFileUrl() {
+            return safe(fileUrl);
+        }
+    }
+
+    public static class User {
+        @SerializedName("username")
+        @Expose
+        private String username;
+        @SerializedName("display_name")
+        @Expose
+        private String displayName;
+        @SerializedName("avatar_url")
+        @Expose
+        private String avatarUrl;
+    }
+
+    private static String firstNonEmpty(String... values) {
+        for (String value : values) {
+            if (!safe(value).isEmpty()) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private static String formatFileSize(long bytes) {
+        if (bytes <= 0) {
+            return "";
+        }
+        if (bytes < 1024) {
+            return bytes + " B";
+        }
+        double value = bytes / 1024d;
+        if (value < 1024d) {
+            return String.format(Locale.US, "%.1f KB", value);
+        }
+        value /= 1024d;
+        if (value < 1024d) {
+            return String.format(Locale.US, "%.1f MB", value);
+        }
+        return String.format(Locale.US, "%.1f GB", value / 1024d);
     }
 }

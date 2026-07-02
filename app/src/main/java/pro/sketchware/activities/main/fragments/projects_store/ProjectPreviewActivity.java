@@ -13,12 +13,11 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.google.android.material.chip.Chip;
 import com.google.gson.Gson;
 
-import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 import pro.sketchware.activities.main.fragments.projects_store.adapters.ProjectScreenshotsAdapter;
 import pro.sketchware.activities.main.fragments.projects_store.api.ProjectModel;
+import pro.sketchware.activities.main.fragments.projects_store.api.SketchwareStoreApi;
 import pro.sketchware.databinding.FragmentStoreProjectPreviewBinding;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.UI;
@@ -28,6 +27,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
 
     private FragmentStoreProjectPreviewBinding binding;
     private ProjectModel.Project project;
+    private final SketchwareStoreApi storeApi = new SketchwareStoreApi();
     private boolean isTitleContainerShown;
 
     @Override
@@ -46,32 +46,62 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
 
         String json = bundle.getString("project_json");
         project = new Gson().fromJson(json, ProjectModel.Project.class);
+        if (project == null) {
+            finish();
+            return;
+        }
+        bindProject(project);
+
+        storeApi.getProjectDetails(project.getSlug(), detailedProject -> {
+            if (detailedProject == null || binding == null) {
+                return;
+            }
+            project = detailedProject;
+            bindProject(project);
+        });
+    }
+
+    private void bindProject(ProjectModel.Project project) {
+        if (project == null || binding == null) {
+            return;
+        }
 
         binding.name.setText(project.getTitle());
         binding.author.setText(project.getUserName());
         binding.description.setText(project.getDescription());
 
         String whatIsNew = project.getWhatsnew();
-        if (whatIsNew.isEmpty()) {
+        if (whatIsNew == null || whatIsNew.isEmpty()) {
             binding.cardWhatIsNew.setVisibility(View.GONE);
         } else {
             binding.cardWhatIsNew.setVisibility(View.VISIBLE);
             binding.whatIsNew.setText(whatIsNew);
         }
 
-        if (project.getIsEditorChoice().equals("1")) {
-            addChip("Editor's Choice");
+        binding.chipsContainer.removeAllViews();
+        if ("1".equals(project.getIsEditorChoice())) {
+            addChip("Featured");
         }
 
-        if (project.getIsVerified().equals("1")) {
-            addChip("Verified");
+        if ("1".equals(project.getIsVerified())) {
+            addChip("Open source");
         }
 
-        addChip(project.getCategory());
+        if (!isEmpty(project.getCategory())) {
+            addChip(project.getCategory());
+        }
+
+        if (!isEmpty(project.getCurrentVersion())) {
+            addChip("v" + project.getCurrentVersion());
+        }
 
         binding.downloads.setText("Downloads: " + project.getDownloads());
-        binding.filesize.setText("Size: " + project.getProjectSize());
-        binding.timestamp.setText("Released: " + DateFormat.getDateInstance().format(new Date(Long.parseLong(project.getPublishedTimestamp()))));
+        String projectSize = project.getProjectSize();
+        binding.filesize.setText("Size: " + (isEmpty(projectSize) ? "Unknown" : projectSize));
+        String publishedDate = project.getPublishedDate();
+        binding.timestamp.setText("Released: " + (isEmpty(publishedDate) ? "Unknown" : publishedDate));
+
+        binding.btnComments.setVisibility(project.hasComments() ? View.VISIBLE : View.GONE);
         binding.btnComments.setOnClickListener(v -> openCommentsSheet());
         binding.btnDownload.setOnClickListener(v -> openProjectInApp());
         binding.btnOpenIn.setOnClickListener(v -> openProject());
@@ -81,17 +111,12 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.toolbarTitle.setText(project.getTitle());
         binding.toolbarSubtitle.setText(project.getUserName());
 
-        ArrayList<String> screenshots = new ArrayList<>();
-        for (int i = 0; i <= 4; i++) {
-            String screenshot = getScreenshot(i);
-            if (screenshot != null && !screenshot.isEmpty()) {
-                screenshots.add(screenshot);
-            }
-        }
-
+        ArrayList<String> screenshots = project.getScreenshotUrls();
         binding.screenshots.setAdapter(new ProjectScreenshotsAdapter(screenshots));
 
-        UI.loadImageFromUrl(binding.icon, project.getIcon());
+        if (!isEmpty(project.getIcon())) {
+            UI.loadImageFromUrl(binding.icon, project.getIcon());
+        }
         UI.addSystemWindowInsetToPadding(binding.content, true, true, true, true);
         UI.addSystemWindowInsetToMargin(binding.buttonsContainer, true, false, true, true);
         UI.addSystemWindowInsetToPadding(binding.topScrim, false, true, false, false);
@@ -139,30 +164,44 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
     }
 
     private void openCommentsSheet() {
-        CommentsBottomSheet sheet = new CommentsBottomSheet();
+        CommentsBottomSheet sheet = CommentsBottomSheet.newInstance(project.getSlug());
         sheet.show(getSupportFragmentManager(), /* tag= */ CommentsBottomSheet.class.getSimpleName());
     }
 
-    private String getScreenshot(int index) {
-        return switch (index) {
-            case 0 -> project.getScreenshot1();
-            case 1 -> project.getScreenshot2();
-            case 2 -> project.getScreenshot3();
-            case 3 -> project.getScreenshot4();
-            case 4 -> project.getScreenshot5();
-            default -> null;
-        };
-    }
-
     private void openProject() {
+        String url = project.getWebsite();
+        if (isEmpty(url)) {
+            url = project.getGithub();
+        }
+        if (isEmpty(url)) {
+            url = SketchwareStoreApi.SITE_URL;
+        }
         Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(Uri.parse("https://web.sketchub.in/p/" + project.getId()));
+        intent.setData(Uri.parse(url));
         startActivity(intent);
     }
 
     private void openProjectInApp() {
-        Intent intent = new Intent(this, ProjectWebViewActivity.class);
-        intent.putExtra("url", "https://web.sketchub.in/p/" + project.getId());
-        startActivity(intent);
+        binding.btnDownload.setEnabled(false);
+        storeApi.getDownloadUrl(project.getSlug(), downloadUrl -> {
+            if (binding == null) {
+                return;
+            }
+            binding.btnDownload.setEnabled(true);
+
+            String url = isEmpty(downloadUrl) ? project.getFirstVersionFileUrl() : downloadUrl;
+            if (isEmpty(url)) {
+                SketchwareUtil.toastError("Download unavailable");
+                return;
+            }
+
+            Intent intent = new Intent(this, ProjectWebViewActivity.class);
+            intent.putExtra("url", url);
+            startActivity(intent);
+        });
+    }
+
+    private boolean isEmpty(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

@@ -1,5 +1,7 @@
 package pro.sketchware.activities.main.fragments.projects_store;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -15,17 +17,16 @@ import androidx.recyclerview.widget.SnapHelper;
 
 import com.google.android.material.transition.MaterialFadeThrough;
 
-import pro.sketchware.BuildConfig;
 import pro.sketchware.activities.main.fragments.projects_store.adapters.StorePagerProjectsAdapter;
 import pro.sketchware.activities.main.fragments.projects_store.adapters.StoreProjectsAdapter;
-import pro.sketchware.activities.main.fragments.projects_store.api.SketchubAPI;
+import pro.sketchware.activities.main.fragments.projects_store.api.SketchwareStoreApi;
 import pro.sketchware.activities.main.fragments.projects_store.classes.CenterZoomListener;
 import pro.sketchware.databinding.FragmentProjectsStoreBinding;
 import pro.sketchware.utility.UI;
 
 public class ProjectsStoreFragment extends Fragment {
     private FragmentProjectsStoreBinding binding;
-    private SketchubAPI sketchubAPI;
+    private SketchwareStoreApi storeApi;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -39,7 +40,7 @@ public class ProjectsStoreFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentProjectsStoreBinding.inflate(inflater, container, false);
-        sketchubAPI = new SketchubAPI(BuildConfig.SKETCHUB_API_KEY);
+        storeApi = new SketchwareStoreApi();
         return binding.getRoot();
     }
 
@@ -48,6 +49,7 @@ public class ProjectsStoreFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         setupRecyclerView(binding.editorsChoiceProjectsRecyclerView);
+        setupOfficialStoreLink();
         fetchData();
 
         UI.addSystemWindowInsetToPadding(binding.textEditorsChoice, true, false, true, false);
@@ -84,19 +86,29 @@ public class ProjectsStoreFragment extends Fragment {
         }
     }
 
+    private void setupOfficialStoreLink() {
+        binding.cardWarning.setOnClickListener(v -> openOfficialStoreWebsite());
+        binding.storeSideNote.setOnClickListener(v -> openOfficialStoreWebsite());
+    }
+
+    private void openOfficialStoreWebsite() {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(SketchwareStoreApi.SITE_URL));
+        startActivity(intent);
+    }
+
     private void fetchData() {
         var activity = getActivity();
-        sketchubAPI.getEditorsChoicerProjects(1, projectModel -> {
+        storeApi.getEditorsChoiceProjects(1, projectModel -> {
             if (projectModel != null) {
                 binding.editorsChoiceProjectsRecyclerView.setAdapter(new StorePagerProjectsAdapter(projectModel.getProjects(), activity));
             }
         });
-        sketchubAPI.getMostDownloadedProjects(1, projectModel -> {
+        storeApi.getMostDownloadedProjects(1, projectModel -> {
             if (projectModel != null) {
                 binding.mostDownloadedProjectsRecyclerView.setAdapter(new StoreProjectsAdapter(projectModel.getProjects(), activity));
             }
         });
-        sketchubAPI.getRecentProjects(1, projectModel -> {
+        storeApi.getRecentProjects(1, projectModel -> {
             if (projectModel != null) {
                 binding.recentProjectsRecyclerView.setAdapter(new StoreProjectsAdapter(projectModel.getProjects(), activity));
             }

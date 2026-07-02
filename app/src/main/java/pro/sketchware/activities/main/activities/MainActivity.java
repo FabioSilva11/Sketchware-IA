@@ -69,7 +69,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     private static final String WEB_SERVICE_FRAGMENT_TAG = "web_service_fragment";
     private static final String CHAT_FRAGMENT_TAG = "chat_fragment";
     private static final int PAGE_PROJECTS = 0;
-    private static final int PAGE_SKETCHUB = 1;
+    private static final int PAGE_STORE = 1;
     private static final int PAGE_WEB_SERVICE = 2;
     private static final int PAGE_CHAT = 3;
     private static final int MAIN_PAGE_COUNT = 4;
@@ -275,15 +275,15 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         }
 
         // Exibir a aba/fragmento de loja na navegação inferior
-        binding.bottomNav.getMenu().findItem(R.id.item_sketchub).setVisible(true);
+        binding.bottomNav.getMenu().findItem(R.id.item_store).setVisible(true);
 
         binding.bottomNav.setOnItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.item_projects) {
                 navigateToProjectsFragment();
                 return true;
-            } else if (id == R.id.item_sketchub) {
-                navigateToSketchubFragment();
+            } else if (id == R.id.item_store) {
+                navigateToStoreFragment();
                 return true;
             } else if (id == R.id.item_web_service) {
                 navigateToWebServiceFragment();
@@ -381,8 +381,8 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         selectMainPage(PAGE_PROJECTS);
     }
 
-    private void navigateToSketchubFragment() {
-        selectMainPage(PAGE_SKETCHUB);
+    private void navigateToStoreFragment() {
+        selectMainPage(PAGE_STORE);
     }
 
     private void navigateToWebServiceFragment() {
@@ -445,7 +445,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
     private Fragment getOrCreateFragment(int page) {
         return switch (page) {
-            case PAGE_SKETCHUB -> {
+            case PAGE_STORE -> {
                 if (projectsStoreFragment == null) projectsStoreFragment = new ProjectsStoreFragment();
                 yield projectsStoreFragment;
             }
@@ -465,8 +465,8 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     }
 
     private int navIdToPage(@IdRes int navItemId) {
-        if (navItemId == R.id.item_sketchub) {
-            return PAGE_SKETCHUB;
+        if (navItemId == R.id.item_store) {
+            return PAGE_STORE;
         } else if (navItemId == R.id.item_web_service) {
             return PAGE_WEB_SERVICE;
         } else if (navItemId == R.id.item_chat) {
@@ -478,7 +478,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     @IdRes
     private int pageToNavId(int page) {
         return switch (page) {
-            case PAGE_SKETCHUB -> R.id.item_sketchub;
+            case PAGE_STORE -> R.id.item_store;
             case PAGE_WEB_SERVICE -> R.id.item_web_service;
             case PAGE_CHAT -> R.id.item_chat;
             default -> R.id.item_projects;

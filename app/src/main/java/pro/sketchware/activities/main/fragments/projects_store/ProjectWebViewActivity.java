@@ -130,7 +130,7 @@ public class ProjectWebViewActivity extends BaseAppCompatActivity {
         String fileName = URLUtil.guessFileName(url, contentDisposition, mimeType);
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
         request.setTitle(fileName);
-        request.setDescription("Baixando projeto do Sketchub");
+        request.setDescription("Baixando projeto da Sketchware Store");
         request.setMimeType(mimeType);
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
         request.addRequestHeader("User-Agent", userAgent);
