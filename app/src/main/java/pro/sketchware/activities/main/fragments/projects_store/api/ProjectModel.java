@@ -80,6 +80,9 @@ public class ProjectModel {
         @SerializedName("swbs")
         @Expose
         private int swbs;
+        @SerializedName("websites")
+        @Expose
+        private int websites;
         @SerializedName("users")
         @Expose
         private int users;
@@ -95,6 +98,10 @@ public class ProjectModel {
             return swbs;
         }
 
+        public int getWebsites() {
+            return websites;
+        }
+
         public int getUsers() {
             return users;
         }
@@ -104,7 +111,7 @@ public class ProjectModel {
         }
 
         public int getPublications() {
-            return apks + swbs;
+            return apks + swbs + websites;
         }
     }
 
@@ -278,6 +285,9 @@ public class ProjectModel {
         @SerializedName("is_free")
         @Expose
         private boolean free;
+        @SerializedName(value = "price_cents", alternate = {"priceCents"})
+        @Expose
+        private int priceCents;
         @SerializedName("downloads_count")
         @Expose
         private int downloadsCount;
@@ -335,7 +345,7 @@ public class ProjectModel {
 
         public String getCategory() {
             if (category != null) {
-                String categoryName = firstNonEmpty(category.namePt, category.nameEn, category.slug);
+                String categoryName = firstNonEmpty(category.nameEn, category.namePt, category.slug);
                 if (!categoryName.isEmpty()) {
                     return categoryName;
                 }
@@ -557,6 +567,10 @@ public class ProjectModel {
             return free;
         }
 
+        public boolean isPaid() {
+            return !isFree();
+        }
+
         public boolean isOpenSource() {
             return openSource;
         }
@@ -566,7 +580,17 @@ public class ProjectModel {
         }
 
         public String getPriceLabel() {
-            return free ? "Free" : "Paid";
+            if (isFree()) {
+                return "Free";
+            }
+            if (priceCents <= 0) {
+                return "Paid";
+            }
+            return String.format(Locale.US, "R$ %.2f", priceCents / 100d);
+        }
+
+        public String getPrimaryActionLabel() {
+            return isPaid() ? "Buy" : "Download";
         }
 
         public boolean hasComments() {
@@ -615,7 +639,7 @@ public class ProjectModel {
         }
 
         public String getName() {
-            return firstNonEmpty(namePt, nameEn, slug);
+            return firstNonEmpty(nameEn, namePt, slug);
         }
     }
 
@@ -779,11 +803,11 @@ public class ProjectModel {
             int month = Integer.parseInt(isoDate.substring(5, 7));
             int day = Integer.parseInt(isoDate.substring(8, 10));
             String[] months = {
-                    "jan.", "fev.", "mar.", "abr.", "mai.", "jun.",
-                    "jul.", "ago.", "set.", "out.", "nov.", "dez."
+                    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
             };
             if (month >= 1 && month <= months.length) {
-                return String.format(Locale.US, "%02d de %s de %04d", day, months[month - 1], year);
+                return String.format(Locale.US, "%s %02d, %04d", months[month - 1], day, year);
             }
         } catch (RuntimeException ignored) {
         }

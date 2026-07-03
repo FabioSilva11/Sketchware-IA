@@ -96,7 +96,7 @@
                             android:paddingHorizontal="10dp"
                             android:textColor="@color/chat_text_primary"
                             android:textSize="11sp"
-                            tools:text="Gratis" />
+                            tools:text="R$ 200.00" />
                     </LinearLayout>
 
                     <TextView
@@ -122,7 +122,7 @@
                         android:maxLines="1"
                         android:textColor="@color/store_play_blue"
                         android:textSize="14sp"
-                        tools:text="por Xoni" />
+                        tools:text="by Xoni" />
 
                     <TextView
                         android:id="@+id/header_meta"
@@ -192,7 +192,7 @@
                             android:layout_marginStart="14dp"
                             android:textColor="@color/chat_text_secondary"
                             android:textSize="12sp"
-                            tools:text="0 curtidas" />
+                            tools:text="0 likes" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -200,21 +200,23 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="14dp"
+                        android:gravity="start"
                         android:orientation="horizontal">
 
                         <com.google.android.material.button.MaterialButton
                             android:id="@+id/btn_download"
-                            android:layout_width="0dp"
-                            android:layout_height="48dp"
-                            android:layout_weight="1"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
                             android:insetTop="0dp"
                             android:insetBottom="0dp"
+                            android:minWidth="118dp"
+                            android:paddingHorizontal="16dp"
                             android:text="@string/store_preview_download"
                             android:textColor="@android:color/white"
-                            android:textSize="14sp"
+                            android:textSize="13sp"
                             android:textStyle="bold"
                             app:backgroundTint="@color/chat_accent"
-                            app:cornerRadius="24dp"
+                            app:cornerRadius="20dp"
                             app:icon="@drawable/ic_mtrl_download"
                             app:iconGravity="textStart"
                             app:iconTint="@android:color/white" />
@@ -256,7 +258,7 @@
                         android:textColor="@color/chat_text_secondary"
                         android:textIsSelectable="true"
                         android:textSize="14sp"
-                        tools:text="Nova versao com melhorias e correcoes." />
+                        tools:text="New version with improvements and fixes." />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -322,7 +324,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Versao"
+                            android:text="Version"
                             android:textColor="@color/chat_text_secondary"
                             android:textSize="12sp" />
 
@@ -348,7 +350,33 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Tamanho"
+                            android:text="Price"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/detail_price"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="R$ 200.00" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Size"
                             android:textColor="@color/chat_text_secondary"
                             android:textSize="12sp" />
 
@@ -374,7 +402,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Publicado em"
+                            android:text="Published"
                             android:textColor="@color/chat_text_secondary"
                             android:textSize="12sp" />
 
@@ -387,7 +415,7 @@
                             android:textColor="@color/chat_text_primary"
                             android:textSize="12sp"
                             android:textStyle="bold"
-                            tools:text="02 de jul. de 2026" />
+                            tools:text="Jul 02, 2026" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -400,7 +428,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Atualizado em"
+                            android:text="Updated"
                             android:textColor="@color/chat_text_secondary"
                             android:textSize="12sp" />
 
@@ -413,7 +441,7 @@
                             android:textColor="@color/chat_text_primary"
                             android:textSize="12sp"
                             android:textStyle="bold"
-                            tools:text="02 de jul. de 2026" />
+                            tools:text="Jul 02, 2026" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -426,7 +454,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Licenca"
+                            android:text="License"
                             android:textColor="@color/chat_text_secondary"
                             android:textSize="12sp" />
 
@@ -452,7 +480,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Categoria"
+                            android:text="Category"
                             android:textColor="@color/chat_text_secondary"
                             android:textSize="12sp" />
 
@@ -465,7 +493,7 @@
                             android:textColor="@color/chat_text_primary"
                             android:textSize="12sp"
                             android:textStyle="bold"
-                            tools:text="Ferramentas" />
+                            tools:text="Tools" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -477,7 +505,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Idioma"
+                            android:text="Language"
                             android:textColor="@color/chat_text_secondary"
                             android:textSize="12sp" />
 
@@ -513,7 +541,7 @@
                         android:textSize="14sp"
                         app:drawableStartCompat="@drawable/ic_mtrl_web"
                         app:drawableTint="@color/store_play_blue"
-                        tools:text="Site" />
+                        tools:text="Website" />
 
                     <TextView
                         android:id="@+id/detail_video"
@@ -555,7 +583,7 @@
                         android:textSize="14sp"
                         app:drawableStartCompat="@drawable/ic_mtrl_info"
                         app:drawableTint="@color/store_play_blue"
-                        tools:text="Privacidade" />
+                        tools:text="Privacy policy" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -638,7 +666,7 @@
                 android:textIsSelectable="true"
                 android:textSize="15sp"
                 app:lineHeight="22dp"
-                tools:text="Seu assistente de IA para escrita, pesquisa, geracao de imagens e muito mais." />
+                tools:text="Your AI assistant for writing, research, image generation, and more." />
 
             <TextView
                 android:id="@+id/version_history_title"
@@ -647,7 +675,7 @@
                 android:paddingHorizontal="16dp"
                 android:paddingTop="28dp"
                 android:paddingBottom="12dp"
-                android:text="Historico de versoes"
+                android:text="Version history"
                 android:textColor="@color/chat_text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -665,7 +693,7 @@
                 android:paddingHorizontal="16dp"
                 android:paddingTop="28dp"
                 android:paddingBottom="8dp"
-                android:text="Avaliacoes"
+                android:text="Reviews"
                 android:textColor="@color/chat_text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -695,7 +723,7 @@
                         android:layout_weight="1"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="13sp"
-                        tools:text="0.0 de 5 - 0 avaliacoes" />
+                        tools:text="0.0 out of 5 - 0 reviews" />
 
                     <RatingBar
                         android:id="@+id/detail_rating_bar"
@@ -715,7 +743,7 @@
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
                 android:paddingTop="10dp"
-                android:text="Nenhuma avaliacao publica ainda."
+                android:text="No public reviews yet."
                 android:textColor="@color/chat_text_secondary"
                 android:textSize="13sp"
                 android:visibility="gone"
@@ -738,7 +766,7 @@
                 android:paddingHorizontal="16dp"
                 android:paddingTop="28dp"
                 android:paddingBottom="6dp"
-                android:text="Comentarios"
+                android:text="Comments"
                 android:textColor="@color/chat_text_primary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -748,7 +776,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingHorizontal="16dp"
-                android:text="Nenhum comentario publico ainda."
+                android:text="No public comments yet."
                 android:textColor="@color/chat_text_secondary"
                 android:textSize="13sp"
                 android:visibility="gone"

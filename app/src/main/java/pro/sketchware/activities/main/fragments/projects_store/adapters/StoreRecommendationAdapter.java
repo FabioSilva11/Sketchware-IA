@@ -46,7 +46,7 @@ public class StoreRecommendationAdapter extends RecyclerView.Adapter<StoreRecomm
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ProjectModel.Project project = projects.get(position);
         holder.binding.title.setText(project.getTitle());
-        holder.binding.rating.setText(project.getRating());
+        holder.binding.rating.setText(project.getPriceLabel());
         holder.binding.icon.setImageResource(R.drawable.default_image);
         if (!project.getIcon().isEmpty()) {
             loadImageFromUrl(holder.binding.icon, project.getIcon());

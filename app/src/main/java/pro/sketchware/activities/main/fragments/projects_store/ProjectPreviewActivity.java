@@ -131,12 +131,14 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.name.setText(project.getTitle());
         String developerName = isEmpty(project.getUserName()) ? "Unknown developer" : project.getUserName();
         String developerUsername = project.getDeveloperUsername();
-        binding.author.setText("por " + developerName);
+        binding.author.setText("by " + developerName);
         binding.headerMeta.setText(project.getCategory() + " - " + project.getTypeLabel());
         binding.description.setText(project.getDescription());
         binding.kindBadge.setText(project.getTypeLabel());
         binding.categoryBadge.setText(project.getCategory());
-        binding.freeBadge.setText(project.isFree() ? "Gratis" : "Pago");
+        binding.freeBadge.setText(project.getPriceLabel());
+        binding.btnDownload.setText(project.getPrimaryActionLabel());
+        binding.btnDownload.setIconResource(project.isPaid() ? R.drawable.ic_mtrl_payment : R.drawable.ic_mtrl_download);
 
         String whatIsNew = project.getWhatsnew();
         if (whatIsNew == null || whatIsNew.isEmpty()) {
@@ -166,11 +168,12 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.ratingBar.setRating(project.getRatingValue());
         binding.detailRatingBar.setRating(project.getRatingValue());
         binding.detailComments.setText("(" + compactCount(project.getReviews()) + ")");
-        binding.ratingSummary.setText(project.getRating() + " de 5 - " + compactCount(project.getReviews()) + " avaliacoes");
+        binding.ratingSummary.setText(project.getRating() + " out of 5 - " + compactCount(project.getReviews()) + " reviews");
         binding.downloads.setText(compactCount(project.getDownloads()));
-        binding.likesCount.setText(compactCount(project.getLikes()) + " curtidas");
+        binding.likesCount.setText(compactCount(project.getLikes()) + " likes");
         String projectSize = project.getProjectSize();
         binding.filesize.setText(isEmpty(projectSize) ? valueOrDash(project.getTypeLabel()) : projectSize);
+        binding.detailPrice.setText(project.getPriceLabel());
         String publishedDate = project.getPublishedDate();
         binding.detailPublished.setText(valueOrDash(publishedDate));
         binding.timestamp.setText(valueOrDash(project.getUpdatedDate()));
@@ -178,15 +181,21 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.detailCategory.setText(valueOrDash(project.getCategory()));
         binding.detailLanguage.setText(valueOrDash(project.getLanguage()));
         bindOptionalLink(binding.detailVideo, "Video", project.getVideoUrl());
-        bindOptionalLink(binding.detailWebsite, "Site", project.getWebsite());
+        bindOptionalLink(binding.detailWebsite, "Website", project.getWebsite());
         bindOptionalLink(binding.detailGithub, "GitHub", project.getGithub());
-        bindOptionalLink(binding.detailPrivacy, "Privacidade", project.getPrivacyPolicy());
+        bindOptionalLink(binding.detailPrivacy, "Privacy policy", project.getPrivacyPolicy());
         bindVersions(project);
         loadInlineReviews(project);
         loadInlineComments(project);
         loadMoreFromDeveloper(project);
 
-        binding.btnDownload.setOnClickListener(v -> openProjectInApp());
+        binding.btnDownload.setOnClickListener(v -> {
+            if (project.isPaid()) {
+                openPurchasePage();
+            } else {
+                openProjectInApp();
+            }
+        });
         binding.btnOpenIn.setOnClickListener(v -> openProject());
         binding.btnBack.setOnClickListener(v -> finish());
 
@@ -194,8 +203,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.toolbarTitle.setText(project.getTitle());
         binding.toolbarSubtitle.setText(developerName);
 
-        ArrayList<String> screenshots = project.getScreenshotUrls();
-        binding.screenshots.setAdapter(new ProjectScreenshotsAdapter(screenshots));
+        loadScreenshots(project);
 
         if (!isEmpty(project.getIcon())) {
             UI.loadImageFromUrl(binding.icon, project.getIcon());
@@ -263,6 +271,17 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.reviewsList.setNestedScrollingEnabled(false);
     }
 
+    private void loadScreenshots(ProjectModel.Project currentProject) {
+        setScreenshots(currentProject.getScreenshotUrls());
+    }
+
+    private void setScreenshots(ArrayList<String> urls) {
+        binding.screenshots.setAdapter(new ProjectScreenshotsAdapter(urls));
+        boolean hasScreenshots = urls != null && !urls.isEmpty();
+        binding.screenshotsTitle.setVisibility(hasScreenshots ? View.VISIBLE : View.GONE);
+        binding.screenshots.setVisibility(hasScreenshots ? View.VISIBLE : View.GONE);
+    }
+
     private void loadMoreFromDeveloper(ProjectModel.Project currentProject) {
         String username = currentProject.getDeveloperUsername();
         if (isEmpty(username)) {
@@ -326,7 +345,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
                     getLayoutInflater(), binding.versionsContainer, false);
             String versionName = version.getVersionName();
             String versionLabel = versionName.startsWith("v") || versionName.startsWith("V") ? versionName : "v" + versionName;
-            versionBinding.versionName.setText(isEmpty(versionName) ? "Versao" : versionLabel);
+            versionBinding.versionName.setText(isEmpty(versionName) ? "Version" : versionLabel);
             versionBinding.versionMeta.setText(versionMeta(version));
             String fileUrl = version.getFileUrl();
             versionBinding.versionDownload.setVisibility(isEmpty(fileUrl) ? View.GONE : View.VISIBLE);
@@ -355,7 +374,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
             }
             builder.append(changelog);
         }
-        return builder.length() == 0 ? "Sem detalhes desta versao" : builder.toString();
+        return builder.length() == 0 ? "No details for this version" : builder.toString();
     }
 
     private void loadInlineComments(ProjectModel.Project currentProject) {
@@ -376,7 +395,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         loadedCommentsSlug = slug;
         commentsAdapter.setComments(null);
         binding.commentsList.setVisibility(View.GONE);
-        binding.commentsEmpty.setText("Carregando comentarios...");
+        binding.commentsEmpty.setText("Loading comments...");
         binding.commentsEmpty.setVisibility(View.VISIBLE);
 
         storeApi.getComments(slug, comments -> {
@@ -405,7 +424,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         loadedReviewsSlug = slug;
         reviewsAdapter.setReviews(null);
         binding.reviewsList.setVisibility(View.GONE);
-        binding.reviewsEmpty.setText("Carregando avaliacoes...");
+        binding.reviewsEmpty.setText("Loading reviews...");
         binding.reviewsEmpty.setVisibility(View.VISIBLE);
 
         storeApi.getReviews(slug, reviews -> {
@@ -420,7 +439,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         boolean hasReviews = reviews != null && !reviews.isEmpty();
         reviewsAdapter.setReviews(reviews);
         binding.reviewsList.setVisibility(hasReviews ? View.VISIBLE : View.GONE);
-        binding.reviewsEmpty.setText("Nenhuma avaliacao publica ainda.");
+        binding.reviewsEmpty.setText("No public reviews yet.");
         binding.reviewsEmpty.setVisibility(hasReviews ? View.GONE : View.VISIBLE);
     }
 
@@ -428,7 +447,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         boolean hasComments = comments != null && !comments.isEmpty();
         commentsAdapter.setComments(comments);
         binding.commentsList.setVisibility(hasComments ? View.VISIBLE : View.GONE);
-        binding.commentsEmpty.setText("Nenhum comentario publico ainda.");
+        binding.commentsEmpty.setText("No public comments yet.");
         binding.commentsEmpty.setVisibility(hasComments ? View.GONE : View.VISIBLE);
     }
 
@@ -477,8 +496,19 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         startActivity(intent);
     }
 
+    private void openPurchasePage() {
+        if (project == null) {
+            return;
+        }
+        openUrl(storeApi.getPublicationWebUrl(project.getSlug()));
+    }
+
     private void openProjectInApp() {
         if (binding == null || project == null) {
+            return;
+        }
+        if (project.isPaid()) {
+            openPurchasePage();
             return;
         }
         previousDownloadText = binding.btnDownload.getText();
@@ -683,7 +713,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
             return;
         }
         binding.btnDownload.setEnabled(true);
-        binding.btnDownload.setText(previousDownloadText == null ? getString(R.string.store_preview_download) : previousDownloadText);
+        binding.btnDownload.setText(previousDownloadText == null ? project.getPrimaryActionLabel() : previousDownloadText);
     }
 
     private String formatBytes(long bytes) {
@@ -709,10 +739,10 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         try {
             int number = Integer.parseInt(value);
             if (number >= 1_000_000) {
-                return String.format(Locale.US, "%.1f mi", number / 1_000_000d);
+                return String.format(Locale.US, "%.1fM", number / 1_000_000d);
             }
             if (number >= 1_000) {
-                return String.format(Locale.US, "%.1f mil", number / 1_000d);
+                return String.format(Locale.US, "%.1fK", number / 1_000d);
             }
         } catch (NumberFormatException ignored) {
         }

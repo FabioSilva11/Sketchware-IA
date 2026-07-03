@@ -56,8 +56,7 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<StoreProjectsAdap
         holder.binding.tags.setText(secondary);
         holder.binding.tags.setVisibility(secondary.isEmpty() ? View.GONE : View.VISIBLE);
         holder.binding.rating.setText(project.getRating());
-        String size = project.getProjectSize();
-        holder.binding.downloads.setText(size.isEmpty() ? compactNumber(project.getDownloads()) + " downloads" : size);
+        holder.binding.downloads.setText(project.getPriceLabel());
         holder.binding.likes.setText(compactNumber(project.getDownloads()) + " downloads");
         holder.binding.icon.setImageResource(R.drawable.default_image);
         if (!project.getIcon().isEmpty()) {

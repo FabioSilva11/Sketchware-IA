@@ -48,6 +48,7 @@ public class ProjectsStoreFragment extends Fragment {
     private String selectedCategory;
     private String searchQuery = "";
     private boolean selectedFree;
+    private boolean selectedPaid;
     private boolean selectedOpenSource;
     private boolean selectedFeatured;
     private int nextOffset;
@@ -139,6 +140,7 @@ public class ProjectsStoreFragment extends Fragment {
             }
             binding.statApks.setText(String.format(Locale.US, "%d\nAPKs", stats.getApks()));
             binding.statSwbs.setText(String.format(Locale.US, "%d\nSWBs", stats.getSwbs()));
+            binding.statWebsites.setText(String.format(Locale.US, "%d\nWebsites", stats.getWebsites()));
             binding.statUsers.setText(String.format(Locale.US, "%d\nUsers", stats.getUsers()));
             binding.statDownloads.setText(String.format(Locale.US, "%d\nDownloads", stats.getDownloads()));
         });
@@ -174,6 +176,7 @@ public class ProjectsStoreFragment extends Fragment {
         addSelectableChip(kindGroup, "All", "all", "all".equals(selectedKind));
         addSelectableChip(kindGroup, "APK", "apk", "apk".equals(selectedKind));
         addSelectableChip(kindGroup, "SWB", "swb", "swb".equals(selectedKind));
+        addSelectableChip(kindGroup, "Website", "website", "website".equals(selectedKind));
         content.addView(kindGroup);
 
         addSectionTitle(content, R.string.store_filter_sort);
@@ -182,13 +185,16 @@ public class ProjectsStoreFragment extends Fragment {
         addSelectableChip(sortGroup, "Downloads", "downloads", "downloads".equals(selectedSort));
         addSelectableChip(sortGroup, "Rating", "rating", "rating".equals(selectedSort));
         addSelectableChip(sortGroup, "Updated", "updated", "updated".equals(selectedSort));
+        addSelectableChip(sortGroup, "Likes", "likes", "likes".equals(selectedSort));
         content.addView(sortGroup);
 
         addSectionTitle(content, R.string.store_filter_flags);
         CheckBox freeCheck = createCheckBox(R.string.store_filter_free, selectedFree);
+        CheckBox paidCheck = createCheckBox(R.string.store_filter_paid, selectedPaid);
         CheckBox openSourceCheck = createCheckBox(R.string.store_filter_open_source, selectedOpenSource);
         CheckBox featuredCheck = createCheckBox(R.string.store_filter_featured, selectedFeatured);
         content.addView(freeCheck);
+        content.addView(paidCheck);
         content.addView(openSourceCheck);
         content.addView(featuredCheck);
 
@@ -213,6 +219,7 @@ public class ProjectsStoreFragment extends Fragment {
                     selectedSort = checkedStringTag(sortGroup, "newest");
                     selectedCategory = checkedNullableStringTag(categoryGroup);
                     selectedFree = freeCheck.isChecked();
+                    selectedPaid = paidCheck.isChecked();
                     selectedOpenSource = openSourceCheck.isChecked();
                     selectedFeatured = featuredCheck.isChecked();
                     fetchPublications(true);
@@ -252,6 +259,7 @@ public class ProjectsStoreFragment extends Fragment {
         selectedSort = "newest";
         selectedCategory = null;
         selectedFree = false;
+        selectedPaid = false;
         selectedOpenSource = false;
         selectedFeatured = false;
     }
@@ -300,6 +308,7 @@ public class ProjectsStoreFragment extends Fragment {
                 selectedCategory,
                 currentQuery(),
                 selectedFree ? Boolean.TRUE : null,
+                selectedPaid ? Boolean.TRUE : null,
                 selectedOpenSource ? Boolean.TRUE : null,
                 selectedFeatured ? Boolean.TRUE : null,
                 SketchwareStoreApi.DEFAULT_PAGE_SIZE,
@@ -377,7 +386,7 @@ public class ProjectsStoreFragment extends Fragment {
         if (projects.isEmpty() && totalResults == 0) {
             return getString(R.string.store_empty);
         }
-        return String.format(Locale.US, "%d de %d publicacoes - %s - %s",
+        return String.format(Locale.US, "%d of %d publications - %s - %s",
                 projects.size(),
                 totalResults,
                 selectedSort,
@@ -385,18 +394,21 @@ public class ProjectsStoreFragment extends Fragment {
     }
 
     private String filterSummary() {
-        StringBuilder builder = new StringBuilder("all".equals(selectedKind) ? "todos os tipos" : selectedKind.toUpperCase(Locale.US));
+        StringBuilder builder = new StringBuilder("all".equals(selectedKind) ? "all types" : selectedKind.toUpperCase(Locale.US));
         if (selectedCategory != null) {
             builder.append(" - ").append(selectedCategoryName());
         }
         if (selectedFree) {
-            builder.append(" - gratis");
+            builder.append(" - free");
+        }
+        if (selectedPaid) {
+            builder.append(" - paid");
         }
         if (selectedOpenSource) {
-            builder.append(" - codigo aberto");
+            builder.append(" - open source");
         }
         if (selectedFeatured) {
-            builder.append(" - destaques");
+            builder.append(" - featured");
         }
         return builder.toString();
     }

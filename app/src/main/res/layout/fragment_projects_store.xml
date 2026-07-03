@@ -110,6 +110,18 @@
                     tools:text="1\nSWBs" />
 
                 <TextView
+                    android:id="@+id/stat_websites"
+                    android:layout_width="0dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="6dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_store_outline_pill"
+                    android:gravity="center"
+                    android:textColor="@color/chat_text_primary"
+                    android:textSize="12sp"
+                    tools:text="8\nWebsites" />
+
+                <TextView
                     android:id="@+id/stat_users"
                     android:layout_width="0dp"
                     android:layout_height="56dp"

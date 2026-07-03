@@ -78,7 +78,7 @@ public class SketchwareStoreApi {
     }
 
     public void getPublications(String sort, String kind, String category, String query,
-                                Boolean free, Boolean openSource, Boolean featured,
+                                Boolean free, Boolean paid, Boolean openSource, Boolean featured,
                                 int limit, int offset, Consumer<ProjectModel> consumer) {
         Uri.Builder builder = Uri.parse(BASE_URL + "/publications")
                 .buildUpon()
@@ -95,6 +95,9 @@ public class SketchwareStoreApi {
         }
         if (free != null) {
             builder.appendQueryParameter("free", String.valueOf(free));
+        }
+        if (paid != null) {
+            builder.appendQueryParameter("paid", String.valueOf(paid));
         }
         if (openSource != null) {
             builder.appendQueryParameter("open", String.valueOf(openSource));
@@ -224,9 +227,13 @@ public class SketchwareStoreApi {
         return BASE_URL + "/publications/" + Uri.encode(slug);
     }
 
+    public String getPublicationWebUrl(String slug) {
+        return SITE_URL + "/p/" + Uri.encode(slug);
+    }
+
     private void getProjects(String sort, boolean featured, int pageNumber, Consumer<ProjectModel> consumer) {
         int page = Math.max(1, pageNumber);
-        getPublications(sort, "all", null, null, null, null, featured ? true : null,
+        getPublications(sort, "all", null, null, null, null, null, featured ? true : null,
                 DEFAULT_PAGE_SIZE, (page - 1) * DEFAULT_PAGE_SIZE, consumer);
     }
 
@@ -346,4 +353,5 @@ public class SketchwareStoreApi {
         @SerializedName("data")
         List<ProjectModel.Review> data;
     }
+
 }
