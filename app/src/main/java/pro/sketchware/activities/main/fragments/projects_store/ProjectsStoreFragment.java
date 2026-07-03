@@ -17,7 +17,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -36,8 +36,6 @@ import pro.sketchware.databinding.FragmentProjectsStoreBinding;
 import pro.sketchware.utility.UI;
 
 public class ProjectsStoreFragment extends Fragment {
-    private static final int GRID_SPAN_COUNT = 3;
-
     private FragmentProjectsStoreBinding binding;
     private SketchwareStoreApi storeApi;
     private StoreProjectsAdapter adapter;
@@ -87,7 +85,6 @@ public class ProjectsStoreFragment extends Fragment {
         loadCategories();
         fetchPublications(true);
 
-        UI.addSystemWindowInsetToMargin(binding.cardWarning, true, false, true, false);
         UI.addSystemWindowInsetToPadding(binding.storeContent, true, false, true, true);
         UI.addSystemWindowInsetToMargin(binding.filterFab, false, false, true, true);
     }
@@ -110,7 +107,7 @@ public class ProjectsStoreFragment extends Fragment {
 
     private void setupGrid() {
         adapter = new StoreProjectsAdapter(projects, requireActivity());
-        binding.publicationsGrid.setLayoutManager(new GridLayoutManager(getContext(), GRID_SPAN_COUNT));
+        binding.publicationsGrid.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.publicationsGrid.setAdapter(adapter);
         binding.publicationsGrid.setClipToPadding(false);
         binding.publicationsGrid.setClipChildren(false);
@@ -380,7 +377,7 @@ public class ProjectsStoreFragment extends Fragment {
         if (projects.isEmpty() && totalResults == 0) {
             return getString(R.string.store_empty);
         }
-        return String.format(Locale.US, "%d of %d publications - %s - %s",
+        return String.format(Locale.US, "%d de %d publicacoes - %s - %s",
                 projects.size(),
                 totalResults,
                 selectedSort,
@@ -388,18 +385,18 @@ public class ProjectsStoreFragment extends Fragment {
     }
 
     private String filterSummary() {
-        StringBuilder builder = new StringBuilder("all".equals(selectedKind) ? "all types" : selectedKind.toUpperCase(Locale.US));
+        StringBuilder builder = new StringBuilder("all".equals(selectedKind) ? "todos os tipos" : selectedKind.toUpperCase(Locale.US));
         if (selectedCategory != null) {
             builder.append(" - ").append(selectedCategoryName());
         }
         if (selectedFree) {
-            builder.append(" - free");
+            builder.append(" - gratis");
         }
         if (selectedOpenSource) {
-            builder.append(" - open");
+            builder.append(" - codigo aberto");
         }
         if (selectedFeatured) {
-            builder.append(" - featured");
+            builder.append(" - destaques");
         }
         return builder.toString();
     }

@@ -21,7 +21,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.widget.NestedScrollView;
-import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.google.android.material.chip.Chip;
@@ -34,7 +34,7 @@ import java.util.Locale;
 
 import pro.sketchware.R;
 import pro.sketchware.activities.main.fragments.projects_store.adapters.ProjectScreenshotsAdapter;
-import pro.sketchware.activities.main.fragments.projects_store.adapters.StoreProjectsAdapter;
+import pro.sketchware.activities.main.fragments.projects_store.adapters.StoreRecommendationAdapter;
 import pro.sketchware.activities.main.fragments.projects_store.api.ProjectModel;
 import pro.sketchware.activities.main.fragments.projects_store.api.SketchwareStoreApi;
 import pro.sketchware.databinding.DialogStoreDownloadProgressBinding;
@@ -52,7 +52,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
     private final SketchwareStoreApi storeApi = new SketchwareStoreApi();
     private final ArrayList<ProjectModel.Project> moreFromDeveloperProjects = new ArrayList<>();
     private final Handler downloadHandler = new Handler(Looper.getMainLooper());
-    private StoreProjectsAdapter moreFromDeveloperAdapter;
+    private StoreRecommendationAdapter moreFromDeveloperAdapter;
     private boolean isTitleContainerShown;
     private String loadedDeveloperUsername;
     private long downloadId = -1L;
@@ -121,6 +121,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.name.setText(project.getTitle());
         String developerName = isEmpty(project.getUserName()) ? "Unknown developer" : project.getUserName();
         binding.author.setText(developerName);
+        binding.headerMeta.setText(project.getCategory() + " - " + project.getTypeLabel());
         binding.description.setText(project.getDescription());
 
         String whatIsNew = project.getWhatsnew();
@@ -133,11 +134,11 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
 
         binding.chipsContainer.removeAllViews();
         if ("1".equals(project.getIsEditorChoice())) {
-            addChip("Featured");
+            addChip("Destaque");
         }
 
         if ("1".equals(project.getIsVerified())) {
-            addChip("Open source");
+            addChip("Codigo aberto");
         }
 
         if (!isEmpty(project.getCategory())) {
@@ -148,8 +149,8 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
             addChip("v" + project.getCurrentVersion());
         }
 
-        addChip("Rating " + project.getRating());
-        addChip("Comments " + project.getReviews());
+        addChip("Avaliacao " + project.getRating());
+        addChip("Comentarios " + project.getReviews());
         if (!isEmpty(project.getLanguage())) {
             addChip(project.getLanguage());
         }
@@ -160,16 +161,16 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
             addChip("Sketchware " + project.getSketchwareCompat());
         }
 
-        binding.detailDeveloper.setText("Developer: " + developerName);
-        binding.detailVersion.setText("Version: " + (isEmpty(project.getCurrentVersion()) ? "Unknown" : project.getCurrentVersion()));
-        binding.detailRating.setText("Rating: " + project.getRating());
+        binding.detailDeveloper.setText("Desenvolvedor: " + developerName);
+        binding.detailVersion.setText(isEmpty(project.getCurrentVersion()) ? project.getTypeLabel() : project.getCurrentVersion());
+        binding.detailRating.setText(project.getRating());
         binding.detailRatingBar.setRating(project.getRatingValue());
-        binding.detailComments.setText("Comments: " + project.getReviews());
-        binding.downloads.setText("Downloads: " + project.getDownloads());
+        binding.detailComments.setText(compactCount(project.getReviews()) + " avaliacoes");
+        binding.downloads.setText(compactCount(project.getDownloads()) + " downloads");
         String projectSize = project.getProjectSize();
-        binding.filesize.setText("Size: " + (isEmpty(projectSize) ? "Unknown" : projectSize));
+        binding.filesize.setText(isEmpty(projectSize) ? project.getTypeLabel() : projectSize);
         String publishedDate = project.getPublishedDate();
-        binding.timestamp.setText("Released: " + (isEmpty(publishedDate) ? "Unknown" : publishedDate));
+        binding.timestamp.setText(isEmpty(publishedDate) ? "Atualizado" : "Atualizado " + publishedDate);
         bindOptionalLink(binding.detailVideo, "Video: ", project.getVideoUrl());
         bindOptionalLink(binding.detailWebsite, "Website: ", project.getWebsite());
         bindOptionalLink(binding.detailGithub, "GitHub: ", project.getGithub());
@@ -177,7 +178,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         loadMoreFromDeveloper(project);
 
         binding.btnComments.setVisibility(View.VISIBLE);
-        binding.btnComments.setText("Comments (" + project.getReviews() + ")");
+        binding.btnComments.setText("Comentarios (" + project.getReviews() + ")");
         binding.btnComments.setOnClickListener(v -> openCommentsSheet());
         binding.btnDownload.setOnClickListener(v -> openProjectInApp());
         binding.btnOpenIn.setOnClickListener(v -> openProject());
@@ -197,8 +198,7 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         if (!isEmpty(project.getUserProfilePic())) {
             UI.loadImageFromUrl(binding.developerAvatar, project.getUserProfilePic());
         }
-        UI.addSystemWindowInsetToPadding(binding.content, true, true, true, true);
-        UI.addSystemWindowInsetToMargin(binding.buttonsContainer, true, false, true, true);
+        UI.addSystemWindowInsetToPadding(binding.content, true, false, true, true);
         UI.addSystemWindowInsetToPadding(binding.topScrim, false, true, false, false);
         UI.addSystemWindowInsetToPadding(binding.toolbar, true, true, true, false);
 
@@ -236,8 +236,8 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
     }
 
     private void setupMoreFromDeveloperGrid() {
-        moreFromDeveloperAdapter = new StoreProjectsAdapter(moreFromDeveloperProjects, this);
-        binding.moreFromDeveloperGrid.setLayoutManager(new GridLayoutManager(this, 3));
+        moreFromDeveloperAdapter = new StoreRecommendationAdapter(moreFromDeveloperProjects, this);
+        binding.moreFromDeveloperGrid.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         binding.moreFromDeveloperGrid.setAdapter(moreFromDeveloperAdapter);
         binding.moreFromDeveloperGrid.setClipToPadding(false);
         binding.moreFromDeveloperGrid.setClipChildren(false);
@@ -289,7 +289,9 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
     private void addChip(String name) {
         Chip chip = new Chip(binding.chipsContainer.getContext());
         chip.setText(name);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -1);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         params.setMarginEnd(SketchwareUtil.dpToPx(12f));
         binding.chipsContainer.addView(chip, params);
     }
@@ -553,6 +555,20 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
             return String.format(Locale.US, "%.1f MB", value);
         }
         return String.format(Locale.US, "%.1f GB", value / 1024d);
+    }
+
+    private String compactCount(String value) {
+        try {
+            int number = Integer.parseInt(value);
+            if (number >= 1_000_000) {
+                return String.format(Locale.US, "%.1f mi", number / 1_000_000d);
+            }
+            if (number >= 1_000) {
+                return String.format(Locale.US, "%.1f mil", number / 1_000d);
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return value;
     }
 
     @Override

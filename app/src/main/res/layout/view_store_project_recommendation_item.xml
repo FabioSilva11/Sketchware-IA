@@ -1,0 +1,47 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="148dp"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="18dp"
+    android:background="@color/chat_surface"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    android:orientation="vertical"
+    android:transitionGroup="true">
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/icon"
+        android:layout_width="112dp"
+        android:layout_height="112dp"
+        android:background="@drawable/bg_store_icon_card"
+        android:scaleType="centerCrop"
+        app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Large"
+        app:srcCompat="@drawable/default_image"
+        app:strokeColor="@color/chat_border"
+        app:strokeWidth="1dp" />
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:ellipsize="end"
+        android:maxLines="2"
+        android:textColor="@color/chat_text_primary"
+        android:textSize="14sp"
+        tools:text="Dola: assist. inteligente (IA)" />
+
+    <TextView
+        android:id="@+id/rating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:drawablePadding="3dp"
+        android:textColor="@color/chat_text_secondary"
+        android:textSize="12sp"
+        app:drawableEndCompat="@drawable/ic_mtrl_star"
+        app:drawableTint="@color/store_play_blue"
+        tools:text="4.4" />
+</LinearLayout>

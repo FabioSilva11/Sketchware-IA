@@ -50,14 +50,16 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<StoreProjectsAdap
 
         holder.binding.title.setText(project.getTitle());
         holder.binding.kind.setText(project.getTypeLabel());
-        holder.binding.category.setText(project.getCategory());
+        holder.binding.category.setText(categoryLine(project));
         String tags = project.getTagsLabel();
-        holder.binding.tags.setText(tags.isEmpty() ? project.getPriceLabel() : tags);
-        holder.binding.tags.setVisibility(View.VISIBLE);
+        String secondary = tags.isEmpty() ? project.getShortDescription() : tags.replace(" / ", " - ");
+        holder.binding.tags.setText(secondary);
+        holder.binding.tags.setVisibility(secondary.isEmpty() ? View.GONE : View.VISIBLE);
         holder.binding.ratingBar.setRating(project.getRatingValue());
         holder.binding.rating.setText(project.getRating());
-        holder.binding.likes.setText(project.getLikes());
-        holder.binding.downloads.setText(project.getDownloads());
+        String size = project.getProjectSize();
+        holder.binding.downloads.setText(size.isEmpty() ? compactNumber(project.getDownloads()) + " downloads" : size);
+        holder.binding.likes.setText(compactNumber(project.getDownloads()) + " downloads");
         holder.binding.icon.setImageResource(R.drawable.default_image);
         if (!project.getIcon().isEmpty()) {
             loadImageFromUrl(holder.binding.icon, project.getIcon());
@@ -95,6 +97,29 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<StoreProjectsAdap
         var intent = new Intent(context, ProjectPreviewActivity.class);
         intent.putExtras(bundle);
         context.startActivity(intent);
+    }
+
+    private String categoryLine(ProjectModel.Project project) {
+        String category = project.getCategory();
+        String type = project.getTypeLabel();
+        if (category.isEmpty()) {
+            return type;
+        }
+        return category + " - " + type;
+    }
+
+    private String compactNumber(String value) {
+        try {
+            int number = Integer.parseInt(value);
+            if (number >= 1_000_000) {
+                return (number / 1_000_000) + "M";
+            }
+            if (number >= 1_000) {
+                return (number / 1_000) + "K";
+            }
+        } catch (NumberFormatException ignored) {
+        }
+        return value;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

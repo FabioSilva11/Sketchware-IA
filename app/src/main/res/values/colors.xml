@@ -100,6 +100,7 @@
     <color name="chat_surface">#FFFFFF</color>
     <color name="chat_surface_soft">#F2F2F7</color>
     <color name="chat_accent">#6B5CE7</color>
+    <color name="store_play_blue">#0B57D0</color>
     <color name="chat_accent_soft">#EDE9FE</color>
     <color name="kelivo_surface_soft">#F2F2F7</color>
     <color name="kelivo_border_soft">#E5E5EA</color>

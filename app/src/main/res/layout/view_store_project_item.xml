@@ -3,161 +3,143 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="4dp"
-    android:background="@drawable/bg_chat_thread_item"
+    android:background="@color/chat_surface"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?attr/selectableItemBackground"
-    android:minHeight="202dp"
-    android:orientation="vertical"
-    android:padding="7dp"
+    android:gravity="center_vertical"
+    android:minHeight="92dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="10dp"
     android:transitionGroup="true">
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="66dp">
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="62dp"
-            android:layout_height="62dp"
-            android:layout_gravity="center"
-            app:cardBackgroundColor="@color/chat_surface_soft"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/chat_border"
-            app:strokeWidth="1dp">
-
-            <ImageView
-                android:id="@+id/icon"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/default_image" />
-        </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:id="@+id/kind"
-            android:layout_width="wrap_content"
-            android:layout_height="20dp"
-            android:layout_gravity="top|end"
-            android:background="@drawable/bg_chat_project_icon"
-            android:gravity="center"
-            android:minWidth="32dp"
-            android:paddingHorizontal="5dp"
-            android:textColor="@color/chat_accent"
-            android:textSize="9sp"
-            android:textStyle="bold"
-            tools:text="APK" />
-    </FrameLayout>
-
-    <TextView
-        android:id="@+id/title"
-        android:layout_width="match_parent"
-        android:layout_height="34dp"
-        android:ellipsize="end"
-        android:gravity="center"
-        android:maxLines="2"
-        android:textColor="@color/chat_text_primary"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        tools:text="Sketchware Nexus" />
-
-    <TextView
-        android:id="@+id/category"
-        android:layout_width="match_parent"
-        android:layout_height="18dp"
-        android:ellipsize="end"
-        android:gravity="center"
-        android:singleLine="true"
-        android:textColor="@color/chat_text_secondary"
-        android:textSize="10sp"
-        tools:text="Tools" />
-
-    <TextView
-        android:id="@+id/tags"
-        android:layout_width="match_parent"
-        android:layout_height="18dp"
-        android:ellipsize="end"
-        android:gravity="center"
-        android:singleLine="true"
-        android:textColor="@color/chat_text_secondary"
-        android:textSize="10sp"
-        tools:text="tool / ai" />
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/icon"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:background="@drawable/bg_store_icon_card"
+        android:scaleType="centerCrop"
+        app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Medium"
+        app:srcCompat="@drawable/default_image"
+        app:strokeColor="@color/chat_border"
+        app:strokeWidth="1dp" />
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="30dp"
-        android:gravity="center"
-        android:orientation="horizontal">
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
 
-        <RatingBar
-            android:id="@+id/rating_bar"
-            style="?android:attr/ratingBarStyleSmall"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:isIndicator="true"
-            android:numStars="5"
-            android:rating="4"
-            android:scaleX="0.68"
-            android:scaleY="0.68"
-            android:stepSize="0.1"
-            android:transformPivotX="0dp" />
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/chat_text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="ChatGPT" />
+
+            <TextView
+                android:id="@+id/kind"
+                android:layout_width="wrap_content"
+                android:layout_height="22dp"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_store_outline_pill"
+                android:gravity="center"
+                android:minWidth="42dp"
+                android:paddingHorizontal="8dp"
+                android:textColor="@color/chat_accent"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                tools:text="APK" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/rating"
-            android:layout_width="wrap_content"
+            android:id="@+id/category"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="-28dp"
-            android:singleLine="true"
-            android:textColor="@color/chat_accent"
-            android:textSize="10sp"
-            android:textStyle="bold"
-            tools:text="4.8" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="24dp"
-        android:gravity="center"
-        android:orientation="horizontal">
-
-        <ImageView
-            android:layout_width="13dp"
-            android:layout_height="13dp"
-            app:srcCompat="@drawable/ic_mtrl_download"
-            app:tint="@color/chat_accent" />
-
-        <TextView
-            android:id="@+id/downloads"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="2dp"
+            android:layout_marginTop="4dp"
             android:ellipsize="end"
-            android:maxWidth="42dp"
-            android:singleLine="true"
+            android:maxLines="1"
             android:textColor="@color/chat_text_secondary"
-            android:textSize="10sp"
-            android:textStyle="bold"
-            tools:text="1.2K" />
-
-        <ImageView
-            android:layout_width="12dp"
-            android:layout_height="12dp"
-            android:layout_marginStart="6dp"
-            android:src="@drawable/heart_empty_white_outline_96"
-            app:tint="@color/chat_accent" />
+            android:textSize="13sp"
+            tools:text="Produtividade - Playground de inteligencia artificial" />
 
         <TextView
-            android:id="@+id/likes"
-            android:layout_width="wrap_content"
+            android:id="@+id/tags"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="2dp"
+            android:layout_marginTop="2dp"
             android:ellipsize="end"
-            android:maxWidth="42dp"
-            android:singleLine="true"
+            android:maxLines="1"
             android:textColor="@color/chat_text_secondary"
-            android:textSize="10sp"
-            android:textStyle="bold"
-            tools:text="23" />
+            android:textSize="12sp"
+            tools:text="Ferramentas - Assistentes pessoais" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/rating"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:drawablePadding="3dp"
+                android:singleLine="true"
+                android:textColor="@color/chat_text_secondary"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:drawableEndCompat="@drawable/ic_mtrl_star"
+                app:drawableTint="@color/store_play_blue"
+                tools:text="4.8" />
+
+            <RatingBar
+                android:id="@+id/rating_bar"
+                style="?android:attr/ratingBarStyleSmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:isIndicator="true"
+                android:numStars="5"
+                android:rating="4"
+                android:scaleX="0.55"
+                android:scaleY="0.55"
+                android:stepSize="0.1"
+                android:transformPivotX="0dp" />
+
+            <TextView
+                android:id="@+id/downloads"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="-38dp"
+                android:singleLine="true"
+                android:textColor="@color/chat_text_secondary"
+                android:textSize="12sp"
+                tools:text="113 MB" />
+
+            <TextView
+                android:id="@+id/likes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:singleLine="true"
+                android:textColor="@color/chat_text_secondary"
+                android:textSize="12sp"
+                tools:text="12K downloads" />
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

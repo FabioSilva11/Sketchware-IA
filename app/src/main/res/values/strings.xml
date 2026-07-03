@@ -12,8 +12,8 @@
     <string name="main_search_projects_hint">Search projects...</string>
     <string name="main_restore_projects_description">Restore saved backups and imported projects.</string>
     <string name="main_drawer_subtitle">Project tools and app links</string>
-    <string name="store_side_note">Sketchware Store is complete. Tap here to open the official website and publish or browse apps.</string>
-    <string name="store_open_website">Website</string>
+    <string name="store_side_note">Sketchware Store esta completa. Toque aqui para abrir o site oficial e publicar ou explorar apps.</string>
+    <string name="store_open_website">Site</string>
     <string name="store_search_hint">Search apps, projects, tags...</string>
     <string name="store_filter_type">Type</string>
     <string name="store_filter_sort">Sort</string>
@@ -25,9 +25,9 @@
     <string name="store_filters_title">Filters</string>
     <string name="store_filters_apply">Apply</string>
     <string name="store_filters_clear">Clear</string>
-    <string name="store_loading">Loading store...</string>
-    <string name="store_empty">No publications found.</string>
-    <string name="store_load_more">Load more</string>
+    <string name="store_loading">Carregando loja...</string>
+    <string name="store_empty">Nenhuma publicacao encontrada.</string>
+    <string name="store_load_more">Carregar mais</string>
     <string name="store_editors_choice">Editor\'s Choice</string>
     <string name="store_new_updated">New &amp; Updated</string>
     <string name="store_most_downloaded">Most downloaded projects</string>
@@ -2905,9 +2905,17 @@ Please try again later"</string>
     <string name="project_options_configuration">Project configuration</string>
     <string name="project_options_delete">Delete project</string>
     <string name="store_preview_about_project">About this project</string>
-    <string name="store_preview_comments">Comments</string>
-    <string name="store_preview_download">Download</string>
-    <string name="store_more_from_developer">More from this developer</string>
+    <string name="store_preview_comments">Comentarios</string>
+    <string name="store_preview_download">Baixar</string>
+    <string name="store_more_from_developer">Mais desse desenvolvedor</string>
+    <string name="store_tab_for_you">Para voce</string>
+    <string name="store_tab_trending">Em alta</string>
+    <string name="store_tab_new">Recentes</string>
+    <string name="store_tab_categories">Categorias</string>
+    <string name="store_suggestions_title">Sugestoes para voce</string>
+    <string name="store_about_this_app">Sobre este app</string>
+    <string name="store_details_section">Detalhes</string>
+    <string name="store_whats_new">Novidades</string>
     <string name="export_project_title_export_aab">Export AAB (Android App Bundle)</string>
     <string name="export_project_button_export_aab">Export AAB</string>
 </resources>
