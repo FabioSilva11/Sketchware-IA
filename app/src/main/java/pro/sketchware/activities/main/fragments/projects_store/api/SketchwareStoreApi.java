@@ -170,6 +170,34 @@ public class SketchwareStoreApi {
         });
     }
 
+    public void getReviews(String slug, Consumer<List<ProjectModel.Review>> consumer) {
+        if (isEmpty(slug)) {
+            consumer.accept(null);
+            return;
+        }
+
+        Uri uri = Uri.parse(BASE_URL + "/publications/" + Uri.encode(slug) + "/reviews")
+                .buildUpon()
+                .appendQueryParameter("limit", "50")
+                .appendQueryParameter("offset", "0")
+                .build();
+
+        network.get(uri.toString(), response -> {
+            if (isEmpty(response)) {
+                consumer.accept(null);
+                return;
+            }
+
+            try {
+                ReviewsResponse reviewsResponse = gson.fromJson(response, ReviewsResponse.class);
+                consumer.accept(reviewsResponse == null ? null : reviewsResponse.data);
+            } catch (JsonSyntaxException e) {
+                Log.e(TAG, "Failed to parse publication reviews", e);
+                consumer.accept(null);
+            }
+        });
+    }
+
     public void getDownloadUrl(String slug, Consumer<String> consumer) {
         if (isEmpty(slug)) {
             consumer.accept(null);
@@ -312,5 +340,10 @@ public class SketchwareStoreApi {
     private static class CommentsResponse {
         @SerializedName("data")
         List<ProjectModel.Comment> data;
+    }
+
+    private static class ReviewsResponse {
+        @SerializedName("data")
+        List<ProjectModel.Review> data;
     }
 }

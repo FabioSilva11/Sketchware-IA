@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/chat_surface">
+    android:background="@color/chat_background">
 
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scroll_view"
@@ -18,23 +18,26 @@
             android:id="@+id/content"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/chat_surface"
+            android:background="@color/chat_background"
             android:orientation="vertical"
-            android:paddingTop="82dp"
+            android:paddingTop="72dp"
             android:paddingBottom="112dp">
 
             <LinearLayout
+                android:id="@+id/hero_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_store_detail_header"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingHorizontal="24dp"
-                android:paddingTop="12dp">
+                android:paddingHorizontal="20dp"
+                android:paddingTop="18dp"
+                android:paddingBottom="18dp">
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/icon"
-                    android:layout_width="96dp"
-                    android:layout_height="96dp"
+                    android:layout_width="90dp"
+                    android:layout_height="90dp"
                     android:background="@drawable/bg_store_icon_card"
                     android:scaleType="centerCrop"
                     app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Large"
@@ -45,14 +48,62 @@
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="24dp"
+                    android:layout_marginStart="18dp"
                     android:layout_weight="1"
                     android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/kind_badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="24dp"
+                            android:background="@drawable/bg_store_outline_pill"
+                            android:gravity="center"
+                            android:paddingHorizontal="10dp"
+                            android:textColor="@color/chat_accent"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            tools:text="SWB" />
+
+                        <TextView
+                            android:id="@+id/category_badge"
+                            android:layout_width="0dp"
+                            android:layout_height="24dp"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_store_primary_button"
+                            android:ellipsize="end"
+                            android:gravity="center"
+                            android:singleLine="true"
+                            android:paddingHorizontal="10dp"
+                            android:textColor="@android:color/white"
+                            android:textSize="11sp"
+                            android:textStyle="bold"
+                            tools:text="Ferramentas" />
+
+                        <TextView
+                            android:id="@+id/free_badge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="24dp"
+                            android:layout_marginStart="6dp"
+                            android:background="@drawable/bg_store_outline_pill"
+                            android:gravity="center"
+                            android:paddingHorizontal="10dp"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="11sp"
+                            tools:text="Gratis" />
+                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/name"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
                         android:ellipsize="end"
                         android:includeFontPadding="false"
                         android:maxLines="3"
@@ -60,36 +111,18 @@
                         android:textSize="27sp"
                         android:textStyle="bold"
                         app:lineHeight="32dp"
-                        tools:text="ChatGPT (Beta)" />
+                        tools:text="MLBB WINRATE CALCULATOR" />
 
-                    <LinearLayout
+                    <TextView
+                        android:id="@+id/author"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <com.google.android.material.imageview.ShapeableImageView
-                            android:id="@+id/developer_avatar"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:scaleType="centerCrop"
-                            app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Full"
-                            app:srcCompat="@drawable/ic_mtrl_profile" />
-
-                        <TextView
-                            android:id="@+id/author"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:textColor="@color/store_play_blue"
-                            android:textSize="14sp"
-                            android:textStyle="bold"
-                            tools:text="OpenAI" />
-                    </LinearLayout>
+                        android:layout_marginTop="6dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/store_play_blue"
+                        android:textSize="14sp"
+                        tools:text="por Xoni" />
 
                     <TextView
                         android:id="@+id/header_meta"
@@ -98,159 +131,103 @@
                         android:layout_marginTop="3dp"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="13sp"
-                        tools:text="Contem anuncios - Compras no app" />
+                        tools:text="Ferramentas - SWB" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="9dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <RatingBar
+                            android:id="@+id/rating_bar"
+                            style="?android:attr/ratingBarStyleSmall"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:isIndicator="true"
+                            android:numStars="5"
+                            android:rating="0"
+                            android:stepSize="0.5" />
+
+                        <TextView
+                            android:id="@+id/detail_rating"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="0.0" />
+
+                        <TextView
+                            android:id="@+id/detail_comments"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="4dp"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp"
+                            tools:text="(0)" />
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_marginStart="14dp"
+                            app:srcCompat="@drawable/ic_mtrl_download"
+                            app:tint="@color/chat_text_secondary" />
+
+                        <TextView
+                            android:id="@+id/downloads"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="3dp"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp"
+                            tools:text="0" />
+
+                        <TextView
+                            android:id="@+id/likes_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="14dp"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp"
+                            tools:text="0 curtidas" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/buttons_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btn_download"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:insetTop="0dp"
+                            android:insetBottom="0dp"
+                            android:text="@string/store_preview_download"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            app:backgroundTint="@color/chat_accent"
+                            app:cornerRadius="24dp"
+                            app:icon="@drawable/ic_mtrl_download"
+                            app:iconGravity="textStart"
+                            app:iconTint="@android:color/white" />
+                    </LinearLayout>
                 </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="72dp"
-                android:layout_marginTop="26dp"
-                android:baselineAligned="false"
-                android:gravity="center"
-                android:orientation="horizontal"
-                android:paddingHorizontal="24dp">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/detail_rating"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:drawablePadding="3dp"
-                        android:textColor="@color/chat_text_primary"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        tools:text="4.8" />
-
-                    <TextView
-                        android:id="@+id/detail_comments"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:textColor="@color/chat_text_secondary"
-                        android:textSize="12sp"
-                        tools:text="49 avaliacoes" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="38dp"
-                    android:background="@color/chat_divider" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/detail_version"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:background="@drawable/bg_store_outline_pill"
-                        android:gravity="center"
-                        android:minWidth="46dp"
-                        android:paddingHorizontal="8dp"
-                        android:paddingVertical="2dp"
-                        android:textColor="@color/chat_text_primary"
-                        android:textSize="15sp"
-                        android:textStyle="bold"
-                        tools:text="1.0" />
-
-                    <TextView
-                        android:id="@+id/timestamp"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:textColor="@color/chat_text_secondary"
-                        android:textSize="12sp"
-                        tools:text="Atualizado 2026-07-02" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="1dp"
-                    android:layout_height="38dp"
-                    android:background="@color/chat_divider" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <ImageView
-                        android:layout_width="26dp"
-                        android:layout_height="26dp"
-                        app:srcCompat="@drawable/ic_mtrl_download"
-                        app:tint="@color/chat_text_primary" />
-
-                    <TextView
-                        android:id="@+id/filesize"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:textColor="@color/chat_text_primary"
-                        android:textSize="12sp"
-                        tools:text="14 MB" />
-
-                    <TextView
-                        android:id="@+id/downloads"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/chat_text_secondary"
-                        android:textSize="11sp"
-                        tools:text="1K downloads" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/buttons_container"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="24dp"
-                android:layout_marginTop="22dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal">
-
-                <Button
-                    android:id="@+id/btn_comments"
-                    android:layout_width="0dp"
-                    android:layout_height="54dp"
-                    android:layout_marginEnd="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_store_outline_pill"
-                    android:text="@string/store_preview_comments"
-                    android:textColor="@color/store_play_blue"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btn_download"
-                    android:layout_width="0dp"
-                    android:layout_height="54dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_store_primary_button"
-                    android:text="@string/store_preview_download"
-                    android:textColor="@android:color/white"
-                    android:textSize="15sp"
-                    android:textStyle="bold" />
             </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_what_is_new"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="24dp"
-                android:layout_marginTop="24dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="18dp"
                 app:cardBackgroundColor="@color/chat_surface"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="0dp"
@@ -284,11 +261,12 @@
             </com.google.android.material.card.MaterialCardView>
 
             <TextView
+                android:id="@+id/screenshots_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="24dp"
-                android:paddingTop="28dp"
-                android:paddingBottom="14dp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="26dp"
+                android:paddingBottom="12dp"
                 android:text="@string/publish_images_title_screenshots"
                 android:textColor="@color/chat_text_primary"
                 android:textSize="22sp"
@@ -301,7 +279,7 @@
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="false"
                 android:orientation="horizontal"
-                android:paddingHorizontal="24dp"
+                android:paddingHorizontal="16dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 tools:itemCount="4"
                 tools:listitem="@layout/view_store_project_screenshot" />
@@ -309,142 +287,488 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="24dp"
-                android:paddingTop="28dp"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="26dp"
+                android:paddingBottom="10dp"
+                android:text="@string/store_details_section"
+                android:textColor="@color/chat_text_primary"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/details_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                app:cardBackgroundColor="@color/chat_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/chat_border"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Versao"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/detail_version"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="1.0.0" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Tamanho"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/filesize"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="18 KB" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Publicado em"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/detail_published"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="02 de jul. de 2026" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Atualizado em"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/timestamp"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="02 de jul. de 2026" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Licenca"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/detail_license"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="MIT" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:paddingBottom="10dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Categoria"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/detail_category"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="Ferramentas" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Idioma"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/detail_language"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="end"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            tools:text="Mm" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/chips_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        android:orientation="horizontal"
+                        android:theme="@style/ThemeOverlay.SketchwarePro.Chip.ProjectPreview" />
+
+                    <TextView
+                        android:id="@+id/detail_website"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:drawablePadding="8dp"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textColor="@color/store_play_blue"
+                        android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_web"
+                        app:drawableTint="@color/store_play_blue"
+                        tools:text="Site" />
+
+                    <TextView
+                        android:id="@+id/detail_video"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:drawablePadding="8dp"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textColor="@color/store_play_blue"
+                        android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_video"
+                        app:drawableTint="@color/store_play_blue"
+                        tools:text="Video" />
+
+                    <TextView
+                        android:id="@+id/detail_github"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:drawablePadding="8dp"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textColor="@color/store_play_blue"
+                        android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_link"
+                        app:drawableTint="@color/store_play_blue"
+                        tools:text="GitHub" />
+
+                    <TextView
+                        android:id="@+id/detail_privacy"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:drawablePadding="8dp"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:textColor="@color/store_play_blue"
+                        android:textSize="14sp"
+                        app:drawableStartCompat="@drawable/ic_mtrl_info"
+                        app:drawableTint="@color/store_play_blue"
+                        tools:text="Privacidade" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/developer_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="12dp"
+                app:cardBackgroundColor="@color/chat_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/chat_border"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/developer_avatar"
+                        android:layout_width="46dp"
+                        android:layout_height="46dp"
+                        android:scaleType="centerCrop"
+                        app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Full"
+                        app:srcCompat="@drawable/ic_mtrl_profile" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/detail_developer"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/chat_text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold"
+                            tools:text="Xoni is a dev" />
+
+                        <TextView
+                            android:id="@+id/developer_username"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/chat_text_secondary"
+                            android:textSize="12sp"
+                            tools:text="@xoni_" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="26dp"
                 android:paddingBottom="8dp"
                 android:text="@string/store_about_this_app"
                 android:textColor="@color/chat_text_primary"
                 android:textSize="22sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_description"
+            <TextView
+                android:id="@+id/description"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginHorizontal="24dp"
-                app:cardBackgroundColor="@color/chat_surface"
-                app:cardCornerRadius="0dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp">
+                android:paddingHorizontal="16dp"
+                android:textColor="@color/chat_text_primary"
+                android:textIsSelectable="true"
+                android:textSize="15sp"
+                app:lineHeight="22dp"
+                tools:text="Seu assistente de IA para escrita, pesquisa, geracao de imagens e muito mais." />
 
-                <TextView
-                    android:id="@+id/description"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textColor="@color/chat_text_secondary"
-                    android:textIsSelectable="true"
-                    android:textSize="15sp"
-                    app:lineHeight="22dp"
-                    tools:text="Seu assistente de IA para escrita, pesquisa, geracao de imagens e muito mais." />
-            </com.google.android.material.card.MaterialCardView>
-
-            <HorizontalScrollView
+            <TextView
+                android:id="@+id/version_history_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:scrollbars="none">
+                android:paddingHorizontal="16dp"
+                android:paddingTop="28dp"
+                android:paddingBottom="12dp"
+                android:text="Historico de versoes"
+                android:textColor="@color/chat_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
-                <LinearLayout
-                    android:id="@+id/chips_container"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:clipToPadding="false"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="24dp"
-                    android:theme="@style/ThemeOverlay.SketchwarePro.Chip.ProjectPreview" />
-            </HorizontalScrollView>
+            <LinearLayout
+                android:id="@+id/versions_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="16dp" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="24dp"
+                android:paddingHorizontal="16dp"
                 android:paddingTop="28dp"
-                android:paddingBottom="12dp"
-                android:text="@string/store_details_section"
+                android:paddingBottom="8dp"
+                android:text="Avaliacoes"
                 android:textColor="@color/chat_text_primary"
-                android:textSize="22sp"
+                android:textSize="18sp"
                 android:textStyle="bold" />
 
-            <LinearLayout
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/rating_summary_card"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingHorizontal="24dp">
+                android:layout_marginHorizontal="16dp"
+                app:cardBackgroundColor="@color/chat_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/chat_border"
+                app:strokeWidth="1dp">
 
-                <TextView
-                    android:id="@+id/detail_developer"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:drawablePadding="10dp"
-                    android:paddingVertical="7dp"
-                    android:textColor="@color/chat_text_secondary"
-                    android:textSize="14sp"
-                    app:drawableStartCompat="@drawable/ic_mtrl_profile"
-                    app:drawableTint="@color/chat_text_secondary"
-                    tools:text="Developer: OpenAI" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="14dp">
 
-                <TextView
-                    android:id="@+id/detail_video"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:drawablePadding="10dp"
-                    android:ellipsize="end"
-                    android:paddingVertical="7dp"
-                    android:singleLine="true"
-                    android:textColor="@color/store_play_blue"
-                    android:textSize="14sp"
-                    app:drawableStartCompat="@drawable/ic_mtrl_video"
-                    app:drawableTint="@color/store_play_blue"
-                    tools:text="Video: https://youtube.com/watch?v=..." />
+                    <TextView
+                        android:id="@+id/rating_summary"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textColor="@color/chat_text_secondary"
+                        android:textSize="13sp"
+                        tools:text="0.0 de 5 - 0 avaliacoes" />
 
-                <TextView
-                    android:id="@+id/detail_website"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:drawablePadding="10dp"
-                    android:ellipsize="end"
-                    android:paddingVertical="7dp"
-                    android:singleLine="true"
-                    android:textColor="@color/store_play_blue"
-                    android:textSize="14sp"
-                    app:drawableStartCompat="@drawable/ic_mtrl_web"
-                    app:drawableTint="@color/store_play_blue"
-                    tools:text="Website: https://example.com" />
+                    <RatingBar
+                        android:id="@+id/detail_rating_bar"
+                        style="?android:attr/ratingBarStyleSmall"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:isIndicator="true"
+                        android:numStars="5"
+                        android:rating="0"
+                        android:stepSize="0.5" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                <TextView
-                    android:id="@+id/detail_github"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:drawablePadding="10dp"
-                    android:ellipsize="end"
-                    android:paddingVertical="7dp"
-                    android:singleLine="true"
-                    android:textColor="@color/store_play_blue"
-                    android:textSize="14sp"
-                    app:drawableStartCompat="@drawable/ic_mtrl_link"
-                    app:drawableTint="@color/store_play_blue"
-                    tools:text="GitHub: https://github.com/example/repo" />
+            <TextView
+                android:id="@+id/reviews_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="10dp"
+                android:text="Nenhuma avaliacao publica ainda."
+                android:textColor="@color/chat_text_secondary"
+                android:textSize="13sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
-                <TextView
-                    android:id="@+id/detail_privacy"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:drawablePadding="10dp"
-                    android:ellipsize="end"
-                    android:paddingVertical="7dp"
-                    android:singleLine="true"
-                    android:textColor="@color/store_play_blue"
-                    android:textSize="14sp"
-                    app:drawableStartCompat="@drawable/ic_mtrl_info"
-                    app:drawableTint="@color/store_play_blue"
-                    tools:text="Privacy: https://example.com/privacy" />
-            </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/reviews_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:paddingTop="10dp"
+                tools:itemCount="2"
+                tools:listitem="@layout/view_store_project_review_item" />
+
+            <TextView
+                android:id="@+id/comments_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:paddingTop="28dp"
+                android:paddingBottom="6dp"
+                android:text="Comentarios"
+                android:textColor="@color/chat_text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/comments_empty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="16dp"
+                android:text="Nenhum comentario publico ainda."
+                android:textColor="@color/chat_text_secondary"
+                android:textSize="13sp"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/comments_list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:nestedScrollingEnabled="false"
+                android:paddingTop="6dp"
+                tools:itemCount="2"
+                tools:listitem="@layout/view_store_project_preview_comment" />
 
             <TextView
                 android:id="@+id/more_from_developer_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="24dp"
+                android:paddingHorizontal="16dp"
                 android:paddingTop="28dp"
                 android:paddingBottom="12dp"
                 android:text="@string/store_more_from_developer"
@@ -460,7 +784,7 @@
                 android:layout_height="wrap_content"
                 android:clipToPadding="false"
                 android:nestedScrollingEnabled="false"
-                android:paddingHorizontal="24dp"
+                android:paddingHorizontal="16dp"
                 android:visibility="gone"
                 tools:itemCount="4"
                 tools:listitem="@layout/view_store_project_recommendation_item"
@@ -472,6 +796,7 @@
         android:id="@+id/top_scrim"
         android:layout_width="match_parent"
         android:layout_height="96dp"
+        android:alpha="0"
         android:background="@color/chat_surface" />
 
     <LinearLayout

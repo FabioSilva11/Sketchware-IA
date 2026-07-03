@@ -153,6 +153,51 @@ public class ProjectModel {
         }
     }
 
+    public static class Review {
+        @SerializedName("id")
+        @Expose
+        private String id;
+        @SerializedName("rating")
+        @Expose
+        private int rating;
+        @SerializedName("body")
+        @Expose
+        private String body;
+        @SerializedName("created_at")
+        @Expose
+        private String createdAt;
+        @SerializedName("user")
+        @Expose
+        private User user;
+
+        public String getId() {
+            return id;
+        }
+
+        public float getRatingValue() {
+            return Math.max(0, Math.min(5, rating));
+        }
+
+        public String getBody() {
+            return safe(body);
+        }
+
+        public String getCreatedAt() {
+            return formatDate(createdAt);
+        }
+
+        public String getUserName() {
+            if (user == null) {
+                return "";
+            }
+            return firstNonEmpty(user.displayName, user.username);
+        }
+
+        public String getUserAvatar() {
+            return user == null ? "" : safe(user.avatarUrl);
+        }
+    }
+
     public static class Project {
 
         @SerializedName("id")
@@ -410,11 +455,11 @@ public class ProjectModel {
         }
 
         public String getPublishedDate() {
-            String value = firstNonEmpty(publishedAt, updatedAt);
-            if (value.length() >= 10) {
-                return value.substring(0, 10);
-            }
-            return value;
+            return formatDate(firstNonEmpty(publishedAt, updatedAt));
+        }
+
+        public String getUpdatedDate() {
+            return formatDate(firstNonEmpty(updatedAt, publishedAt));
         }
 
         public String getIsVerified() {
@@ -544,6 +589,10 @@ public class ProjectModel {
             return "";
         }
 
+        public List<Version> getVersions() {
+            return versions == null ? new ArrayList<>() : versions;
+        }
+
         private String getScreenshot(int index) {
             ArrayList<String> urls = getScreenshotUrls();
             return index >= 0 && index < urls.size() ? urls.get(index) : "";
@@ -590,12 +639,43 @@ public class ProjectModel {
     }
 
     public static class Version {
+        @SerializedName("id")
+        @Expose
+        private String id;
+        @SerializedName("version")
+        @Expose
+        private String version;
+        @SerializedName("changelog")
+        @Expose
+        private String changelog;
         @SerializedName("file_url")
         @Expose
         private String fileUrl;
+        @SerializedName("file_size")
+        @Expose
+        private long fileSize;
+        @SerializedName("created_at")
+        @Expose
+        private String createdAt;
+
+        public String getVersionName() {
+            return firstNonEmpty(version, id);
+        }
+
+        public String getChangelog() {
+            return safe(changelog);
+        }
 
         public String getFileUrl() {
             return safe(fileUrl);
+        }
+
+        public String getFileSize() {
+            return formatFileSize(fileSize);
+        }
+
+        public String getCreatedDate() {
+            return formatDate(createdAt);
         }
     }
 
@@ -685,6 +765,29 @@ public class ProjectModel {
 
     private static String safe(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private static String formatDate(String value) {
+        String date = safe(value);
+        if (date.length() < 10) {
+            return date;
+        }
+
+        String isoDate = date.substring(0, 10);
+        try {
+            int year = Integer.parseInt(isoDate.substring(0, 4));
+            int month = Integer.parseInt(isoDate.substring(5, 7));
+            int day = Integer.parseInt(isoDate.substring(8, 10));
+            String[] months = {
+                    "jan.", "fev.", "mar.", "abr.", "mai.", "jun.",
+                    "jul.", "ago.", "set.", "out.", "nov.", "dez."
+            };
+            if (month >= 1 && month <= months.length) {
+                return String.format(Locale.US, "%02d de %s de %04d", day, months[month - 1], year);
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return isoDate;
     }
 
     private static String formatFileSize(long bytes) {

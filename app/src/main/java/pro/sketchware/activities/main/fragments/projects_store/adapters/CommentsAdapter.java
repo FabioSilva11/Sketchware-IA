@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
+import pro.sketchware.R;
 import pro.sketchware.activities.main.fragments.projects_store.api.ProjectModel;
 import pro.sketchware.databinding.ViewStoreProjectPreviewCommentBinding;
 
@@ -32,6 +33,8 @@ public class CommentsAdapter extends RecyclerView.Adapter<CommentsAdapter.ViewHo
         holder.binding.userComment.setText(comment.getBody());
         if (!comment.getUserAvatar().isEmpty()) {
             loadImageFromUrl(holder.binding.userAvatar, comment.getUserAvatar());
+        } else {
+            holder.binding.userAvatar.setImageResource(R.drawable.ic_mtrl_profile);
         }
     }
 

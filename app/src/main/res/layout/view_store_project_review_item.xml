@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -21,39 +22,57 @@
 
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/user_avatar"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:layout_marginEnd="12dp"
+            android:scaleType="centerCrop"
             app:shapeAppearance="@style/ShapeAppearance.Material3.Corner.Full"
-            app:srcCompat="@drawable/heystudios" />
+            app:srcCompat="@drawable/ic_mtrl_profile" />
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:orientation="vertical">
 
             <TextView
                 android:id="@+id/user_name"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:ellipsize="marquee"
-                android:maxLines="2"
-                android:text="Random User"
+                android:ellipsize="end"
+                android:maxLines="1"
                 android:textColor="@color/chat_text_primary"
                 android:textSize="14sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                tools:text="Fabio Silva" />
 
             <TextView
-                android:id="@+id/user_comment"
-                android:layout_width="wrap_content"
+                android:id="@+id/review_date"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
-                android:layout_weight="1"
+                android:layout_marginTop="1dp"
+                android:textColor="@color/chat_text_secondary"
+                android:textSize="11sp"
+                tools:text="02 de jul. de 2026" />
+
+            <TextView
+                android:id="@+id/review_body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
                 android:textColor="@color/chat_text_secondary"
                 android:textSize="13sp"
-                tools:text="Hello, this project is so cool!" />
-
+                tools:text="Muito bom." />
         </LinearLayout>
+
+        <RatingBar
+            android:id="@+id/review_rating_bar"
+            style="?android:attr/ratingBarStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:isIndicator="true"
+            android:numStars="5"
+            android:rating="5"
+            android:stepSize="1" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
