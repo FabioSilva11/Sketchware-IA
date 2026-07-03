@@ -16,7 +16,7 @@
     android:layout_height="36dp"
     android:layout_marginEnd="8dp"
     android:contentDescription="@null"
-    android:scaleType="centerInside"
+    android:scaleType="centerCrop"
     android:visibility="gone"
     app:srcCompat="@drawable/abc_aaa" />
 

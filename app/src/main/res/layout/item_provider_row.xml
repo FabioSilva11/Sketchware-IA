@@ -18,14 +18,14 @@
             android:layout_marginEnd="22dp"
             android:background="@drawable/bg_kelivo_avatar">
 
-            <ImageView
-                android:id="@+id/provider_icon"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_gravity="center"
-                android:contentDescription="@null"
-                android:scaleType="centerInside"
-                tools:src="@drawable/kelivo_icon_openai" />
+          <ImageView
+            android:id="@+id/provider_icon"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop"
+            tools:src="@drawable/kelivo_icon_openai" />
         </FrameLayout>
 
         <TextView
