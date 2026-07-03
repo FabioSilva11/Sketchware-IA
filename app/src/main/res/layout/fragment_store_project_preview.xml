@@ -130,23 +130,11 @@
                         app:drawableTint="@color/store_play_blue"
                         tools:text="4.8" />
 
-                    <RatingBar
-                        android:id="@+id/detail_rating_bar"
-                        style="?android:attr/ratingBarStyleSmall"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:isIndicator="true"
-                        android:numStars="5"
-                        android:rating="4"
-                        android:scaleX="0.58"
-                        android:scaleY="0.58"
-                        android:stepSize="0.1" />
-
                     <TextView
                         android:id="@+id/detail_comments"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="-8dp"
+                        android:layout_marginTop="6dp"
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="12sp"
                         tools:text="49 avaliacoes" />

@@ -164,7 +164,6 @@ public class ProjectPreviewActivity extends BaseAppCompatActivity {
         binding.detailDeveloper.setText("Desenvolvedor: " + developerName);
         binding.detailVersion.setText(isEmpty(project.getCurrentVersion()) ? project.getTypeLabel() : project.getCurrentVersion());
         binding.detailRating.setText(project.getRating());
-        binding.detailRatingBar.setRating(project.getRatingValue());
         binding.detailComments.setText(compactCount(project.getReviews()) + " avaliacoes");
         binding.downloads.setText(compactCount(project.getDownloads()) + " downloads");
         String projectSize = project.getProjectSize();
