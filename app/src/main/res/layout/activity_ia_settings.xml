@@ -1,129 +1,137 @@
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/settings_body"
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  android:id="@+id/settings_body"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@color/chat_background">
+
+  <com.google.android.material.appbar.AppBarLayout
+    android:id="@+id/app_bar_layout"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/chat_background"
+    android:elevation="0dp">
+
+    <com.google.android.material.appbar.MaterialToolbar
+      android:id="@+id/top_app_bar"
+      android:layout_width="match_parent"
+      android:layout_height="?attr/actionBarSize"
+      android:background="@color/chat_background"
+      app:menu="@menu/menu_providers"
+      app:navigationIcon="@drawable/ic_mtrl_back"
+      app:navigationIconTint="@color/chat_text_primary"
+      app:title="@string/ia_settings_title"
+      app:titleTextColor="@color/chat_text_primary" />
+
+  </com.google.android.material.appbar.AppBarLayout>
+
+  <LinearLayout
+    android:id="@+id/providers_content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/chat_background">
+    android:orientation="vertical"
+    android:clipToPadding="false"
+    android:paddingBottom="16dp"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-    <com.google.android.material.appbar.AppBarLayout
-        android:id="@+id/app_bar_layout"
+    <!-- Pesquisa -->
+    <com.google.android.material.textfield.TextInputLayout
+      android:id="@+id/til_search_providers"
+      style="@style/Widget.Material3.TextInputLayout.FilledBox"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginHorizontal="24dp"
+      android:layout_marginTop="12dp"
+      android:layout_marginBottom="18dp"
+      app:boxBackgroundColor="@color/chat_surface_soft"
+      app:boxCornerRadiusTopStart="16dp"
+      app:boxCornerRadiusTopEnd="16dp"
+      app:boxCornerRadiusBottomStart="16dp"
+      app:boxCornerRadiusBottomEnd="16dp"
+      app:boxStrokeWidth="0dp"
+      app:boxStrokeWidthFocused="0dp"
+      app:hintEnabled="false"
+      app:startIconDrawable="@drawable/ic_mtrl_search"
+      app:startIconTint="@color/chat_text_secondary">
+
+      <com.google.android.material.textfield.TextInputEditText
+        android:id="@+id/et_search_providers"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@android:color/transparent"
+        android:hint="@string/ia_search_providers_hint"
+        android:importantForAutofill="no"
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp"
+        android:singleLine="true"
+        android:textColor="@color/chat_text_primary"
+        android:textColorHint="@color/chat_text_secondary"
+        android:textSize="16sp" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Card Máximo de Tokens -->
+    <com.google.android.material.card.MaterialCardView
+      android:id="@+id/card_max_tokens"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:layout_marginHorizontal="24dp"
+      android:layout_marginBottom="14dp"
+      app:cardBackgroundColor="@color/chat_surface_soft"
+      app:cardCornerRadius="18dp"
+      app:cardElevation="0dp"
+      app:strokeColor="@color/chat_border"
+      app:strokeWidth="1dp">
+
+      <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/chat_background"
-        android:elevation="0dp">
-
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/top_app_bar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="@color/chat_background"
-            app:menu="@menu/menu_providers"
-            app:navigationIcon="@drawable/ic_mtrl_back"
-            app:navigationIconTint="@color/chat_text_primary"
-            app:title="@string/ia_settings_title"
-            app:titleTextColor="@color/chat_text_primary" />
-    </com.google.android.material.appbar.AppBarLayout>
-
-    <LinearLayout
-        android:id="@+id/providers_content"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:clipToPadding="false"
         android:orientation="vertical"
-        android:paddingBottom="16dp"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:padding="16dp">
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_max_tokens"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="24dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="14dp"
-            app:cardBackgroundColor="@color/chat_surface_soft"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/chat_border"
-            app:strokeWidth="1dp">
+        <TextView
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:text="@string/ia_max_tokens_title"
+          android:textColor="@color/chat_text_primary"
+          android:textSize="16sp"
+          android:textStyle="bold" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+        <TextView
+          android:id="@+id/tv_max_tokens_value"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="4dp"
+          android:text="@string/ia_max_tokens_default_value"
+          android:textColor="@color/chat_text_secondary"
+          android:textSize="13sp" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/ia_max_tokens_title"
-                    android:textColor="@color/chat_text_primary"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
+        <com.google.android.material.button.MaterialButton
+          android:id="@+id/btn_edit_max_tokens"
+          style="@style/Widget.Material3.Button.TextButton"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="12dp"
+          android:minWidth="0dp"
+          android:paddingHorizontal="8dp"
+          android:text="@string/ia_max_tokens_edit" />
 
-                <TextView
-                    android:id="@+id/tv_max_tokens_value"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/ia_max_tokens_default_value"
-                    android:textColor="@color/chat_text_secondary"
-                    android:textSize="13sp" />
+      </LinearLayout>
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_edit_max_tokens"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:minWidth="0dp"
-                    android:paddingHorizontal="8dp"
-                    android:text="@string/ia_max_tokens_edit" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+    </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_search_providers"
-            style="@style/Widget.Material3.TextInputLayout.FilledBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="24dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginBottom="18dp"
-            app:boxBackgroundColor="@color/chat_surface_soft"
-            app:boxCornerRadiusBottomEnd="16dp"
-            app:boxCornerRadiusBottomStart="16dp"
-            app:boxCornerRadiusTopEnd="16dp"
-            app:boxCornerRadiusTopStart="16dp"
-            app:boxStrokeWidth="0dp"
-            app:boxStrokeWidthFocused="0dp"
-            app:hintEnabled="false"
-            app:startIconDrawable="@drawable/ic_mtrl_search"
-            app:startIconTint="@color/chat_text_secondary">
+    <!-- Lista -->
+    <androidx.recyclerview.widget.RecyclerView
+      android:id="@+id/rv_providers"
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_weight="1"
+      android:clipToPadding="false"
+      android:overScrollMode="never"
+      android:paddingHorizontal="24dp"
+      android:paddingBottom="16dp" />
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/et_search_providers"
-                android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:background="@android:color/transparent"
-                android:hint="@string/ia_search_providers_hint"
-                android:importantForAutofill="no"
-                android:paddingTop="0dp"
-                android:paddingBottom="0dp"
-                android:singleLine="true"
-                android:textColor="@color/chat_text_primary"
-                android:textColorHint="@color/chat_text_secondary"
-                android:textSize="16sp" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_providers"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:overScrollMode="never"
-            android:paddingHorizontal="24dp"
-            android:paddingBottom="16dp" />
-    </LinearLayout>
+  </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
