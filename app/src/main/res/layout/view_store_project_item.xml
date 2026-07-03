@@ -94,7 +94,8 @@
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <TextView
+
+          <TextView
                 android:id="@+id/rating"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -103,8 +104,6 @@
                 android:textColor="@color/chat_text_secondary"
                 android:textSize="12sp"
                 android:textStyle="bold"
-                app:drawableEndCompat="@drawable/ic_mtrl_star"
-                app:drawableTint="@color/store_play_blue"
                 tools:text="4.8" />
 
             <TextView

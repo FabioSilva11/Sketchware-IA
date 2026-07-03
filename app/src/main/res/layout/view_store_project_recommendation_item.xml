@@ -41,7 +41,5 @@
         android:drawablePadding="3dp"
         android:textColor="@color/chat_text_secondary"
         android:textSize="12sp"
-        app:drawableEndCompat="@drawable/ic_mtrl_star"
-        app:drawableTint="@color/store_play_blue"
         tools:text="4.4" />
 </LinearLayout>
