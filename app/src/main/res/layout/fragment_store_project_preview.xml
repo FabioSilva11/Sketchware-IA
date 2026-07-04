@@ -27,7 +27,6 @@
                 android:id="@+id/hero_header"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_store_detail_header"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingHorizontal="20dp"
@@ -52,52 +51,7 @@
                     android:layout_weight="1"
                     android:orientation="vertical">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
 
-                        <TextView
-                            android:id="@+id/kind_badge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="24dp"
-                            android:background="@drawable/bg_store_outline_pill"
-                            android:gravity="center"
-                            android:paddingHorizontal="10dp"
-                            android:textColor="@color/chat_accent"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            tools:text="SWB" />
-
-                        <TextView
-                            android:id="@+id/category_badge"
-                            android:layout_width="0dp"
-                            android:layout_height="24dp"
-                            android:layout_marginStart="6dp"
-                            android:layout_weight="1"
-                            android:background="@drawable/bg_store_primary_button"
-                            android:ellipsize="end"
-                            android:gravity="center"
-                            android:singleLine="true"
-                            android:paddingHorizontal="10dp"
-                            android:textColor="@android:color/white"
-                            android:textSize="11sp"
-                            android:textStyle="bold"
-                            tools:text="Ferramentas" />
-
-                        <TextView
-                            android:id="@+id/free_badge"
-                            android:layout_width="wrap_content"
-                            android:layout_height="24dp"
-                            android:layout_marginStart="6dp"
-                            android:background="@drawable/bg_store_outline_pill"
-                            android:gravity="center"
-                            android:paddingHorizontal="10dp"
-                            android:textColor="@color/chat_text_primary"
-                            android:textSize="11sp"
-                            tools:text="R$ 200.00" />
-                    </LinearLayout>
 
                     <TextView
                         android:id="@+id/name"
@@ -132,6 +86,15 @@
                         android:textColor="@color/chat_text_secondary"
                         android:textSize="13sp"
                         tools:text="Ferramentas - SWB" />
+
+                  <TextView
+                    android:id="@+id/free_badge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="24dp"
+                    android:gravity="center"
+                    android:textColor="@color/chat_text_primary"
+                    android:textSize="11sp"
+                    tools:text="R$ 200.00" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -203,26 +166,66 @@
                         android:gravity="start"
                         android:orientation="horizontal">
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/btn_download"
-                            android:layout_width="wrap_content"
-                            android:layout_height="40dp"
-                            android:insetTop="0dp"
-                            android:insetBottom="0dp"
-                            android:minWidth="118dp"
-                            android:paddingHorizontal="16dp"
-                            android:text="@string/store_preview_download"
-                            android:textColor="@android:color/white"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            app:backgroundTint="@color/chat_accent"
-                            app:cornerRadius="20dp"
-                            app:icon="@drawable/ic_mtrl_download"
-                            app:iconGravity="textStart"
-                            app:iconTint="@android:color/white" />
+
                     </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
+
+          <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_download"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_margin="5dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="118dp"
+            android:paddingHorizontal="16dp"
+            android:text="@string/store_preview_download"
+            android:textColor="@color/chat_text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/kelivo_user_bubble"
+            app:cornerRadius="20dp"
+            app:icon="@drawable/ic_mtrl_download"
+            app:iconGravity="textStart"
+            app:iconTint="@color/colorBottomBarSW" />
+
+          <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="5dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+              android:id="@+id/kind_badge"
+              android:layout_width="wrap_content"
+              android:layout_height="24dp"
+              android:background="@drawable/bg_store_outline_pill"
+              android:gravity="center"
+              android:paddingHorizontal="10dp"
+              android:textColor="@color/chat_accent"
+              android:textSize="11sp"
+              android:textStyle="bold"
+              tools:text="SWB" />
+
+            <TextView
+              android:id="@+id/category_badge"
+              android:layout_width="wrap_content"
+              android:layout_height="24dp"
+              android:layout_marginStart="6dp"
+              android:background="@drawable/bg_store_outline_pill"
+              android:ellipsize="end"
+              android:gravity="center"
+              android:paddingHorizontal="10dp"
+              android:singleLine="true"
+              android:textColor="@color/chat_accent"
+              android:textSize="11sp"
+              android:textStyle="bold"
+              tools:text="Ferramentas" />
+
+
+          </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/card_what_is_new"
