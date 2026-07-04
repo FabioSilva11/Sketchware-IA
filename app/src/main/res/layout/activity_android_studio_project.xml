@@ -195,6 +195,174 @@
                     </LinearLayout>
                 </FrameLayout>
 
+                <LinearLayout
+                    android:id="@+id/studio_search_replace_panel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/studio_surface_alt"
+                    android:orientation="vertical"
+                    android:paddingStart="12dp"
+                    android:paddingTop="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="6dp"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="32dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/studio_search_result_label"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:text="@string/studio_search_results_empty"
+                            android:textColor="@color/studio_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/studio_search_case"
+                            android:layout_width="40dp"
+                            android:layout_height="match_parent"
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:text="@string/studio_search_case_toggle"
+                            android:textColor="@color/studio_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/studio_search_word"
+                            android:layout_width="40dp"
+                            android:layout_height="match_parent"
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:text="@string/studio_search_word_toggle"
+                            android:textColor="@color/studio_text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/studio_search_close"
+                            android:layout_width="36dp"
+                            android:layout_height="match_parent"
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:text="@string/studio_search_close"
+                            android:textColor="@color/studio_text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="48dp"
+                            android:layout_height="match_parent"
+                            android:gravity="center_vertical"
+                            android:text="@string/studio_search_find_label"
+                            android:textColor="@color/studio_text_secondary"
+                            android:textSize="13sp" />
+
+                        <EditText
+                            android:id="@+id/studio_search_find"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:backgroundTint="@color/studio_text_secondary"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:textColor="@color/studio_text_primary"
+                            android:textColorHint="@color/studio_text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:layout_width="48dp"
+                            android:layout_height="match_parent"
+                            android:gravity="center_vertical"
+                            android:text="@string/studio_search_replace_label"
+                            android:textColor="@color/studio_text_secondary"
+                            android:textSize="13sp" />
+
+                        <EditText
+                            android:id="@+id/studio_search_replace"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:backgroundTint="@color/studio_accent"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:singleLine="true"
+                            android:textColor="@color/studio_text_primary"
+                            android:textColorHint="@color/studio_text_secondary"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="36dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/studio_search_prev"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:text="@string/studio_search_previous"
+                            android:textColor="@color/studio_text_primary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/studio_search_next"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:text="@string/studio_search_next"
+                            android:textColor="@color/studio_text_primary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/studio_search_replace_one"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:text="@string/studio_search_replace_one"
+                            android:textColor="@color/studio_text_primary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/studio_search_replace_all"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_weight="1"
+                            android:background="?attr/selectableItemBackground"
+                            android:gravity="center"
+                            android:text="@string/common_word_all"
+                            android:textColor="@color/studio_text_primary"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
                 <TextView
                     android:id="@+id/studio_status"
                     android:layout_width="match_parent"

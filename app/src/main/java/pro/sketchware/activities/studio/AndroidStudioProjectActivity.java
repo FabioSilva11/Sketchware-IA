@@ -23,6 +23,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -69,6 +70,7 @@ import io.github.rosemoe.sora.lang.EmptyLanguage;
 import io.github.rosemoe.sora.lang.Language;
 import io.github.rosemoe.sora.langs.java.JavaLanguage;
 import io.github.rosemoe.sora.widget.CodeEditor;
+import io.github.rosemoe.sora.widget.EditorSearcher;
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
 import mod.hey.studios.build.BuildSettings;
@@ -168,6 +170,8 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private boolean readOnlyMode;
     private boolean smoothMode;
     private boolean restoringNavigationPosition;
+    private boolean searchCaseSensitive;
+    private boolean searchWholeWord;
     private int navigationHistoryIndex = -1;
 
     @Override
@@ -182,6 +186,8 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         editorPrefs = getSharedPreferences(EDITOR_PREFS, MODE_PRIVATE);
         readOnlyMode = editorPrefs.getBoolean(EDITOR_PREF_PREFIX + "_ro", false);
         smoothMode = editorPrefs.getBoolean(EDITOR_PREF_PREFIX + "_smooth", true);
+        searchCaseSensitive = editorPrefs.getBoolean(EDITOR_PREF_PREFIX + "_search_case", false);
+        searchWholeWord = editorPrefs.getBoolean(EDITOR_PREF_PREFIX + "_search_word", false);
 
         binding = ActivityAndroidStudioProjectBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -459,6 +465,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         configureEditor(binding.studioEditor);
         setupFileTabs();
         setupOutputPanel();
+        setupSearchReplacePanel();
     }
 
     private void setupOutputPanel() {
@@ -553,14 +560,197 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         return activeEditor == null ? binding.studioEditor : activeEditor;
     }
 
+    private void setupSearchReplacePanel() {
+        refreshSearchToggleState();
+        binding.studioSearchFind.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                updateSearchQuery(true);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+        binding.studioSearchCase.setOnClickListener(v -> {
+            searchCaseSensitive = !searchCaseSensitive;
+            editorPrefs.edit().putBoolean(EDITOR_PREF_PREFIX + "_search_case", searchCaseSensitive).apply();
+            refreshSearchToggleState();
+            updateSearchQuery(true);
+        });
+        binding.studioSearchWord.setOnClickListener(v -> {
+            searchWholeWord = !searchWholeWord;
+            editorPrefs.edit().putBoolean(EDITOR_PREF_PREFIX + "_search_word", searchWholeWord).apply();
+            refreshSearchToggleState();
+            updateSearchQuery(true);
+        });
+        binding.studioSearchClose.setOnClickListener(v -> hideSearchReplacePanel());
+        binding.studioSearchPrev.setOnClickListener(v -> navigateSearchResult(false));
+        binding.studioSearchNext.setOnClickListener(v -> navigateSearchResult(true));
+        binding.studioSearchReplaceOne.setOnClickListener(v -> replaceCurrentSearchMatch());
+        binding.studioSearchReplaceAll.setOnClickListener(v -> replaceAllSearchMatches());
+    }
+
     private void beginEditorSearch() {
         if (!isCodeEditorVisible()) {
             return;
         }
         rememberCurrentPosition();
-        CodeEditor editor = getActiveEditor();
-        editor.getSearcher().stopSearch();
-        editor.beginSearchMode();
+        showSearchReplacePanel();
+    }
+
+    private void showSearchReplacePanel() {
+        binding.studioSearchReplacePanel.setVisibility(View.VISIBLE);
+        updateSearchQuery(false);
+        binding.studioSearchFind.requestFocus();
+        binding.studioSearchFind.postDelayed(() -> {
+            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (inputMethodManager != null) {
+                inputMethodManager.showSoftInput(binding.studioSearchFind, InputMethodManager.SHOW_IMPLICIT);
+            }
+        }, 120);
+    }
+
+    private void hideSearchReplacePanel() {
+        if (binding.studioSearchReplacePanel.getVisibility() == View.VISIBLE) {
+            binding.studioSearchReplacePanel.setVisibility(View.GONE);
+        }
+        getActiveEditor().getSearcher().stopSearch();
+        binding.studioSearchResultLabel.setText(R.string.studio_search_results_empty);
+    }
+
+    private void updateSearchQuery(boolean jumpToFirstResult) {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        String query = binding.studioSearchFind.getText().toString();
+        EditorSearcher searcher = getActiveEditor().getSearcher();
+        if (query.isEmpty()) {
+            searcher.stopSearch();
+            binding.studioSearchResultLabel.setText(R.string.studio_search_results_empty);
+            return;
+        }
+        try {
+            int searchType = searchWholeWord
+                    ? EditorSearcher.SearchOptions.TYPE_WHOLE_WORD
+                    : EditorSearcher.SearchOptions.TYPE_NORMAL;
+            searcher.search(query, new EditorSearcher.SearchOptions(searchType, !searchCaseSensitive));
+            getActiveEditor().postDelayed(() -> {
+                if (jumpToFirstResult && hasSearchQuery()) {
+                    try {
+                        if (searcher.getMatchedPositionCount() > 0 && !searcher.isMatchedPositionSelected()) {
+                            searcher.gotoNext();
+                        }
+                    } catch (IllegalStateException ignored) {
+                    }
+                }
+                refreshSearchResultLabel();
+            }, 140);
+        } catch (Exception e) {
+            searcher.stopSearch();
+            binding.studioSearchResultLabel.setText(e.getMessage());
+        }
+    }
+
+    private boolean hasSearchQuery() {
+        return !binding.studioSearchFind.getText().toString().isEmpty();
+    }
+
+    private void navigateSearchResult(boolean next) {
+        if (!ensureSearchQuery()) {
+            return;
+        }
+        try {
+            if (next) {
+                getActiveEditor().getSearcher().gotoNext();
+            } else {
+                getActiveEditor().getSearcher().gotoPrevious();
+            }
+        } catch (IllegalStateException ignored) {
+            updateSearchQuery(false);
+        }
+        getActiveEditor().postDelayed(this::refreshSearchResultLabel, 60);
+    }
+
+    private void replaceCurrentSearchMatch() {
+        if (!ensureSearchQuery() || isSearchReadOnly()) {
+            return;
+        }
+        try {
+            getActiveEditor().getSearcher().replaceCurrentMatch(binding.studioSearchReplace.getText().toString());
+        } catch (IllegalStateException ignored) {
+            updateSearchQuery(false);
+        }
+        getActiveEditor().postDelayed(() -> {
+            updateSearchQuery(false);
+            refreshSearchResultLabel();
+        }, 90);
+    }
+
+    private void replaceAllSearchMatches() {
+        if (!ensureSearchQuery() || isSearchReadOnly()) {
+            return;
+        }
+        try {
+            getActiveEditor().getSearcher().replaceAll(binding.studioSearchReplace.getText().toString(), () -> {
+                updateSearchQuery(false);
+                refreshSearchResultLabel();
+            });
+        } catch (IllegalStateException ignored) {
+            updateSearchQuery(false);
+        }
+    }
+
+    private boolean ensureSearchQuery() {
+        if (hasSearchQuery()) {
+            return true;
+        }
+        SketchwareUtil.toast(getString(R.string.studio_search_no_query));
+        binding.studioSearchFind.requestFocus();
+        return false;
+    }
+
+    private boolean isSearchReadOnly() {
+        if (!readOnlyMode && getActiveEditor().isEditable()) {
+            return false;
+        }
+        SketchwareUtil.toastError(getString(R.string.studio_read_only_enabled));
+        return true;
+    }
+
+    private void refreshSearchResultLabel() {
+        if (!isCodeEditorVisible() || !hasSearchQuery()) {
+            binding.studioSearchResultLabel.setText(R.string.studio_search_results_empty);
+            return;
+        }
+        try {
+            EditorSearcher searcher = getActiveEditor().getSearcher();
+            if (!searcher.hasQuery()) {
+                binding.studioSearchResultLabel.setText(R.string.studio_search_results_empty);
+                return;
+            }
+            int count = searcher.getMatchedPositionCount();
+            int index = count == 0 ? 0 : searcher.getCurrentMatchedPositionIndex() + 1;
+            if (index < 0) {
+                index = 0;
+            }
+            binding.studioSearchResultLabel.setText(getString(R.string.studio_search_results_count, index, count));
+        } catch (IllegalStateException ignored) {
+            binding.studioSearchResultLabel.setText(R.string.studio_search_results_empty);
+        }
+    }
+
+    private void refreshSearchToggleState() {
+        int accent = getResources().getColor(R.color.studio_accent, getTheme());
+        int secondary = getResources().getColor(R.color.studio_text_secondary, getTheme());
+        binding.studioSearchCase.setTextColor(searchCaseSensitive ? accent : secondary);
+        binding.studioSearchCase.setTypeface(searchCaseSensitive ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+        binding.studioSearchWord.setTextColor(searchWholeWord ? accent : secondary);
+        binding.studioSearchWord.setTypeface(searchWholeWord ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
     }
 
     private void showSyntaxDialog() {
@@ -1834,6 +2024,11 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         binding.studioFileTabs.setVisibility(openFileTabs.isEmpty() ? View.GONE : View.VISIBLE);
         binding.studioImagePreviewContainer.setVisibility(showImage ? View.VISIBLE : View.GONE);
         binding.studioEmptyState.setVisibility(showEmpty ? View.VISIBLE : View.GONE);
+        if (!showCode && binding.studioSearchReplacePanel.getVisibility() == View.VISIBLE) {
+            hideSearchReplacePanel();
+        } else if (showCode && binding.studioSearchReplacePanel.getVisibility() == View.VISIBLE) {
+            updateSearchQuery(false);
+        }
         updateToolbarMenus();
     }
 

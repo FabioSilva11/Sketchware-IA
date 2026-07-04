@@ -124,6 +124,17 @@
     <string name="studio_read_only_disabled">Read-only mode disabled</string>
     <string name="studio_smooth_mode_enabled">Smooth mode enabled</string>
     <string name="studio_smooth_mode_disabled">Smooth mode disabled</string>
+    <string name="studio_search_results_empty">Search results: 0/0</string>
+    <string name="studio_search_results_count">Search results: %1$d/%2$d</string>
+    <string name="studio_search_find_label">Find</string>
+    <string name="studio_search_replace_label">Rep</string>
+    <string name="studio_search_case_toggle">Cc</string>
+    <string name="studio_search_word_toggle">W</string>
+    <string name="studio_search_close">x</string>
+    <string name="studio_search_previous">PREV</string>
+    <string name="studio_search_next">NEXT</string>
+    <string name="studio_search_replace_one">REP</string>
+    <string name="studio_search_no_query">Type text to search.</string>
     <string name="studio_search_results">Results</string>
     <string name="studio_file_not_editable_title">Non-editable file</string>
     <string name="studio_file_size_label">Size</string>
