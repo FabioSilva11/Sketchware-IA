@@ -11,19 +11,19 @@
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingStart="12dp"
-    android:paddingTop="10dp"
+    android:paddingTop="8dp"
     android:paddingEnd="8dp"
-    android:paddingBottom="10dp">
+    android:paddingBottom="8dp">
 
     <FrameLayout
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         android:background="@drawable/bg_kelivo_avatar">
 
         <ImageView
             android:id="@+id/model_icon"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_gravity="center"
             android:contentDescription="@string/kelivo_model_icon"
             android:scaleType="centerInside"
@@ -31,8 +31,8 @@
 
       <ImageView
         android:id="@+id/model_avatar"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
         android:layout_gravity="center"
         android:contentDescription="@string/kelivo_model_icon"
         android:scaleType="centerCrop"
@@ -55,7 +55,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/chat_text_primary"
-            android:textSize="14sp"
+            android:textSize="13sp"
             android:textStyle="bold" />
 
         <LinearLayout
@@ -67,38 +67,38 @@
 
             <TextView
                 android:layout_width="wrap_content"
-                android:layout_height="22dp"
+                android:layout_height="20dp"
                 android:background="@drawable/bg_kelivo_tag"
                 android:gravity="center"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
+                android:paddingStart="7dp"
+                android:paddingEnd="7dp"
                 android:text="@string/kelivo_tag_chat"
                 android:textColor="@color/chat_accent"
-                android:textSize="11sp" />
+                android:textSize="10sp" />
 
             <LinearLayout
                 android:id="@+id/model_io_tag"
                 android:layout_width="wrap_content"
-                android:layout_height="22dp"
+                android:layout_height="20dp"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_kelivo_tag"
                 android:contentDescription="@string/kelivo_tag_text"
                 android:gravity="center"
                 android:orientation="horizontal"
-                android:paddingStart="7dp"
-                android:paddingEnd="7dp">
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp">
 
                 <ImageView
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
+                    android:layout_width="11dp"
+                    android:layout_height="11dp"
                     android:contentDescription="@null"
                     android:src="@drawable/kelivo_lucide_type"
                     android:tint="@color/chat_accent" />
 
                 <ImageView
                     android:id="@+id/model_input_image_icon"
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
+                    android:layout_width="11dp"
+                    android:layout_height="11dp"
                     android:layout_marginStart="2dp"
                     android:contentDescription="@null"
                     android:src="@drawable/kelivo_lucide_image"
@@ -106,16 +106,16 @@
                     android:visibility="gone" />
 
                 <ImageView
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
+                    android:layout_width="11dp"
+                    android:layout_height="11dp"
                     android:layout_marginStart="2dp"
                     android:contentDescription="@null"
                     android:src="@drawable/kelivo_lucide_chevron_right"
                     android:tint="@color/chat_accent" />
 
                 <ImageView
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
+                    android:layout_width="11dp"
+                    android:layout_height="11dp"
                     android:layout_marginStart="2dp"
                     android:contentDescription="@null"
                     android:src="@drawable/kelivo_lucide_type"
@@ -123,8 +123,8 @@
             </LinearLayout>
 
             <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:layout_marginStart="6dp"
                 android:background="@drawable/bg_kelivo_tag"
                 android:contentDescription="@null"
@@ -136,8 +136,8 @@
 
     <ImageView
         android:id="@+id/model_favorite"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/kelivo_model_favorite"
         android:padding="8dp"

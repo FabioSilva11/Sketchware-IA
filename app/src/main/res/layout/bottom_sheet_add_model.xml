@@ -25,8 +25,8 @@
 
         <ImageButton
             android:id="@+id/btn_close_add_model"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/common_word_cancel"
             android:padding="8dp"
@@ -40,12 +40,12 @@
             android:gravity="center"
             android:text="@string/ia_add_model_title"
             android:textColor="@color/chat_text_primary"
-            android:textSize="18sp"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <View
-            android:layout_width="40dp"
-            android:layout_height="40dp" />
+            android:layout_width="36dp"
+            android:layout_height="36dp" />
     </LinearLayout>
 
     <!-- Segmented tab control: Basic / Advanced / Built-in Tools -->
@@ -65,10 +65,10 @@
             android:layout_weight="1"
             android:background="@drawable/bg_segmented_tab_selected"
             android:gravity="center"
-            android:paddingVertical="9dp"
+            android:paddingVertical="7dp"
             android:text="@string/ia_tab_basic"
             android:textColor="@color/chat_accent"
-            android:textSize="14sp"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
         <TextView
@@ -77,10 +77,10 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:paddingVertical="9dp"
+            android:paddingVertical="7dp"
             android:text="@string/ia_tab_advanced"
             android:textColor="@color/chat_text_primary"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
 
         <TextView
             android:id="@+id/tab_builtin_tools"
@@ -88,10 +88,10 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:paddingVertical="9dp"
+            android:paddingVertical="7dp"
             android:text="@string/ia_tab_builtin_tools"
             android:textColor="@color/chat_text_primary"
-            android:textSize="14sp" />
+            android:textSize="12sp" />
     </LinearLayout>
 
     <androidx.core.widget.NestedScrollView
@@ -121,7 +121,7 @@
                     android:layout_marginBottom="6dp"
                     android:text="@string/ia_model_id_label"
                     android:textColor="@color/chat_text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
@@ -142,7 +142,7 @@
                         android:hint="@string/ia_model_id_hint"
                         android:textColor="@color/chat_text_primary"
                         android:textColorHint="@color/chat_text_secondary"
-                        android:textSize="16sp" />
+                        android:textSize="14sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <TextView
@@ -151,7 +151,7 @@
                     android:layout_marginBottom="6dp"
                     android:text="@string/ia_model_name_label"
                     android:textColor="@color/chat_text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
@@ -170,7 +170,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textColor="@color/chat_text_primary"
-                        android:textSize="16sp" />
+                        android:textSize="14sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <TextView
@@ -179,7 +179,7 @@
                     android:layout_marginBottom="6dp"
                     android:text="@string/ia_model_type_label"
                     android:textColor="@color/chat_text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -197,6 +197,7 @@
                         android:text="@string/ia_model_type_chat"
                         android:textAllCaps="false"
                         android:textColor="@color/chat_accent"
+                        android:textSize="12sp"
                         app:cornerRadius="12dp"
                         app:icon="@drawable/ic_mtrl_check"
                         app:iconGravity="textStart"
@@ -212,6 +213,7 @@
                         android:text="@string/ia_model_type_embedding"
                         android:textAllCaps="false"
                         android:textColor="@color/chat_text_secondary"
+                        android:textSize="12sp"
                         app:cornerRadius="12dp"
                         app:strokeColor="@color/chat_border" />
                 </LinearLayout>
@@ -222,7 +224,7 @@
                     android:layout_marginBottom="6dp"
                     android:text="@string/ia_input_modes_label"
                     android:textColor="@color/chat_text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -240,6 +242,7 @@
                         android:text="@string/ia_modality_text"
                         android:textAllCaps="false"
                         android:textColor="@color/chat_accent"
+                        android:textSize="12sp"
                         app:cornerRadius="12dp"
                         app:icon="@drawable/ic_mtrl_check"
                         app:iconGravity="textStart"
@@ -255,6 +258,7 @@
                         android:text="@string/ia_modality_image"
                         android:textAllCaps="false"
                         android:textColor="@color/chat_text_secondary"
+                        android:textSize="12sp"
                         app:cornerRadius="12dp"
                         app:strokeColor="@color/chat_border" />
                 </LinearLayout>
@@ -265,7 +269,7 @@
                     android:layout_marginBottom="6dp"
                     android:text="@string/ia_output_modes_label"
                     android:textColor="@color/chat_text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -283,6 +287,7 @@
                         android:text="@string/ia_modality_text"
                         android:textAllCaps="false"
                         android:textColor="@color/chat_accent"
+                        android:textSize="12sp"
                         app:cornerRadius="12dp"
                         app:icon="@drawable/ic_mtrl_check"
                         app:iconGravity="textStart"
@@ -298,6 +303,7 @@
                         android:text="@string/ia_modality_image"
                         android:textAllCaps="false"
                         android:textColor="@color/chat_text_secondary"
+                        android:textSize="12sp"
                         app:cornerRadius="12dp"
                         app:strokeColor="@color/chat_border" />
                 </LinearLayout>
@@ -308,7 +314,7 @@
                     android:layout_marginBottom="6dp"
                     android:text="@string/ia_abilities_label"
                     android:textColor="@color/chat_text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="12sp" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -325,6 +331,7 @@
                         android:text="@string/ia_ability_tools"
                         android:textAllCaps="false"
                         android:textColor="@color/chat_text_secondary"
+                        android:textSize="12sp"
                         app:cornerRadius="12dp"
                         app:strokeColor="@color/chat_border" />
 
@@ -337,6 +344,7 @@
                         android:text="@string/ia_ability_reasoning"
                         android:textAllCaps="false"
                         android:textColor="@color/chat_text_secondary"
+                        android:textSize="12sp"
                         app:cornerRadius="12dp"
                         app:strokeColor="@color/chat_border" />
                 </LinearLayout>
@@ -357,7 +365,7 @@
                     android:layout_marginBottom="16dp"
                     android:text="@string/ia_provider_overrides_desc"
                     android:textColor="@color/chat_text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="12sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_add_provider_override"
@@ -368,6 +376,7 @@
                     android:text="@string/ia_add_provider_override"
                     android:textAllCaps="false"
                     android:textColor="@color/chat_accent"
+                    android:textSize="12sp"
                     app:cornerRadius="14dp"
                     app:icon="@drawable/ic_mtrl_add"
                     app:iconGravity="textStart"
@@ -380,7 +389,7 @@
                     android:layout_marginBottom="16dp"
                     android:text="@string/ia_custom_headers_title"
                     android:textColor="@color/chat_text_primary"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <com.google.android.material.button.MaterialButton
@@ -392,6 +401,7 @@
                     android:text="@string/ia_add_header"
                     android:textAllCaps="false"
                     android:textColor="@color/chat_accent"
+                    android:textSize="12sp"
                     app:cornerRadius="14dp"
                     app:icon="@drawable/ic_mtrl_add"
                     app:iconGravity="textStart"
@@ -404,7 +414,7 @@
                     android:layout_marginBottom="16dp"
                     android:text="@string/ia_custom_body_title"
                     android:textColor="@color/chat_text_primary"
-                    android:textSize="16sp"
+                    android:textSize="14sp"
                     android:textStyle="bold" />
 
                 <com.google.android.material.button.MaterialButton
@@ -415,6 +425,7 @@
                     android:text="@string/ia_add_body"
                     android:textAllCaps="false"
                     android:textColor="@color/chat_accent"
+                    android:textSize="12sp"
                     app:cornerRadius="14dp"
                     app:icon="@drawable/ic_mtrl_add"
                     app:iconGravity="textStart"
@@ -436,7 +447,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/ia_builtin_tools_official_only"
                     android:textColor="@color/chat_text_primary"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -445,7 +456,7 @@
                     android:layout_marginBottom="18dp"
                     android:text="@string/ia_builtin_tools_requires_response_api"
                     android:textColor="@color/chat_text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="12sp" />
 
                 <LinearLayout
                     android:id="@+id/row_code_interpreter"
@@ -468,7 +479,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/ia_code_interpreter_title"
                             android:textColor="@color/chat_text_secondary"
-                            android:textSize="15sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -506,7 +517,7 @@
                             android:layout_height="wrap_content"
                             android:text="@string/ia_image_generation_title"
                             android:textColor="@color/chat_text_secondary"
-                            android:textSize="15sp" />
+                            android:textSize="13sp" />
 
                         <TextView
                             android:layout_width="match_parent"
@@ -534,11 +545,12 @@
         android:id="@+id/btn_confirm_add_model"
         style="@style/Widget.Material3.Button"
         android:layout_width="match_parent"
-        android:layout_height="52dp"
+        android:layout_height="46dp"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="16dp"
         android:text="@string/ia_add_model"
         android:textAllCaps="false"
+        android:textSize="13sp"
         app:backgroundTint="@color/chat_accent_soft"
         app:cornerRadius="14dp"
         app:icon="@drawable/ic_mtrl_add"

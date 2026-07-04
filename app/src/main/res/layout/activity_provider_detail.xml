@@ -75,7 +75,7 @@
                         <LinearLayout
                             android:id="@+id/row_provider_type"
                             android:layout_width="match_parent"
-                            android:layout_height="56dp"
+                            android:layout_height="50dp"
                             android:foreground="?attr/selectableItemBackground"
                             android:gravity="center_vertical"
                             android:orientation="horizontal"
@@ -87,7 +87,7 @@
                                 android:layout_weight="1"
                                 android:text="@string/ia_provider_type_label"
                                 android:textColor="@color/chat_text_primary"
-                                android:textSize="15sp" />
+                                android:textSize="14sp" />
 
                             <TextView
                                 android:id="@+id/tv_provider_type_value"
@@ -95,7 +95,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="4dp"
                                 android:textColor="@color/chat_text_secondary"
-                                android:textSize="15sp"
+                                android:textSize="14sp"
                                 tools:text="OpenAI" />
 
                             <ImageView
@@ -112,7 +112,7 @@
                         <LinearLayout
                             android:id="@+id/row_group"
                             android:layout_width="match_parent"
-                            android:layout_height="56dp"
+                            android:layout_height="50dp"
                             android:foreground="?attr/selectableItemBackground"
                             android:gravity="center_vertical"
                             android:orientation="horizontal"
@@ -124,7 +124,7 @@
                                 android:layout_weight="1"
                                 android:text="@string/ia_group_label"
                                 android:textColor="@color/chat_text_primary"
-                                android:textSize="15sp" />
+                                android:textSize="14sp" />
 
                             <TextView
                                 android:id="@+id/tv_group_value"
@@ -132,7 +132,7 @@
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="4dp"
                                 android:textColor="@color/chat_text_secondary"
-                                android:textSize="15sp"
+                                android:textSize="14sp"
                                 tools:text="Other" />
 
                             <ImageView
@@ -148,7 +148,7 @@
                         <!-- Enabled row -->
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="56dp"
+                            android:layout_height="50dp"
                             android:gravity="center_vertical"
                             android:orientation="horizontal"
                             android:paddingHorizontal="16dp">
@@ -159,7 +159,7 @@
                                 android:layout_weight="1"
                                 android:text="@string/ia_enabled_label"
                                 android:textColor="@color/chat_text_primary"
-                                android:textSize="15sp" />
+                                android:textSize="14sp" />
 
                             <com.google.android.material.materialswitch.MaterialSwitch
                                 android:id="@+id/switch_enabled"
@@ -172,7 +172,7 @@
                         <!-- Multi-Key Mode row -->
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="56dp"
+                            android:layout_height="50dp"
                             android:gravity="center_vertical"
                             android:orientation="horizontal"
                             android:paddingHorizontal="16dp">
@@ -183,7 +183,7 @@
                                 android:layout_weight="1"
                                 android:text="@string/ia_multi_key_mode_label"
                                 android:textColor="@color/chat_text_primary"
-                                android:textSize="15sp" />
+                                android:textSize="14sp" />
 
                             <com.google.android.material.materialswitch.MaterialSwitch
                                 android:id="@+id/switch_multi_key"
@@ -196,7 +196,7 @@
                         <!-- Response API row -->
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="56dp"
+                            android:layout_height="50dp"
                             android:gravity="center_vertical"
                             android:orientation="horizontal"
                             android:paddingHorizontal="16dp">
@@ -207,7 +207,7 @@
                                 android:layout_weight="1"
                                 android:text="@string/ia_response_api_label"
                                 android:textColor="@color/chat_text_primary"
-                                android:textSize="15sp" />
+                                android:textSize="14sp" />
 
                             <com.google.android.material.materialswitch.MaterialSwitch
                                 android:id="@+id/switch_response_api"
@@ -223,7 +223,7 @@
                         <LinearLayout
                             android:id="@+id/row_account_balance"
                             android:layout_width="match_parent"
-                            android:layout_height="56dp"
+                            android:layout_height="50dp"
                             android:foreground="?attr/selectableItemBackground"
                             android:gravity="center_vertical"
                             android:orientation="horizontal"
@@ -235,7 +235,7 @@
                                 android:layout_weight="1"
                                 android:text="@string/ia_get_account_balance_label"
                                 android:textColor="@color/chat_text_primary"
-                                android:textSize="15sp" />
+                                android:textSize="14sp" />
 
                             <ImageView
                                 android:layout_width="18dp"
@@ -251,7 +251,7 @@
                         <LinearLayout
                             android:id="@+id/row_network"
                             android:layout_width="match_parent"
-                            android:layout_height="56dp"
+                            android:layout_height="50dp"
                             android:foreground="?attr/selectableItemBackground"
                             android:gravity="center_vertical"
                             android:orientation="horizontal"
@@ -263,7 +263,7 @@
                                 android:layout_weight="1"
                                 android:text="@string/ia_network_label"
                                 android:textColor="@color/chat_text_primary"
-                                android:textSize="15sp" />
+                                android:textSize="14sp" />
 
                             <ImageView
                                 android:layout_width="18dp"
@@ -302,7 +302,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textColor="@color/chat_text_primary"
-                        android:textSize="16sp" />
+                        android:textSize="14sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- API Key field -->
@@ -335,7 +335,7 @@
                         android:hint="@string/ia_api_key_empty_hint"
                         android:inputType="textPassword"
                         android:textColor="@color/chat_text_primary"
-                        android:textSize="16sp" />
+                        android:textSize="14sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- API Base URL field -->
@@ -364,7 +364,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:textColor="@color/chat_text_primary"
-                        android:textSize="16sp" />
+                        android:textSize="14sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- API Path field -->
@@ -394,7 +394,7 @@
                         android:layout_height="wrap_content"
                         android:hint="@string/ia_api_path_default_hint"
                         android:textColor="@color/chat_text_primary"
-                        android:textSize="16sp" />
+                        android:textSize="14sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Extra dynamic fields (provider-specific, e.g. Vertex project/region) -->
@@ -421,14 +421,14 @@
                     android:layout_height="wrap_content"
                     android:gravity="center"
                     android:orientation="vertical"
-                    android:paddingTop="120dp">
+                    android:paddingTop="84dp">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/ia_no_models_title"
                         android:textColor="@color/chat_text_primary"
-                        android:textSize="20sp" />
+                        android:textSize="16sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -436,7 +436,7 @@
                         android:layout_marginTop="8dp"
                         android:text="@string/ia_no_models_subtitle"
                         android:textColor="@color/chat_accent"
-                        android:textSize="15sp" />
+                        android:textSize="13sp" />
                 </LinearLayout>
 
                 <!-- Models list -->
@@ -464,7 +464,7 @@
         android:elevation="4dp"
         android:orientation="horizontal"
         android:paddingHorizontal="6dp"
-        android:paddingVertical="6dp"
+        android:paddingVertical="5dp"
         android:visibility="gone">
 
         <com.google.android.material.button.MaterialButton
@@ -478,6 +478,7 @@
             android:text="@string/ia_fetch_models"
             android:textAllCaps="false"
             android:textColor="@color/chat_accent"
+            android:textSize="12sp"
             app:cornerRadius="20dp"
             app:icon="@drawable/ic_mtrl_package"
             app:iconGravity="textStart"
@@ -493,6 +494,7 @@
             android:insetBottom="0dp"
             android:text="@string/ia_add_model"
             android:textAllCaps="false"
+            android:textSize="12sp"
             app:backgroundTint="@color/chat_surface_soft"
             app:cornerRadius="20dp"
             app:icon="@drawable/ic_mtrl_add"

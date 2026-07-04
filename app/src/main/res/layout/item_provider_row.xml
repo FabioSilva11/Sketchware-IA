@@ -7,21 +7,21 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="72dp"
+        android:layout_height="60dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
         <FrameLayout
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="22dp"
+            android:layout_marginEnd="14dp"
             android:background="@drawable/bg_kelivo_avatar">
 
           <ImageView
             android:id="@+id/provider_icon"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_gravity="center"
             android:contentDescription="@null"
             android:scaleType="centerCrop"
@@ -36,27 +36,27 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/chat_text_primary"
-            android:textSize="20sp"
+            android:textSize="16sp"
             tools:text="OpenAI" />
 
         <TextView
             android:id="@+id/provider_status_badge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="14dp"
+            android:layout_marginEnd="10dp"
             android:background="@drawable/bg_provider_status_badge"
             android:fontFamily="sans-serif-medium"
             android:gravity="center"
-            android:minWidth="44dp"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="4dp"
-            android:textSize="12sp"
+            android:minWidth="38dp"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="3dp"
+            android:textSize="11sp"
             tools:text="ON"
             tools:textColor="@color/provider_status_on_text" />
 
         <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
             android:contentDescription="@null"
             android:src="@drawable/ic_mtrl_chevron_right_24"
             android:tint="@color/chat_text_primary" />
@@ -66,6 +66,6 @@
         android:id="@+id/row_divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:layout_marginStart="58dp"
+        android:layout_marginStart="50dp"
         android:background="@color/chat_divider" />
 </LinearLayout>
