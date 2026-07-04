@@ -606,13 +606,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private void showSearchReplacePanel() {
         binding.studioSearchReplacePanel.setVisibility(View.VISIBLE);
         updateSearchQuery(false);
-        binding.studioSearchFind.requestFocus();
-        binding.studioSearchFind.postDelayed(() -> {
-            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-            if (inputMethodManager != null) {
-                inputMethodManager.showSoftInput(binding.studioSearchFind, InputMethodManager.SHOW_IMPLICIT);
-            }
-        }, 120);
+        focusSearchFind(true);
     }
 
     private void hideSearchReplacePanel() {
@@ -627,11 +621,15 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         if (!isCodeEditorVisible()) {
             return;
         }
+        boolean keepFindFocus = binding.studioSearchFind.hasFocus();
         String query = binding.studioSearchFind.getText().toString();
         EditorSearcher searcher = getActiveEditor().getSearcher();
         if (query.isEmpty()) {
             searcher.stopSearch();
             binding.studioSearchResultLabel.setText(R.string.studio_search_results_empty);
+            if (keepFindFocus) {
+                focusSearchFind(false);
+            }
             return;
         }
         try {
@@ -649,10 +647,16 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                     }
                 }
                 refreshSearchResultLabel();
+                if (keepFindFocus) {
+                    focusSearchFind(false);
+                }
             }, 140);
         } catch (Exception e) {
             searcher.stopSearch();
             binding.studioSearchResultLabel.setText(e.getMessage());
+            if (keepFindFocus) {
+                focusSearchFind(false);
+            }
         }
     }
 
@@ -673,7 +677,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         } catch (IllegalStateException ignored) {
             updateSearchQuery(false);
         }
-        getActiveEditor().postDelayed(this::refreshSearchResultLabel, 60);
+        getActiveEditor().postDelayed(() -> {
+            refreshSearchResultLabel();
+            focusSearchFind(false);
+        }, 60);
     }
 
     private void replaceCurrentSearchMatch() {
@@ -710,8 +717,22 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             return true;
         }
         SketchwareUtil.toast(getString(R.string.studio_search_no_query));
-        binding.studioSearchFind.requestFocus();
+        focusSearchFind(true);
         return false;
+    }
+
+    private void focusSearchFind(boolean showKeyboard) {
+        binding.studioSearchFind.requestFocus();
+        binding.studioSearchFind.setSelection(binding.studioSearchFind.getText().length());
+        if (!showKeyboard) {
+            return;
+        }
+        binding.studioSearchFind.postDelayed(() -> {
+            InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (inputMethodManager != null) {
+                inputMethodManager.showSoftInput(binding.studioSearchFind, InputMethodManager.SHOW_IMPLICIT);
+            }
+        }, 120);
     }
 
     private boolean isSearchReadOnly() {
