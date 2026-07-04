@@ -4,6 +4,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -111,9 +112,21 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private static final int MENU_OPEN = 16;
     private static final int MENU_COPY_PATH = 17;
     private static final int MENU_DEPENDENCIES = 18;
+    private static final int MENU_SEARCH = 19;
+    private static final int MENU_SYNTAX = 20;
+    private static final int MENU_PREVIOUS_POSITION = 21;
+    private static final int MENU_NEXT_POSITION = 22;
+    private static final int MENU_JUMP_TO_LINE = 23;
+    private static final int MENU_WORD_WRAP = 24;
+    private static final int MENU_READ_ONLY = 25;
+    private static final int MENU_SMOOTH_MODE = 26;
+    private static final int MENU_PREFERENCES = 27;
     private static final int REQUEST_PICK_STUDIO_ICON = 23051;
     private static final int MAX_TREE_NODES = 900;
     private static final int MAX_INITIAL_SCAN_FILES = 1200;
+    private static final int MAX_NAVIGATION_HISTORY = 80;
+    private static final String EDITOR_PREFS = "hsce";
+    private static final String EDITOR_PREF_PREFIX = "studio";
     private static final long MAX_OPEN_BYTES = 1_500_000L;
     private static final String GRADLE_DEPENDENCY_CONFIG =
             "(?:implementation|api|compileOnly|runtimeOnly|annotationProcessor|kapt|ksp|debugImplementation|releaseImplementation|coreLibraryDesugaring)";
@@ -133,9 +146,11 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private FileTreeAdapter fileTreeAdapter;
     private final List<FileNode> visibleNodes = new ArrayList<>();
     private final List<OpenFileTab> openFileTabs = new ArrayList<>();
+    private final List<EditorNavigationEntry> navigationHistory = new ArrayList<>();
     private final Set<String> expandedDirs = new HashSet<>();
     private CodeEditor activeEditor;
     private BottomSheetBehavior<LinearLayout> outputSheetBehavior;
+    private SharedPreferences editorPrefs;
 
     private String scId;
     private File projectRoot;
@@ -150,6 +165,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private boolean showingImage;
     private boolean buildRunning;
     private boolean selectingFileTab;
+    private boolean readOnlyMode;
+    private boolean smoothMode;
+    private boolean restoringNavigationPosition;
+    private int navigationHistoryIndex = -1;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -159,6 +178,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         HashMap<String, Object> project = scId == null ? null : lC.b(scId);
         String projectName = valueOf(project, "my_ws_name", getString(R.string.studio_editor_title));
         String appName = valueOf(project, "my_app_name", projectName);
+
+        editorPrefs = getSharedPreferences(EDITOR_PREFS, MODE_PRIVATE);
+        readOnlyMode = editorPrefs.getBoolean(EDITOR_PREF_PREFIX + "_ro", false);
+        smoothMode = editorPrefs.getBoolean(EDITOR_PREF_PREFIX + "_smooth", true);
 
         binding = ActivityAndroidStudioProjectBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -215,17 +238,22 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         Menu menu = binding.studioToolbar.getMenu();
         addToolbarAction(menu, MENU_UNDO, R.string.studio_action_undo, R.drawable.ic_mtrl_undo);
         addToolbarAction(menu, MENU_REDO, R.string.studio_action_redo, R.drawable.ic_mtrl_redo);
-        addToolbarAction(menu, MENU_ERRORS, R.string.studio_action_errors, R.drawable.ic_mtrl_warning, MenuItem.SHOW_AS_ACTION_IF_ROOM);
         addToolbarAction(menu, MENU_FORMAT, R.string.studio_action_format, R.drawable.ic_mtrl_formattext);
         addToolbarAction(menu, MENU_THEME, R.string.studio_action_theme, R.drawable.ic_mtrl_palette);
         addToolbarAction(menu, MENU_BUILD, R.string.studio_action_build, R.drawable.ic_mtrl_run);
         addToolbarAction(menu, MENU_SAVE, R.string.studio_action_save, R.drawable.ic_mtrl_save);
-        addToolbarAction(menu, MENU_NEW_FILE, R.string.studio_action_new_file, R.drawable.ic_mtrl_add, MenuItem.SHOW_AS_ACTION_NEVER);
-        addToolbarAction(menu, MENU_RENAME, R.string.studio_action_rename, R.drawable.ic_mtrl_edit, MenuItem.SHOW_AS_ACTION_NEVER);
-        addToolbarAction(menu, MENU_DELETE, R.string.studio_action_delete, R.drawable.ic_mtrl_delete, MenuItem.SHOW_AS_ACTION_NEVER);
-        addToolbarAction(menu, MENU_ADD_RESOURCE, R.string.studio_action_add_resource, R.drawable.ic_mtrl_file_present, MenuItem.SHOW_AS_ACTION_NEVER);
-        addToolbarAction(menu, MENU_ADD_ICON, R.string.studio_action_add_icon, R.drawable.ic_mtrl_image, MenuItem.SHOW_AS_ACTION_NEVER);
-        addToolbarAction(menu, MENU_TEXT_COLOR, R.string.studio_action_text_color, R.drawable.ic_mtrl_pick_color, MenuItem.SHOW_AS_ACTION_NEVER);
+        addToolbarAction(menu, MENU_SEARCH, R.string.studio_action_search, R.drawable.ic_mtrl_search, MenuItem.SHOW_AS_ACTION_NEVER);
+        addToolbarAction(menu, MENU_SYNTAX, R.string.studio_action_syntax, R.drawable.ic_mtrl_code, MenuItem.SHOW_AS_ACTION_NEVER);
+        addToolbarAction(menu, MENU_PREVIOUS_POSITION, R.string.studio_action_previous_position, R.drawable.ic_mtrl_arrow_left, MenuItem.SHOW_AS_ACTION_NEVER);
+        addToolbarAction(menu, MENU_NEXT_POSITION, R.string.studio_action_next_position, R.drawable.ic_mtrl_arrow_right, MenuItem.SHOW_AS_ACTION_NEVER);
+        addToolbarAction(menu, MENU_JUMP_TO_LINE, R.string.studio_action_jump_to_line, R.drawable.ic_format_list_numbered_grey600_24dp, MenuItem.SHOW_AS_ACTION_NEVER);
+        addToolbarAction(menu, MENU_WORD_WRAP, R.string.studio_action_word_wrap, R.drawable.ic_mtrl_formattext, MenuItem.SHOW_AS_ACTION_NEVER)
+                .setCheckable(true);
+        addToolbarAction(menu, MENU_READ_ONLY, R.string.studio_action_read_only_mode, R.drawable.ic_mtrl_shield_lock, MenuItem.SHOW_AS_ACTION_NEVER)
+                .setCheckable(true);
+        addToolbarAction(menu, MENU_SMOOTH_MODE, R.string.studio_action_smooth_mode, R.drawable.ic_mtrl_history, MenuItem.SHOW_AS_ACTION_NEVER)
+                .setCheckable(true);
+        addToolbarAction(menu, MENU_PREFERENCES, R.string.studio_action_preferences, R.drawable.ic_mtrl_settings, MenuItem.SHOW_AS_ACTION_NEVER);
         addToolbarAction(menu, MENU_DEPENDENCIES, R.string.studio_action_dependencies, R.drawable.ic_mtrl_package, MenuItem.SHOW_AS_ACTION_NEVER);
 
         binding.studioToolbar.setOnMenuItemClickListener(item -> {
@@ -279,6 +307,51 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                 showDependencyActions();
                 return true;
             }
+            if (item.getItemId() == MENU_SEARCH) {
+                logStudioAction("search");
+                beginEditorSearch();
+                return true;
+            }
+            if (item.getItemId() == MENU_SYNTAX) {
+                logStudioAction("syntax");
+                showSyntaxDialog();
+                return true;
+            }
+            if (item.getItemId() == MENU_PREVIOUS_POSITION) {
+                logStudioAction("previous_position");
+                navigateEditorPosition(-1);
+                return true;
+            }
+            if (item.getItemId() == MENU_NEXT_POSITION) {
+                logStudioAction("next_position");
+                navigateEditorPosition(1);
+                return true;
+            }
+            if (item.getItemId() == MENU_JUMP_TO_LINE) {
+                logStudioAction("jump_to_line");
+                showJumpToLineDialog();
+                return true;
+            }
+            if (item.getItemId() == MENU_WORD_WRAP) {
+                logStudioAction("word_wrap");
+                setWordWrapEnabled(!getActiveEditor().isWordwrap());
+                return true;
+            }
+            if (item.getItemId() == MENU_READ_ONLY) {
+                logStudioAction("read_only");
+                setReadOnlyMode(!readOnlyMode);
+                return true;
+            }
+            if (item.getItemId() == MENU_SMOOTH_MODE) {
+                logStudioAction("smooth_mode");
+                setSmoothMode(!smoothMode);
+                return true;
+            }
+            if (item.getItemId() == MENU_PREFERENCES) {
+                logStudioAction("preferences");
+                showEditorPreferences();
+                return true;
+            }
             if (item.getItemId() == MENU_FORMAT) {
                 logStudioAction("format");
                 formatCurrentFile();
@@ -311,14 +384,15 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         updateToolbarMenus();
     }
 
-    private void addToolbarAction(Menu menu, int id, int titleRes, int iconRes) {
-        addToolbarAction(menu, id, titleRes, iconRes, MenuItem.SHOW_AS_ACTION_ALWAYS);
+    private MenuItem addToolbarAction(Menu menu, int id, int titleRes, int iconRes) {
+        return addToolbarAction(menu, id, titleRes, iconRes, MenuItem.SHOW_AS_ACTION_ALWAYS);
     }
 
-    private void addToolbarAction(Menu menu, int id, int titleRes, int iconRes, int showAsAction) {
+    private MenuItem addToolbarAction(Menu menu, int id, int titleRes, int iconRes, int showAsAction) {
         MenuItem item = menu.add(Menu.NONE, id, Menu.NONE, titleRes);
         item.setIcon(iconRes);
         item.setShowAsAction(showAsAction);
+        return item;
     }
 
     private void updateToolbarMenus() {
@@ -340,9 +414,21 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         setToolbarItem(menu, MENU_FORMAT, codeFileVisible && xmlFile, codeFileVisible && xmlFile);
         setToolbarItem(menu, MENU_THEME, codeFileVisible, codeFileVisible);
         setToolbarItem(menu, MENU_TEXT_COLOR, layoutXml, layoutXml);
+        setToolbarItem(menu, MENU_SEARCH, codeFileVisible, codeFileVisible);
+        setToolbarItem(menu, MENU_SYNTAX, codeFileVisible, codeFileVisible);
+        setToolbarItem(menu, MENU_PREVIOUS_POSITION, codeFileVisible, canNavigateEditorPosition(-1));
+        setToolbarItem(menu, MENU_NEXT_POSITION, codeFileVisible, canNavigateEditorPosition(1));
+        setToolbarItem(menu, MENU_JUMP_TO_LINE, codeFileVisible, codeFileVisible);
+        setToolbarItem(menu, MENU_WORD_WRAP, codeFileVisible, codeFileVisible);
+        setToolbarItem(menu, MENU_READ_ONLY, codeFileVisible, codeFileVisible);
+        setToolbarItem(menu, MENU_SMOOTH_MODE, codeFileVisible, codeFileVisible);
+        setToolbarItem(menu, MENU_PREFERENCES, codeFileVisible, codeFileVisible);
+        setToolbarItemChecked(menu, MENU_WORD_WRAP, codeFileVisible && getActiveEditor().isWordwrap());
+        setToolbarItemChecked(menu, MENU_READ_ONLY, readOnlyMode);
+        setToolbarItemChecked(menu, MENU_SMOOTH_MODE, smoothMode);
 
         setToolbarItem(menu, MENU_BUILD, projectLoaded, projectLoaded && !buildRunning);
-        setToolbarItem(menu, MENU_ERRORS, projectLoaded, true);
+        setToolbarItem(menu, MENU_ERRORS, false, false);
         setToolbarItem(menu, MENU_NEW_FILE, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_ADD_RESOURCE, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_ADD_ICON, projectLoaded, projectLoaded);
@@ -358,6 +444,14 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         }
         item.setVisible(visible);
         item.setEnabled(enabled);
+    }
+
+    private void setToolbarItemChecked(Menu menu, int itemId, boolean checked) {
+        MenuItem item = menu.findItem(itemId);
+        if (item == null) {
+            return;
+        }
+        item.setChecked(checked);
     }
 
     private void setupEditor() {
@@ -452,10 +546,284 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         editor.setEditorLanguage(new EmptyLanguage());
         SrcCodeEditor.loadCESettings(this, editor, "studio", true);
         applyDefaultEditorTheme(editor);
+        applyEditorPreferenceState(editor);
     }
 
     private CodeEditor getActiveEditor() {
         return activeEditor == null ? binding.studioEditor : activeEditor;
+    }
+
+    private void beginEditorSearch() {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        rememberCurrentPosition();
+        CodeEditor editor = getActiveEditor();
+        editor.getSearcher().stopSearch();
+        editor.beginSearchMode();
+    }
+
+    private void showSyntaxDialog() {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        String[] syntaxItems = {
+                getString(R.string.studio_syntax_plain_text),
+                getString(R.string.studio_syntax_java),
+                getString(R.string.studio_syntax_kotlin),
+                getString(R.string.studio_syntax_xml)
+        };
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.studio_action_syntax)
+                .setSingleChoiceItems(syntaxItems, syntaxIndexForCurrentFile(), (dialog, which) -> {
+                    applySyntaxSelection(which);
+                    dialog.dismiss();
+                })
+                .setNegativeButton(R.string.common_word_cancel, null)
+                .show();
+    }
+
+    private int syntaxIndexForCurrentFile() {
+        if (currentFile == null) {
+            return 0;
+        }
+        String name = currentFile.getName().toLowerCase(Locale.US);
+        if (name.endsWith(".java")) {
+            return 1;
+        }
+        if (name.endsWith(".kt") || name.endsWith(".kts")) {
+            return 2;
+        }
+        if (name.endsWith(".xml")) {
+            return 3;
+        }
+        return 0;
+    }
+
+    private void applySyntaxSelection(int which) {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        CodeEditor editor = getActiveEditor();
+        editor.setEditorLanguage(new EmptyLanguage());
+        String languageName = "text";
+        int labelRes = R.string.studio_syntax_plain_text;
+        if (which == 1) {
+            applyJavaLanguageSafely(currentFile);
+            languageName = "java";
+            labelRes = R.string.studio_syntax_java;
+        } else if (which == 2) {
+            applyTextMateLanguageSafely(currentFile, CodeEditorLanguages.SCOPE_NAME_KOTLIN, "Kotlin");
+            languageName = "kotlin";
+            labelRes = R.string.studio_syntax_kotlin;
+        } else if (which == 3) {
+            applyXmlLanguageSafely(currentFile);
+            languageName = "xml";
+            labelRes = R.string.studio_syntax_xml;
+        }
+        wrapActiveLanguage(languageName);
+        updateStatus(getString(R.string.studio_syntax_selected, getString(labelRes)));
+    }
+
+    private void wrapActiveLanguage(String languageName) {
+        CodeEditor editor = getActiveEditor();
+        Language language = editor.getEditorLanguage();
+        editor.setEditorLanguage(VoidPortAiAutocompleteLanguage.wrap(
+                this,
+                scId,
+                currentFile == null ? "" : currentFile.getAbsolutePath(),
+                languageName,
+                language
+        ));
+    }
+
+    private void showJumpToLineDialog() {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        EditText input = new EditText(this);
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        input.setHint(R.string.studio_line_number_hint);
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.studio_action_jump_to_line)
+                .setView(input)
+                .setPositiveButton(R.string.common_word_ok, (dialog, which) -> jumpToLine(input.getText().toString()))
+                .setNegativeButton(R.string.common_word_cancel, null)
+                .show();
+    }
+
+    private void jumpToLine(String value) {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        try {
+            int requestedLine = Integer.parseInt(value.trim());
+            if (requestedLine <= 0) {
+                throw new NumberFormatException();
+            }
+            CodeEditor editor = getActiveEditor();
+            rememberCurrentPosition();
+            int line = Math.min(requestedLine, editor.getLineCount()) - 1;
+            moveEditorToPosition(editor, line, 0);
+            addNavigationPosition(currentFile, line, 0);
+            updateStatus(getString(R.string.studio_line_selected, requestedLine));
+        } catch (NumberFormatException e) {
+            SketchwareUtil.toastError(getString(R.string.studio_invalid_line_number));
+        }
+    }
+
+    private void setWordWrapEnabled(boolean enabled) {
+        editorPrefs.edit().putBoolean(EDITOR_PREF_PREFIX + "_ww", enabled).apply();
+        for (OpenFileTab openFileTab : openFileTabs) {
+            openFileTab.editor.setWordwrap(enabled);
+        }
+        binding.studioEditor.setWordwrap(enabled);
+        updateStatus(getString(enabled ? R.string.studio_word_wrap_enabled : R.string.studio_word_wrap_disabled));
+        updateToolbarMenus();
+    }
+
+    private void setReadOnlyMode(boolean enabled) {
+        readOnlyMode = enabled;
+        editorPrefs.edit().putBoolean(EDITOR_PREF_PREFIX + "_ro", enabled).apply();
+        applyEditorPreferenceStateToAllEditors();
+        updateStatus(getString(enabled ? R.string.studio_read_only_enabled : R.string.studio_read_only_disabled));
+        updateToolbarMenus();
+    }
+
+    private void setSmoothMode(boolean enabled) {
+        smoothMode = enabled;
+        editorPrefs.edit().putBoolean(EDITOR_PREF_PREFIX + "_smooth", enabled).apply();
+        applyEditorPreferenceStateToAllEditors();
+        updateStatus(getString(enabled ? R.string.studio_smooth_mode_enabled : R.string.studio_smooth_mode_disabled));
+        updateToolbarMenus();
+    }
+
+    private void showEditorPreferences() {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        boolean[] checked = {
+                getActiveEditor().isWordwrap(),
+                readOnlyMode,
+                smoothMode
+        };
+        String[] items = {
+                getString(R.string.studio_action_word_wrap),
+                getString(R.string.studio_action_read_only_mode),
+                getString(R.string.studio_action_smooth_mode)
+        };
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.studio_action_preferences)
+                .setMultiChoiceItems(items, checked, (dialog, which, isChecked) -> {
+                    if (which == 0) {
+                        setWordWrapEnabled(isChecked);
+                    } else if (which == 1) {
+                        setReadOnlyMode(isChecked);
+                    } else if (which == 2) {
+                        setSmoothMode(isChecked);
+                    }
+                })
+                .setPositiveButton(R.string.common_word_ok, null)
+                .show();
+    }
+
+    private boolean isCodeEditorVisible() {
+        return currentFile != null && currentFileEditable && !showingImage;
+    }
+
+    private void applyEditorPreferenceState(CodeEditor editor) {
+        editor.setEditable(!readOnlyMode);
+        editor.setCursorAnimationEnabled(smoothMode);
+    }
+
+    private void applyEditorPreferenceStateToAllEditors() {
+        Set<CodeEditor> editors = new HashSet<>();
+        for (OpenFileTab openFileTab : openFileTabs) {
+            editors.add(openFileTab.editor);
+        }
+        if (binding != null) {
+            editors.add(binding.studioEditor);
+        }
+        for (CodeEditor editor : editors) {
+            applyEditorPreferenceState(editor);
+        }
+    }
+
+    private void rememberCurrentPosition() {
+        if (!isCodeEditorVisible()) {
+            return;
+        }
+        CodeEditor editor = getActiveEditor();
+        addNavigationPosition(currentFile, editor.getCursor().getLeftLine(), editor.getCursor().getLeftColumn());
+    }
+
+    private void addNavigationPosition(File file, int line, int column) {
+        if (restoringNavigationPosition || file == null) {
+            return;
+        }
+        String path = canonicalPath(file);
+        if (navigationHistoryIndex >= 0 && navigationHistoryIndex < navigationHistory.size()) {
+            EditorNavigationEntry current = navigationHistory.get(navigationHistoryIndex);
+            if (current.matches(path, line, column)) {
+                return;
+            }
+        }
+        while (navigationHistory.size() > navigationHistoryIndex + 1) {
+            navigationHistory.remove(navigationHistory.size() - 1);
+        }
+        navigationHistory.add(new EditorNavigationEntry(path, line, column));
+        if (navigationHistory.size() > MAX_NAVIGATION_HISTORY) {
+            navigationHistory.remove(0);
+        }
+        navigationHistoryIndex = navigationHistory.size() - 1;
+        updateToolbarMenus();
+    }
+
+    private boolean canNavigateEditorPosition(int direction) {
+        if (direction < 0) {
+            return navigationHistoryIndex > 0;
+        }
+        return navigationHistoryIndex >= 0 && navigationHistoryIndex < navigationHistory.size() - 1;
+    }
+
+    private void navigateEditorPosition(int direction) {
+        if (!canNavigateEditorPosition(direction)) {
+            return;
+        }
+        navigationHistoryIndex += direction < 0 ? -1 : 1;
+        restoreNavigationPosition(navigationHistory.get(navigationHistoryIndex));
+        updateToolbarMenus();
+    }
+
+    private void restoreNavigationPosition(EditorNavigationEntry entry) {
+        File file = new File(entry.path);
+        if (!file.isFile()) {
+            updateStatus(getString(R.string.studio_open_failed));
+            return;
+        }
+        restoringNavigationPosition = true;
+        if (!isCurrentFile(file)) {
+            int tabIndex = findOpenTabIndex(file);
+            if (tabIndex >= 0) {
+                switchToOpenTab(tabIndex, true);
+            } else {
+                openFile(file, true);
+            }
+        }
+        getActiveEditor().post(() -> {
+            moveEditorToPosition(getActiveEditor(), entry.line, entry.column);
+            updateStatus(getString(R.string.studio_line_selected, entry.line + 1));
+            restoringNavigationPosition = false;
+            updateToolbarMenus();
+        });
+    }
+
+    private void moveEditorToPosition(CodeEditor editor, int line, int column) {
+        int safeLine = Math.max(0, Math.min(line, editor.getLineCount() - 1));
+        int safeColumn = Math.max(0, Math.min(column, editor.getText().getColumnCount(safeLine)));
+        editor.setSelection(safeLine, safeColumn, false);
+        editor.ensurePositionVisible(safeLine, safeColumn, !smoothMode);
     }
 
     private void setupFileTree() {
@@ -2966,6 +3334,23 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             this.file = file;
             this.editor = editor;
             this.lastSavedContent = lastSavedContent;
+        }
+    }
+
+    private static final class EditorNavigationEntry {
+
+        private final String path;
+        private final int line;
+        private final int column;
+
+        private EditorNavigationEntry(String path, int line, int column) {
+            this.path = path;
+            this.line = line;
+            this.column = column;
+        }
+
+        private boolean matches(String otherPath, int otherLine, int otherColumn) {
+            return path.equals(otherPath) && line == otherLine && column == otherColumn;
         }
     }
 
