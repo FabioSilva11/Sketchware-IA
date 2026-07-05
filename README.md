@@ -1,7 +1,7 @@
 Sketchware IA
 
 <p align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" width="120" alt="Sketchware IA Logo">
+  <img src="assets/sketchware-ia-icon.svg" width="160" alt="Sketchware IA Logo">
 </p><h3 align="center">
   Crie apps Android direto do celular com blocos, Java/Kotlin e inteligência artificial.
 </h3><p align="center">
