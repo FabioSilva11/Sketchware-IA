@@ -1,0 +1,26 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6EA8FF"/>
+      <stop offset="0.48" stop-color="#7C4DFF"/>
+      <stop offset="1" stop-color="#4DBBFF"/>
+    </linearGradient>
+    <filter id="softGlow" x="180" y="190" width="664" height="620" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 1 0 1 0 0 1 0 0 1 0 1 0 0 0 0.32 0"/>
+      <feBlend in="SourceGraphic" mode="normal"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="url(#bg)"/>
+  <g filter="url(#softGlow)" stroke="white" stroke-width="52" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M512 242L648 321L512 400L376 321L512 242Z"/>
+    <path d="M376 321V479L512 558V400"/>
+    <path d="M648 321V479L512 558"/>
+    <path d="M297 526L433 447L569 526L433 605L297 526Z"/>
+    <path d="M297 526V684L433 763V605"/>
+    <path d="M569 526V684L433 763"/>
+    <path d="M591 526L727 447L863 526L727 605L591 526Z"/>
+    <path d="M591 526V684L727 763V605"/>
+    <path d="M863 526V684L727 763"/>
+  </g>
+</svg>
