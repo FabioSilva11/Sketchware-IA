@@ -248,8 +248,8 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
     }
 
     private void showAddProviderTypeDialog() {
-        String[] labels = {"OpenAI", "Gemini", "Anthropic", "OpenAI-Compatible"};
-        String[] types = {"openai", "gemini", "anthropic", "openai_compatible"};
+        String[] labels = {"OpenAI", "Gemini", "Anthropic", "Ollama", "OpenAI-Compatible"};
+        String[] types = {"openai", "gemini", "anthropic", "ollama", "openai_compatible"};
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.ia_add_provider)
                 .setItems(labels, (dialog, which) -> showProviderEditor(types[which], labels[which], null))
@@ -642,6 +642,9 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
         }
         if (value.contains("gemini") || value.contains("google")) {
             return R.drawable.kelivo_icon_gemini_color;
+        }
+        if (value.contains("ollama")) {
+            return R.drawable.ic_kelivo_globe; // TODO: Use specific Ollama icon when available
         }
         if (value.contains("openrouter")) {
             return R.drawable.kelivo_icon_openrouter;

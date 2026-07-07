@@ -345,6 +345,8 @@ public final class VoidPortSettings {
                 .addField("API Key", "anthropic_api_key", "", true, null));
         providers.add(new ProviderCardSpec("gemini", "Gemini", "Google AI Studio OpenAI-compatible endpoint.", "https://aistudio.google.com/apikey", false)
                 .addField("API Key", "gemini_api_key", "", true, "gemini_enabled"));
+        providers.add(new ProviderCardSpec("ollama", "Ollama", "Local Ollama server. Default: http://127.0.0.1:11434", "https://ollama.com", false)
+                .addField("Base URL", "local_provider_ollama_url", "http://127.0.0.1:11434", false, null));
         providers.add(new ProviderCardSpec("openrouter", "OpenRouter", "Get your API key here. Rate limits depend on the selected model.", "https://openrouter.ai/keys", false)
                 .addField("API Key", "openrouter_api_key", "", true, null));
         providers.add(new ProviderCardSpec("deepseek", "DeepSeek", "Get your API key here.", "https://platform.deepseek.com/api_keys", false)

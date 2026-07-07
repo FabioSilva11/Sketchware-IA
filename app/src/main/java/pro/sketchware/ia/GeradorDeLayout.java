@@ -1,5 +1,8 @@
 package pro.sketchware.ia;
 
+import android.content.Context;
+import android.util.Log;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,9 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
+import pro.sketchware.SketchApplication;
 import pro.sketchware.network.AiProviderService;
 
 public final class GeradorDeLayout {
+    private static final String TAG = "GeradorDeLayout";
 
     private final String texto;
     private final String currentLayout;
@@ -156,29 +161,46 @@ public final class GeradorDeLayout {
     }
 
     public String gerarLayout() throws IOException {
-        String systemPrompt = "You generate Sketchware-compatible Android XML layouts. "
-                + "Return only one XML root ViewGroup. Do not use markdown, explanations or comments.";
-        String initialLayout = cleanXmlLayout(AiProviderService.getInstance().sendTextMessage(
-                systemPrompt,
-                montarPromptBase()
-        ));
-        if (!looksLikeXml(initialLayout)) {
-            throw new IOException("A resposta da IA não retornou XML utilizável.");
-        }
-
+        Context context = SketchApplication.getContext();
+        
+        // Randomly select a configured AI provider and model
+        LayoutGeneratorModelSelector.SelectedModel selectedModel = 
+                LayoutGeneratorModelSelector.selectRandomModel(context);
+        
+        Log.d(TAG, "Layout generation using: " + selectedModel);
+        
+        // Temporarily apply the selected model
+        LayoutGeneratorModelSelector.SelectedModel previousModel = 
+                LayoutGeneratorModelSelector.applyModelSelection(context, selectedModel);
+        
         try {
-            String instructions = "Refine this Android XML for Sketchware. Keep it valid, compact, well-indented, "
-                    + "and do not add explanations or markdown. Preserve the requested behavior. "
-                    + "Remove root margins, root padding, and root background unless explicitly requested.";
-            String refinePrompt = instructions
-                    + "\n\nCurrent XML:\n"
-                    + initialLayout
-                    + "\n\nOriginal request:\n"
-                    + texto;
-            String refinedLayout = cleanXmlLayout(AiProviderService.getInstance().sendTextMessage(systemPrompt, refinePrompt));
-            return looksLikeXml(refinedLayout) ? refinedLayout : initialLayout;
-        } catch (IOException ignored) {
-            return initialLayout;
+            String systemPrompt = "You generate Sketchware-compatible Android XML layouts. "
+                    + "Return only one XML root ViewGroup. Do not use markdown, explanations or comments.";
+            String initialLayout = cleanXmlLayout(AiProviderService.getInstance().sendTextMessage(
+                    systemPrompt,
+                    montarPromptBase()
+            ));
+            if (!looksLikeXml(initialLayout)) {
+                throw new IOException("A resposta da IA não retornou XML utilizável.");
+            }
+
+            try {
+                String instructions = "Refine this Android XML for Sketchware. Keep it valid, compact, well-indented, "
+                        + "and do not add explanations or markdown. Preserve the requested behavior. "
+                        + "Remove root margins, root padding, and root background unless explicitly requested.";
+                String refinePrompt = instructions
+                        + "\n\nCurrent XML:\n"
+                        + initialLayout
+                        + "\n\nOriginal request:\n"
+                        + texto;
+                String refinedLayout = cleanXmlLayout(AiProviderService.getInstance().sendTextMessage(systemPrompt, refinePrompt));
+                return looksLikeXml(refinedLayout) ? refinedLayout : initialLayout;
+            } catch (IOException ignored) {
+                return initialLayout;
+            }
+        } finally {
+            // Restore the previous model selection
+            LayoutGeneratorModelSelector.restoreModelSelection(context, previousModel);
         }
     }
 
