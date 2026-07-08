@@ -113,17 +113,17 @@ public class ToolManager {
         return array;
     }
 
-    public String executeTool(String scId, String name, String arguments) {
+    public ToolExecResult executeTool(String scId, String name, String arguments) {
         Tool tool = null;
         try {
             if (name == null || name.trim().isEmpty()) {
-                return "Erro: nome da ferramenta nao informado.";
+                return ToolExecResult.error("Erro: nome da ferramenta nao informado.");
             }
 
             tool = tools.get(name);
 
             if (tool == null) {
-                return "Erro: ferramenta '" + name + "' nao encontrada.";
+                return ToolExecResult.error("Erro: ferramenta '" + name + "' nao encontrada.");
             }
 
             JSONObject args;
@@ -135,10 +135,13 @@ public class ToolManager {
             }
 
             activeTool = tool;
-            return tool.execute(scId, args);
+            // The Void-ported tools signal failure via an explicit start-of-string
+            // prefix ("Error"/"Erro"/...); fromLegacyString honours only that
+            // protocol, so file contents mentioning "error" no longer flag as failure.
+            return ToolExecResult.fromLegacyString(tool.execute(scId, args));
 
         } catch (Exception e) {
-            return "Erro ao executar ferramenta '" + name + "': " + e.getMessage();
+            return ToolExecResult.error("Erro ao executar ferramenta '" + name + "': " + e.getMessage());
         } finally {
             if (activeTool == tool) {
                 activeTool = null;
@@ -152,4 +155,5 @@ public class ToolManager {
             tool.cancelExecution();
         }
     }
+
 }

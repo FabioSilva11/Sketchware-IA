@@ -51,6 +51,32 @@ public final class ProjectPathResolver {
         return isAndroidStudioProject(scId) ? getAndroidStudioProjectRoot(scId) : getSketchwareRoot();
     }
 
+    /**
+     * Working directory for terminal tools (run_command / persistent terminals).
+     * For Sketchware projects this must be the PROJECT's own folder, not the
+     * shared {@code .sketchware} root — otherwise commands run at the root of all
+     * projects (the "tools escape to the Android root" bug). Falls back to the
+     * next existing project folder, and only to the shared root as last resort.
+     */
+    public static File getTerminalWorkingRoot(String scId) {
+        if (isAndroidStudioProject(scId)) {
+            return getAndroidStudioProjectRoot(scId);
+        }
+        File data = new File(getSketchwareRoot(), "data/" + scId);
+        if (data.isDirectory()) {
+            return data;
+        }
+        File mysc = new File(getSketchwareRoot(), "mysc/" + scId);
+        if (mysc.isDirectory()) {
+            return mysc;
+        }
+        File list = new File(getSketchwareRoot(), "mysc/list/" + scId);
+        if (list.isDirectory()) {
+            return list;
+        }
+        return getSketchwareRoot();
+    }
+
     public static List<File> getReadableRoots(String scId) {
         List<File> roots = new ArrayList<>();
         if (isAndroidStudioProject(scId)) {
@@ -117,11 +143,14 @@ public final class ProjectPathResolver {
 
     private static ResolvedPath resolve(String scId, String requestedPath, boolean readOnlyScope) {
         if (scId == null || scId.trim().isEmpty() || requestedPath == null) {
+            ChatToolLog.pathResolve(scId, String.valueOf(requestedPath), null, false);
             return null;
         }
 
         String normalizedPath = normalize(requestedPath);
         if (normalizedPath.isEmpty()) {
+            ChatToolLog.w("path", "empty/traversal after normalize: \"" + requestedPath + "\"");
+            ChatToolLog.pathResolve(scId, requestedPath, null, false);
             return null;
         }
 
@@ -131,19 +160,28 @@ public final class ProjectPathResolver {
 
         String mappedRelativePath = mapToProjectScope(scId, normalizedPath);
         if (mappedRelativePath == null) {
+            ChatToolLog.w("path", "OUT_OF_SCOPE (Sketchware project): requested=\"" + requestedPath
+                    + "\" normalized=\"" + normalizedPath + "\" — expected data/" + scId
+                    + " or mysc/list/" + scId + " prefix");
+            ChatToolLog.pathResolve(scId, requestedPath, null, false);
             return null;
         }
 
         if (!readOnlyScope && !isWritableProjectPath(scId, mappedRelativePath)) {
+            ChatToolLog.w("path", "not writable: mapped=\"" + mappedRelativePath + "\"");
+            ChatToolLog.pathResolve(scId, requestedPath, mappedRelativePath, false);
             return null;
         }
 
         File root = getSketchwareRoot();
         File candidate = new File(root, mappedRelativePath.replace("/", File.separator));
         if (!isInsideAllowedRoots(scId, candidate, readOnlyScope)) {
+            ChatToolLog.w("path", "candidate escaped allowed roots: " + candidate.getAbsolutePath());
+            ChatToolLog.pathResolve(scId, requestedPath, mappedRelativePath, false);
             return null;
         }
 
+        ChatToolLog.pathResolve(scId, requestedPath, mappedRelativePath, true);
         return new ResolvedPath(candidate, mappedRelativePath);
     }
 
@@ -188,9 +226,13 @@ public final class ProjectPathResolver {
                 ? root
                 : new File(root, mappedRelativePath.replace("/", File.separator));
         if (!isInsideAllowedRoots(scId, candidate, readOnlyScope)) {
+            ChatToolLog.w("path", "AndroidStudio candidate escaped root=" + root.getAbsolutePath()
+                    + " candidate=" + candidate.getAbsolutePath());
+            ChatToolLog.pathResolve(scId, normalizedPath, mappedRelativePath, false);
             return null;
         }
 
+        ChatToolLog.pathResolve(scId, normalizedPath, mappedRelativePath, true);
         return new ResolvedPath(candidate, toDisplayPath(scId, candidate));
     }
 

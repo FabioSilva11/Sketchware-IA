@@ -28,6 +28,19 @@ public class SketchwareFileEncryptor {
                 parentDir.mkdirs();
             }
 
+            boolean needsEncryption = shouldEncrypt(file, resolvedPath.getRelativePath());
+            if (!needsEncryption) {
+                // Code / plain-text files: write EXACTLY what was provided — no JSON
+                // reformatting. Reformatting mutated the AI's output vs. the on-disk
+                // content, breaking round-trips with read_file/edit_file.
+                try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
+                    raf.setLength(0);
+                    raf.write((content == null ? "" : content).getBytes(StandardCharsets.UTF_8));
+                }
+                return true;
+            }
+
+            // Encrypted Sketchware metadata path: compact JSON as the format expects.
             String contentToSave = content == null ? "" : content.trim();
             try {
                 if (contentToSave.startsWith("{")) {
@@ -36,15 +49,6 @@ public class SketchwareFileEncryptor {
                     contentToSave = new org.json.JSONArray(contentToSave).toString();
                 }
             } catch (Exception ignored) {
-            }
-
-            boolean needsEncryption = shouldEncrypt(file, resolvedPath.getRelativePath());
-            if (!needsEncryption) {
-                try (RandomAccessFile raf = new RandomAccessFile(file, "rw")) {
-                    raf.setLength(0);
-                    raf.write((content == null ? "" : content).getBytes(StandardCharsets.UTF_8));
-                }
-                return true;
             }
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
@@ -86,16 +90,9 @@ public class SketchwareFileEncryptor {
         String fileName = file.getName();
         if (fileName.contains(".")) {
             String ext = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-            if (ext.equals("xml")
-                    || ext.equals("json")
-                    || ext.equals("txt")
-                    || ext.equals("java")
-                    || ext.equals("kt")
-                    || ext.equals("gradle")
-                    || ext.equals("properties")
-                    || ext.equals("pro")
-                    || ext.equals("html")
-                    || ext.equals("md")) {
+            // Code / plain-text files are never encrypted (kept in sync with
+            // SketchwareFileDecryptor.PLAIN_TEXT_EXTENSIONS).
+            if (SketchwareFileDecryptor.PLAIN_TEXT_EXTENSIONS.contains(ext)) {
                 return false;
             }
         }

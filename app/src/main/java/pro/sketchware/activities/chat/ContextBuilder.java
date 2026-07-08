@@ -127,10 +127,25 @@ public class ContextBuilder {
     private int historyBudgetTokens = 8000; // Increased to prevent losing older steps
     private int compileErrorBudgetTokens = DEFAULT_COMPILE_ERROR_TOKENS;
 
+    /** Summary replacing messages before {@link #historyStartIndex} (context compaction). */
+    private String historySummary = "";
+    private int historyStartIndex = 0;
+
     public ContextBuilder(String scId, List<ChatMessage> messages, ToolManager toolManager) {
         this.scId = scId;
         this.messages = messages;
         this.toolManager = toolManager;
+    }
+
+    /**
+     * Enables history compaction: messages before {@code startIndex} are omitted
+     * from the LLM context and replaced by {@code summary}. The visible chat in
+     * the UI is untouched — this only affects what is sent to the provider.
+     */
+    public ContextBuilder setCompactedHistory(String summary, int startIndex) {
+        this.historySummary = summary == null ? "" : summary.trim();
+        this.historyStartIndex = Math.max(0, startIndex);
+        return this;
     }
 
     public Result build(String latestUserMessage, String chatMode, String providerId) {
@@ -188,11 +203,18 @@ public class ContextBuilder {
                 + buildDirectoryStr()
                 + "\n</files_overview>";
 
+        // Tell the model which libraries are ALREADY bundled in the build
+        // environment (with exact versions), so it reuses them and never declares
+        // a conflicting version — the root cause of duplicate-class build failures.
+        String librariesInfo = pro.sketchware.util.library.BuiltInLibraryUtils
+                .buildAvailableLibrariesPromptSection();
+
         StringBuilder full = new StringBuilder();
         appendPromptSection(full, header);
         appendPromptSection(full, sysInfo);
         appendPromptSection(full, toolDefinitions);
         appendPromptSection(full, importantDetails);
+        appendPromptSection(full, librariesInfo);
         appendPromptSection(full, fsInfo);
         return trimToTokens(full.toString().trim().replace("\t", "  "), systemBudgetTokens);
     }
@@ -452,7 +474,13 @@ public class ContextBuilder {
 
     private List<SimpleMessage> toSimpleMessages() {
         List<SimpleMessage> simpleMessages = new ArrayList<>();
-        for (ChatMessage message : messages) {
+        if (!historySummary.isEmpty() && historyStartIndex > 0) {
+            simpleMessages.add(SimpleMessage.assistant(
+                    "[Resumo da conversa anterior — mensagens antigas foram compactadas]\n" + historySummary,
+                    ""));
+        }
+        for (int msgIndex = historyStartIndex; msgIndex < messages.size(); msgIndex++) {
+            ChatMessage message = messages.get(msgIndex);
             if (message == null
                     || message.isCheckpoint()
                     || message.isAwaitingUser()

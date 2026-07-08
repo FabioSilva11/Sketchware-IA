@@ -25,7 +25,36 @@ public final class ChatPlanManager {
         }
     }
 
+    /**
+     * Plans provided by the model itself via the {@code update_plan} tool,
+     * keyed by project id. When present they replace the heuristic plan below,
+     * mirroring how Codex keeps an explicit, model-maintained task plan.
+     */
+    private static final java.util.concurrent.ConcurrentHashMap<String, List<Task>> MODEL_PLANS =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    public static void setModelPlan(String scId, List<Task> tasks) {
+        if (scId == null) {
+            return;
+        }
+        if (tasks == null || tasks.isEmpty()) {
+            MODEL_PLANS.remove(scId);
+        } else {
+            MODEL_PLANS.put(scId, new ArrayList<>(tasks));
+        }
+    }
+
+    public static void clearModelPlan(String scId) {
+        if (scId != null) {
+            MODEL_PLANS.remove(scId);
+        }
+    }
+
     public static List<Task> buildPlan(String scId, List<ChatMessage> messages, boolean processing, String statusText) {
+        List<Task> modelPlan = scId == null ? null : MODEL_PLANS.get(scId);
+        if (modelPlan != null && !modelPlan.isEmpty()) {
+            return new ArrayList<>(modelPlan);
+        }
         List<Task> tasks = new ArrayList<>();
         int latestUserIndex = latestUserIndex(messages);
         if (latestUserIndex < 0) {

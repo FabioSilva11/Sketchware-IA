@@ -26,21 +26,28 @@ public class SketchwareFileDecryptor {
                 return null;
             }
 
-            boolean formatKnownAsPlain = isPlainTextFile(file);
             byte[] fileBytes = java.nio.file.Files.readAllBytes(file.toPath());
+            String rawText = new String(fileBytes, StandardCharsets.UTF_8);
 
+            // Code / plain-text files (.java, .kt, .xml, .gradle, .json, ...): the
+            // chat is a coding agent, so it must read the EXACT bytes on disk — no
+            // AES decryption and no JSON reformatting. Reformatting broke diffs and
+            // edits because the returned content no longer matched the file.
+            if (isPlainTextFile(file)) {
+                return rawText;
+            }
+
+            // Extensionless Sketchware internal metadata (project/file/logic/view/...)
+            // may be AES-encrypted or plain JSON; keep the legacy handling for those.
+            String trimmed = rawText.trim();
             try {
-                String possibleText = new String(fileBytes, StandardCharsets.UTF_8);
-                String trimmed = possibleText.trim();
-
                 if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
                     return new org.json.JSONObject(trimmed).toString(4);
                 } else if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
                     return new org.json.JSONArray(trimmed).toString(4);
                 }
-
-                if (formatKnownAsPlain || trimmed.startsWith("<?xml") || trimmed.startsWith("<")) {
-                    return possibleText;
+                if (trimmed.startsWith("<?xml") || trimmed.startsWith("<")) {
+                    return rawText;
                 }
             } catch (Exception ignored) {
             }
@@ -52,25 +59,22 @@ public class SketchwareFileDecryptor {
 
                 byte[] decrypted = cipher.doFinal(fileBytes);
                 String decryptedString = new String(decrypted, StandardCharsets.UTF_8);
-                String trimmed = decryptedString.trim();
+                String decTrimmed = decryptedString.trim();
 
                 try {
-                    if (trimmed.startsWith("{")) {
-                        return new org.json.JSONObject(trimmed).toString(4);
-                    } else if (trimmed.startsWith("[")) {
-                        return new org.json.JSONArray(trimmed).toString(4);
+                    if (decTrimmed.startsWith("{")) {
+                        return new org.json.JSONObject(decTrimmed).toString(4);
+                    } else if (decTrimmed.startsWith("[")) {
+                        return new org.json.JSONArray(decTrimmed).toString(4);
                     }
                 } catch (Exception ignored) {
                 }
 
                 return decryptedString;
             } catch (Exception cryptoEx) {
-                if (!formatKnownAsPlain) {
-                    return new String(fileBytes, StandardCharsets.UTF_8);
-                }
+                // Not actually encrypted — return the raw bytes as-is.
+                return rawText;
             }
-
-            return null;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -104,15 +108,12 @@ public class SketchwareFileDecryptor {
         }
 
         String ext = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase();
-        return ext.equals("xml")
-                || ext.equals("json")
-                || ext.equals("txt")
-                || ext.equals("java")
-                || ext.equals("kt")
-                || ext.equals("gradle")
-                || ext.equals("properties")
-                || ext.equals("pro")
-                || ext.equals("html")
-                || ext.equals("md");
+        return PLAIN_TEXT_EXTENSIONS.contains(ext);
     }
+
+    /** Extensions treated as plain-text code — never AES-decrypted or reformatted. */
+    static final java.util.Set<String> PLAIN_TEXT_EXTENSIONS = new java.util.HashSet<>(java.util.Arrays.asList(
+            "xml", "json", "txt", "java", "kt", "kts", "gradle", "properties", "pro",
+            "html", "md", "yml", "yaml", "js", "ts", "css", "cfg", "ini", "smali",
+            "c", "cpp", "h", "hpp", "sh", "svg"));
 }

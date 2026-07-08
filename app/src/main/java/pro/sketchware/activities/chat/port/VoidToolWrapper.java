@@ -212,14 +212,28 @@ public class VoidToolWrapper implements Tool {
             true
         ));
 
+        // Planning tool (no approval required) — keeps the plan tab in sync with
+        // the model's own step plan, Codex-style.
+        manager.registerTool(new VoidToolWrapper(
+            "update_plan",
+            "Updates the step-by-step plan shown to the user. Call this when starting a multi-step task and again whenever a step's status changes. Always send the FULL plan, one step per line, in the format 'pending: step title', 'running: step title' or 'done: step title'.",
+            createParams(new String[][]{
+                {"plan", "string", "The full plan, one step per line: 'pending|running|done: step title'."}
+            }, null),
+            false,
+            false,
+            false
+        ));
+
         // Terminal tools - require approval
         manager.registerTool(new VoidToolWrapper(
             "run_command",
-            "Runs a terminal command and waits for the result (times out after 8s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
+            "Runs a terminal command and waits for the result (default timeout 60s; set timeout_seconds for longer builds, max 300). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
             createParams(new String[][]{
                 {"command", "string", "The terminal command to run."}
             }, new String[][]{
-                {"cwd", "string", "Optional. The directory in which to run the command. Defaults to the first workspace folder."}
+                {"cwd", "string", "Optional. The directory in which to run the command. Defaults to the first workspace folder."},
+                {"timeout_seconds", "integer", "Optional. Max seconds to wait for the command (default 60, max 300). Use higher values for builds."}
             }),
             true,
             false,

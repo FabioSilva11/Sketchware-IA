@@ -1978,14 +1978,48 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         }
     }
 
+    private final StringBuilder buildOutputBuffer = new StringBuilder();
+    private final java.util.concurrent.atomic.AtomicBoolean buildOutputFlushScheduled =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+    /** Keep only the tail of the log in the TextView to bound rendering cost. */
+    private static final int MAX_OUTPUT_CHARS = 200_000;
+
     private void appendBuildOutput(String message) {
-        runOnUiThread(() -> {
-            CharSequence current = binding.studioOutput.getText();
-            String prefix = current == null || current.length() == 0 ? "" : current + "\n";
-            binding.studioOutput.setText(prefix + message);
-            updateOutputSummary(message);
-            binding.studioOutputContainer.post(() -> binding.studioOutputContainer.fullScroll(View.FOCUS_DOWN));
-        });
+        // ANR FIX: previously this read the ENTIRE output TextView and re-set it
+        // (getText() + setText(current + message)) on every single build line —
+        // O(n²) string work + a fullScroll relayout per line. On big builds the
+        // main-thread message queue floods and Android shows "Sketchware não está
+        // respondendo" even though the build runs fine on a worker thread.
+        //
+        // Now lines are buffered and flushed at most every ~150 ms with a single
+        // incremental append() and one scroll.
+        synchronized (buildOutputBuffer) {
+            buildOutputBuffer.append(message).append('\n');
+        }
+        if (buildOutputFlushScheduled.compareAndSet(false, true)) {
+            binding.studioOutput.postDelayed(this::flushBuildOutput, 150L);
+        }
+    }
+
+    private void flushBuildOutput() {
+        buildOutputFlushScheduled.set(false);
+        String pending;
+        synchronized (buildOutputBuffer) {
+            if (buildOutputBuffer.length() == 0) {
+                return;
+            }
+            pending = buildOutputBuffer.toString();
+            buildOutputBuffer.setLength(0);
+        }
+        binding.studioOutput.append(pending);
+        CharSequence full = binding.studioOutput.getText();
+        if (full.length() > MAX_OUTPUT_CHARS) {
+            int cut = full.length() - MAX_OUTPUT_CHARS;
+            binding.studioOutput.setText(full.subSequence(cut, full.length()));
+        }
+        int lastLineBreak = pending.lastIndexOf('\n', pending.length() - 2);
+        updateOutputSummary(lastLineBreak >= 0 ? pending.substring(lastLineBreak + 1) : pending);
+        binding.studioOutputContainer.post(() -> binding.studioOutputContainer.fullScroll(View.FOCUS_DOWN));
     }
 
     private void setBuildRunning(boolean running) {

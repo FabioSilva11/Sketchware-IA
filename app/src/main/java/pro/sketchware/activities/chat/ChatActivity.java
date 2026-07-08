@@ -88,6 +88,9 @@ public class ChatActivity extends AppCompatActivity {
     private ImageView btnCancelRun;
     private ImageView btnMicrophone;
     private TextView textChatMode;
+    private View layoutRunStatus;
+    private KelivoTypingDotsView runStatusDots;
+    private TextView textRunStatus;
     private TextView textCurrentModel;
     private TextView textFilesChanged;
     private TextView textSelectedContext;
@@ -409,6 +412,14 @@ public class ChatActivity extends AppCompatActivity {
         if (btnChatMode != null) {
             btnChatMode.setOnClickListener(v -> showChatModeMenu(prefs));
         }
+        if (textChatMode != null) {
+            // The mode label is now a visible pill; tapping it opens the selector too.
+            textChatMode.setOnClickListener(v -> showChatModeMenu(prefs));
+        }
+
+        layoutRunStatus = findViewById(R.id.layout_run_status);
+        runStatusDots = findViewById(R.id.run_status_dots);
+        textRunStatus = findViewById(R.id.text_run_status);
 
         btnModelSelector.setOnClickListener(v -> showModelSelectorMenu(prefs));
 
@@ -870,6 +881,15 @@ public class ChatActivity extends AppCompatActivity {
         popup.getMenu().add(0, 1, 0, getString(R.string.chat_mode_chat));
         popup.getMenu().add(0, 2, 1, getString(R.string.chat_mode_gather));
         popup.getMenu().add(0, 3, 2, getString(R.string.chat_mode_agent));
+
+        // Show a radio mark on the currently selected mode.
+        popup.getMenu().setGroupCheckable(0, true, true);
+        String currentMode = AiChatSettingsHelper.getChatMode(prefs);
+        int checkedId = "normal".equals(currentMode) ? 1 : "gather".equals(currentMode) ? 2 : 3;
+        android.view.MenuItem checkedItem = popup.getMenu().findItem(checkedId);
+        if (checkedItem != null) {
+            checkedItem.setChecked(true);
+        }
 
         popup.setOnMenuItemClickListener(item -> {
             String mode = "agent";
@@ -1626,6 +1646,18 @@ public class ChatActivity extends AppCompatActivity {
         currentRunStatus = safeStatus;
         if (getSupportActionBar() != null) {
             getSupportActionBar().setSubtitle(safeStatus.isEmpty() ? null : safeStatus);
+        }
+        // Animated status banner above the input: pulsing dots while the agent
+        // is thinking / running tools, hidden when idle.
+        if (layoutRunStatus != null && textRunStatus != null && runStatusDots != null) {
+            if (safeStatus.isEmpty()) {
+                runStatusDots.stopAnimation();
+                layoutRunStatus.setVisibility(View.GONE);
+            } else {
+                textRunStatus.setText(safeStatus);
+                layoutRunStatus.setVisibility(View.VISIBLE);
+                runStatusDots.startAnimation();
+            }
         }
         refreshSecondaryPanels();
     }

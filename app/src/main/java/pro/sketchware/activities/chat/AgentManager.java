@@ -74,8 +74,39 @@ public class AgentManager {
     private Thread currentToolThread;
     private int runVersion = 0;
     private int pendingToolLoopStep = -1;
-    private String lastToolCallSignature = "";
-    private int repeatedToolCallCount = 0;
+    /**
+     * Sliding window of the most recent tool-call signatures ("name:args").
+     * Detects not only exact consecutive repeats (A A A) but also oscillating
+     * cycles (A B A B, A B C A B C) that the old single-signature counter missed.
+     */
+    private final java.util.ArrayDeque<String> recentToolSignatures = new java.util.ArrayDeque<>();
+    private static final int SIGNATURE_WINDOW = 9;
+    /** Abort the run after this many consecutive failing tool executions. */
+    private static final int MAX_CONSECUTIVE_TOOL_FAILURES = 4;
+    private int consecutiveToolFailures = 0;
+    /**
+     * Tool calls returned by the LLM in the current turn that still await
+     * execution. Modern models emit several (often parallel) tool calls per
+     * turn; they are executed sequentially in the order received, and the
+     * agent loop only advances once the queue drains.
+     */
+    private final java.util.ArrayDeque<String[]> queuedToolCalls = new java.util.ArrayDeque<>();
+    private String queuedChatMode = "agent";
+
+    // ---- History compaction (context only; the visible chat is untouched) ----
+    /** Approx. chars of non-compacted history that trigger a compaction pass (~60k tokens). */
+    private static final int COMPACT_THRESHOLD_CHARS = 240_000;
+    /** Recent messages always kept verbatim in the context. */
+    private static final int COMPACT_KEEP_TAIL = 12;
+    /** Max chars of transcript sent to the summarizer. */
+    private static final int COMPACT_TRANSCRIPT_MAX_CHARS = 120_000;
+    private String historySummary = "";
+    private int historyCompactedUntil = 0;
+    private boolean compactionInFlight = false;
+    private boolean compactionFailed = false;
+
+    /** Checkpoint message shared by every file mutation of the current run (turn-level rollback). */
+    private ChatMessage currentRunCheckpointMessage;
     private ChatInteractionTrace interactionTrace;
     private ChatMessage pendingStreamMessage;
     private boolean streamUpdateScheduled;
@@ -186,6 +217,10 @@ public class AgentManager {
         runVersion++;
         aiService.cancelCurrentStream();
         toolManager.cancelActiveTool();
+        queuedToolCalls.clear();
+        // Kill any shell processes spawned by run_command / persistent terminals;
+        // previously they kept running (and leaking) after the user cancelled.
+        pro.sketchware.activities.chat.port.VoidPortToolsService.killAllTerminals();
         streamCoalesceHandler.removeCallbacksAndMessages(null);
         streamUpdateScheduled = false;
         pendingStreamMessage = null;
@@ -265,49 +300,66 @@ public class AgentManager {
             return;
         }
 
+        // Compact old history asynchronously before this turn if it grew too large.
+        if (!compactionInFlight && !compactionFailed && shouldCompactHistory()) {
+            compactHistoryAsync(version, () -> startAgentLoop(version, loopStep, retryCount));
+            return;
+        }
+
         setState(State.THINKING);
         emitTrace("Agent loop", "step=" + loopStep + ", retry=" + retryCount);
 
-        SharedPreferences prefs = AiChatSettingsHelper.prefs(pro.sketchware.SketchApplication.getContext());
-        String chatMode = AiChatSettingsHelper.getChatMode(prefs);
-        String providerId = prefs.getString(AiChatSettingsHelper.PREF_CURRENT_PROVIDER, "");
+        // Context assembly walks the project file tree and decrypts files — heavy
+        // work that must NOT run on the UI thread. Previously it ran synchronously
+        // on every loop step, so a turn with several tool calls froze the UI.
+        // Build it on a background thread, then resume streaming on the main thread.
+        final java.util.List<ChatMessage> historySnapshot = new java.util.ArrayList<>(messages);
+        final String latestUser = findLatestUserMessage();
+        new Thread(() -> {
+            final SharedPreferences prefs = AiChatSettingsHelper.prefs(pro.sketchware.SketchApplication.getContext());
+            final String chatMode = AiChatSettingsHelper.getChatMode(prefs);
+            final String providerId = prefs.getString(AiChatSettingsHelper.PREF_CURRENT_PROVIDER, "");
 
-        long contextStartedAt = SystemClock.elapsedRealtime();
-        ContextBuilder.Result contextResult = new ContextBuilder(scId, messages, toolManager)
-                .build(findLatestUserMessage(), chatMode, providerId);
-        long contextMs = SystemClock.elapsedRealtime() - contextStartedAt;
-        JSONArray tools = toolManager.getToolsAsMCP(chatMode);
-        if ("agent".equalsIgnoreCase(chatMode)) {
-            appendMcpTools(tools, VoidPortMcpChannel.getToolsAsMCP(prefs));
-            // Warn explicitly when stdio-only MCP servers are configured but cannot
-            // be reached from Android. Void silently ignores them; we surface a debug
-            // notice so the user understands why those tools are unavailable.
-            emitMcpStdioWarning(prefs);
-            // Inject GitHub native MCP tools when a token is configured
-            String githubToken = prefs.getString(VoidPortSettings.PREF_GITHUB_TOKEN, "").trim();
-            if (!githubToken.isEmpty()) {
-                appendMcpTools(tools, GitHubMcpService.getToolDefinitions());
+            long contextStartedAt = SystemClock.elapsedRealtime();
+            final ContextBuilder.Result contextResult = new ContextBuilder(scId, historySnapshot, toolManager)
+                    .setCompactedHistory(historySummary, historyCompactedUntil)
+                    .build(latestUser, chatMode, providerId);
+            final long contextMs = SystemClock.elapsedRealtime() - contextStartedAt;
+            final JSONArray tools = toolManager.getToolsAsMCP(chatMode);
+            if ("agent".equalsIgnoreCase(chatMode)) {
+                appendMcpTools(tools, VoidPortMcpChannel.getToolsAsMCP(prefs));
+                String githubToken = prefs.getString(VoidPortSettings.PREF_GITHUB_TOKEN, "").trim();
+                if (!githubToken.isEmpty()) {
+                    appendMcpTools(tools, GitHubMcpService.getToolDefinitions());
+                }
             }
-        }
-        emitTrace(
-                "Contexto montado",
-                "build=" + contextMs + "ms, msgs=" + messages.size()
-                        + ", tools=" + (tools == null ? 0 : tools.length())
-                        + ", mode=" + chatMode
-                        + ", provider=" + providerId
-        );
-        final ChatMessage botMsg = createThinkingMessage();
-        currentStreamingMessage = botMsg;
-        clearStreamingToolState();
 
-        emitTrace("Chamada LLM iniciada");
-        aiService.sendStreamingMessage(contextResult, tools, chatMode,
+            mainHandler.post(() -> {
+                if (!isActiveRun(version)) {
+                    return;
+                }
+                if ("agent".equalsIgnoreCase(chatMode)) {
+                    // Surface a debug notice for stdio-only MCP servers (Android can't spawn them).
+                    emitMcpStdioWarning(prefs);
+                }
+                emitTrace(
+                        "Contexto montado",
+                        "build=" + contextMs + "ms, msgs=" + historySnapshot.size()
+                                + ", tools=" + (tools == null ? 0 : tools.length())
+                                + ", mode=" + chatMode
+                                + ", provider=" + providerId
+                );
+                final ChatMessage botMsg = createThinkingMessage();
+                currentStreamingMessage = botMsg;
+                clearStreamingToolState();
+
+                emitTrace("Chamada LLM iniciada");
+                aiService.sendStreamingMessage(contextResult, tools, chatMode,
                 new AiProviderService.StreamListener() {
                     private final StringBuilder contentAccumulator = new StringBuilder();
                     private final StringBuilder reasoningAccumulator = new StringBuilder();
-                    private String toolName = "";
-                    private String toolArgs = "";
-                    private String toolId = "";
+                    /** All tool calls emitted this turn: [name, args, id]. */
+                    private final java.util.List<String[]> collectedToolCalls = new java.util.ArrayList<>();
 
                     @Override
                     public void onContent(String delta) {
@@ -332,26 +384,25 @@ public class AgentManager {
 
                     @Override
                     public void onToolCall(String name, String arguments, String id) {
-                        if (!isActiveRun(version)) {
+                        if (!isActiveRun(version) || !ChatMessage.hasVisibleText(name)) {
                             return;
                         }
-                        if (ChatMessage.hasVisibleText(name)) {
-                            // Sanitize the tool name: strip any characters that are not valid
-                            // in a tool name. Some free/quantized models (e.g. gpt-oss-20b:free)
-                            // leak internal tokens into tool names, producing strings like
-                            // "edit_file<|channel|>commentary" that the tool registry cannot
-                            // recognise. The regex keeps only ASCII word chars, hyphens and dots.
-                            String sanitized = TOOL_NAME_SANITIZER.matcher(name.trim()).replaceAll("");
-                            toolName = sanitized;
-                            streamingToolName = sanitized;
-                            streamingMcpServerName = resolveMcpServerName(sanitized);
+                        // Sanitize the tool name: strip any characters that are not valid
+                        // in a tool name. Some free/quantized models (e.g. gpt-oss-20b:free)
+                        // leak internal tokens into tool names, producing strings like
+                        // "edit_file<|channel|>commentary" that the tool registry cannot
+                        // recognise. The regex keeps only ASCII word chars, hyphens and dots.
+                        String sanitized = TOOL_NAME_SANITIZER.matcher(name.trim()).replaceAll("");
+                        if (sanitized.isEmpty()) {
+                            return;
                         }
-                        if (ChatMessage.hasVisibleText(arguments)) {
-                            toolArgs = arguments;
-                        }
-                        if (ChatMessage.hasVisibleText(id)) {
-                            toolId = id;
-                            streamingToolId = id;
+                        String safeArgs = ChatMessage.hasVisibleText(arguments) ? arguments : "{}";
+                        String safeId = ChatMessage.hasVisibleText(id) ? id : "";
+                        collectedToolCalls.add(new String[]{sanitized, safeArgs, safeId});
+                        streamingToolName = sanitized;
+                        streamingMcpServerName = resolveMcpServerName(sanitized);
+                        if (!safeId.isEmpty()) {
+                            streamingToolId = safeId;
                         }
                     }
 
@@ -389,16 +440,19 @@ public class AgentManager {
                             botMsg.setStatus("");
 
                             boolean hasAssistantPayload = botMsg.hasDisplayContent() || botMsg.hasReasoningContent();
-                            if (ChatMessage.hasVisibleText(toolName)) {
+                            if (!collectedToolCalls.isEmpty()) {
                                 if (hasAssistantPayload) {
                                     listener.onMessageUpdated(botMsg);
                                 } else {
                                     removeStreamingPlaceholderIfEmpty(botMsg);
                                 }
                                 currentStreamingMessage = null;
-                                emitTrace("LLM pediu ferramenta", "tool=" + toolName);
+                                emitTrace("LLM pediu ferramentas", "count=" + collectedToolCalls.size());
                                 clearStreamingToolState();
-                                handleToolCall(toolName, toolArgs, toolId, version, loopStep, chatMode);
+                                queuedToolCalls.clear();
+                                queuedToolCalls.addAll(collectedToolCalls);
+                                queuedChatMode = chatMode;
+                                processNextQueuedToolCall(version, loopStep);
                                 return;
                             }
 
@@ -426,7 +480,7 @@ public class AgentManager {
                             boolean canRetry = retryCount + 1 < MAX_LLM_RETRIES
                                     && !botMsg.hasDisplayContent()
                                     && !botMsg.hasReasoningContent()
-                                    && !ChatMessage.hasVisibleText(toolName);
+                                    && collectedToolCalls.isEmpty();
                             if (canRetry) {
                                 removeStreamingPlaceholderIfEmpty(botMsg);
                                 mainHandler.postDelayed(() -> startAgentLoop(version, loopStep, retryCount + 1), RETRY_DELAY_MS);
@@ -440,6 +494,8 @@ public class AgentManager {
                         });
                     }
                 });
+            });
+        }, "chat-context-builder").start();
     }
 
     private ChatMessage createThinkingMessage() {
@@ -451,17 +507,150 @@ public class AgentManager {
         return botMsg;
     }
 
-    private void handleToolCall(String name, String args, String id, int version, int loopStep, String chatMode) {
-        // Anti-loop detection
-        String signature = name + ":" + args;
-        if (signature.equals(lastToolCallSignature)) {
-            repeatedToolCallCount++;
-        } else {
-            lastToolCallSignature = signature;
-            repeatedToolCallCount = 0;
+    /** True when the non-compacted history is large enough to justify a summarization pass. */
+    private boolean shouldCompactHistory() {
+        int end = messages.size() - COMPACT_KEEP_TAIL;
+        if (end - historyCompactedUntil < 8) {
+            return false;
+        }
+        long chars = 0;
+        for (int i = historyCompactedUntil; i < messages.size(); i++) {
+            ChatMessage m = messages.get(i);
+            if (m == null) {
+                continue;
+            }
+            chars += safe(m.getDisplayContent()).length()
+                    + safe(m.getToolResult()).length()
+                    + safe(m.getToolArgs()).length();
+            if (chars > COMPACT_THRESHOLD_CHARS) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Summarizes messages[historyCompactedUntil, size-KEEP_TAIL) on a background
+     * thread and swaps them for a summary in the LLM context (UI untouched).
+     * On any failure compaction is disabled for this session and the loop
+     * continues with plain truncation as before.
+     */
+    private void compactHistoryAsync(int version, Runnable continuation) {
+        compactionInFlight = true;
+        final int end = Math.max(historyCompactedUntil, messages.size() - COMPACT_KEEP_TAIL);
+        final StringBuilder transcript = new StringBuilder();
+        if (!historySummary.isEmpty()) {
+            transcript.append("[Resumo acumulado até aqui]\n").append(historySummary).append("\n\n");
+        }
+        for (int i = historyCompactedUntil; i < end; i++) {
+            ChatMessage m = messages.get(i);
+            if (m == null || m.isCheckpoint()) {
+                continue;
+            }
+            if (m.isUser()) {
+                transcript.append("USUÁRIO: ").append(safe(m.getDisplayContent())).append('\n');
+            } else if (m.isTool()) {
+                transcript.append("FERRAMENTA ").append(safe(m.getToolName()))
+                        .append(" args=").append(truncateForTranscript(safe(m.getToolArgs()), 400))
+                        .append(" resultado=").append(truncateForTranscript(safe(m.getToolResult()), 1200))
+                        .append('\n');
+            } else {
+                transcript.append("ASSISTENTE: ").append(safe(m.getDisplayContent())).append('\n');
+            }
+            if (transcript.length() > COMPACT_TRANSCRIPT_MAX_CHARS) {
+                break;
+            }
         }
 
-        if (repeatedToolCallCount >= 3) {
+        emitTrace("Compactação iniciada", "msgs=" + (end - historyCompactedUntil)
+                + ", transcriptChars=" + transcript.length());
+
+        new Thread(() -> {
+            String summary = null;
+            try {
+                summary = aiService.sendTextMessage(
+                        "Você é um sumarizador de contexto de um agente de programação. "
+                                + "Resuma a conversa a seguir preservando: objetivo do usuário, decisões tomadas, "
+                                + "arquivos criados/alterados (com caminhos), erros encontrados e estado atual da tarefa. "
+                                + "Seja denso e factual; máximo ~600 palavras.",
+                        truncateForTranscript(transcript.toString(), COMPACT_TRANSCRIPT_MAX_CHARS));
+            } catch (Exception ignored) {
+            }
+            final String result = summary;
+            mainHandler.post(() -> {
+                compactionInFlight = false;
+                if (result != null && !result.trim().isEmpty()) {
+                    historySummary = result.trim();
+                    historyCompactedUntil = end;
+                    emitTrace("Compactação concluída", "summaryChars=" + historySummary.length()
+                            + ", compactadoAté=" + historyCompactedUntil);
+                } else {
+                    // Don't retry every turn if the summarizer is failing.
+                    compactionFailed = true;
+                    emitTrace("Compactação falhou", "seguindo com truncamento padrão");
+                }
+                if (isActiveRun(version)) {
+                    continuation.run();
+                }
+            });
+        }, "chat-history-compactor").start();
+    }
+
+    /**
+     * Adds a new file snapshot to an existing turn checkpoint message.
+     * Keeps the EARLIEST snapshot when the same file is touched twice in the
+     * turn, so rollback restores the pre-turn content.
+     */
+    private boolean mergeSnapshotIntoCheckpoint(ChatMessage checkpointMsg,
+                                                ChatCheckpointManager.CheckpointEntry entry) {
+        try {
+            JSONObject snapshots = new JSONObject(safe(checkpointMsg.getCheckpointSnapshotsJson()));
+            if (snapshots.has(entry.filePath)) {
+                return true; // earliest snapshot already stored
+            }
+            JSONObject snapshot = new JSONObject();
+            snapshot.put("toolId", entry.toolId);
+            snapshot.put("toolName", entry.toolName);
+            snapshot.put("filePath", entry.filePath);
+            snapshot.put("beforeContent", entry.beforeContent);
+            snapshot.put("existedBefore", entry.existedBefore);
+            snapshots.put(entry.filePath, snapshot);
+            checkpointMsg.setCheckpointSnapshotsJson(snapshots.toString());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private String truncateForTranscript(String text, int maxChars) {
+        if (text == null) {
+            return "";
+        }
+        return text.length() <= maxChars ? text : text.substring(0, maxChars) + "…";
+    }
+
+    /** Runs the next queued tool call, or advances the agent loop when the queue drains. */
+    private void processNextQueuedToolCall(int version, int loopStep) {
+        if (!isActiveRun(version)) {
+            return;
+        }
+        String[] next = queuedToolCalls.pollFirst();
+        if (next == null) {
+            startAgentLoop(version, loopStep + 1, 0);
+            return;
+        }
+        handleToolCall(next[0], next[1], next[2], version, loopStep, queuedChatMode);
+    }
+
+    private void handleToolCall(String name, String args, String id, int version, int loopStep, String chatMode) {
+        // Anti-loop detection: sliding-window cycle detection (periods 1-3).
+        String signature = name + ":" + args;
+        recentToolSignatures.addLast(signature);
+        while (recentToolSignatures.size() > SIGNATURE_WINDOW) {
+            recentToolSignatures.removeFirst();
+        }
+
+        if (detectSignatureCycle()) {
             String advice = getString(R.string.chat_tool_loop_detected);
             if ("get_file".equals(name)) {
                 advice += " " + getString(R.string.chat_tool_loop_use_read_file);
@@ -470,6 +659,7 @@ public class AgentManager {
             } else {
                 advice += " " + getString(R.string.chat_tool_loop_try_different);
             }
+            recentToolSignatures.clear();
             addUnavailableToolMessage(name, args, id, chatMode, version, loopStep, advice);
             return;
         }
@@ -503,12 +693,10 @@ public class AgentManager {
                 ? getString(R.string.chat_tool_approval_message_named, name)
                 : getString(R.string.chat_tool_running_message));
         toolMsg.setMcpServerName(mcpTool ? resolveMcpServerName(name) : null);
-        if (!mcpTool) {
-            prepareToolPreview(toolMsg, tool);
-        }
         pendingToolMessage = toolMsg;
         pendingToolLoopStep = loopStep;
 
+        final Tool previewTool = mcpTool ? null : tool;
         mainHandler.post(() -> {
             if (!isActiveRun(version)) {
                 return;
@@ -520,6 +708,18 @@ public class AgentManager {
 
             if (needsApproval) {
                 setState(State.AWAITING_APPROVAL);
+                // Build the diff preview OFF the UI thread (the LCS diff is heavy)
+                // and refresh the message when ready — the user is reviewing anyway.
+                if (previewTool != null && previewTool.isDestructive()) {
+                    new Thread(() -> {
+                        prepareToolPreview(toolMsg, previewTool);
+                        mainHandler.post(() -> {
+                            if (isActiveRun(version)) {
+                                listener.onMessageUpdated(toolMsg);
+                            }
+                        });
+                    }, "chat-tool-preview").start();
+                }
             } else {
                 executeTool(toolMsg, version, loopStep);
             }
@@ -550,7 +750,14 @@ public class AgentManager {
             }
             messages.add(toolMsg);
             listener.onMessageAdded(toolMsg);
-            startAgentLoop(version, loopStep + 1, 0);
+            consecutiveToolFailures++;
+            if (consecutiveToolFailures >= MAX_CONSECUTIVE_TOOL_FAILURES) {
+                listener.onError(getString(R.string.chat_tool_loop_detected)
+                        + " (" + consecutiveToolFailures + " falhas consecutivas de ferramentas)");
+                finishProcessing();
+                return;
+            }
+            processNextQueuedToolCall(version, loopStep);
         });
     }
 
@@ -602,14 +809,24 @@ public class AgentManager {
                     if (!isActiveRun(version)) {
                         return;
                     }
+                    // Turn-level (transactional) checkpoint: all files touched during
+                    // the same run share ONE checkpoint message, so a rollback
+                    // restores the whole turn instead of a single file.
+                    if (currentRunCheckpointMessage != null
+                            && mergeSnapshotIntoCheckpoint(currentRunCheckpointMessage, checkpointEntry)) {
+                        listener.onMessageUpdated(currentRunCheckpointMessage);
+                        return;
+                    }
                     ChatMessage checkpointMsg = checkpointEntry.toChatMessage();
+                    currentRunCheckpointMessage = checkpointMsg;
                     messages.add(checkpointMsg);
                     listener.onMessageAdded(checkpointMsg);
                 });
             }
 
-            String result = executeToolCall(toolMsg);
-            boolean isError = looksLikeToolError(result);
+            pro.sketchware.ia.tools.ToolExecResult execResult = executeToolCall(toolMsg);
+            final String result = execResult.output;
+            boolean isError = !execResult.ok;
             final long toolDurationMs = SystemClock.elapsedRealtime() - toolStartedAt;
 
             mainHandler.post(() -> {
@@ -639,37 +856,50 @@ public class AgentManager {
                 listener.onMessageUpdated(toolMsg);
 
                 if (!isError) {
+                    consecutiveToolFailures = 0;
                     String toolName = toolMsg.getToolName();
                     boolean isMutation = "rewrite_file".equals(toolName) ||
                             "edit_file".equals(toolName) ||
                             "create_file_or_folder".equals(toolName) ||
                             "delete_file_or_folder".equals(toolName);
                     listener.onToolExecuted(toolName, isMutation);
+                } else {
+                    consecutiveToolFailures++;
+                    if (consecutiveToolFailures >= MAX_CONSECUTIVE_TOOL_FAILURES) {
+                        // Stop burning tokens: repeated tool failures indicate the
+                        // model is stuck; surface the problem instead of looping.
+                        emitTrace("Loop de falhas", "falhas consecutivas=" + consecutiveToolFailures);
+                        listener.onError(getString(R.string.chat_tool_loop_detected)
+                                + " (" + consecutiveToolFailures + " falhas consecutivas de ferramentas)");
+                        clearPendingToolState();
+                        finishProcessing();
+                        return;
+                    }
                 }
 
                 clearPendingToolState();
-                startAgentLoop(version, loopStep + 1, 0);
+                processNextQueuedToolCall(version, loopStep);
             });
         }, "chat-tool-worker");
         currentToolThread.start();
     }
 
-    private String executeToolCall(ChatMessage toolMsg) {
+    private pro.sketchware.ia.tools.ToolExecResult executeToolCall(ChatMessage toolMsg) {
         String toolName = toolMsg.getToolName();
         if (toolName != null && toolName.startsWith("mcp_")) {
-            return VoidPortMcpChannel.callTool(
+            return pro.sketchware.ia.tools.ToolExecResult.fromLegacyString(VoidPortMcpChannel.callTool(
                     VoidPortSettings.prefs(context),
                     toolName,
                     parseToolArgs(toolMsg.getToolArgs())
-            );
+            ));
         }
         // GitHub MCP tools — dispatched natively via GitHubMcpService
         if (toolName != null && toolName.startsWith(GitHubMcpService.TOOL_PREFIX)) {
-            return GitHubMcpService.callTool(
+            return pro.sketchware.ia.tools.ToolExecResult.fromLegacyString(GitHubMcpService.callTool(
                     VoidPortSettings.prefs(context),
                     toolName,
                     parseToolArgs(toolMsg.getToolArgs())
-            );
+            ));
         }
         return toolManager.executeTool(scId, toolName, toolMsg.getToolArgs());
     }
@@ -962,6 +1192,7 @@ public class AgentManager {
         streamCoalesceHandler.removeCallbacksAndMessages(null);
         streamUpdateScheduled = false;
         pendingStreamMessage = null;
+        queuedToolCalls.clear();
         clearPendingToolState();
         clearStreamingToolState();
         currentStreamingMessage = null;
@@ -976,6 +1207,10 @@ public class AgentManager {
     private void beginInteractionTrace(int version, String userText, List<ChatReference> stagingSelections) {
         interactionTrace = new ChatInteractionTrace(version);
         mcpStdioWarningEmitted = false;
+        recentToolSignatures.clear();
+        consecutiveToolFailures = 0;
+        queuedToolCalls.clear();
+        currentRunCheckpointMessage = null;
         int textChars = userText == null ? 0 : userText.trim().length();
         int selectionCount = stagingSelections == null ? 0 : stagingSelections.size();
         int imageCount = stagingSelections == null ? 0 : ChatReferenceManager.getImageReferences(stagingSelections).size();
@@ -1026,17 +1261,28 @@ public class AgentManager {
         listener.onMessageRemoved(message, index);
     }
 
-    private boolean looksLikeToolError(String result) {
-        if (result == null) return true;
-        String r = result.trim();
-        if (r.isEmpty() || r.equals("{}")) return false;
-
-        String lower = r.toLowerCase();
-        if (lower.startsWith("error") || lower.startsWith("erro")) return true;
-        if (lower.contains("exception")) return true;
-        if (lower.contains("\"error\"") || lower.contains("'error'")) return true;
-        if (lower.startsWith("blocked:") || lower.startsWith("comando bloqueado")) return true;
-
+    /**
+     * True when the last tool calls form a repeating cycle of period 1-3
+     * (e.g. A A A, A B A B A B, A B C A B C) — three full repetitions required.
+     */
+    private boolean detectSignatureCycle() {
+        String[] window = recentToolSignatures.toArray(new String[0]);
+        for (int period = 1; period <= 3; period++) {
+            int needed = period * 3;
+            if (window.length < needed) {
+                continue;
+            }
+            boolean cycle = true;
+            for (int i = window.length - needed; i < window.length - period; i++) {
+                if (!window[i].equals(window[i + period])) {
+                    cycle = false;
+                    break;
+                }
+            }
+            if (cycle) {
+                return true;
+            }
+        }
         return false;
     }
 

@@ -13,8 +13,20 @@ apply plugin: "com.google.firebase.crashlytics"
 android {
     compileSdk = 36
 
-    def gitCommitHash = "git rev-parse HEAD".execute().text.trim()
-    def shortCommitHash = "git rev-parse --short HEAD".execute().text.trim()
+    // Resolve the git hash defensively: the build must not fail when git is not
+    // installed or the project was downloaded as a ZIP (no .git directory).
+    def gitCommitHash = "unknown"
+    def shortCommitHash = "unknown"
+    try {
+        def proc = "git rev-parse HEAD".execute(null, projectDir)
+        proc.waitFor()
+        if (proc.exitValue() == 0) {
+            gitCommitHash = proc.text.trim()
+            shortCommitHash = gitCommitHash.take(7)
+        }
+    } catch (Exception ignored) {
+        // git unavailable — keep "unknown"
+    }
 
     defaultConfig {
         applicationId = "pro.sketchware"

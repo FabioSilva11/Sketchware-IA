@@ -35,6 +35,8 @@ public class ChatDiffFragment extends Fragment {
     private String scId;
     private TextView textDiffSummary;
     private LinearLayout diffFilesContainer;
+    /** Invalidates in-flight background diff computations when a newer refresh starts. */
+    private int refreshGeneration = 0;
 
     public static ChatDiffFragment newInstance(String scId) {
         ChatDiffFragment fragment = new ChatDiffFragment();
@@ -82,21 +84,38 @@ public class ChatDiffFragment extends Fragment {
         changes.sort((a, b) -> Long.compare(b.timestamp, a.timestamp));
         int count = changes.size();
         textDiffSummary.setText(getString(R.string.chat_diff_summary, count));
-        diffFilesContainer.removeAllViews();
 
         if (count <= 0) {
+            diffFilesContainer.removeAllViews();
             diffFilesContainer.addView(makeEmptyView());
             return;
         }
 
-        int rendered = 0;
-        for (FileChangeTracker.FileChange change : changes) {
-            if (rendered >= MAX_DIFF_FILES) {
-                break;
+        // The LCS diff is O(n·m) and allocates a large matrix — compute it OFF
+        // the main thread (previously it ran twice per file on the UI thread,
+        // causing visible jank), then render the precomputed results.
+        final int generation = ++refreshGeneration;
+        final List<FileChangeTracker.FileChange> toRender =
+                new ArrayList<>(changes.subList(0, Math.min(count, MAX_DIFF_FILES)));
+        new Thread(() -> {
+            final List<List<VoidPortDiffService.ComputedDiff>> computed = new ArrayList<>();
+            for (FileChangeTracker.FileChange change : toRender) {
+                computed.add(VoidPortDiffService.findDiffs(change.beforeContent, change.afterContent));
             }
-            diffFilesContainer.addView(makeFileDiffView(change));
-            rendered++;
-        }
+            LinearLayout container = diffFilesContainer;
+            if (container == null) {
+                return;
+            }
+            container.post(() -> {
+                if (!isAdded() || diffFilesContainer == null || generation != refreshGeneration) {
+                    return;
+                }
+                diffFilesContainer.removeAllViews();
+                for (int i = 0; i < toRender.size(); i++) {
+                    diffFilesContainer.addView(makeFileDiffView(toRender.get(i), computed.get(i)));
+                }
+            });
+        }, "chat-diff-worker").start();
     }
 
     private View makeEmptyView() {
@@ -108,7 +127,8 @@ public class ChatDiffFragment extends Fragment {
         return empty;
     }
 
-    private View makeFileDiffView(FileChangeTracker.FileChange change) {
+    private View makeFileDiffView(FileChangeTracker.FileChange change,
+                                  List<VoidPortDiffService.ComputedDiff> diffs) {
         LinearLayout fileBlock = new LinearLayout(requireContext());
         fileBlock.setOrientation(LinearLayout.VERTICAL);
         fileBlock.setBackground(makeRoundedBackground(color(R.color.chat_diff_background), color(R.color.chat_border)));
@@ -120,7 +140,7 @@ public class ChatDiffFragment extends Fragment {
         blockParams.setMargins(0, 0, 0, dp(12));
         fileBlock.setLayoutParams(blockParams);
 
-        VoidPortDiffService.DiffStats stats = VoidPortDiffService.stats(change.beforeContent, change.afterContent);
+        VoidPortDiffService.DiffStats stats = VoidPortDiffService.statsOf(diffs);
         TextView header = makeHeader(change.filePath, stats);
         fileBlock.addView(header);
         fileBlock.addView(makeActionsRow(change));
@@ -136,7 +156,7 @@ public class ChatDiffFragment extends Fragment {
                 HorizontalScrollView.LayoutParams.WRAP_CONTENT
         ));
 
-        appendDiffRows(codeRows, change);
+        appendDiffRows(codeRows, diffs);
         fileBlock.addView(horizontalScrollView, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -244,9 +264,7 @@ public class ChatDiffFragment extends Fragment {
         }
     }
 
-    private void appendDiffRows(LinearLayout codeRows, FileChangeTracker.FileChange change) {
-        List<VoidPortDiffService.ComputedDiff> diffs =
-                VoidPortDiffService.findDiffs(change.beforeContent, change.afterContent);
+    private void appendDiffRows(LinearLayout codeRows, List<VoidPortDiffService.ComputedDiff> diffs) {
         if (diffs.isEmpty()) {
             codeRows.addView(makeDiffRow("", "", " ", "No changes", R.color.chat_diff_background));
             return;

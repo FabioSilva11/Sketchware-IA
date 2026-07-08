@@ -30,16 +30,23 @@ public class FileChangeTracker {
         public final String beforeContent;
         public final String afterContent;
         public final long timestamp;
+        /** False when the change CREATED the file — rejecting must delete it, not write "". */
+        public final boolean existedBefore;
 
         public FileChange(String filePath, String beforeContent, String afterContent) {
-            this(filePath, beforeContent, afterContent, System.currentTimeMillis());
+            this(filePath, beforeContent, afterContent, System.currentTimeMillis(), true);
         }
 
         public FileChange(String filePath, String beforeContent, String afterContent, long timestamp) {
+            this(filePath, beforeContent, afterContent, timestamp, true);
+        }
+
+        public FileChange(String filePath, String beforeContent, String afterContent, long timestamp, boolean existedBefore) {
             this.filePath = filePath;
             this.beforeContent = beforeContent;
             this.afterContent = afterContent;
             this.timestamp = timestamp;
+            this.existedBefore = existedBefore;
         }
 
         public String generateDiff() {
@@ -56,12 +63,32 @@ public class FileChangeTracker {
     }
 
     public static synchronized void trackChange(String scId, String filePath, String beforeContent, String afterContent) {
+        trackChange(scId, filePath, beforeContent, afterContent, true);
+    }
+
+    public static synchronized void trackChange(String scId, String filePath, String beforeContent,
+                                                String afterContent, boolean existedBefore) {
         if (filePath == null || filePath.trim().isEmpty()) {
             return;
         }
         String scope = scopeKey(scId);
         Map<String, FileChange> changes = loadScope(scope);
-        changes.put(filePath, new FileChange(filePath, beforeContent, afterContent));
+
+        // If a change for this file is already pending, keep the ORIGINAL
+        // beforeContent/existedBefore. Previously each edit overwrote the entry,
+        // so "reject" only undid the last edit instead of the whole change.
+        FileChange pending = changes.get(filePath);
+        String effectiveBefore = pending != null ? pending.beforeContent : beforeContent;
+        boolean effectiveExisted = pending != null ? pending.existedBefore : existedBefore;
+
+        String safeAfter = afterContent == null ? "" : afterContent;
+        if (effectiveExisted && safeAfter.equals(effectiveBefore == null ? "" : effectiveBefore)) {
+            // The file ended up back at its original content — nothing to review.
+            changes.remove(filePath);
+        } else {
+            changes.put(filePath, new FileChange(filePath, effectiveBefore, safeAfter,
+                    System.currentTimeMillis(), effectiveExisted));
+        }
         trimOldChanges(changes);
         persistScope(scope, changes);
     }
@@ -100,11 +127,24 @@ public class FileChangeTracker {
         if (change == null) {
             return false;
         }
-        boolean saved = SketchwareFileEncryptor.encryptAndSaveFile(scId, filePath, change.beforeContent);
-        if (saved) {
+        boolean restored;
+        if (!change.existedBefore) {
+            // The change created this file: rejecting must DELETE it, not
+            // leave an empty file behind.
+            try {
+                ProjectPathResolver.ResolvedPath resolved = ProjectPathResolver.resolveForWrite(scId, filePath);
+                java.io.File file = resolved == null ? null : resolved.getFile();
+                restored = file == null || !file.exists() || file.delete();
+            } catch (Exception e) {
+                restored = false;
+            }
+        } else {
+            restored = SketchwareFileEncryptor.encryptAndSaveFile(scId, filePath, change.beforeContent);
+        }
+        if (restored) {
             acceptChange(scId, filePath);
         }
-        return saved;
+        return restored;
     }
 
     public static void clearChanges() {
@@ -168,7 +208,8 @@ public class FileChangeTracker {
                                 filePath,
                                 object.optString("beforeContent", ""),
                                 object.optString("afterContent", ""),
-                                object.optLong("timestamp", System.currentTimeMillis())
+                                object.optLong("timestamp", System.currentTimeMillis()),
+                                object.optBoolean("existedBefore", true)
                         ));
                     }
                 } catch (Exception ignored) {
@@ -195,6 +236,7 @@ public class FileChangeTracker {
                 object.put("beforeContent", change.beforeContent == null ? "" : change.beforeContent);
                 object.put("afterContent", change.afterContent == null ? "" : change.afterContent);
                 object.put("timestamp", change.timestamp);
+                object.put("existedBefore", change.existedBefore);
                 array.put(object);
             }
             prefs.edit().putString(PREF_KEY_PREFIX + scope, array.toString()).apply();

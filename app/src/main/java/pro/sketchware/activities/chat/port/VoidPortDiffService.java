@@ -72,25 +72,49 @@ public final class VoidPortDiffService {
 
         String[] oldLines = splitLines(oldText);
         String[] newLines = splitLines(newText);
-        if (oldLines.length > MAX_LCS_LINES || newLines.length > MAX_LCS_LINES) {
+
+        // Trim the common prefix/suffix before running the O(n·m) LCS. Most
+        // edits touch a small region, so this lets even huge files fall inside
+        // MAX_LCS_LINES and produce precise hunks instead of one whole-file diff.
+        int prefix = 0;
+        while (prefix < oldLines.length && prefix < newLines.length
+                && oldLines[prefix].equals(newLines[prefix])) {
+            prefix++;
+        }
+        int suffix = 0;
+        while (suffix < oldLines.length - prefix && suffix < newLines.length - prefix
+                && oldLines[oldLines.length - 1 - suffix].equals(newLines[newLines.length - 1 - suffix])) {
+            suffix++;
+        }
+
+        String[] oldCore = java.util.Arrays.copyOfRange(oldLines, prefix, oldLines.length - suffix);
+        String[] newCore = java.util.Arrays.copyOfRange(newLines, prefix, newLines.length - suffix);
+
+        if (oldCore.length > MAX_LCS_LINES || newCore.length > MAX_LCS_LINES) {
+            // Still too large: one hunk covering only the differing region.
             return Collections.singletonList(new ComputedDiff(
                     "edit",
-                    1,
-                    Math.max(1, newLines.length),
-                    1,
-                    Math.max(1, oldLines.length),
-                    oldText,
-                    newText
+                    prefix + 1,
+                    Math.max(prefix + 1, newLines.length - suffix),
+                    prefix + 1,
+                    Math.max(prefix + 1, oldLines.length - suffix),
+                    joinArray(oldCore),
+                    joinArray(newCore)
             ));
         }
 
-        return collapseOperations(toOperations(oldLines, newLines));
+        return collapseOperations(toOperations(oldCore, newCore), prefix + 1, prefix + 1);
     }
 
     public static DiffStats stats(String oldStr, String newStr) {
+        return statsOf(findDiffs(oldStr, newStr));
+    }
+
+    /** Derives stats from an already computed diff list (avoids re-running the LCS). */
+    public static DiffStats statsOf(List<ComputedDiff> diffs) {
         int added = 0;
         int removed = 0;
-        for (ComputedDiff diff : findDiffs(oldStr, newStr)) {
+        for (ComputedDiff diff : diffs) {
             added += diff.addedLines();
             removed += diff.removedLines();
         }
@@ -167,10 +191,10 @@ public final class VoidPortDiffService {
         return ops;
     }
 
-    private static List<ComputedDiff> collapseOperations(List<Op> operations) {
+    private static List<ComputedDiff> collapseOperations(List<Op> operations, int startOldLine, int startNewLine) {
         List<ComputedDiff> diffs = new ArrayList<>();
-        int oldLineNum = 1;
-        int newLineNum = 1;
+        int oldLineNum = startOldLine;
+        int newLineNum = startNewLine;
         int streakNewStart = -1;
         int streakOldStart = -1;
         List<String> removed = new ArrayList<>();
@@ -241,6 +265,20 @@ public final class VoidPortDiffService {
             return withoutTrailingEmpty;
         }
         return lines;
+    }
+
+    private static String joinArray(String[] lines) {
+        if (lines == null || lines.length == 0) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < lines.length; i++) {
+            if (i > 0) {
+                builder.append('\n');
+            }
+            builder.append(lines[i]);
+        }
+        return builder.toString();
     }
 
     private static String joinLines(List<String> lines) {

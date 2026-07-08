@@ -530,8 +530,9 @@ public class ProviderDetailActivity extends AppCompatActivity {
         if (apiKey.isEmpty()) {
             throw new Exception(getString(R.string.ia_api_key_required));
         }
-        String url = trimTrailingSlash(textOf(binding.etApiBaseUrl)) + "/models?key=" + apiKey;
-        JSONObject json = fetchJson(url, new Headers.Builder().build());
+        // Send the key via header instead of query string so it never appears in URLs/logs.
+        String url = trimTrailingSlash(textOf(binding.etApiBaseUrl)) + "/models";
+        JSONObject json = fetchJson(url, new Headers.Builder().add("x-goog-api-key", apiKey).build());
         JSONArray models = json.optJSONArray("models");
         Set<String> names = new LinkedHashSet<>();
         for (int i = 0; models != null && i < models.length(); i++) {

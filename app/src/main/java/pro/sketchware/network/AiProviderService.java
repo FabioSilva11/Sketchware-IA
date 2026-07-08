@@ -162,11 +162,62 @@ public class AiProviderService {
         }
     }
 
+    /**
+     * Wraps a {@link StreamListener} and records whether any content, reasoning
+     * or tool call was already delivered to the UI. Retries are only safe while
+     * nothing has been emitted — retrying after partial deltas would replay the
+     * whole stream and duplicate text in the chat.
+     */
+    private static final class EmissionTracker implements StreamListener {
+        private final StreamListener delegate;
+        final java.util.concurrent.atomic.AtomicBoolean emitted =
+                new java.util.concurrent.atomic.AtomicBoolean(false);
+
+        EmissionTracker(StreamListener delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void onContent(String delta) {
+            emitted.set(true);
+            delegate.onContent(delta);
+        }
+
+        @Override
+        public void onReasoning(String delta) {
+            emitted.set(true);
+            delegate.onReasoning(delta);
+        }
+
+        @Override
+        public void onToolCall(String name, String arguments, String id) {
+            emitted.set(true);
+            delegate.onToolCall(name, arguments, id);
+        }
+
+        @Override
+        public void onFinalMessage(String fullContent, String fullReasoning) {
+            emitted.set(true);
+            delegate.onFinalMessage(fullContent, fullReasoning);
+        }
+
+        @Override
+        public void onDebug(String message) {
+            delegate.onDebug(message);
+        }
+
+        @Override
+        public void onError(String message, Throwable t) {
+            delegate.onError(message, t);
+        }
+    }
+
     private static final class AnthropicStreamState {
         final StringBuilder fullContent = new StringBuilder();
         final StringBuilder fullReasoning = new StringBuilder();
-        final ToolCallAccumulator firstTool = new ToolCallAccumulator(0);
-        int firstToolBlockIndex = -1;
+        /** One accumulator per tool_use content block, keyed by block index. */
+        final Map<Integer, ToolCallAccumulator> toolBlocks = new LinkedHashMap<>();
+        String stopReason = "";
         VoidPortExtractGrammar.XmlToolStreamParser xmlToolParser;
         String lastEmittedToolName = "";
         String lastEmittedToolArgs = "";
@@ -177,6 +228,8 @@ public class AiProviderService {
         final StringBuilder fullContent = new StringBuilder();
         final StringBuilder fullReasoning = new StringBuilder();
         final Map<Integer, ToolCallAccumulator> toolCalls = new LinkedHashMap<>();
+        String finishReason = "";
+        String blockReason = "";
         VoidPortExtractGrammar.XmlToolStreamParser xmlToolParser;
         String lastEmittedToolName = "";
         String lastEmittedToolArgs = "";
@@ -187,7 +240,12 @@ public class AiProviderService {
         this.context = SketchApplication.getContext();
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(0, TimeUnit.SECONDS)
+                // Watchdog: OkHttp's readTimeout applies to each read, i.e. the
+                // maximum silence BETWEEN stream chunks. 0 (infinite) used to leave
+                // the UI stuck on "Thinking" forever when a server opened the SSE
+                // connection and never sent data. 180 s tolerates long reasoning
+                // pauses while still recovering from dead connections.
+                .readTimeout(180, TimeUnit.SECONDS)
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .build();
         this.mainHandler = new Handler(Looper.getMainLooper());
@@ -225,6 +283,10 @@ public class AiProviderService {
     }
 
     public String sendTextMessage(String systemPrompt, String userPrompt) throws IOException {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            // Blocking network call + Thread.sleep retries would ANR the app.
+            throw new IllegalStateException("sendTextMessage must not be called on the main thread");
+        }
         SharedPreferences prefs = context.getSharedPreferences(AiChatSettingsHelper.PREFS_NAME, Context.MODE_PRIVATE);
         AiChatSettingsHelper.ensureValidCurrentSelection(prefs);
         String currentProvider = prefs.getString(AiChatSettingsHelper.PREF_CURRENT_PROVIDER, "groq");
@@ -293,7 +355,11 @@ public class AiProviderService {
 
     private void dispatchRequest(ProviderConfig providerConfig, String providerId, String modelName,
                                  ContextBuilder.Result requestContext, JSONArray tools, String chatMode,
-                                 StreamListener listener, int retryCount) {
+                                 StreamListener rawListener, int retryCount) {
+        // Wrap once so mid-stream retries can check whether deltas already reached the UI.
+        StreamListener listener = rawListener instanceof EmissionTracker
+                ? rawListener
+                : new EmissionTracker(rawListener);
         if (providerConfig.family == ProviderFamily.ANTHROPIC) {
             sendAnthropicStreamingRequest(providerConfig, modelName, requestContext, tools, chatMode, listener, providerId, retryCount);
         } else if (providerConfig.family == ProviderFamily.GEMINI) {
@@ -326,15 +392,16 @@ public class AiProviderService {
                 jsonBody.put("tools", convertToolsToGemini(tools));
             }
 
+            // API key is sent via the x-goog-api-key header (see buildGeminiHeaders)
+            // instead of a query parameter, so it never leaks into logs.
             HttpUrl url = HttpUrl.parse(providerConfig.baseUrl + "/models/" + modelName + ":streamGenerateContent")
                     .newBuilder()
                     .addQueryParameter("alt", "sse")
-                    .addQueryParameter("key", providerConfig.apiKey)
                     .build();
 
             emitDebug(listener, "LLM request -> provider=" + providerId
                     + ", model=" + modelName
-                    + ", endpoint=" + url);
+                    + ", endpoint=" + sanitizeUrlForDebug(url.toString()));
 
             Request request = new Request.Builder()
                     .url(url)
@@ -372,9 +439,10 @@ public class AiProviderService {
             jsonBody.put("messages", messages);
             jsonBody.put("stream", true);
             if ("ollama".equals(providerId)) {
-                // Ollama enables thinking by default for supported models.
-                // Disable it in chat so the UI gets only the final answer content.
-                jsonBody.put("think", false);
+                // Ollama enables thinking by default for supported models. Off by
+                // default here so the UI gets only the final answer; the user can
+                // opt in via the "ollama_think_enabled" preference.
+                jsonBody.put("think", ollamaThinkEnabled());
             }
 
             boolean useNativeTools = requestContext.getProviderFormat() == ContextBuilder.ProviderFormat.OPENAI
@@ -392,7 +460,7 @@ public class AiProviderService {
             String requestUrl = VoidPortLlmMessage.resolveRequestUrl(providerConfig, modelName);
             emitDebug(listener, "LLM request -> provider=" + providerId
                     + ", model=" + modelName
-                    + ", endpoint=" + requestUrl);
+                    + ", endpoint=" + sanitizeUrlForDebug(requestUrl));
 
             Request request = new Request.Builder()
                     .url(requestUrl)
@@ -435,7 +503,13 @@ public class AiProviderService {
             jsonBody.put("stream", true);
             jsonBody.put("max_tokens", VoidPortLlmMessage.maxOutputTokens(providerId, modelName));
             if (!TextUtils.isEmpty(requestContext.getSystemContext())) {
-                jsonBody.put("system", requestContext.getSystemContext());
+                // Prompt caching: the system prompt is identical on every turn of the
+                // agent loop; marking it ephemeral lets Anthropic cache it, cutting
+                // cost and latency dramatically on multi-step runs.
+                jsonBody.put("system", new JSONArray().put(new JSONObject()
+                        .put("type", "text")
+                        .put("text", requestContext.getSystemContext())
+                        .put("cache_control", new JSONObject().put("type", "ephemeral"))));
             }
 
             boolean useNativeTools = requestContext.getProviderFormat() == ContextBuilder.ProviderFormat.ANTHROPIC
@@ -443,7 +517,14 @@ public class AiProviderService {
                     && tools.length() > 0
                     && !"normal".equals(chatMode);
             if (useNativeTools) {
-                jsonBody.put("tools", convertToolsToAnthropic(tools));
+                JSONArray anthropicTools = convertToolsToAnthropic(tools);
+                // Cache the (static) tool definitions too: cache_control on the last
+                // tool covers the whole tools array as a cache prefix.
+                JSONObject lastTool = anthropicTools.optJSONObject(anthropicTools.length() - 1);
+                if (lastTool != null) {
+                    lastTool.put("cache_control", new JSONObject().put("type", "ephemeral"));
+                }
+                jsonBody.put("tools", anthropicTools);
                 jsonBody.put("tool_choice", new JSONObject().put("type", "auto"));
             }
 
@@ -503,8 +584,21 @@ public class AiProviderService {
                                     long retryAfterSeconds = Long.parseLong(retryAfterHeader.trim());
                                     // Cap at 60 s to avoid stalling forever on absurdly large values.
                                     retryAfterMs = Math.min(retryAfterSeconds * 1000L, 60_000L);
-                                } catch (NumberFormatException ignored) {
-                                    // Non-numeric value (e.g. HTTP-date); use default backoff.
+                                } catch (NumberFormatException notANumber) {
+                                    // HTTP-date form (e.g. "Wed, 21 Oct 2026 07:28:00 GMT").
+                                    try {
+                                        java.util.Date date = new java.text.SimpleDateFormat(
+                                                "EEE, dd MMM yyyy HH:mm:ss zzz", java.util.Locale.US)
+                                                .parse(retryAfterHeader.trim());
+                                        if (date != null) {
+                                            long deltaMs = date.getTime() - System.currentTimeMillis();
+                                            if (deltaMs > 0) {
+                                                retryAfterMs = Math.min(deltaMs, 60_000L);
+                                            }
+                                        }
+                                    } catch (Exception ignored) {
+                                        // Unparseable; use default backoff.
+                                    }
                                 }
                             }
                             emitDebug(listener, "HTTP 429 rate-limit from " + providerId
@@ -523,7 +617,12 @@ public class AiProviderService {
                 try (Response safeResponse = response) {
                     responseHandler.handle(respondedCall, safeResponse);
                 } catch (Exception e) {
-                    if (shouldRetryForFailure(e, retryCount)) {
+                    // Only retry a mid-stream failure when nothing was emitted yet;
+                    // otherwise the retry would replay the stream and duplicate
+                    // content already shown in the chat.
+                    boolean anythingEmitted = listener instanceof EmissionTracker
+                            && ((EmissionTracker) listener).emitted.get();
+                    if (!anythingEmitted && shouldRetryForFailure(e, retryCount)) {
                         scheduleRetry(request, retryCount, providerId, listener, responseHandler, -1);
                         return;
                     }
@@ -550,7 +649,10 @@ public class AiProviderService {
             listener.onError("Request failed after retries for provider: " + providerId, null);
             return;
         }
-        long delayMs = retryAfterMs > 0 ? retryAfterMs : RETRY_DELAY_MS * (retryCount + 1L);
+        long baseDelayMs = retryAfterMs > 0 ? retryAfterMs : RETRY_DELAY_MS * (retryCount + 1L);
+        // ±20% jitter avoids synchronized retry storms against rate-limited providers.
+        long jitter = (long) (baseDelayMs * 0.2 * (Math.random() * 2 - 1));
+        long delayMs = Math.max(250L, baseDelayMs + jitter);
         mainHandler.postDelayed(() -> executeWithRetry(request, retryCount + 1, providerId, listener, responseHandler),
                 delayMs);
     }
@@ -715,6 +817,15 @@ public class AiProviderService {
         JSONObject delta = null;
         if (choices != null && choices.length() > 0) {
             delta = choices.optJSONObject(0).optJSONObject("delta");
+            String finishReason = sanitizeStreamValue(choices.optJSONObject(0).opt("finish_reason"));
+            if (!finishReason.isEmpty()) {
+                state.finishReason = finishReason;
+            }
+        }
+        // Ollama native format signals truncation via done_reason.
+        String doneReason = sanitizeStreamValue(json.opt("done_reason"));
+        if (!doneReason.isEmpty()) {
+            state.finishReason = doneReason;
         }
         
         // If no delta (OpenAI style), check for message (Ollama native style)
@@ -764,15 +875,14 @@ public class AiProviderService {
                 continue;
             }
 
+            // Accumulate ALL tool calls (parallel calls arrive with index 0..N).
+            // Previously only index 0 was kept, silently dropping the rest.
             int index = toolCall.optInt("index", i);
-            if (index != 0) {
-                continue;
-            }
 
-            ToolCallAccumulator accumulator = state.toolCalls.get(0);
+            ToolCallAccumulator accumulator = state.toolCalls.get(index);
             if (accumulator == null) {
-                accumulator = new ToolCallAccumulator(0);
-                state.toolCalls.put(0, accumulator);
+                accumulator = new ToolCallAccumulator(index);
+                state.toolCalls.put(index, accumulator);
             }
 
             accumulator.appendId(sanitizeStreamValue(toolCall.opt("id")));
@@ -785,14 +895,6 @@ public class AiProviderService {
 
         // Tool arguments arrive in chunks on most OpenAI-compatible streams.
         // Emit only after the stream finishes so AgentManager receives one complete JSON payload.
-    }
-
-    private ToolCallAccumulator firstReadyOpenAiTool(OpenAiStreamState state) {
-        ToolCallAccumulator accumulator = state.toolCalls.get(0);
-        if (accumulator != null && (accumulator.isReady() || accumulator.hasAnyPayload())) {
-            return accumulator;
-        }
-        return null;
     }
 
     private void completeOpenAiRequest(OpenAiStreamState state, ContextBuilder.Result requestContext,
@@ -810,13 +912,34 @@ public class AiProviderService {
                 emitDebug(listener, "Reasoning extracted from <think> tags");
             }
         }
-        ToolCallAccumulator firstTool = firstReadyOpenAiTool(state);
-        boolean hasNativeTool = firstTool != null && firstTool.isReady();
+        // Emit ALL accumulated native tool calls, in order. Calls whose JSON
+        // arguments were truncated by the token limit are dropped individually —
+        // running half-written args corrupts files silently.
+        boolean hasNativeTool = false;
+        boolean droppedTruncatedTool = false;
+        boolean truncated = isTruncatedFinish(state.finishReason);
+        for (ToolCallAccumulator accumulator : state.toolCalls.values()) {
+            if (!accumulator.isReady()) {
+                continue;
+            }
+            if (truncated && !isValidJsonObject(accumulator.getArguments())) {
+                droppedTruncatedTool = true;
+                emitDebug(listener, "Tool call dropped: response truncated (finish_reason="
+                        + state.finishReason + ") with invalid JSON args, tool=" + accumulator.getName());
+                continue;
+            }
+            hasNativeTool = true;
+            maybeEmitToolCall(accumulator.getName(), accumulator.getArguments(), accumulator.getId(), state, listener);
+        }
+        if (droppedTruncatedTool && !hasNativeTool) {
+            String warning = "\n\n[Aviso: a resposta foi truncada pelo limite de tokens e a chamada de ferramenta foi descartada. Tente novamente ou aumente o limite de saída.]";
+            state.fullContent.append(warning);
+            finalContent = state.fullContent.toString();
+            listener.onContent(warning);
+        }
         boolean hasXmlTool = false;
 
-        if (hasNativeTool) {
-            maybeEmitToolCall(firstTool.getName(), firstTool.getArguments(), firstTool.getId(), state, listener);
-        } else {
+        if (!hasNativeTool) {
             VoidPortExtractGrammar.ToolCallExtraction extraction = state.xmlToolParser == null
                     ? null
                     : state.xmlToolParser.getLatestToolCall();
@@ -847,7 +970,13 @@ public class AiProviderService {
 
         if (finalContent.trim().isEmpty() && state.fullReasoning.toString().trim().isEmpty()
                 && !hasNativeTool && !hasXmlTool) {
-            emitDebug(listener, "Final assistant payload was empty");
+            if (!state.blockReason.isEmpty()) {
+                // Gemini safety block: surface the real cause instead of a generic "empty response".
+                listener.onError("Resposta bloqueada pelo provedor (safety): " + state.blockReason, null);
+                return;
+            }
+            emitDebug(listener, "Final assistant payload was empty"
+                    + (state.finishReason.isEmpty() ? "" : ", finishReason=" + state.finishReason));
             listener.onError("Void-style provider response was empty.", null);
             return;
         }
@@ -894,9 +1023,24 @@ public class AiProviderService {
     }
 
     private void handleGeminiChunk(JSONObject chunk, OpenAiStreamState state, StreamListener listener) {
+        // Safety block: Gemini reports it via promptFeedback.blockReason with no content.
+        JSONObject promptFeedback = chunk.optJSONObject("promptFeedback");
+        if (promptFeedback != null) {
+            String blockReason = sanitizeStreamValue(promptFeedback.opt("blockReason"));
+            if (!blockReason.isEmpty()) {
+                state.blockReason = blockReason;
+            }
+        }
         JSONArray candidates = chunk.optJSONArray("candidates");
         for (int i = 0; candidates != null && i < candidates.length(); i++) {
             JSONObject candidate = candidates.optJSONObject(i);
+            String finishReason = candidate == null ? "" : sanitizeStreamValue(candidate.opt("finishReason"));
+            if (!finishReason.isEmpty() && !"STOP".equalsIgnoreCase(finishReason)) {
+                state.finishReason = finishReason;
+                if ("SAFETY".equalsIgnoreCase(finishReason) || "PROHIBITED_CONTENT".equalsIgnoreCase(finishReason)) {
+                    state.blockReason = finishReason;
+                }
+            }
             JSONObject content = candidate == null ? null : candidate.optJSONObject("content");
             JSONArray parts = content == null ? null : content.optJSONArray("parts");
             for (int j = 0; parts != null && j < parts.length(); j++) {
@@ -910,14 +1054,10 @@ public class AiProviderService {
                 }
                 JSONObject functionCall = part.optJSONObject("functionCall");
                 if (functionCall != null) {
-                    ToolCallAccumulator accumulator = state.toolCalls.get(0);
-                    if (accumulator == null) {
-                        accumulator = new ToolCallAccumulator(0);
-                        state.toolCalls.put(0, accumulator);
-                    }
-                    if (accumulator.hasAnyPayload()) {
-                        continue;
-                    }
+                    // Each functionCall part is a distinct (possibly parallel) tool call.
+                    int index = state.toolCalls.size();
+                    ToolCallAccumulator accumulator = new ToolCallAccumulator(index);
+                    state.toolCalls.put(index, accumulator);
                     accumulator.appendName(functionCall.optString("name", ""));
                     accumulator.appendArguments(functionCall.optJSONObject("args") == null
                             ? "{}"
@@ -946,7 +1086,7 @@ public class AiProviderService {
             jsonBody.put("messages", messages);
             jsonBody.put("stream", false);
             if ("ollama".equals(providerId)) {
-                jsonBody.put("think", false);
+                jsonBody.put("think", ollamaThinkEnabled());
             }
 
             return new Request.Builder()
@@ -1000,7 +1140,6 @@ public class AiProviderService {
 
             HttpUrl url = HttpUrl.parse(providerConfig.baseUrl + "/models/" + modelName + ":generateContent")
                     .newBuilder()
-                    .addQueryParameter("key", providerConfig.apiKey)
                     .build();
 
             return new Request.Builder()
@@ -1115,12 +1254,32 @@ public class AiProviderService {
             dispatchAnthropicEvent(currentEvent, dataBuffer.toString(), state, listener);
         }
 
-        boolean hasNativeTool = !state.firstTool.getName().isEmpty();
+        // Emit ALL accumulated tool_use blocks, dropping individually any whose
+        // JSON args were truncated by max_tokens (see OpenAI path).
+        boolean hasNativeTool = false;
+        boolean droppedTruncatedTool = false;
+        boolean truncated = isTruncatedFinish(state.stopReason);
+        for (ToolCallAccumulator accumulator : state.toolBlocks.values()) {
+            if (!accumulator.isReady()) {
+                continue;
+            }
+            if (truncated && !isValidJsonObject(accumulator.getArguments())) {
+                droppedTruncatedTool = true;
+                emitDebug(listener, "Anthropic tool call dropped: stop_reason=" + state.stopReason
+                        + " with invalid JSON args, tool=" + accumulator.getName());
+                continue;
+            }
+            hasNativeTool = true;
+            maybeEmitAnthropicToolCall(accumulator.getName(), accumulator.getArguments(), accumulator.getId(), state, listener);
+        }
+        if (droppedTruncatedTool && !hasNativeTool) {
+            String warning = "\n\n[Aviso: a resposta foi truncada pelo limite de tokens e a chamada de ferramenta foi descartada. Tente novamente ou aumente o limite de saída.]";
+            state.fullContent.append(warning);
+            listener.onContent(warning);
+        }
         boolean hasXmlTool = false;
 
-        if (hasNativeTool) {
-            maybeEmitAnthropicToolCall(state.firstTool.getName(), state.firstTool.getArguments(), state.firstTool.getId(), state, listener);
-        } else {
+        if (!hasNativeTool) {
             String finalContent = state.fullContent.toString();
             String finalReasoning = state.fullReasoning.toString();
             VoidPortExtractGrammar.ToolCallExtraction extraction = state.xmlToolParser == null
@@ -1167,13 +1326,41 @@ public class AiProviderService {
         if (data == null || data.trim().isEmpty() || "[DONE]".equals(data.trim())) {
             return;
         }
+        JSONObject json;
         try {
-            JSONObject json = new JSONObject(data);
+            json = new JSONObject(data);
+        } catch (Exception parseError) {
+            // A single malformed chunk must not abort/restart the whole stream
+            // (that would duplicate everything already emitted). Log and skip.
+            Log.e(TAG, "Skipping malformed Anthropic chunk: " + previewForDebug(data), parseError);
+            return;
+        }
+        try {
             String type = json.optString("type", eventName == null ? "" : eventName);
 
             if ("error".equals(type)) {
                 JSONObject error = json.optJSONObject("error");
                 throw new IOException(error == null ? "Anthropic stream error" : error.toString());
+            }
+
+            if ("message_start".equals(type)) {
+                JSONObject message = json.optJSONObject("message");
+                JSONObject usage = message == null ? null : message.optJSONObject("usage");
+                if (usage != null) {
+                    emitDebug(listener, "Anthropic usage: input=" + usage.optInt("input_tokens", 0)
+                            + ", cacheRead=" + usage.optInt("cache_read_input_tokens", 0)
+                            + ", cacheWrite=" + usage.optInt("cache_creation_input_tokens", 0));
+                }
+                return;
+            }
+
+            if ("message_delta".equals(type)) {
+                JSONObject delta = json.optJSONObject("delta");
+                String stopReason = delta == null ? "" : sanitizeStreamValue(delta.opt("stop_reason"));
+                if (!stopReason.isEmpty()) {
+                    state.stopReason = stopReason;
+                }
+                return;
             }
 
             if ("content_block_start".equals(type)) {
@@ -1199,17 +1386,16 @@ public class AiProviderService {
                     state.fullReasoning.append(text);
                     listener.onReasoning(text);
                 } else if ("tool_use".equals(blockType)) {
-                    if (!state.firstTool.hasAnyPayload()) {
-                        state.firstToolBlockIndex = blockIndex;
-                        state.firstTool.appendId(block.optString("id", ""));
-                        state.firstTool.appendName(block.optString("name", ""));
-                    }
+                    ToolCallAccumulator accumulator = new ToolCallAccumulator(blockIndex);
+                    accumulator.appendId(block.optString("id", ""));
+                    accumulator.appendName(block.optString("name", ""));
+                    state.toolBlocks.put(blockIndex, accumulator);
                 }
                 return;
             }
 
             if ("content_block_delta".equals(type)) {
-                int blockIndex = json.optInt("index", state.firstToolBlockIndex);
+                int blockIndex = json.optInt("index", -1);
                 JSONObject delta = json.optJSONObject("delta");
                 if (delta == null) {
                     return;
@@ -1227,8 +1413,15 @@ public class AiProviderService {
                         listener.onReasoning(text);
                     }
                 } else if ("input_json_delta".equals(deltaType)) {
-                    if (state.firstToolBlockIndex < 0 || blockIndex == state.firstToolBlockIndex) {
-                        state.firstTool.appendArguments(delta.optString("partial_json", ""));
+                    ToolCallAccumulator accumulator = state.toolBlocks.get(blockIndex);
+                    if (accumulator == null && !state.toolBlocks.isEmpty()) {
+                        // Fallback: append to the most recently opened tool block.
+                        for (ToolCallAccumulator candidate : state.toolBlocks.values()) {
+                            accumulator = candidate;
+                        }
+                    }
+                    if (accumulator != null) {
+                        accumulator.appendArguments(delta.optString("partial_json", ""));
                     }
                 }
             }
@@ -1259,8 +1452,49 @@ public class AiProviderService {
     private Headers buildGeminiHeaders(ProviderConfig providerConfig) {
         Headers.Builder headers = new Headers.Builder();
         headers.add("Content-Type", "application/json");
+        if (!providerConfig.apiKey.isEmpty()) {
+            headers.add("x-goog-api-key", providerConfig.apiKey);
+        }
         addExtraHeaders(headers, providerConfig.extraHeaders);
         return headers.build();
+    }
+
+    /** User preference: enable Ollama's native "think" mode (default off). */
+    private boolean ollamaThinkEnabled() {
+        SharedPreferences prefs = context.getSharedPreferences(AiChatSettingsHelper.PREFS_NAME, Context.MODE_PRIVATE);
+        return prefs.getBoolean("ollama_think_enabled", false);
+    }
+
+    /** True when the provider stopped because it hit the output-token limit. */
+    private static boolean isTruncatedFinish(String reason) {
+        if (reason == null) {
+            return false;
+        }
+        String normalized = reason.trim().toLowerCase(java.util.Locale.US);
+        return "length".equals(normalized)
+                || "max_tokens".equals(normalized)
+                || "max_output_tokens".equals(normalized);
+    }
+
+    private static boolean isValidJsonObject(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            new JSONObject(value);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Strips query strings from URLs before they reach debug logs (keys, tokens). */
+    private static String sanitizeUrlForDebug(String url) {
+        if (url == null) {
+            return "";
+        }
+        int queryStart = url.indexOf('?');
+        return queryStart >= 0 ? url.substring(0, queryStart) : url;
     }
 
     private void addExtraHeaders(Headers.Builder headers, JSONObject extraHeaders) {
@@ -1334,6 +1568,22 @@ public class AiProviderService {
                 JSONObject property = new JSONObject();
                 property.put("type", geminiTypeName(sourceProperty == null ? "" : sourceProperty.optString("type", "")));
                 property.put("description", sourceProperty == null ? "" : sourceProperty.optString("description", ""));
+                if (sourceProperty != null) {
+                    // Preserve schema details previously dropped in conversion.
+                    JSONArray enumValues = sourceProperty.optJSONArray("enum");
+                    if (enumValues != null) {
+                        property.put("enum", enumValues);
+                    }
+                    JSONObject items = sourceProperty.optJSONObject("items");
+                    if (items != null) {
+                        JSONObject convertedItems = new JSONObject();
+                        convertedItems.put("type", geminiTypeName(items.optString("type", "")));
+                        if (items.optJSONObject("properties") != null) {
+                            convertedItems = convertJsonSchemaToGemini(items);
+                        }
+                        property.put("items", convertedItems);
+                    }
+                }
                 properties.put(name, property);
             }
             converted.put("properties", properties);

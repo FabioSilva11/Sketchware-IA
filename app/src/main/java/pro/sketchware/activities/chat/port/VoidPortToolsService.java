@@ -25,6 +25,7 @@ import pro.sketchware.activities.chat.DirectoryTreeService;
 import pro.sketchware.activities.chat.LanguageHelpers;
 import pro.sketchware.activities.chat.PromptConstants;
 import pro.sketchware.activities.chat.StringHelpers;
+import pro.sketchware.util.ChatToolLog;
 import pro.sketchware.util.ProjectPathResolver;
 import pro.sketchware.util.SemanticFileSearcher;
 import pro.sketchware.util.SketchwareFileDecryptor;
@@ -37,7 +38,13 @@ import pro.sketchware.util.FileChangeTracker;
  */
 public final class VoidPortToolsService {
 
-    private static final int MAX_FILE_CHARS_PAGE = 500000;
+    /**
+     * Max characters of file content returned per read_file page.
+     * Was 500 000 — half a megabyte per call blew up the LLM context budget
+     * (≈125k tokens in one tool result). 24 000 chars ≈ 6k tokens per page;
+     * the tool already reports hasNextPage/pagination so the model can page.
+     */
+    private static final int MAX_FILE_CHARS_PAGE = 24000;
     private static final int MAX_CHILDREN_URIS_PAGE = 500;
     /**
      * How long {@code run_persistent_command} waits before returning partial
@@ -46,12 +53,12 @@ public final class VoidPortToolsService {
      */
     private static final int MAX_TERMINAL_BG_COMMAND_TIME_SECONDS = 15;
     /**
-     * How long {@code run_command} waits for a one-shot command to finish
-     * before force-killing it and returning a timeout result.
-     * Raised from 8 s → 30 s; Android build-tool invocations (aapt, d8, …)
-     * routinely take more than 8 s, causing false timeout failures.
+     * Default wait for a one-shot {@code run_command} before force-killing it
+     * and returning a timeout result. The model can override per call via the
+     * optional {@code timeout_seconds} argument (clamped to 5-300 s).
+     * Raised 8 s → 30 s → 60 s; Gradle/aapt/d8 invocations routinely exceed 30 s.
      */
-    private static final int MAX_TERMINAL_INACTIVE_TIME_SECONDS = 30;
+    private static final int MAX_TERMINAL_INACTIVE_TIME_SECONDS = 60;
     private static final int LINT_ERROR_TIMEOUT = 1000;
 
     private static final Map<String, Process> activeTerminals = new ConcurrentHashMap<>();
@@ -63,6 +70,68 @@ public final class VoidPortToolsService {
 
     public static List<String> getPersistentTerminalIds() {
         return new ArrayList<>(activeTerminals.keySet());
+    }
+
+    /**
+     * Force-kills every process spawned by run_command / persistent terminals and
+     * clears the tracking maps. Called when the user cancels the current agent
+     * run — previously those processes kept running (and leaking) in the background.
+     */
+    /**
+     * update_plan tool: lets the model maintain the step plan shown in the
+     * plan tab (Codex-style). Input format: one step per line,
+     * "pending|running|done: step title".
+     */
+    private static String updatePlan(String scId, Object planObj) {
+        try {
+            String plan = planObj == null ? "" : String.valueOf(planObj);
+            List<pro.sketchware.activities.chat.ChatPlanManager.Task> tasks = new ArrayList<>();
+            for (String line : plan.split("\n")) {
+                String trimmed = line.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                int status = pro.sketchware.activities.chat.ChatPlanManager.STATUS_PENDING;
+                String title = trimmed;
+                int colon = trimmed.indexOf(':');
+                if (colon > 0) {
+                    String statusToken = trimmed.substring(0, colon).trim()
+                            .toLowerCase(java.util.Locale.US)
+                            .replaceAll("[^a-z_]", "");
+                    title = trimmed.substring(colon + 1).trim();
+                    if ("done".equals(statusToken) || "completed".equals(statusToken)) {
+                        status = pro.sketchware.activities.chat.ChatPlanManager.STATUS_DONE;
+                    } else if ("running".equals(statusToken) || "in_progress".equals(statusToken)) {
+                        status = pro.sketchware.activities.chat.ChatPlanManager.STATUS_RUNNING;
+                    } else if (!"pending".equals(statusToken)) {
+                        // No recognised status prefix — treat the whole line as a title.
+                        title = trimmed;
+                    }
+                }
+                if (!title.isEmpty()) {
+                    tasks.add(new pro.sketchware.activities.chat.ChatPlanManager.Task(title, "", status));
+                }
+            }
+            if (tasks.isEmpty()) {
+                return "Erro: plano vazio. Envie um passo por linha no formato 'pending|running|done: título'.";
+            }
+            pro.sketchware.activities.chat.ChatPlanManager.setModelPlan(scId, tasks);
+            return "Plano atualizado com " + tasks.size() + " passo(s).";
+        } catch (Exception e) {
+            return "Erro ao atualizar plano: " + e.getMessage();
+        }
+    }
+
+    public static void killAllTerminals() {
+        for (Map.Entry<String, Process> entry : activeTerminals.entrySet()) {
+            try {
+                entry.getValue().destroyForcibly();
+            } catch (Exception ignored) {
+            }
+        }
+        activeTerminals.clear();
+        terminalOutputs.clear();
+        terminalReaders.clear();
     }
 
     // ============================================
@@ -459,6 +528,7 @@ public final class VoidPortToolsService {
             String newContent = validateStr("new_content", newContentObj);
 
             String oldContent = SketchwareFileDecryptor.decryptFile(scId, uriStr);
+            boolean existedBefore = oldContent != null;
             if (oldContent == null) {
                 oldContent = "";
             }
@@ -467,7 +537,7 @@ public final class VoidPortToolsService {
                 return new ToolCallResult("Cannot write to file: " + uriStr);
             }
 
-            FileChangeTracker.trackChange(scId, uriStr, oldContent, newContent);
+            FileChangeTracker.trackChange(scId, uriStr, oldContent, newContent, existedBefore);
 
             // Get lint errors after write
             try {
@@ -569,7 +639,8 @@ public final class VoidPortToolsService {
             } else {
                 if (!file.exists()) {
                     file.createNewFile();
-                    FileChangeTracker.trackChange(scId, uriStr, "", "");
+                    // existedBefore=false: rejecting this change must delete the file.
+                    FileChangeTracker.trackChange(scId, uriStr, "", "", false);
                 }
             }
 
@@ -622,9 +693,22 @@ public final class VoidPortToolsService {
     // ============================================
 
     public static ToolCallResult runCommand(String scId, Object commandObj, Object cwdObj, Object terminalIdObj) {
+        return runCommand(scId, commandObj, cwdObj, terminalIdObj, null);
+    }
+
+    public static ToolCallResult runCommand(String scId, Object commandObj, Object cwdObj, Object terminalIdObj, Object timeoutObj) {
         try {
             String command = validateStr("command", commandObj);
             String cwd = validateOptionalStr("cwd", cwdObj);
+            int timeoutSeconds = MAX_TERMINAL_INACTIVE_TIME_SECONDS;
+            if (!isFalsy(timeoutObj)) {
+                try {
+                    timeoutSeconds = (int) Double.parseDouble(String.valueOf(timeoutObj));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+            // Clamp: at least 5 s, at most 5 min (Gradle/aapt builds need headroom).
+            timeoutSeconds = Math.max(5, Math.min(timeoutSeconds, 300));
             String terminalId = terminalIdObj != null ? String.valueOf(terminalIdObj) : java.util.UUID.randomUUID().toString();
 
             if (command.trim().isEmpty()) {
@@ -651,7 +735,7 @@ public final class VoidPortToolsService {
             terminalOutputs.put(terminalId, new StringBuilder());
             terminalReaders.put(terminalId, new BufferedReader(new InputStreamReader(process.getInputStream())));
 
-            boolean finished = process.waitFor(MAX_TERMINAL_INACTIVE_TIME_SECONDS, TimeUnit.SECONDS);
+            boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
                 String output = drainTerminalOutput(terminalId, false);
                 process.destroyForcibly();
@@ -782,9 +866,34 @@ public final class VoidPortToolsService {
     // ============================================
 
     private static File resolveTerminalWorkingDir(String scId, String cwd) throws IOException {
-        File workingDir = cwd != null && !cwd.trim().isEmpty()
-                ? new File(cwd.trim())
-                : ProjectPathResolver.getDefaultWorkingRoot(scId);
+        // Scope the terminal to the PROJECT folder, not the shared .sketchware root.
+        File projectRoot = ProjectPathResolver.getTerminalWorkingRoot(scId);
+        File workingDir;
+        if (cwd != null && !cwd.trim().isEmpty()) {
+            // Previously any cwd was accepted verbatim (new File(cwd)), letting a
+            // command run ANYWHERE on the device — the "run_command left the
+            // project folder" bug. Now the cwd is resolved relative to the
+            // project root and must stay inside it.
+            String trimmed = cwd.trim();
+            File requested = new File(trimmed);
+            if (!requested.isAbsolute()) {
+                requested = new File(projectRoot, trimmed);
+            }
+            try {
+                String canonical = requested.getCanonicalPath();
+                String rootCanonical = projectRoot.getCanonicalPath();
+                if (!canonical.equals(rootCanonical) && !canonical.startsWith(rootCanonical + File.separator)) {
+                    ChatToolLog.w("terminal", "cwd outside project, forcing root. requested=\"" + cwd
+                            + "\" root=" + rootCanonical);
+                    requested = projectRoot;
+                }
+            } catch (IOException e) {
+                requested = projectRoot;
+            }
+            workingDir = requested;
+        } else {
+            workingDir = projectRoot;
+        }
         if (workingDir == null) {
             throw new IOException("Android terminal working directory could not be resolved.");
         }
@@ -794,6 +903,7 @@ public final class VoidPortToolsService {
         if (!workingDir.isDirectory()) {
             throw new IOException("Android terminal cwd is not a directory: " + workingDir.getAbsolutePath());
         }
+        ChatToolLog.d("terminal", "cwd=" + workingDir.getAbsolutePath());
         return workingDir;
     }
 
@@ -1102,8 +1212,11 @@ public final class VoidPortToolsService {
                     "Edits a file, deleting all the old contents and replacing them with your new contents. Use this tool if you want to edit a file you just created.",
                     new String[]{"uri", "new_content"}, null));
             array.put(createToolMCP("run_command",
-                    "Runs a terminal command and waits for the result (times out after 30s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
-                    new String[]{"command"}, new String[]{"cwd"}));
+                    "Runs a terminal command and waits for the result (default timeout 60s; set timeout_seconds for longer builds, max 300). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
+                    new String[]{"command"}, new String[]{"cwd", "timeout_seconds"}));
+            array.put(createToolMCP("update_plan",
+                    "Updates the step-by-step plan shown to the user. Call this when starting a multi-step task and again whenever a step's status changes. Always send the FULL plan, one step per line, in the format 'pending: step title', 'running: step title' or 'done: step title'.",
+                    new String[]{"plan"}, null));
             array.put(createToolMCP("run_persistent_command",
                     "Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after 15s are returned, and command continues running in background). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
                     new String[]{"command", "persistent_terminal_id"}, null));
@@ -1254,6 +1367,12 @@ public final class VoidPortToolsService {
         if ("page_number".equals(paramName)) {
             return "Optional. The page number of the result. Default is 1.";
         }
+        if ("timeout_seconds".equals(paramName)) {
+            return "Optional. Max seconds to wait for the command (default 60, max 300). Use higher values for builds.";
+        }
+        if ("plan".equals(paramName)) {
+            return "The full plan, one step per line: 'pending|running|done: step title'.";
+        }
         if ("query".equals(paramName)) {
             return "Your query for the search.";
         }
@@ -1292,9 +1411,27 @@ public final class VoidPortToolsService {
     // ============================================
 
     public static String executeTool(String scId, String toolName, JSONObject args) {
+        long startedAt = android.os.SystemClock.elapsedRealtime();
+        pro.sketchware.util.ChatToolLog.d("tool", "▶ " + toolName + " sc=" + scId
+                + " args=" + pro.sketchware.util.ChatToolLog.preview(args == null ? "{}" : args.toString(), 300));
+        try {
+            String out = executeToolInner(scId, toolName, args);
+            long ms = android.os.SystemClock.elapsedRealtime() - startedAt;
+            boolean looksError = out != null && (out.startsWith("Erro") || out.startsWith("Error")
+                    || out.startsWith("Cannot") || out.startsWith("File not found") || out.startsWith("Blocked"));
+            pro.sketchware.util.ChatToolLog.d("tool", (looksError ? "✖ " : "✔ ") + toolName
+                    + " (" + ms + "ms) -> " + pro.sketchware.util.ChatToolLog.preview(out, 200));
+            return out;
+        } catch (Exception e) {
+            pro.sketchware.util.ChatToolLog.e("tool", "crash in " + toolName, e);
+            return "Erro ao executar ferramenta " + toolName + ": " + e.getMessage();
+        }
+    }
+
+    private static String executeToolInner(String scId, String toolName, JSONObject args) {
         try {
             ToolCallResult result;
-            
+
             switch (toolName) {
                 case "read_file":
                     result = readFile(scId, 
@@ -1371,7 +1508,8 @@ public final class VoidPortToolsService {
                     result = runCommand(scId,
                         args.opt("command"),
                         args.opt("cwd"),
-                        args.opt("terminal_id") != null ? args.opt("terminal_id") : args.opt("terminalId"));
+                        args.opt("terminal_id") != null ? args.opt("terminal_id") : args.opt("terminalId"),
+                        args.opt("timeout_seconds") != null ? args.opt("timeout_seconds") : args.opt("timeoutSeconds"));
                     break;
                     
                 case "open_persistent_terminal":
@@ -1384,6 +1522,9 @@ public final class VoidPortToolsService {
                         args.opt("persistent_terminal_id") != null ? args.opt("persistent_terminal_id") : args.opt("persistentTerminalId"));
                     break;
                     
+                case "update_plan":
+                    return updatePlan(scId, args.opt("plan"));
+
                 case "kill_persistent_terminal":
                     result = killPersistentTerminal(scId, args.opt("persistent_terminal_id") != null ? args.opt("persistent_terminal_id") : args.opt("persistentTerminalId"));
                     break;
