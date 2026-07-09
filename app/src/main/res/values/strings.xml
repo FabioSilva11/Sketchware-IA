@@ -2734,7 +2734,7 @@ Please try again later"</string>
     <string name="kelivo_input_web">Web search</string>
     <string name="kelivo_input_tools">Tools</string>
     <string name="kelivo_default_assistant">Sample Assistant</string>
-    <string name="kelivo_default_user">fabio</string>
+    <string name="kelivo_default_user">sketchware</string>
     <string name="kelivo_model_search_hint">Search models or providers</string>
     <string name="kelivo_model_favorites">Favorites</string>
     <string name="kelivo_model_favorite">Favorite model</string>

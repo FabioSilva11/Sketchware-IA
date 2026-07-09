@@ -70,13 +70,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialog;
 public class ChatActivity extends AppCompatActivity {
     private static final int REQUEST_PICK_REFERENCE_IMAGE = 9102;
     private static final int REQUEST_CAPTURE_REFERENCE_IMAGE = 9103;
-    private static final int REQUEST_PICK_USER_AVATAR = 9104;
     private static final int MAX_PENDING_REFERENCES = 8;
     private static final long STREAM_UI_UPDATE_INTERVAL_MS = 180L;
-    private static final String PREF_USER_NAME = "user_name";
-    private static final String PREF_LEGACY_USER_NAME = "user_display_name";
-    private static final String PREF_AVATAR_TYPE = "avatar_type";
-    private static final String PREF_AVATAR_VALUE = "avatar_value";
 
     private String sc_id;
     private ViewPager chatViewPager;
@@ -130,9 +125,6 @@ public class ChatActivity extends AppCompatActivity {
     private EditText drawerSearch;
     private ChatDrawerAdapter drawerAdapter;
     private ImageView imageChatModelIcon;
-    private FrameLayout drawerUserAvatarContainer;
-    private ImageView drawerUserAvatarImage;
-    private TextView drawerUserAvatar;
     private TextView drawerUserName;
     private TextToSpeech textToSpeech;
     private List<ChatThread> drawerThreads = new ArrayList<>();
@@ -468,19 +460,6 @@ public class ChatActivity extends AppCompatActivity {
         }
 
         drawerUserName = findViewById(R.id.drawer_user_name);
-        drawerUserAvatar = findViewById(R.id.drawer_user_avatar);
-        drawerUserAvatarImage = findViewById(R.id.drawer_user_avatar_image);
-        drawerUserAvatarContainer = findViewById(R.id.drawer_user_avatar_container);
-        updateDrawerUserUi();
-        if (drawerUserAvatarContainer != null) {
-            drawerUserAvatarContainer.setOnClickListener(v -> showUserAvatarSheet());
-        }
-        if (drawerUserAvatar != null) {
-            drawerUserAvatar.setOnClickListener(v -> showUserAvatarSheet());
-        }
-        if (drawerUserName != null) {
-            drawerUserName.setOnClickListener(v -> showRenameUserDialog());
-        }
 
         View drawerSettings = findViewById(R.id.btn_drawer_settings);
         if (drawerSettings != null) {
@@ -536,171 +515,6 @@ public class ChatActivity extends AppCompatActivity {
 
         refreshDrawerThreads();
         updateKelivoHeader();
-    }
-
-    private String getDrawerUserName() {
-        SharedPreferences prefs = getSharedPreferences("chat_settings", MODE_PRIVATE);
-        String name = prefs.getString(PREF_USER_NAME, "");
-        if (!ChatMessage.hasVisibleText(name)) {
-            name = prefs.getString(PREF_LEGACY_USER_NAME, getString(R.string.kelivo_default_user));
-        }
-        return name;
-    }
-
-    private String getDrawerUserInitial(String userName) {
-        String trimmed = userName == null ? "" : userName.trim();
-        if (trimmed.isEmpty()) {
-            return "f";
-        }
-        return String.valueOf(Character.toLowerCase(trimmed.charAt(0)));
-    }
-
-    private void updateDrawerUserUi() {
-        String userName = getDrawerUserName();
-        if (drawerUserName != null) {
-            drawerUserName.setText(userName);
-        }
-        SharedPreferences prefs = getSharedPreferences("chat_settings", MODE_PRIVATE);
-        String avatarType = prefs.getString(PREF_AVATAR_TYPE, "");
-        String avatarValue = prefs.getString(PREF_AVATAR_VALUE, "");
-        if ("file".equals(avatarType) && ChatMessage.hasVisibleText(avatarValue) && drawerUserAvatarImage != null) {
-            drawerUserAvatarImage.setVisibility(View.VISIBLE);
-            if (drawerUserAvatar != null) {
-                drawerUserAvatar.setVisibility(View.GONE);
-            }
-            try {
-                drawerUserAvatarImage.setImageURI(Uri.parse(avatarValue));
-            } catch (Exception ignored) {
-                drawerUserAvatarImage.setImageResource(R.drawable.kelivo_lucide_image);
-            }
-            return;
-        }
-        if (drawerUserAvatarImage != null) {
-            drawerUserAvatarImage.setImageDrawable(null);
-            drawerUserAvatarImage.setVisibility(View.GONE);
-        }
-        if (drawerUserAvatar != null) {
-            drawerUserAvatar.setVisibility(View.VISIBLE);
-            if ("emoji".equals(avatarType) && ChatMessage.hasVisibleText(avatarValue)) {
-                drawerUserAvatar.setText(avatarValue);
-                drawerUserAvatar.setTextSize(18f);
-            } else {
-                drawerUserAvatar.setText(getDrawerUserInitial(userName));
-                drawerUserAvatar.setTextSize(14f);
-            }
-        }
-    }
-
-    private void showUserAvatarSheet() {
-        BottomSheetDialog dialog = new BottomSheetDialog(this);
-        LinearLayout root = createSheetRoot();
-        TextView title = createSheetTitle(R.string.kelivo_profile_avatar_title);
-        root.addView(title);
-        root.addView(createSheetAction(R.drawable.kelivo_lucide_image, R.string.kelivo_profile_choose_image, v -> {
-            dialog.dismiss();
-            pickUserAvatarImage();
-        }));
-        root.addView(createSheetAction(R.drawable.ic_kelivo_emoji, R.string.kelivo_profile_choose_emoji, v -> {
-            dialog.dismiss();
-            showEmojiAvatarDialog();
-        }));
-        root.addView(createSheetAction(R.drawable.kelivo_lucide_x, R.string.kelivo_profile_remove_avatar, v -> {
-            getSharedPreferences("chat_settings", MODE_PRIVATE)
-                    .edit()
-                    .remove(PREF_AVATAR_TYPE)
-                    .remove(PREF_AVATAR_VALUE)
-                    .apply();
-            updateDrawerUserUi();
-            if (messageAdapter != null) {
-                messageAdapter.notifyDataSetChanged();
-            }
-            dialog.dismiss();
-        }));
-        dialog.setContentView(root);
-        expandSheet(dialog, 0.42f);
-        dialog.show();
-    }
-
-    private void showEmojiAvatarDialog() {
-        String[] emojis = new String[]{
-                "\uD83D\uDE00", "\uD83D\uDE0E", "\uD83E\uDD16", "\uD83D\uDE80", "\u2728",
-                "\uD83D\uDD25", "\uD83D\uDCBB", "\uD83C\uDFA8", "\uD83E\uDDE0", "\u2B50"
-        };
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.kelivo_profile_choose_emoji)
-                .setItems(emojis, (dialog, which) -> {
-                    if (which < 0 || which >= emojis.length) {
-                        return;
-                    }
-                    getSharedPreferences("chat_settings", MODE_PRIVATE)
-                            .edit()
-                            .putString(PREF_AVATAR_TYPE, "emoji")
-                            .putString(PREF_AVATAR_VALUE, emojis[which])
-                            .apply();
-                    updateDrawerUserUi();
-                    if (messageAdapter != null) {
-                        messageAdapter.notifyDataSetChanged();
-                    }
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .show();
-    }
-
-    private void pickUserAvatarImage() {
-        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("image/*");
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-        try {
-            startActivityForResult(intent, REQUEST_PICK_USER_AVATAR);
-        } catch (Exception firstFailure) {
-            Intent fallback = new Intent(Intent.ACTION_GET_CONTENT);
-            fallback.addCategory(Intent.CATEGORY_OPENABLE);
-            fallback.setType("image/*");
-            fallback.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivityForResult(Intent.createChooser(fallback, getString(R.string.kelivo_profile_choose_image)),
-                    REQUEST_PICK_USER_AVATAR);
-        }
-    }
-
-    private void showRenameUserDialog() {
-        EditText input = new EditText(this);
-        input.setSingleLine(true);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
-        input.setHint(R.string.kelivo_profile_name_hint);
-        input.setText(getDrawerUserName());
-        input.setSelectAllOnFocus(true);
-        int padding = dp(18);
-        FrameLayout frame = new FrameLayout(this);
-        frame.setPadding(padding, dp(6), padding, 0);
-        frame.addView(input, new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT
-        ));
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle(R.string.kelivo_profile_edit_name)
-                .setView(frame)
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(android.R.string.ok, null)
-                .create();
-        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String name = input.getText() == null ? "" : input.getText().toString().trim();
-            if (!ChatMessage.hasVisibleText(name)) {
-                return;
-            }
-            getSharedPreferences("chat_settings", MODE_PRIVATE)
-                    .edit()
-                    .putString(PREF_USER_NAME, name)
-                    .putString(PREF_LEGACY_USER_NAME, name)
-                    .apply();
-            updateDrawerUserUi();
-            if (messageAdapter != null) {
-                messageAdapter.notifyDataSetChanged();
-            }
-            Toast.makeText(this, R.string.kelivo_profile_name_saved, Toast.LENGTH_SHORT).show();
-            dialog.dismiss();
-        }));
-        dialog.show();
     }
 
     private void refreshDrawerThreads() {
@@ -2295,23 +2109,6 @@ public class ChatActivity extends AppCompatActivity {
                     editTextMessage.setText(spokenText);
                     editTextMessage.setSelection(spokenText.length());
                 }
-            }
-            return;
-        }
-        if (requestCode == REQUEST_PICK_USER_AVATAR) {
-            if (resultCode == RESULT_OK && data != null && data.getData() != null) {
-                Uri uri = data.getData();
-                grantImageReadPermission(data, uri);
-                getSharedPreferences("chat_settings", MODE_PRIVATE)
-                        .edit()
-                        .putString(PREF_AVATAR_TYPE, "file")
-                        .putString(PREF_AVATAR_VALUE, uri.toString())
-                        .apply();
-                updateDrawerUserUi();
-                if (messageAdapter != null) {
-                    messageAdapter.notifyDataSetChanged();
-                }
-                Toast.makeText(this, R.string.kelivo_avatar_updated, Toast.LENGTH_SHORT).show();
             }
             return;
         }
