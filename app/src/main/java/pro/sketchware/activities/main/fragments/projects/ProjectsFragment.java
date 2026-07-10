@@ -69,6 +69,9 @@ public class ProjectsFragment extends DA {
                 } else {
                     updateProject(sc_id);
                 }
+                if (getActivity() instanceof MainActivity) {
+                    ((MainActivity) getActivity()).refreshChatProjectsList();
+                }
             }
         }
     });
