@@ -24,15 +24,6 @@
         android:id="@+id/app_settings"
         android:icon="@drawable/ic_mtrl_settings"
         android:title="Settings" />
-    <item android:title="Apps">
-        <menu>
-            <item
-                android:id="@+id/app_sw_assist"
-                android:icon="@drawable/swassist_logo"
-                android:title="SwAssist" />
-        </menu>
-    </item>
-
     <item
         android:id="@+id/donate"
         android:icon="@drawable/receive_cash_48"
@@ -40,11 +31,6 @@
 
     <item android:title="Related links">
         <menu>
-            <item
-                android:id="@+id/social_discord"
-                android:icon="@drawable/ic_youtube"
-                android:title="YouTube" />
-
             <item
                 android:id="@+id/social_telegram"
                 android:icon="@drawable/ic_telegram"

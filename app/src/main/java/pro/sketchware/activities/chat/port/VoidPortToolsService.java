@@ -1214,18 +1214,6 @@ public final class VoidPortToolsService {
             array.put(createToolMCP("run_command",
                     "Runs a terminal command and waits for the result (default timeout 60s; set timeout_seconds for longer builds, max 300). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
                     new String[]{"command"}, new String[]{"cwd", "timeout_seconds"}));
-            array.put(createToolMCP("update_plan",
-                    "Updates the step-by-step plan shown to the user. Call this when starting a multi-step task and again whenever a step's status changes. Always send the FULL plan, one step per line, in the format 'pending: step title', 'running: step title' or 'done: step title'.",
-                    new String[]{"plan"}, null));
-            array.put(createToolMCP("run_persistent_command",
-                    "Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after 15s are returned, and command continues running in background). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
-                    new String[]{"command", "persistent_terminal_id"}, null));
-            array.put(createToolMCP("open_persistent_terminal",
-                    "Use this tool when you want to run a terminal command indefinitely, like a dev server (eg `npm run dev`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.",
-                    new String[]{}, new String[]{"cwd"}));
-            array.put(createToolMCP("kill_persistent_terminal",
-                    "Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.",
-                    new String[]{"persistent_terminal_id"}, null));
             return array;
         }
 
@@ -1280,18 +1268,6 @@ public final class VoidPortToolsService {
         array.put(createToolMCP("run_command",
             "Runs a terminal command and waits for the result (times out after 30s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
             new String[]{"command"}, new String[]{"cwd"}));
-
-        array.put(createToolMCP("run_persistent_command",
-            "Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after 15s are returned, and command continues running in background). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
-            new String[]{"command", "persistent_terminal_id"}, null));
-
-        array.put(createToolMCP("open_persistent_terminal",
-            "Use this tool when you want to run a terminal command indefinitely, like a dev server (eg `npm run dev`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.",
-            new String[]{}, new String[]{"cwd"}));
-
-        array.put(createToolMCP("kill_persistent_terminal",
-            "Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.",
-            new String[]{"persistent_terminal_id"}, null));
 
         return array;
     }
@@ -1512,26 +1488,9 @@ public final class VoidPortToolsService {
                         args.opt("timeout_seconds") != null ? args.opt("timeout_seconds") : args.opt("timeoutSeconds"));
                     break;
                     
-                case "open_persistent_terminal":
-                    result = openPersistentTerminal(scId, args.opt("cwd"));
-                    break;
-                    
-                case "run_persistent_command":
-                    result = runPersistentCommand(scId,
-                        args.opt("command"),
-                        args.opt("persistent_terminal_id") != null ? args.opt("persistent_terminal_id") : args.opt("persistentTerminalId"));
-                    break;
-                    
-                case "update_plan":
-                    return updatePlan(scId, args.opt("plan"));
-
-                case "kill_persistent_terminal":
-                    result = killPersistentTerminal(scId, args.opt("persistent_terminal_id") != null ? args.opt("persistent_terminal_id") : args.opt("persistentTerminalId"));
-                    break;
-                    
                 default:
                     if ("get_file".equals(toolName)) {
-                        return "Erro: ferramenta 'get_file' não existe. Use 'read_file' para ler arquivos. Ferramentas disponíveis: read_file, ls_dir, get_dir_tree, search_pathnames_only, search_for_files, search_in_file, read_lint_errors, create_file_or_folder, delete_file_or_folder, edit_file, rewrite_file, run_command, run_persistent_command, open_persistent_terminal, kill_persistent_terminal";
+                        return "Erro: ferramenta 'get_file' não existe. Use 'read_file' para ler arquivos. Ferramentas disponíveis: read_file, ls_dir, get_dir_tree, search_pathnames_only, search_for_files, search_in_file, read_lint_errors, create_file_or_folder, delete_file_or_folder, edit_file, rewrite_file, run_command";
                     }
                     return "Erro: ferramenta '" + toolName + "' não está disponível ou não existe. " +
                             "Certifique-se de que está no modo correto (agent/gather). " +

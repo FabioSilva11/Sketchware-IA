@@ -402,7 +402,7 @@ public class ContextBuilder {
 
         if ("agent".equals(chatMode)) {
             details.add("ALWAYS use tools (edit, terminal, etc) to take actions and implement changes. For example, if you would like to edit a file, you MUST use a tool.");
-            details.add("NEVER use run_command or run_persistent_command to create, edit, overwrite, move or delete files.");
+            details.add("NEVER use run_command to create, edit, overwrite, move or delete files.");
             details.add("File mutations must use create_file_or_folder, delete_file_or_folder, edit_file or rewrite_file.");
             details.add("After create_file_or_folder creates a new file, use rewrite_file to write its contents.");
             details.add("Do not use terminal echo, tee, cat redirection, sed -i, cp, mv, rm, touch or mkdir for file mutations.");

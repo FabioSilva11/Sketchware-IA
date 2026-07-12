@@ -41,7 +41,7 @@ public class WebServiceFragment extends Fragment {
         setupRecyclerView();
         
         UI.addSystemWindowInsetToPadding(binding.textWebService, true, false, true, false);
-        UI.addSystemWindowInsetToPadding(binding.webServiceRecyclerView, true, false, true, false);
+        UI.addSystemWindowInsetToPadding(binding.webServiceRecyclerView, true, false, true, true);
     }
 
     @Override
@@ -58,5 +58,4 @@ public class WebServiceFragment extends Fragment {
         binding.webServiceRecyclerView.setAdapter(adapter);
     }
 }
-
 

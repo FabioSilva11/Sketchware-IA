@@ -1836,8 +1836,8 @@ But, components should be added manually for working correctly."</string>
     <string name="program_information_actionbar_title">Program Information</string>
     <string name="program_information_button_check_update">Check for Updates</string>
     <string name="update_notification_channel">App updates</string>
-    <string name="update_notification_title">Update available</string>
-    <string name="update_notification_message">Sketchware IA %1$s is available. Tap to open the release.</string>
+    <string name="update_notification_title">New update is being prepared</string>
+    <string name="update_notification_message">A new commit was published: %1$s. The app update will be available shortly.</string>
     <string name="program_information_button_reset_system">Reset settings</string>
     <string name="program_information_reset_system_complete_initialize">All of the data was initialized</string>
     <string name="program_information_reset_system_confirm_description">"All projects will be reset.
@@ -2450,6 +2450,7 @@ Please try again later"</string>
     <string name="link_discord_invite">https://t.me/sketcware_ia</string>
 
     <string name="link_github_commits_url"><![CDATA[https://api.github.com/repos/FabioSilva11/Sketchware-IA/commits?per_page=%1$s&page=%2$s]]></string>
+    <string name="link_github_main_commit_url">https://api.github.com/repos/FabioSilva11/Sketchware-IA/commits/main</string>
     <string name="link_github_contributors_url">https://api.github.com/repos/FabioSilva11/Sketchware-IA/contributors?per_page=100</string>
     <string name="link_github_releases_url">https://api.github.com/repos/FabioSilva11/Sketchware-IA/releases?per_page=25</string>
     <string name="github_api_error_message">Something went wrong. Please wait and try again.</string>

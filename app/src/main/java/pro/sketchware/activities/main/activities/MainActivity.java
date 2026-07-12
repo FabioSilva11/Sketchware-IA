@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -73,6 +74,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     private static final int PAGE_WEB_SERVICE = 2;
     private static final int PAGE_CHAT = 3;
     private static final int MAIN_PAGE_COUNT = 4;
+    private static final int REQUEST_UPDATE_NOTIFICATIONS = 24012;
     private ActionBarDrawerToggle drawerToggle;
     private DB u;
     private Snackbar storageAccessDenied;
@@ -111,9 +113,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
             restoreExternalTranslationSupport();
             maybeShowAdsNoticeOnce();
 
-            if (activeFragment instanceof ProjectsFragment) {
-                projectsFragment.refreshProjectsList();
-            }
+            refreshProjectBackedFragments();
         }
     }
 
@@ -133,9 +133,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     }
 
     public void n() {
-        if (activeFragment instanceof ProjectsFragment) {
-            projectsFragment.refreshProjectsList();
-        }
+        refreshProjectBackedFragments();
     }
 
     @Override
@@ -159,13 +157,24 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
                 case 212:
                     if (!(data.getStringExtra("save_as_new_id") == null ? "" : data.getStringExtra("save_as_new_id")).isEmpty() && isStoragePermissionGranted()) {
-                        if (activeFragment instanceof ProjectsFragment) {
-                            projectsFragment.refreshProjectsList();
-                        }
+                        refreshProjectBackedFragments();
                     }
                     break;
             }
         }
+    }
+
+    public void refreshChatProjectsList() {
+        if (chatFragment != null && chatFragment.isAdded()) {
+            chatFragment.refreshProjectsList();
+        }
+    }
+
+    private void refreshProjectBackedFragments() {
+        if (projectsFragment != null && projectsFragment.isAdded()) {
+            projectsFragment.refreshProjectsList();
+        }
+        refreshChatProjectsList();
     }
 
     @Override
@@ -301,6 +310,13 @@ public class MainActivity extends BasePermissionAppCompatActivity {
             initialPage = navIdToPage(currentNavItemId);
         }
         setupMainPager(initialPage);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    REQUEST_UPDATE_NOTIFICATIONS);
+        }
         AppUpdateNotifier.checkForUpdates(this);
     }
 

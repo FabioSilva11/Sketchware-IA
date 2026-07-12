@@ -10,167 +10,125 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
 
-import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.util.Locale;
 
 import pro.sketchware.BuildConfig;
 import pro.sketchware.R;
 import pro.sketchware.utility.Network;
 
+/** Notifies installed builds whenever the repository main branch advances. */
 public final class AppUpdateNotifier {
-
     private static final String PREFS = "app_update_notifier";
-    private static final String KEY_LAST_CHECK = "last_check";
-    private static final String KEY_LAST_NOTIFIED_TAG = "last_notified_tag";
+    private static final String KEY_LAST_CHECK = "last_commit_check";
+    private static final String KEY_LAST_NOTIFIED_SHA = "last_notified_commit_sha";
+    private static final String KEY_UNKNOWN_BUILD_BASELINE = "unknown_build_baseline_sha";
     private static final String CHANNEL_ID = "app_updates";
     private static final int NOTIFICATION_ID = 7001;
-    private static final long CHECK_INTERVAL_MS = 6L * 60L * 60L * 1000L;
+    private static final long CHECK_INTERVAL_MS = 15L * 60L * 1000L;
+    private static Handler monitorHandler;
 
-    private AppUpdateNotifier() {
-    }
+    private AppUpdateNotifier() {}
 
     public static void checkForUpdates(Context context) {
         Context appContext = context.getApplicationContext();
+        startPeriodicMonitoring(appContext);
         SharedPreferences prefs = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         long now = System.currentTimeMillis();
-        if (now - prefs.getLong(KEY_LAST_CHECK, 0L) < CHECK_INTERVAL_MS) {
-            return;
-        }
+        if (now - prefs.getLong(KEY_LAST_CHECK, 0L) < CHECK_INTERVAL_MS) return;
         prefs.edit().putLong(KEY_LAST_CHECK, now).apply();
 
-        new Network().get(Helper.getResString(R.string.link_github_releases_url), response -> {
-            ReleaseInfo latestRelease = parseLatestRelease(response);
-            if (latestRelease == null || !isNewerVersion(latestRelease.tagName, BuildConfig.VERSION_NAME)) {
-                return;
-            }
-            if (latestRelease.tagName.equals(prefs.getString(KEY_LAST_NOTIFIED_TAG, ""))) {
-                return;
-            }
+        new Network().get(appContext.getString(R.string.link_github_main_commit_url), response -> {
+            CommitInfo latest = parseCommit(response);
+            if (latest == null) return;
 
-            showUpdateNotification(appContext, latestRelease);
-            prefs.edit().putString(KEY_LAST_NOTIFIED_TAG, latestRelease.tagName).apply();
+            String installedSha = BuildConfig.GIT_HASH == null ? "" : BuildConfig.GIT_HASH.trim();
+            if (installedSha.isEmpty() || "unknown".equalsIgnoreCase(installedSha)) {
+                String baseline = prefs.getString(KEY_UNKNOWN_BUILD_BASELINE, "");
+                if (baseline.isEmpty()) {
+                    prefs.edit().putString(KEY_UNKNOWN_BUILD_BASELINE, latest.sha).apply();
+                    return;
+                }
+                installedSha = baseline;
+            }
+            if (latest.sha.equalsIgnoreCase(installedSha)
+                    || latest.sha.equals(prefs.getString(KEY_LAST_NOTIFIED_SHA, ""))) return;
+
+            showUpdateNotification(appContext, latest);
+            prefs.edit().putString(KEY_LAST_NOTIFIED_SHA, latest.sha).apply();
         });
     }
 
-    private static ReleaseInfo parseLatestRelease(String response) {
-        if (response == null || response.trim().isEmpty()) {
+    private static synchronized void startPeriodicMonitoring(Context context) {
+        if (monitorHandler != null) return;
+        monitorHandler = new Handler(Looper.getMainLooper());
+        monitorHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                checkForUpdates(context);
+                monitorHandler.postDelayed(this, CHECK_INTERVAL_MS);
+            }
+        }, CHECK_INTERVAL_MS);
+    }
+
+    private static CommitInfo parseCommit(String response) {
+        if (response == null || response.trim().isEmpty()) return null;
+        try {
+            JSONObject root = new JSONObject(response);
+            String sha = root.optString("sha", "").trim();
+            String url = root.optString("html_url", "").trim();
+            JSONObject commit = root.optJSONObject("commit");
+            String message = commit == null ? "" : commit.optString("message", "").trim();
+            int newline = message.indexOf('\n');
+            if (newline >= 0) message = message.substring(0, newline).trim();
+            if (sha.isEmpty()) return null;
+            return new CommitInfo(sha, message, url);
+        } catch (Exception ignored) {
             return null;
         }
-
-        try {
-            JSONArray releases = new JSONArray(response);
-            for (int i = 0; i < releases.length(); i++) {
-                JSONObject release = releases.optJSONObject(i);
-                if (release == null || release.optBoolean("draft") || release.optBoolean("prerelease")) {
-                    continue;
-                }
-
-                String tagName = release.optString("tag_name", "").trim();
-                if (tagName.isEmpty()) {
-                    continue;
-                }
-
-                String title = release.optString("name", tagName).trim();
-                String url = release.optString("html_url", Helper.getResString(R.string.link_github_release)).trim();
-                return new ReleaseInfo(tagName, title.isEmpty() ? tagName : title, url);
-            }
-        } catch (Exception ignored) {
-        }
-        return null;
     }
 
-    private static boolean isNewerVersion(String remoteVersion, String currentVersion) {
-        int[] remote = parseVersion(remoteVersion);
-        int[] current = parseVersion(currentVersion);
-        int max = Math.max(remote.length, current.length);
-        for (int i = 0; i < max; i++) {
-            int remotePart = i < remote.length ? remote[i] : 0;
-            int currentPart = i < current.length ? current[i] : 0;
-            if (remotePart != currentPart) {
-                return remotePart > currentPart;
-            }
-        }
-        return false;
-    }
-
-    private static int[] parseVersion(String version) {
-        String normalized = version == null
-                ? ""
-                : version.toLowerCase(Locale.US).replaceFirst("^v", "");
-        String[] parts = normalized.split("[^0-9]+");
-        int[] values = new int[parts.length];
-        int count = 0;
-        for (String part : parts) {
-            if (part.isEmpty()) {
-                continue;
-            }
-            try {
-                values[count++] = Integer.parseInt(part);
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        int[] compact = new int[count];
-        System.arraycopy(values, 0, compact, 0, count);
-        return compact;
-    }
-
-    private static void showUpdateNotification(Context context, ReleaseInfo release) {
+    private static void showUpdateNotification(Context context, CommitInfo commit) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED) {
-            return;
-        }
-
-        NotificationManager notificationManager =
-                (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager == null) {
-            return;
-        }
-
+                != PackageManager.PERMISSION_GRANTED) return;
+        NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager == null) return;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
+            manager.createNotificationChannel(new NotificationChannel(CHANNEL_ID,
                     context.getString(R.string.update_notification_channel),
-                    NotificationManager.IMPORTANCE_DEFAULT
-            );
-            notificationManager.createNotificationChannel(channel);
+                    NotificationManager.IMPORTANCE_DEFAULT));
         }
-
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(release.url));
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                context,
-                NOTIFICATION_ID,
-                intent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        String message = context.getString(R.string.update_notification_message, release.title);
+        String target = commit.url.isEmpty() ? context.getString(R.string.link_github_url) : commit.url;
+        PendingIntent pendingIntent = PendingIntent.getActivity(context, NOTIFICATION_ID,
+                new Intent(Intent.ACTION_VIEW, Uri.parse(target)),
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        String shortSha = commit.sha.substring(0, Math.min(7, commit.sha.length()));
+        String detail = commit.message.isEmpty() ? shortSha : commit.message;
+        String text = context.getString(R.string.update_notification_message, detail);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_sketchware_24)
                 .setContentTitle(context.getString(R.string.update_notification_title))
-                .setContentText(message)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+                .setContentText(text)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(text))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-
-        notificationManager.notify(NOTIFICATION_ID, builder.build());
+        manager.notify(NOTIFICATION_ID, builder.build());
     }
 
-    private static final class ReleaseInfo {
-        final String tagName;
-        final String title;
+    private static final class CommitInfo {
+        final String sha;
+        final String message;
         final String url;
-
-        ReleaseInfo(String tagName, String title, String url) {
-            this.tagName = tagName;
-            this.title = title;
+        CommitInfo(String sha, String message, String url) {
+            this.sha = sha;
+            this.message = message;
             this.url = url;
         }
     }
