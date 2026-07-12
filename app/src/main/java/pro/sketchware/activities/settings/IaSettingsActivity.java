@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Locale;
 
 import pro.sketchware.R;
+import pro.sketchware.ai.config.AiSettingsRepository;
 import pro.sketchware.activities.chat.port.VoidPortProviderMaxTokens;
 import pro.sketchware.activities.chat.port.VoidPortSettings;
 import pro.sketchware.databinding.ActivityIaSettingsBinding;
@@ -62,7 +63,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
 
         binding = ActivityIaSettingsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        prefs = VoidPortSettings.prefs(this);
+        prefs = new AiSettingsRepository(this).preferences();
 
         setupToolbar();
         setupMaxTokensCard();

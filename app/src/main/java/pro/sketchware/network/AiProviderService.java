@@ -31,12 +31,15 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okio.BufferedSource;
 import pro.sketchware.SketchApplication;
+import pro.sketchware.ai.config.AiSettingsRepository;
 import pro.sketchware.activities.chat.AiChatSettingsHelper;
 import pro.sketchware.activities.chat.ContextBuilder;
 import pro.sketchware.activities.chat.port.VoidPortExtractGrammar;
 import pro.sketchware.activities.chat.port.VoidPortLlmMessage;
 import pro.sketchware.activities.chat.port.VoidPortLlmMessage.ProviderConfig;
 import pro.sketchware.activities.chat.port.VoidPortLlmMessage.ProviderFamily;
+import pro.sketchware.network.provider.AiProviderAdapter;
+import pro.sketchware.network.provider.AiProviderAdapterRegistry;
 
 /**
  * Provider-aware AI service with OpenAI-compatible and Anthropic-specific
@@ -54,7 +57,9 @@ public class AiProviderService {
     private final Context context;
     private final OkHttpClient client;
     private final Handler mainHandler;
-    private volatile Call currentStreamingCall;
+    private final AiSettingsRepository settingsRepository;
+    private final AiProviderAdapterRegistry providerAdapters;
+    private final AiStreamingTransport streamingTransport;
 
     public interface StreamListener {
         void onContent(String delta);
@@ -249,6 +254,13 @@ public class AiProviderService {
                 .writeTimeout(60, TimeUnit.SECONDS)
                 .build();
         this.mainHandler = new Handler(Looper.getMainLooper());
+        this.settingsRepository = new AiSettingsRepository(context);
+        this.providerAdapters = new AiProviderAdapterRegistry();
+        this.streamingTransport = new AiStreamingTransport(
+                mainHandler,
+                this::clientForProvider,
+                this::buildHttpErrorMessage
+        );
     }
 
     public static synchronized AiProviderService getInstance() {
@@ -258,45 +270,57 @@ public class AiProviderService {
         return instance;
     }
 
-    public void sendStreamingMessage(ContextBuilder.Result requestContext, JSONArray tools, String chatMode, StreamListener listener) {
-        SharedPreferences prefs = context.getSharedPreferences(AiChatSettingsHelper.PREFS_NAME, Context.MODE_PRIVATE);
-        AiChatSettingsHelper.ensureValidCurrentSelection(prefs);
-        String currentProvider = prefs.getString(AiChatSettingsHelper.PREF_CURRENT_PROVIDER, "groq");
-        String currentModel = prefs.getString(AiChatSettingsHelper.PREF_CURRENT_MODEL, "llama-3.1-8b-instant");
-
-        ProviderConfig providerConfig = resolveProviderConfig(prefs, currentProvider);
+    public AiRequestHandle sendStreamingMessage(ContextBuilder.Result requestContext, JSONArray tools, String chatMode, StreamListener listener) {
+        AiRequestHandle requestHandle = new AiRequestHandle();
+        AiSettingsRepository.Selection selection = settingsRepository.currentSelection();
+        String currentProvider = selection.providerId;
+        String currentModel = selection.modelName;
+        ProviderConfig providerConfig = selection.providerConfig;
         if (providerConfig == null) {
             listener.onError("Unsupported provider: " + currentProvider, null);
-            return;
+            return requestHandle;
         }
 
-        if (!AiChatSettingsHelper.isProviderConfigured(prefs, currentProvider)) {
+        if (!settingsRepository.isConfigured(selection)) {
             listener.onError("Provider not enabled or API key missing", null);
-            return;
+            return requestHandle;
         }
         if (providerConfig.baseUrl.isEmpty()) {
             listener.onError("Provider endpoint is missing", null);
-            return;
+            return requestHandle;
         }
 
-        dispatchRequest(providerConfig, currentProvider, currentModel, requestContext, tools, chatMode, listener, 0);
+        dispatchRequest(providerConfig, currentProvider, currentModel, requestContext, tools, chatMode, listener, 0, requestHandle);
+        return requestHandle;
     }
 
     public String sendTextMessage(String systemPrompt, String userPrompt) throws IOException {
+        return sendTextMessage(settingsRepository.currentSelection(), systemPrompt, userPrompt);
+    }
+
+    /** Uses a model from IaSettings without changing the app-wide current model. */
+    public String sendTextMessage(String providerId, String modelName,
+                                  String systemPrompt, String userPrompt) throws IOException {
+        return sendTextMessage(
+                settingsRepository.selection(providerId, modelName),
+                systemPrompt,
+                userPrompt
+        );
+    }
+
+    private String sendTextMessage(AiSettingsRepository.Selection selection,
+                                   String systemPrompt, String userPrompt) throws IOException {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             // Blocking network call + Thread.sleep retries would ANR the app.
             throw new IllegalStateException("sendTextMessage must not be called on the main thread");
         }
-        SharedPreferences prefs = context.getSharedPreferences(AiChatSettingsHelper.PREFS_NAME, Context.MODE_PRIVATE);
-        AiChatSettingsHelper.ensureValidCurrentSelection(prefs);
-        String currentProvider = prefs.getString(AiChatSettingsHelper.PREF_CURRENT_PROVIDER, "groq");
-        String currentModel = prefs.getString(AiChatSettingsHelper.PREF_CURRENT_MODEL, "llama-3.1-8b-instant");
-
-        ProviderConfig providerConfig = resolveProviderConfig(prefs, currentProvider);
+        String currentProvider = selection.providerId;
+        String currentModel = selection.modelName;
+        ProviderConfig providerConfig = selection.providerConfig;
         if (providerConfig == null) {
             throw new IOException("Unsupported provider: " + currentProvider);
         }
-        if (!AiChatSettingsHelper.isProviderConfigured(prefs, currentProvider)) {
+        if (!settingsRepository.isConfigured(selection)) {
             throw new IOException("Provider not enabled or API key missing: " + currentProvider);
         }
         if (providerConfig.baseUrl.isEmpty()) {
@@ -345,33 +369,25 @@ public class AiProviderService {
         throw lastException != null ? lastException : new IOException("Unknown AI request error");
     }
 
-    public void cancelCurrentStream() {
-        Call call = currentStreamingCall;
-        if (call != null) {
-            call.cancel();
-        }
-        currentStreamingCall = null;
-    }
-
     private void dispatchRequest(ProviderConfig providerConfig, String providerId, String modelName,
                                  ContextBuilder.Result requestContext, JSONArray tools, String chatMode,
-                                 StreamListener rawListener, int retryCount) {
+                                 StreamListener rawListener, int retryCount, AiRequestHandle requestHandle) {
         // Wrap once so mid-stream retries can check whether deltas already reached the UI.
         StreamListener listener = rawListener instanceof EmissionTracker
                 ? rawListener
                 : new EmissionTracker(rawListener);
         if (providerConfig.family == ProviderFamily.ANTHROPIC) {
-            sendAnthropicStreamingRequest(providerConfig, modelName, requestContext, tools, chatMode, listener, providerId, retryCount);
+            sendAnthropicStreamingRequest(providerConfig, modelName, requestContext, tools, chatMode, listener, providerId, retryCount, requestHandle);
         } else if (providerConfig.family == ProviderFamily.GEMINI) {
-            sendGeminiStreamingRequest(providerConfig, modelName, requestContext, tools, chatMode, listener, providerId, retryCount);
+            sendGeminiStreamingRequest(providerConfig, modelName, requestContext, tools, chatMode, listener, providerId, retryCount, requestHandle);
         } else {
-            sendOpenAiCompatibleStreamingRequest(providerConfig, modelName, requestContext, tools, chatMode, listener, providerId, retryCount);
+            sendOpenAiCompatibleStreamingRequest(providerConfig, modelName, requestContext, tools, chatMode, listener, providerId, retryCount, requestHandle);
         }
     }
 
     private void sendGeminiStreamingRequest(ProviderConfig providerConfig, String modelName,
                                             ContextBuilder.Result requestContext, JSONArray tools, String chatMode,
-                                            StreamListener listener, String providerId, int retryCount) {
+                                            StreamListener listener, String providerId, int retryCount, AiRequestHandle requestHandle) {
         try {
             JSONObject jsonBody = new JSONObject();
             jsonBody.put("contents", requestContext.getMessages());
@@ -394,10 +410,8 @@ public class AiProviderService {
 
             // API key is sent via the x-goog-api-key header (see buildGeminiHeaders)
             // instead of a query parameter, so it never leaks into logs.
-            HttpUrl url = HttpUrl.parse(providerConfig.baseUrl + "/models/" + modelName + ":streamGenerateContent")
-                    .newBuilder()
-                    .addQueryParameter("alt", "sse")
-                    .build();
+            AiProviderAdapter adapter = providerAdapters.get(providerConfig.family);
+            String url = adapter.streamingUrl(providerConfig, modelName);
 
             emitDebug(listener, "LLM request -> provider=" + providerId
                     + ", model=" + modelName
@@ -405,15 +419,15 @@ public class AiProviderService {
 
             Request request = new Request.Builder()
                     .url(url)
-                    .headers(buildGeminiHeaders(providerConfig))
+                    .headers(adapter.headers(providerConfig))
                     .post(RequestBody.create(jsonBody.toString(), JSON_MEDIA_TYPE))
                     .build();
 
-            executeWithRetry(request, retryCount, providerId, listener, (call, response) -> {
+            executeStreaming(request, retryCount, providerId, listener, (call, response) -> {
                 try (BufferedSource source = response.body().source()) {
                     readGeminiEventStream(source, requestContext, tools, listener);
                 }
-            });
+            }, requestHandle);
         } catch (Exception e) {
             listener.onError("Request preparation error", e);
         }
@@ -421,7 +435,7 @@ public class AiProviderService {
 
     private void sendOpenAiCompatibleStreamingRequest(ProviderConfig providerConfig, String modelName,
                                                       ContextBuilder.Result requestContext, JSONArray tools, String chatMode,
-                                                      StreamListener listener, String providerId, int retryCount) {
+                                                      StreamListener listener, String providerId, int retryCount, AiRequestHandle requestHandle) {
         try {
             JSONArray messages = new JSONArray();
             if (!TextUtils.isEmpty(requestContext.getSystemContext())) {
@@ -457,18 +471,19 @@ public class AiProviderService {
                 }
             }
 
-            String requestUrl = VoidPortLlmMessage.resolveRequestUrl(providerConfig, modelName);
+            AiProviderAdapter adapter = providerAdapters.get(providerConfig.family);
+            String requestUrl = adapter.streamingUrl(providerConfig, modelName);
             emitDebug(listener, "LLM request -> provider=" + providerId
                     + ", model=" + modelName
                     + ", endpoint=" + sanitizeUrlForDebug(requestUrl));
 
             Request request = new Request.Builder()
                     .url(requestUrl)
-                    .headers(buildOpenAiHeaders(providerConfig))
+                    .headers(adapter.headers(providerConfig))
                     .post(RequestBody.create(jsonBody.toString(), JSON_MEDIA_TYPE))
                     .build();
 
-            executeWithRetry(request, retryCount, providerId, listener, (call, response) -> {
+            executeStreaming(request, retryCount, providerId, listener, (call, response) -> {
                 String contentType = response.header("Content-Type", "");
                 emitDebug(listener, "LLM response <- contentType=" + (contentType.isEmpty() ? "unknown" : contentType));
                 if ("ollama".equals(providerId)) {
@@ -487,7 +502,7 @@ public class AiProviderService {
                 try (BufferedSource source = response.body().source()) {
                     readOpenAiEventStream(source, requestContext, tools, listener);
                 }
-            });
+            }, requestHandle);
         } catch (Exception e) {
             listener.onError("Request preparation error", e);
         }
@@ -495,7 +510,7 @@ public class AiProviderService {
 
     private void sendAnthropicStreamingRequest(ProviderConfig providerConfig, String modelName,
                                                ContextBuilder.Result requestContext, JSONArray tools, String chatMode,
-                                               StreamListener listener, String providerId, int retryCount) {
+                                               StreamListener listener, String providerId, int retryCount, AiRequestHandle requestHandle) {
         try {
             JSONObject jsonBody = new JSONObject();
             jsonBody.put("model", modelName);
@@ -528,39 +543,41 @@ public class AiProviderService {
                 jsonBody.put("tool_choice", new JSONObject().put("type", "auto"));
             }
 
+            AiProviderAdapter adapter = providerAdapters.get(providerConfig.family);
             Request request = new Request.Builder()
-                    .url(providerConfig.baseUrl)
-                    .headers(buildAnthropicHeaders(providerConfig))
+                    .url(adapter.streamingUrl(providerConfig, modelName))
+                    .headers(adapter.headers(providerConfig))
                     .post(RequestBody.create(jsonBody.toString(), JSON_MEDIA_TYPE))
                     .build();
 
-            executeWithRetry(request, retryCount, providerId, listener, (call, response) -> {
+            executeStreaming(request, retryCount, providerId, listener, (call, response) -> {
                 try (BufferedSource source = response.body().source()) {
                     readAnthropicEventStream(source, tools, listener);
                 }
-            });
+            }, requestHandle);
         } catch (Exception e) {
             listener.onError("Request preparation error", e);
         }
     }
 
-    private void executeWithRetry(Request request, int retryCount, String providerId, StreamListener listener,
-                                  ResponseHandler responseHandler) {
+    private void executeStreaming(Request request, int retryCount, String providerId, StreamListener listener,
+                                  ResponseHandler responseHandler, AiRequestHandle requestHandle) {
+        if (requestHandle.isCancelled()) {
+            return;
+        }
         final long requestStartedAt = SystemClock.elapsedRealtime();
         Call call = clientForProvider(providerId).newCall(request);
-        currentStreamingCall = call;
+        requestHandle.attach(call);
         call.enqueue(new Callback() {
             @Override
             public void onFailure(Call failedCall, IOException e) {
-                if (currentStreamingCall == failedCall) {
-                    currentStreamingCall = null;
-                }
+                requestHandle.clear(failedCall);
                 if (failedCall.isCanceled()) {
                     listener.onError("cancelled", e);
                     return;
                 }
                 if (shouldRetryForFailure(e, retryCount)) {
-                    scheduleRetry(request, retryCount, providerId, listener, responseHandler, -1);
+                    scheduleRetry(request, retryCount, providerId, listener, responseHandler, -1, requestHandle);
                     return;
                 }
                 listener.onError(e.getMessage(), e);
@@ -570,9 +587,7 @@ public class AiProviderService {
             public void onResponse(Call respondedCall, Response response) throws IOException {
                 if (!response.isSuccessful()) {
                     String errorBody = response.body() != null ? response.body().string() : "";
-                    if (currentStreamingCall == respondedCall) {
-                        currentStreamingCall = null;
-                    }
+                    requestHandle.clear(respondedCall);
                     if (shouldRetryForStatus(response.code(), retryCount)) {
                         // For HTTP 429 (rate limit), honour the Retry-After header when present
                         // instead of retrying immediately. The header value is in seconds.
@@ -604,7 +619,7 @@ public class AiProviderService {
                             emitDebug(listener, "HTTP 429 rate-limit from " + providerId
                                     + (retryAfterMs > 0 ? ", Retry-After=" + (retryAfterMs / 1000) + "s" : ", using default backoff"));
                         }
-                        scheduleRetry(request, retryCount, providerId, listener, responseHandler, retryAfterMs);
+                        scheduleRetry(request, retryCount, providerId, listener, responseHandler, retryAfterMs, requestHandle);
                         return;
                     }
                     listener.onError(buildHttpErrorMessage(providerId, response.code(), errorBody), null);
@@ -623,15 +638,13 @@ public class AiProviderService {
                     boolean anythingEmitted = listener instanceof EmissionTracker
                             && ((EmissionTracker) listener).emitted.get();
                     if (!anythingEmitted && shouldRetryForFailure(e, retryCount)) {
-                        scheduleRetry(request, retryCount, providerId, listener, responseHandler, -1);
+                        scheduleRetry(request, retryCount, providerId, listener, responseHandler, -1, requestHandle);
                         return;
                     }
                     listener.onError("Stream reading error", e);
                     return;
                 } finally {
-                    if (currentStreamingCall == respondedCall) {
-                        currentStreamingCall = null;
-                    }
+                    requestHandle.clear(respondedCall);
                 }
             }
         });
@@ -644,7 +657,10 @@ public class AiProviderService {
      *                     or {@code -1} to use the default exponential back-off.
      */
     private void scheduleRetry(Request request, int retryCount, String providerId, StreamListener listener,
-                               ResponseHandler responseHandler, long retryAfterMs) {
+                               ResponseHandler responseHandler, long retryAfterMs, AiRequestHandle requestHandle) {
+        if (requestHandle.isCancelled()) {
+            return;
+        }
         if (retryCount >= MAX_PROVIDER_RETRIES) {
             listener.onError("Request failed after retries for provider: " + providerId, null);
             return;
@@ -653,14 +669,14 @@ public class AiProviderService {
         // ±20% jitter avoids synchronized retry storms against rate-limited providers.
         long jitter = (long) (baseDelayMs * 0.2 * (Math.random() * 2 - 1));
         long delayMs = Math.max(250L, baseDelayMs + jitter);
-        mainHandler.postDelayed(() -> executeWithRetry(request, retryCount + 1, providerId, listener, responseHandler),
+        mainHandler.postDelayed(() -> executeStreaming(request, retryCount + 1, providerId, listener, responseHandler, requestHandle),
                 delayMs);
     }
 
     // Keep the old two-arg overload so call-sites that pass no retryAfterMs still compile.
     private void scheduleRetry(Request request, int retryCount, String providerId, StreamListener listener,
-                               ResponseHandler responseHandler) {
-        scheduleRetry(request, retryCount, providerId, listener, responseHandler, -1);
+                               ResponseHandler responseHandler, AiRequestHandle requestHandle) {
+        scheduleRetry(request, retryCount, providerId, listener, responseHandler, -1, requestHandle);
     }
 
     private OkHttpClient clientForProvider(String providerId) {
@@ -1091,7 +1107,7 @@ public class AiProviderService {
 
             return new Request.Builder()
                     .url(VoidPortLlmMessage.resolveRequestUrl(providerConfig, modelName))
-                    .headers(buildOpenAiHeaders(providerConfig))
+                    .headers(providerAdapters.get(providerConfig.family).headers(providerConfig))
                     .post(RequestBody.create(jsonBody.toString(), JSON_MEDIA_TYPE))
                     .build();
         } catch (Exception e) {
@@ -1116,7 +1132,7 @@ public class AiProviderService {
 
             return new Request.Builder()
                     .url(providerConfig.baseUrl)
-                    .headers(buildAnthropicHeaders(providerConfig))
+                    .headers(providerAdapters.get(providerConfig.family).headers(providerConfig))
                     .post(RequestBody.create(jsonBody.toString(), JSON_MEDIA_TYPE))
                     .build();
         } catch (Exception e) {
@@ -1144,7 +1160,7 @@ public class AiProviderService {
 
             return new Request.Builder()
                     .url(url)
-                    .headers(buildGeminiHeaders(providerConfig))
+                    .headers(providerAdapters.get(providerConfig.family).headers(providerConfig))
                     .post(RequestBody.create(jsonBody.toString(), JSON_MEDIA_TYPE))
                     .build();
         } catch (Exception e) {
@@ -1430,35 +1446,6 @@ public class AiProviderService {
         }
     }
 
-    private Headers buildOpenAiHeaders(ProviderConfig providerConfig) {
-        Headers.Builder headers = new Headers.Builder();
-        headers.add("Content-Type", "application/json");
-        if (!providerConfig.apiKey.isEmpty()) {
-            headers.add("Authorization", "Bearer " + providerConfig.apiKey);
-        }
-        addExtraHeaders(headers, providerConfig.extraHeaders);
-        return headers.build();
-    }
-
-    private Headers buildAnthropicHeaders(ProviderConfig providerConfig) {
-        Headers.Builder headers = new Headers.Builder();
-        headers.add("Content-Type", "application/json");
-        headers.add("x-api-key", providerConfig.apiKey);
-        headers.add("anthropic-version", "2023-06-01");
-        addExtraHeaders(headers, providerConfig.extraHeaders);
-        return headers.build();
-    }
-
-    private Headers buildGeminiHeaders(ProviderConfig providerConfig) {
-        Headers.Builder headers = new Headers.Builder();
-        headers.add("Content-Type", "application/json");
-        if (!providerConfig.apiKey.isEmpty()) {
-            headers.add("x-goog-api-key", providerConfig.apiKey);
-        }
-        addExtraHeaders(headers, providerConfig.extraHeaders);
-        return headers.build();
-    }
-
     /** User preference: enable Ollama's native "think" mode (default off). */
     private boolean ollamaThinkEnabled() {
         SharedPreferences prefs = context.getSharedPreferences(AiChatSettingsHelper.PREFS_NAME, Context.MODE_PRIVATE);
@@ -1495,17 +1482,6 @@ public class AiProviderService {
         }
         int queryStart = url.indexOf('?');
         return queryStart >= 0 ? url.substring(0, queryStart) : url;
-    }
-
-    private void addExtraHeaders(Headers.Builder headers, JSONObject extraHeaders) {
-        JSONArray headerNames = extraHeaders == null ? null : extraHeaders.names();
-        for (int i = 0; headerNames != null && i < headerNames.length(); i++) {
-            String name = headerNames.optString(i, "");
-            if (name.isEmpty()) {
-                continue;
-            }
-            headers.add(name, extraHeaders.optString(name, ""));
-        }
     }
 
     private JSONArray convertToolsToAnthropic(JSONArray openAiTools) {
@@ -1614,10 +1590,6 @@ public class AiProviderService {
             return "OBJECT";
         }
         return "STRING";
-    }
-
-    private ProviderConfig resolveProviderConfig(SharedPreferences prefs, String providerId) {
-        return VoidPortLlmMessage.resolveProviderConfig(prefs, providerId);
     }
 
     private String readStreamText(JSONObject jsonObject, String key) {

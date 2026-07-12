@@ -137,45 +137,4 @@ public final class LayoutGeneratorModelSelector {
         return new SelectedModel("groq", "Groq", "llama-3.1-8b-instant");
     }
 
-    /**
-     * Applies the selected model to SharedPreferences temporarily for the layout generation request.
-     * Returns the previous selection so it can be restored after generation.
-     *
-     * @param context Android context
-     * @param selected Selected model to apply
-     * @return Previous selection for restoration
-     */
-    public static SelectedModel applyModelSelection(Context context, SelectedModel selected) {
-        SharedPreferences prefs = VoidPortSettings.prefs(context);
-
-        // Save current selection for restoration
-        String previousProvider = prefs.getString(VoidPortSettings.PREF_CURRENT_PROVIDER, "");
-        String previousModel = prefs.getString(VoidPortSettings.PREF_CURRENT_MODEL, "");
-
-        // Apply new selection
-        prefs.edit()
-                .putString(VoidPortSettings.PREF_CURRENT_PROVIDER, selected.providerId)
-                .putString(VoidPortSettings.PREF_CURRENT_MODEL, selected.modelName)
-                .apply();
-
-        return new SelectedModel(previousProvider, "", previousModel);
-    }
-
-    /**
-     * Restores the previous model selection.
-     *
-     * @param context Android context
-     * @param previous Previous selection to restore
-     */
-    public static void restoreModelSelection(Context context, SelectedModel previous) {
-        if (previous == null || previous.providerId.isEmpty()) {
-            return;
-        }
-
-        SharedPreferences prefs = VoidPortSettings.prefs(context);
-        prefs.edit()
-                .putString(VoidPortSettings.PREF_CURRENT_PROVIDER, previous.providerId)
-                .putString(VoidPortSettings.PREF_CURRENT_MODEL, previous.modelName)
-                .apply();
-    }
 }
