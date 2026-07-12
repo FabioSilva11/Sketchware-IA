@@ -22,6 +22,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import pro.sketchware.activities.chat.DirectoryTreeService;
+import pro.sketchware.R;
+import pro.sketchware.SketchApplication;
 import pro.sketchware.activities.chat.LanguageHelpers;
 import pro.sketchware.activities.chat.PromptConstants;
 import pro.sketchware.activities.chat.StringHelpers;
@@ -712,7 +714,7 @@ public final class VoidPortToolsService {
             String terminalId = terminalIdObj != null ? String.valueOf(terminalIdObj) : java.util.UUID.randomUUID().toString();
 
             if (command.trim().isEmpty()) {
-                return new ToolCallResult("Nenhum comando foi executado porque o texto do comando veio vazio.");
+                return new ToolCallResult(SketchApplication.getContext().getString(R.string.chat_tool_empty_command));
             }
 
             if (commandLooksLikeFileMutation(command)) {
@@ -724,7 +726,8 @@ public final class VoidPortToolsService {
             String shell = androidShellPath();
 
             if (!workingDir.exists()) {
-                return new ToolCallResult("Erro: pasta de trabalho não encontrada: " + workingDir.getAbsolutePath());
+                return new ToolCallResult(SketchApplication.getContext().getString(
+                        R.string.chat_tool_working_directory_missing, workingDir.getAbsolutePath()));
             }
 
             ProcessBuilder pb = new ProcessBuilder(shell, "-c", command);
@@ -771,7 +774,8 @@ public final class VoidPortToolsService {
 
             return new ToolCallResult(resultObj.toString());
         } catch (Exception e) {
-            return new ToolCallResult("Falha ao executar comando: " + e.getMessage());
+            return new ToolCallResult(SketchApplication.getContext().getString(
+                    R.string.chat_tool_command_failed, e.getMessage()));
         }
     }
 
@@ -1490,14 +1494,9 @@ public final class VoidPortToolsService {
                     
                 default:
                     if ("get_file".equals(toolName)) {
-                        return "Erro: ferramenta 'get_file' não existe. Use 'read_file' para ler arquivos. Ferramentas disponíveis: read_file, ls_dir, get_dir_tree, search_pathnames_only, search_for_files, search_in_file, read_lint_errors, create_file_or_folder, delete_file_or_folder, edit_file, rewrite_file, run_command";
+                        return SketchApplication.getContext().getString(R.string.chat_tool_get_file_alias_error);
                     }
-                    return "Erro: ferramenta '" + toolName + "' não está disponível ou não existe. " +
-                            "Certifique-se de que está no modo correto (agent/gather). " +
-                            "Se queria ler arquivo, use 'read_file'. " +
-                            "Se queria alterar arquivo inteiro, use 'rewrite_file'. " +
-                            "Se queria alterar parte de arquivo, use 'edit_file'. " +
-                            "Ferramentas comuns disponíveis: read_file, ls_dir, get_dir_tree, search_pathnames_only, search_for_files, search_in_file, read_lint_errors, create_file_or_folder, delete_file_or_folder, edit_file, rewrite_file, run_command.";
+                    return SketchApplication.getContext().getString(R.string.chat_tool_unknown_error, toolName);
             }
             
             String technicalResult = result.result;

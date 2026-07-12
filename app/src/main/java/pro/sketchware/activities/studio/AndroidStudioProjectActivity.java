@@ -265,7 +265,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                 .setCheckable(true);
         addToolbarAction(menu, MENU_PREFERENCES, R.string.studio_action_preferences, R.drawable.ic_mtrl_settings, MenuItem.SHOW_AS_ACTION_NEVER);
         addToolbarAction(menu, MENU_DEPENDENCIES, R.string.studio_action_dependencies, R.drawable.ic_mtrl_package, MenuItem.SHOW_AS_ACTION_NEVER);
-        addToolbarAction(menu, MENU_GITHUB, "GitHub", R.drawable.ic_github, MenuItem.SHOW_AS_ACTION_NEVER);
+        addToolbarAction(menu, MENU_GITHUB, getString(R.string.github_versioning_menu), R.drawable.ic_github, MenuItem.SHOW_AS_ACTION_NEVER);
 
         binding.studioToolbar.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == MENU_SAVE) {
@@ -480,15 +480,15 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
 
     private void showGitHubVersioningDialog() {
         if (projectRoot == null || !projectRoot.isDirectory()) {
-            SketchwareUtil.toast("Projeto Android Studio não encontrado");
+            SketchwareUtil.toast(getString(R.string.github_versioning_project_missing));
             return;
         }
         SharedPreferences prefs = getSharedPreferences(VoidPortSettings.PREFS_NAME, MODE_PRIVATE);
         if (prefs.getString(VoidPortSettings.PREF_GITHUB_TOKEN, "").trim().isEmpty()) {
             new MaterialAlertDialogBuilder(this)
-                    .setTitle("GitHub")
-                    .setMessage("Configure primeiro o token em GitHub Settings.")
-                    .setPositiveButton("OK", null)
+                    .setTitle(R.string.github_versioning_menu)
+                    .setMessage(R.string.github_versioning_token_required)
+                    .setPositiveButton(android.R.string.ok, null)
                     .show();
             return;
         }
@@ -498,38 +498,39 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         int pad = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 20,
                 getResources().getDisplayMetrics());
         form.setPadding(pad, 0, pad, 0);
-        EditText owner = githubField("Usuário ou organização", saved.owner);
-        EditText repo = githubField("Repositório", saved.repo.isEmpty() ? safeRepositoryName() : saved.repo);
-        EditText branch = githubField("Branch", saved.branch);
-        EditText message = githubField("Mensagem do commit", "Atualiza projeto Android Studio");
+        EditText owner = githubField(getString(R.string.github_versioning_owner_hint), saved.owner);
+        EditText repo = githubField(getString(R.string.github_versioning_repository_hint), saved.repo.isEmpty() ? safeRepositoryName() : saved.repo);
+        EditText branch = githubField(getString(R.string.github_versioning_branch_hint), saved.branch);
+        EditText message = githubField(getString(R.string.github_versioning_commit_hint), getString(R.string.github_versioning_default_commit));
         form.addView(owner);
         form.addView(repo);
         form.addView(branch);
         form.addView(message);
 
         AlertDialog dialog = new MaterialAlertDialogBuilder(this)
-                .setTitle("Versionar no GitHub")
-                .setMessage("Somente o projeto Android Studio será enviado. Builds, caches e segredos serão ignorados.")
+                .setTitle(R.string.github_versioning_title)
+                .setMessage(R.string.github_versioning_description)
                 .setView(form)
-                .setNegativeButton("Cancelar", null)
-                .setNeutralButton("Criar repositório", null)
-                .setPositiveButton(saved.isValid() ? "Commit e push" : "Conectar", null)
+                .setNegativeButton(R.string.github_versioning_cancel, null)
+                .setNeutralButton(R.string.github_versioning_create_repository, null)
+                .setPositiveButton(saved.isValid() ? R.string.github_versioning_commit_push : R.string.github_versioning_connect, null)
                 .create();
         dialog.setOnShowListener(ignored -> {
             dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
                 String repository = repo.getText().toString().trim();
                 if (repository.isEmpty()) {
-                    repo.setError("Informe o repositório");
+                    repo.setError(getString(R.string.github_versioning_repository_required));
                     return;
                 }
-                setGitHubDialogBusy(dialog, true, "Criando…");
+                setGitHubDialogBusy(dialog, true, getString(R.string.github_versioning_creating));
                 new Thread(() -> {
                     try {
                         GitHubProjectSyncService.Binding created = GitHubProjectSyncService.createRepository(
                                 prefs, scId, repository, branch.getText().toString(), true);
                         runOnUiThread(() -> {
                             dialog.dismiss();
-                            SketchwareUtil.toast("Repositório " + created.owner + "/" + created.repo + " criado");
+                            SketchwareUtil.toast(getString(R.string.github_versioning_repository_created,
+                                    created.owner, created.repo));
                             showGitHubVersioningDialog();
                         });
                     } catch (Exception e) {
@@ -546,19 +547,20 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                 GitHubProjectSyncService.Binding binding = new GitHubProjectSyncService.Binding(
                         nextOwner, nextRepo, nextBranch, sameTarget ? saved.lastCommitSha : "");
                 if (!binding.isValid()) {
-                    owner.setError(binding.owner.isEmpty() ? "Obrigatório" : null);
-                    repo.setError(binding.repo.isEmpty() ? "Obrigatório" : null);
+                    owner.setError(binding.owner.isEmpty() ? getString(R.string.github_versioning_required) : null);
+                    repo.setError(binding.repo.isEmpty() ? getString(R.string.github_versioning_required) : null);
                     return;
                 }
                 saveCurrentFile(false);
-                setGitHubDialogBusy(dialog, true, saved.isValid() ? "Enviando…" : "Conectando…");
+                setGitHubDialogBusy(dialog, true, getString(saved.isValid()
+                        ? R.string.github_versioning_sending : R.string.github_versioning_connecting));
                 new Thread(() -> {
                     try {
                         if (!saved.isValid()) {
                             GitHubProjectSyncService.verifyAndSaveBinding(prefs, scId, binding);
                             runOnUiThread(() -> {
                                 dialog.dismiss();
-                                SketchwareUtil.toast("Projeto conectado ao GitHub");
+                                SketchwareUtil.toast(getString(R.string.github_versioning_connected));
                                 showGitHubVersioningDialog();
                             });
                             return;
@@ -568,11 +570,12 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                         runOnUiThread(() -> {
                             dialog.dismiss();
                             new MaterialAlertDialogBuilder(this)
-                                    .setTitle("Push concluído")
-                                    .setMessage(result.fileCount + " arquivos em um único commit\n" +
-                                            result.commitSha.substring(0, Math.min(7, result.commitSha.length())))
-                                    .setNegativeButton("Fechar", null)
-                                    .setPositiveButton("Abrir GitHub", (d, which) ->
+                                    .setTitle(R.string.github_versioning_push_complete)
+                                    .setMessage(getString(R.string.github_versioning_push_summary,
+                                            result.fileCount, result.commitSha.substring(0,
+                                                    Math.min(7, result.commitSha.length()))))
+                                    .setNegativeButton(R.string.github_versioning_close, null)
+                                    .setPositiveButton(R.string.github_versioning_open_github, (d, which) ->
                                             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(result.url))))
                                     .show();
                         });
@@ -607,11 +610,11 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     }
 
     private void showGitHubDialogError(AlertDialog dialog, Exception error) {
-        setGitHubDialogBusy(dialog, false, "Tentar novamente");
+        setGitHubDialogBusy(dialog, false, getString(R.string.github_versioning_try_again));
         new MaterialAlertDialogBuilder(this)
-                .setTitle("Falha no GitHub")
+                .setTitle(R.string.github_versioning_failure)
                 .setMessage(error.getMessage() == null ? error.toString() : error.getMessage())
-                .setPositiveButton("OK", null)
+                .setPositiveButton(android.R.string.ok, null)
                 .show();
     }
 

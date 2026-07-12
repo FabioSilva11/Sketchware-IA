@@ -21,6 +21,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import pro.sketchware.util.ProjectPathResolver;
+import pro.sketchware.R;
+import pro.sketchware.SketchApplication;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -97,7 +99,7 @@ public final class GitHubProjectSyncService {
 
     public static void saveBinding(SharedPreferences prefs, String scId, Binding binding) throws Exception {
         if (scId == null || scId.trim().isEmpty() || binding == null || !binding.isValid()) {
-            throw new IllegalArgumentException("Vínculo GitHub inválido");
+            throw new IllegalArgumentException(text(R.string.github_sync_invalid_binding));
         }
         JSONObject all = readBindings(prefs);
         JSONObject value = new JSONObject();
@@ -140,22 +142,23 @@ public final class GitHubProjectSyncService {
     public static SyncResult pushSnapshot(SharedPreferences prefs, String scId, File projectRoot,
                                           Binding binding, String message) throws Exception {
         if (projectRoot == null || !projectRoot.isDirectory()) {
-            throw new IllegalArgumentException("Pasta Android Studio não encontrada");
+            throw new IllegalArgumentException(text(R.string.github_sync_project_folder_missing));
         }
         if (!ProjectPathResolver.isAndroidStudioProject(scId)) {
-            throw new IllegalArgumentException("Versionamento GitHub disponível somente para projetos Android Studio");
+            throw new IllegalArgumentException(text(R.string.github_sync_android_studio_only));
         }
-        if (binding == null || !binding.isValid()) throw new IllegalArgumentException("Projeto sem vínculo GitHub");
+        if (binding == null || !binding.isValid()) {
+            throw new IllegalArgumentException(text(R.string.github_sync_project_not_bound));
+        }
         List<SnapshotFile> files = new ArrayList<>();
         collect(projectRoot, projectRoot, files, new long[]{0L});
-        if (files.isEmpty()) throw new IllegalStateException("Nenhum arquivo seguro para versionar");
+        if (files.isEmpty()) throw new IllegalStateException(text(R.string.github_sync_no_safe_files));
 
         String base = repoPath(binding);
         JSONObject ref = request(prefs, "GET", base + "/git/ref/heads/" + enc(binding.branch), null);
         String parentSha = ref.getJSONObject("object").getString("sha");
         if (!binding.lastCommitSha.isEmpty() && !binding.lastCommitSha.equals(parentSha)) {
-            throw new IllegalStateException("A branch mudou no GitHub desde o último push. " +
-                    "Sincronize ou altere o vínculo antes de enviar para evitar sobrescrever mudanças remotas.");
+            throw new IllegalStateException(text(R.string.github_sync_remote_changed));
         }
 
         JSONArray treeEntries = new JSONArray();
@@ -178,7 +181,7 @@ public final class GitHubProjectSyncService {
 
         JSONObject commitBody = new JSONObject();
         commitBody.put("message", message == null || message.trim().isEmpty()
-                ? "Update Android Studio project" : message.trim());
+                ? text(R.string.github_versioning_default_commit) : message.trim());
         commitBody.put("tree", treeSha);
         commitBody.put("parents", new JSONArray().put(parentSha));
         JSONObject commit = request(prefs, "POST", base + "/git/commits", commitBody);
@@ -210,17 +213,25 @@ public final class GitHubProjectSyncService {
             if (IGNORED_FILES.contains(name) || lower.endsWith(".jks") || lower.endsWith(".keystore")
                     || lower.endsWith(".apk") || lower.endsWith(".aab") || lower.endsWith(".class")
                     || lower.endsWith(".so") || lower.startsWith(".env.")) continue;
-            if (child.length() > MAX_FILE_BYTES) throw new IOException("Arquivo excede 5 MB: " + name);
+            if (child.length() > MAX_FILE_BYTES) {
+                throw new IOException(text(R.string.github_sync_file_too_large, name));
+            }
             total[0] += child.length();
-            if (total[0] > MAX_SNAPSHOT_BYTES) throw new IOException("Snapshot excede 40 MB");
-            if (out.size() >= MAX_FILES) throw new IOException("Snapshot excede " + MAX_FILES + " arquivos");
+            if (total[0] > MAX_SNAPSHOT_BYTES) {
+                throw new IOException(text(R.string.github_sync_snapshot_too_large));
+            }
+            if (out.size() >= MAX_FILES) {
+                throw new IOException(text(R.string.github_sync_too_many_files, MAX_FILES));
+            }
             String path = root.toPath().relativize(child.toPath()).toString().replace(File.separatorChar, '/');
             out.add(new SnapshotFile(path, child));
         }
     }
 
     private static byte[] readAll(File file) throws IOException {
-        if (file.length() > Integer.MAX_VALUE) throw new IOException("Arquivo muito grande");
+        if (file.length() > Integer.MAX_VALUE) {
+            throw new IOException(text(R.string.github_sync_file_too_large_to_read));
+        }
         byte[] data = new byte[(int) file.length()];
         try (FileInputStream input = new FileInputStream(file)) {
             int offset = 0;
@@ -229,14 +240,16 @@ public final class GitHubProjectSyncService {
                 if (read < 0) break;
                 offset += read;
             }
-            if (offset != data.length) throw new IOException("Falha ao ler " + file.getName());
+            if (offset != data.length) {
+                throw new IOException(text(R.string.github_sync_file_read_failed, file.getName()));
+            }
         }
         return data;
     }
 
     private static JSONObject request(SharedPreferences prefs, String method, String path, JSONObject body) throws Exception {
         String token = prefs.getString(VoidPortSettings.PREF_GITHUB_TOKEN, "").trim();
-        if (token.isEmpty()) throw new IllegalStateException("Configure o token em GitHub Settings");
+        if (token.isEmpty()) throw new IllegalStateException(text(R.string.github_sync_token_required));
         Request.Builder builder = new Request.Builder().url(API + path)
                 .header("Accept", "application/vnd.github+json")
                 .header("Authorization", "Bearer " + token)
@@ -252,7 +265,7 @@ public final class GitHubProjectSyncService {
                 String message;
                 try { message = new JSONObject(text).optString("message", text); }
                 catch (Exception ignored) { message = text; }
-                throw new IOException("GitHub " + response.code() + ": " + message);
+                throw new IOException(text(R.string.github_sync_api_error, response.code(), message));
             }
             return text.isEmpty() ? new JSONObject() : new JSONObject(text);
         }
@@ -275,6 +288,10 @@ public final class GitHubProjectSyncService {
     private static String enc(String value) {
         try { return URLEncoder.encode(value, StandardCharsets.UTF_8.name()).replace("+", "%20"); }
         catch (Exception ignored) { return value; }
+    }
+
+    private static String text(int resId, Object... args) {
+        return SketchApplication.getContext().getString(resId, args);
     }
 
     private static final class SnapshotFile {

@@ -57,7 +57,7 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
 
         // Toolbar
         MaterialToolbar toolbar = new MaterialToolbar(this);
-        toolbar.setTitle("GitHub Settings");
+        toolbar.setTitle(R.string.github_settings_title);
         toolbar.setNavigationIcon(com.google.android.material.R.drawable.m3_tabs_rounded_line_indicator);
         toolbar.setNavigationOnClickListener(v -> finish());
         LinearLayout.LayoutParams toolbarParams = new LinearLayout.LayoutParams(
@@ -103,15 +103,14 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
 
         // ── Header ─────────────────────────────────────────────────────────────
         TextView header = new TextView(this);
-        header.setText("GitHub");
+        header.setText(R.string.github_versioning_menu);
         header.setTextColor(ContextCompat.getColor(this, R.color.chat_text_primary));
         TextViewCompat.setTextAppearance(header,
                 com.google.android.material.R.style.TextAppearance_Material3_HeadlineSmall);
         container.addView(header);
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("Connect to GitHub to let the AI agent browse repositories, read files, " +
-                "manage issues and pull requests. Android Studio projects can publish atomic snapshots.");
+        subtitle.setText(R.string.github_settings_intro);
         subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         subtitle.setTextColor(ContextCompat.getColor(this, R.color.chat_text_secondary));
         LinearLayout.LayoutParams subtitleParams = rowParams();
@@ -124,15 +123,12 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
         MaterialCardView tokenCard = card();
         LinearLayout tokenContent = cardContent(tokenCard);
 
-        addSubheading(tokenContent, "Personal Access Token");
-        addMuted(tokenContent,
-                "Generate a token at GitHub → Settings → Developer Settings → " +
-                "Personal Access Tokens (classic) with scopes: repo, read:org.\n" +
-                "The token is stored only on this device and is never sent to the LLM.");
+        addSubheading(tokenContent, getString(R.string.github_settings_pat_title));
+        addMuted(tokenContent, getString(R.string.github_settings_pat_description));
 
         // Token input
         TextInputLayout tokenLayout = new TextInputLayout(this);
-        tokenLayout.setHint("Token (ghp_… ou github_pat_…)");
+        tokenLayout.setHint(R.string.github_settings_token_hint);
         tokenLayout.setEndIconMode(TextInputLayout.END_ICON_PASSWORD_TOGGLE);
         tokenLayout.setLayoutParams(inputParams());
 
@@ -156,7 +152,7 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
         addTokenStatus(tokenContent);
 
         // Open GitHub button
-        MaterialButton openGitHub = outlinedButton("Abrir página de tokens do GitHub");
+        MaterialButton openGitHub = outlinedButton(getString(R.string.github_settings_open_tokens));
         openGitHub.setOnClickListener(v -> openUrl(
                 "https://github.com/settings/tokens/new?scopes=repo,read:org&description=Sketchware+IA"));
         tokenContent.addView(openGitHub);
@@ -167,50 +163,23 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
         MaterialCardView toolsCard = card();
         LinearLayout toolsContent = cardContent(toolsCard);
 
-        addSubheading(toolsContent, "Ferramentas disponíveis no chat (modo agente)");
-        addMuted(toolsContent,
-                "Quando o token está configurado, o agente ganha acesso automático a " +
-                GitHubMcpService.getToolDefinitions().length() + " ferramentas GitHub:\n\n" +
-                "• github_list_repos — listar repositórios\n" +
-                "• github_get_repo — detalhes do repositório\n" +
-                "• github_list_branches — listar branches\n" +
-                "• github_create_repository — criar repositório\n" +
-                "• github_create_branch — criar branch\n" +
-                "• github_get_file — ler conteúdo de arquivo\n" +
-                "• github_list_files — navegar por diretório\n" +
-                "• github_search_code — pesquisar código\n" +
-                "• github_list_issues — listar issues\n" +
-                "• github_create_issue — criar issue\n" +
-                "• github_list_pull_requests — listar PRs\n" +
-                "• github_create_pull_request — abrir PR\n" +
-                "• github_create_or_update_file — fazer commit de arquivo\n" +
-                "• github_list_commits — histórico de commits\n" +
-                "• github_get_commit — detalhes de um commit");
+        addSubheading(toolsContent, getString(R.string.github_settings_tools_title));
+        addMuted(toolsContent, getString(R.string.github_settings_tools_description,
+                GitHubMcpService.getToolDefinitions().length()));
         container.addView(toolsCard);
 
         MaterialCardView versioningCard = card();
         LinearLayout versioningContent = cardContent(versioningCard);
-        addSubheading(versioningContent, "Versionamento de projetos Android Studio");
-        addMuted(versioningContent,
-                "Abra um projeto Android Studio e use GitHub no menu do editor. Você pode criar ou " +
-                "conectar um repositório e publicar o projeto em um único commit. Builds, caches, APKs, " +
-                "local.properties, .env e arquivos de assinatura são ignorados. Projetos nativos do " +
-                "Sketchware não são enviados por esse recurso.");
+        addSubheading(versioningContent, getString(R.string.github_settings_versioning_title));
+        addMuted(versioningContent, getString(R.string.github_settings_versioning_description));
         container.addView(versioningCard);
 
         // ── Usage tips card ────────────────────────────────────────────────────
         MaterialCardView tipsCard = card();
         LinearLayout tipsContent = cardContent(tipsCard);
 
-        addSubheading(tipsContent, "Exemplos de uso no chat");
-        addMuted(tipsContent,
-                "No chat em modo agente você pode dizer:\n\n" +
-                "\"Liste meus repositórios\"\n" +
-                "\"Leia o arquivo app/build.gradle do repositório FabioSilva11/Sketchware-IA\"\n" +
-                "\"Pesquise AgentManager no meu repo Sketchware-IA\"\n" +
-                "\"Crie uma issue com título 'Bug: assinatura falha no API 30'\"\n" +
-                "\"Abra um PR de fix/signing-v3 para main\"\n\n" +
-                "O agente chamará a ferramenta GitHub correta automaticamente.");
+        addSubheading(tipsContent, getString(R.string.github_settings_examples_title));
+        addMuted(tipsContent, getString(R.string.github_settings_examples_description));
         container.addView(tipsCard);
     }
 
@@ -222,11 +191,10 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
         status.setLayoutParams(rowParams());
 
         if (token.isEmpty()) {
-            status.setText("⚠ Nenhum token configurado — ferramentas GitHub desativadas no chat.");
+            status.setText(R.string.github_settings_token_missing);
             status.setTextColor(ContextCompat.getColor(this, R.color.chat_text_secondary));
         } else {
-            status.setText("✓ Token configurado (" + token.length() + " caracteres). " +
-                    "Ferramentas GitHub ativas no modo agente.");
+            status.setText(getString(R.string.github_settings_token_configured, token.length()));
             status.setTextColor(ContextCompat.getColor(this, R.color.chat_accent));
         }
         parent.addView(status);
@@ -239,11 +207,10 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
                 String token = prefs.getString(VoidPortSettings.PREF_GITHUB_TOKEN, "").trim();
                 TextView status = (TextView) v;
                 if (token.isEmpty()) {
-                    status.setText("⚠ Nenhum token configurado — ferramentas GitHub desativadas no chat.");
+                    status.setText(R.string.github_settings_token_missing);
                     status.setTextColor(ContextCompat.getColor(this, R.color.chat_text_secondary));
                 } else {
-                    status.setText("✓ Token configurado (" + token.length() + " caracteres). " +
-                            "Ferramentas GitHub ativas no modo agente.");
+                    status.setText(getString(R.string.github_settings_token_configured, token.length()));
                     status.setTextColor(ContextCompat.getColor(this, R.color.chat_accent));
                 }
                 break;
@@ -333,7 +300,7 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
         try {
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
         } catch (Exception e) {
-            Toast.makeText(this, "Não foi possível abrir o link.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.github_settings_open_link_failed, Toast.LENGTH_SHORT).show();
         }
     }
 }
