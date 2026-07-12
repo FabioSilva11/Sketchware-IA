@@ -138,19 +138,7 @@
             android:src="@drawable/selector_info_popup"
             app:backgroundTint="@color/chat_accent" />
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/aiFixButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="5dp"
-            android:layout_marginTop="10dp"
-            android:layout_marginBottom="20dp"
-            android:contentDescription="@string/compile_log_action_ai_fix"
-            android:src="@drawable/ic_mtrl_edit"
-            app:backgroundTint="@color/chat_accent" />
-
 
 
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-

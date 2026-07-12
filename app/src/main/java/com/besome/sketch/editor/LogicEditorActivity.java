@@ -3,8 +3,6 @@ package com.besome.sketch.editor;
 import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -38,7 +36,6 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -129,10 +126,6 @@ import mod.pranav.viewbinding.ViewBindingBuilder;
 import pro.sketchware.R;
 import pro.sketchware.activities.editor.view.CodeViewerActivity;
 import pro.sketchware.activities.resourceseditor.ResourcesEditorActivity;
-import pro.sketchware.ai.fix.AiFixSession;
-import pro.sketchware.ai.fix.AiFixSessionStore;
-import pro.sketchware.ai.fix.AiFixSuggestion;
-import pro.sketchware.ai.fix.AiFixSupport;
 import pro.sketchware.databinding.ImagePickerItemBinding;
 import pro.sketchware.databinding.SearchWithRecyclerViewBinding;
 import pro.sketchware.menu.ExtraMenuBean;
@@ -186,8 +179,6 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
     private TextView syntaxCheckText;
     private final Handler syntaxCheckHandler = new Handler();
     private final Runnable syntaxCheckRunnable = this::runSyntaxCheck;
-    private String aiFixSessionId;
-    private boolean aiFixFlowStarted;
     private SvgUtils svgUtils;
 
     public static ArrayList<String> getAllJavaFileNames(String projectScId) {
@@ -1939,14 +1930,11 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
             scId = getIntent().getStringExtra("sc_id");
             id = getIntent().getStringExtra("id");
             eventName = getIntent().getStringExtra("event");
-            aiFixSessionId = getIntent().getStringExtra("ai_fix_session_id");
             parcelable = getIntent().getParcelableExtra("project_file");
         } else {
             scId = savedInstanceState.getString("sc_id");
             id = savedInstanceState.getString("id");
             eventName = savedInstanceState.getString("event");
-            aiFixSessionId = savedInstanceState.getString("ai_fix_session_id");
-            aiFixFlowStarted = savedInstanceState.getBoolean("ai_fix_flow_started", false);
             parcelable = savedInstanceState.getParcelable("project_file");
         }
         isViewBindingEnabled = new ProjectSettings(scId).getValue(ProjectSettings.SETTING_ENABLE_VIEWBINDING, "false").equals("true");
@@ -2080,8 +2068,6 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         bundle.putString("sc_id", scId);
         bundle.putString("id", id);
         bundle.putString("event", eventName);
-        bundle.putString("ai_fix_session_id", aiFixSessionId);
-        bundle.putBoolean("ai_fix_flow_started", aiFixFlowStarted);
         bundle.putParcelable("project_file", M);
         super.onSaveInstanceState(bundle);
         ArrayList<BlockBean> blocks = o.getBlocks();
@@ -2546,320 +2532,6 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         });
     }
 
-    private void maybeStartAiFixFlow() {
-        if (aiFixFlowStarted || aiFixSessionId == null || aiFixSessionId.trim().isEmpty()) {
-            return;
-        }
-
-        AiFixSession session = AiFixSessionStore.read(this, aiFixSessionId);
-        if (session == null || !session.hasResolvedTarget()) {
-            return;
-        }
-
-        if (!scId.equals(session.scId)
-                || M == null
-                || !M.getJavaName().equals(session.targetJavaName)
-                || !id.equals(session.targetId)
-                || !eventName.equals(session.targetEventName)) {
-            return;
-        }
-
-        aiFixFlowStarted = true;
-        requestAiFix(session);
-    }
-
-    private void requestAiFix(AiFixSession session) {
-        if (!SketchwareUtil.isConnected()) {
-            SketchwareUtil.toastError(getString(R.string.common_message_check_network));
-            return;
-        }
-
-        ArrayList<BlockBean> blockSnapshot = new ArrayList<>();
-        for (BlockBean blockBean : o.getBlocks()) {
-            blockSnapshot.add(blockBean.clone());
-        }
-
-        if (blockSnapshot.isEmpty()) {
-            SketchwareUtil.toastError(getString(R.string.ai_fix_no_logic_blocks_available));
-            return;
-        }
-
-        View loadingView = LayoutInflater.from(this).inflate(R.layout.dialog_ai_layout_loading, null);
-        TextView titleView = loadingView.findViewById(R.id.text_loading_title);
-        TextView subtitleView = loadingView.findViewById(R.id.text_loading_subtitle);
-        if (titleView != null) titleView.setText(R.string.ai_fix_loading_logic_title);
-        if (subtitleView != null) subtitleView.setText(R.string.ai_fix_loading_logic_subtitle);
-
-        var progressDialog = new MaterialAlertDialogBuilder(this)
-                .setView(loadingView)
-                .setCancelable(false)
-                .create();
-        progressDialog.show();
-
-        String generatedCode = new Fx(M.getActivityName(), getBuildConfig(), blockSnapshot, isViewBindingEnabled).a();
-        String fullJavaSource = getAiFixFullJavaSource(session);
-
-        new Thread(() -> {
-            try {
-                AiFixSuggestion suggestion = AiFixSupport.analyzeFix(
-                        scId,
-                        id,
-                        eventName,
-                        session.rawLog,
-                        session.errorMessage,
-                        generatedCode,
-                        fullJavaSource,
-                        blockSnapshot
-                );
-
-                runOnUiThread(() -> {
-                    try {
-                        progressDialog.dismiss();
-                    } catch (Exception ignored) {
-                    }
-                    if (isFinishing() || isDestroyed()) {
-                        return;
-                    }
-                    showAiFixSuggestionDialog(suggestion);
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    try {
-                        progressDialog.dismiss();
-                    } catch (Exception ignored) {
-                    }
-                    if (isFinishing() || isDestroyed()) {
-                        return;
-                    }
-                    SketchwareUtil.showAnErrorOccurredDialog(this, e.getMessage());
-                });
-            }
-        }).start();
-    }
-
-    private void showAiFixSuggestionDialog(AiFixSuggestion suggestion) {
-        ScrollView scrollView = new ScrollView(this);
-        scrollView.setFillViewport(true);
-
-        TextView textView = new TextView(this);
-        int padding = (int) (16 * getResources().getDisplayMetrics().density);
-        textView.setPadding(padding, padding, padding, padding);
-        textView.setTextIsSelectable(true);
-        textView.setText(formatAiFixSuggestion(suggestion));
-        scrollView.addView(textView, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
-
-        var dialogBuilder = new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.ai_fix_suggestion_title)
-                .setView(scrollView)
-                .setNegativeButton(R.string.common_word_close, null)
-                .setNeutralButton(R.string.common_word_copy, null);
-
-        if (suggestion.canAutoApply && suggestion.hasApplicableOperations()) {
-            dialogBuilder.setPositiveButton(R.string.common_word_apply, (dialog, which) -> applyAiFixSuggestion(suggestion));
-        }
-
-        var dialog = dialogBuilder.create();
-        dialog.setOnShowListener(d -> {
-            var copyButton = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL);
-            if (copyButton != null) {
-                copyButton.setOnClickListener(v -> {
-                    ClipboardManager clipboardManager = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    if (clipboardManager != null) {
-                        clipboardManager.setPrimaryClip(ClipData.newPlainText("ai_fix_suggestion", formatAiFixSuggestion(suggestion)));
-                        SketchwareUtil.toast(getString(R.string.common_word_copied));
-                    }
-                });
-            }
-        });
-        dialog.show();
-    }
-
-    private String formatAiFixSuggestion(AiFixSuggestion suggestion) {
-        StringBuilder builder = new StringBuilder();
-        String summary = suggestion.summary != null && !suggestion.summary.trim().isEmpty()
-                ? suggestion.summary.trim()
-                : getString(R.string.ai_fix_suggestion_default_summary);
-        builder.append(getString(R.string.ai_fix_label_summary)).append(" ").append(summary).append("\n\n");
-        builder.append(getString(R.string.ai_fix_label_confidence)).append(" ").append(String.format("%.2f", suggestion.confidence)).append("\n");
-        builder.append(getString(R.string.ai_fix_label_auto_apply)).append(" ")
-                .append(suggestion.canAutoApply && suggestion.hasApplicableOperations()
-                        ? getString(R.string.ai_fix_label_auto_apply_available)
-                        : getString(R.string.ai_fix_label_auto_apply_manual))
-                .append("\n\n");
-
-        if (suggestion.explanation != null && !suggestion.explanation.trim().isEmpty()) {
-            builder.append(getString(R.string.ai_fix_label_explanation)).append("\n")
-                    .append(suggestion.explanation.trim())
-                    .append("\n\n");
-        }
-
-        if (!suggestion.operations.isEmpty()) {
-            builder.append(getString(R.string.ai_fix_label_operations)).append("\n");
-            for (AiFixSuggestion.Operation operation : suggestion.operations) {
-                builder.append("- ").append(operation.type);
-                if (operation.blockId != null && !operation.blockId.isEmpty()) {
-                    builder.append(" [").append(getString(R.string.ai_fix_label_block)).append(" ").append(operation.blockId).append("]");
-                }
-                if (operation.parameterIndex >= 0) {
-                    builder.append(" ").append(getString(R.string.ai_fix_label_param)).append(" ").append(operation.parameterIndex);
-                }
-                if (operation.newValue != null && !operation.newValue.isEmpty()) {
-                    builder.append(" -> ").append(operation.newValue);
-                }
-                if (operation.name != null && !operation.name.isEmpty()) {
-                    builder.append(" ").append(operation.name);
-                }
-                if (operation.valueType != null && !operation.valueType.isEmpty()) {
-                    builder.append(" (").append(operation.valueType).append(")");
-                }
-                if (operation.note != null && !operation.note.isEmpty()) {
-                    builder.append(" - ").append(operation.note);
-                }
-                builder.append("\n");
-            }
-            builder.append("\n");
-        }
-
-        if (!suggestion.manualSteps.isEmpty()) {
-            builder.append(getString(R.string.ai_fix_label_manual_steps)).append("\n");
-            for (String manualStep : suggestion.manualSteps) {
-                builder.append("- ").append(manualStep).append("\n");
-            }
-        }
-
-        return builder.toString().trim();
-    }
-
-    private void applyAiFixSuggestion(AiFixSuggestion suggestion) {
-        ArrayList<BlockBean> blocks = o.getBlocks();
-        HashMap<String, BlockBean> blockMap = new HashMap<>();
-        for (BlockBean blockBean : blocks) {
-            blockMap.put(blockBean.id, blockBean);
-        }
-
-        int appliedOperations = 0;
-        for (AiFixSuggestion.Operation operation : suggestion.operations) {
-            switch (operation.type) {
-                case "update_parameter":
-                    BlockBean blockBean = blockMap.get(operation.blockId);
-                    if (blockBean == null || operation.parameterIndex < 0 || operation.parameterIndex >= blockBean.parameters.size()) {
-                        continue;
-                    }
-
-                    BlockBean oldBlock = blockBean.clone();
-                    blockBean.parameters.set(operation.parameterIndex, operation.newValue);
-                    bC.d(scId).a(s(), oldBlock, blockBean.clone());
-                    a(blockBean, true);
-                    appliedOperations++;
-                    break;
-
-                case "add_variable":
-                    int variableType = getVariableTypeFromAi(operation.valueType);
-                    if (variableType >= 0 && operation.name != null && !operation.name.trim().isEmpty() && !hasVariable(operation.name)) {
-                        b(variableType, operation.name.trim());
-                        appliedOperations++;
-                    }
-                    break;
-
-                case "add_list":
-                    int listType = getListTypeFromAi(operation.valueType);
-                    if (listType >= 0 && operation.name != null && !operation.name.trim().isEmpty() && !hasList(operation.name)) {
-                        a(listType, operation.name.trim());
-                        appliedOperations++;
-                    }
-                    break;
-
-                default:
-                    break;
-            }
-        }
-
-        if (appliedOperations > 0) {
-            E();
-            C();
-            triggerSyntaxCheck();
-            Intent data = new Intent();
-            data.putExtra("ai_fix_applied", true);
-            data.putExtra("ai_fix_summary", suggestion.summary != null && !suggestion.summary.trim().isEmpty()
-                    ? suggestion.summary
-                    : getString(R.string.ai_fix_suggestion_default_summary));
-            setResult(Activity.RESULT_OK, data);
-            AiFixSessionStore.delete(this, aiFixSessionId);
-            aiFixSessionId = null;
-            SketchwareUtil.toast(getString(R.string.ai_fix_applied_to_editor));
-        } else {
-            SketchwareUtil.toast(getString(R.string.ai_fix_no_safe_changes_applied));
-        }
-    }
-
-    private boolean hasVariable(String variableName) {
-        for (Pair<Integer, String> variable : jC.a(scId).k(M.getJavaName())) {
-            if (variableName.equals(variable.second)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean hasList(String listName) {
-        for (Pair<Integer, String> list : jC.a(scId).j(M.getJavaName())) {
-            if (listName.equals(list.second)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private int getVariableTypeFromAi(String valueType) {
-        if (valueType == null) {
-            return -1;
-        }
-
-        return switch (valueType.toLowerCase()) {
-            case "boolean", "bool" -> 0;
-            case "number", "int", "double" -> 1;
-            case "string", "text" -> 2;
-            case "map" -> 3;
-            default -> -1;
-        };
-    }
-
-    private int getListTypeFromAi(String valueType) {
-        if (valueType == null) {
-            return -1;
-        }
-
-        return switch (valueType.toLowerCase()) {
-            case "number", "int", "double" -> 1;
-            case "string", "text" -> 2;
-            case "map" -> 3;
-            default -> -1;
-        };
-    }
-
-    private a.a.a.jq getBuildConfig() {
-        yq sourceGenerator = new yq(this, scId);
-        sourceGenerator.a(jC.c(scId), jC.b(scId), jC.a(scId));
-        return sourceGenerator.N;
-    }
-
-    private String getAiFixFullJavaSource(AiFixSession session) {
-        if (session != null && session.targetJavaSource != null && !session.targetJavaSource.trim().isEmpty()) {
-            return session.targetJavaSource;
-        }
-
-        try {
-            yq sourceGenerator = new yq(this, scId);
-            sourceGenerator.a(jC.c(scId), jC.b(scId), jC.a(scId));
-            return sourceGenerator.getFileSrc(M.getJavaName(), jC.b(scId), jC.a(scId), jC.c(scId));
-        } catch (Exception ignored) {
-            return "";
-        }
-    }
-
     public void t() {
         fa = ObjectAnimator.ofFloat(O, View.TRANSLATION_X, 0.0f);
         fa.setDuration(500L);
@@ -2934,7 +2606,6 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                 activity.loadEventBlocks();
                 activity.runOnUiThread(() -> {
                     activity.h();
-                    activity.maybeStartAiFixFlow();
                 });
             }
         }
@@ -3029,3 +2700,4 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         }
     }
 }
+

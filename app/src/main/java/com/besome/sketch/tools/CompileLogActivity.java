@@ -1,7 +1,6 @@
 package com.besome.sketch.tools;
 
 import android.annotation.SuppressLint;
-import android.content.Intent;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
@@ -34,16 +33,11 @@ import mod.jbk.diagnostic.CompileErrorSaver;
 import mod.jbk.util.AddMarginOnApplyWindowInsetsListener;
 import pro.sketchware.R;
 import pro.sketchware.databinding.CompileLogBinding;
-import pro.sketchware.ai.fix.AiFixSession;
-import pro.sketchware.ai.fix.AiFixSessionStore;
-import pro.sketchware.ai.fix.AiFixSupport;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.network.AiProviderService;
 import io.noties.markwon.Markwon;
 import android.os.Environment;
 import java.io.File;
-import com.besome.sketch.editor.LogicEditorActivity;
-import com.besome.sketch.beans.ProjectFileBean;
 
  import mod.hey.studios.project.ProjectTracker;
 import pro.sketchware.utility.TranslationFunction;
@@ -57,7 +51,6 @@ public class CompileLogActivity extends BaseAppCompatActivity {
     private SharedPreferences logViewerPreferences;
 
     private CompileLogBinding binding;
-    // Store sc_id for later use (AI Fix button)
     private String scId;
 
 
@@ -144,10 +137,6 @@ public class CompileLogActivity extends BaseAppCompatActivity {
         // AI Explain button: analisa o log via Groq e mostra em diálogo com scroll
         if (binding.aiExplainButton != null) {
             binding.aiExplainButton.setOnClickListener(v -> explainLogWithAI());
-        }
-
-        if (binding.aiFixButton != null) {
-            binding.aiFixButton.setOnClickListener(v -> startAiFixFlow());
         }
 
     }
@@ -274,8 +263,10 @@ public class CompileLogActivity extends BaseAppCompatActivity {
 
         new Thread(() -> {
             try {
-                AiFixSession session = AiFixSupport.buildSession(this, scId, logText);
-                String prompt = AiFixSupport.buildExplainPrompt(session);
+                String prompt = "Analyze this Sketchware Android compile log. "
+                        + "Explain the root cause, identify the affected screen or generated source when possible, "
+                        + "and give concrete correction steps without modifying the project.\n\n"
+                        + logText;
                 String response = AiProviderService.getInstance().sendTextMessage(
                         "You analyze Sketchware Android compile logs. Respond in Brazilian Portuguese.",
                         prompt
@@ -302,78 +293,6 @@ public class CompileLogActivity extends BaseAppCompatActivity {
                     } catch (Exception ignored) {
                     }
                     SketchwareUtil.showAnErrorOccurredDialog(this, getString(R.string.ai_explain_error_processing_response));
-                });
-            }
-        }).start();
-    }
-
-    private void startAiFixFlow() {
-        CharSequence cs = binding.tvCompileLog.getText();
-        String logText = cs != null ? cs.toString().trim() : "";
-        if (logText.isEmpty()) {
-            SketchwareUtil.toastError(getString(R.string.compile_log_no_log_available));
-            return;
-        }
-        if (scId == null || scId.trim().isEmpty()) {
-            SketchwareUtil.toastError(getString(R.string.compile_log_project_unresolved));
-            return;
-        }
-
-        View loadingView = LayoutInflater.from(this).inflate(R.layout.dialog_ai_layout_loading, null);
-        TextView titleView = loadingView.findViewById(R.id.text_loading_title);
-        TextView subtitleView = loadingView.findViewById(R.id.text_loading_subtitle);
-
-        if (titleView != null) titleView.setText(R.string.ai_fix_preparing_title);
-        if (subtitleView != null) subtitleView.setText(R.string.ai_fix_preparing_subtitle);
-
-        var progressDialog = new MaterialAlertDialogBuilder(this)
-            .setView(loadingView)
-            .setCancelable(false)
-            .create();
-        progressDialog.show();
-
-        new Thread(() -> {
-            try {
-                AiFixSession session = AiFixSupport.buildSession(this, scId, logText);
-                String sessionId = AiFixSessionStore.save(this, session);
-
-                runOnUiThread(() -> {
-                    try {
-                        progressDialog.dismiss();
-                    } catch (Exception ignored) {
-                    }
-
-                    if (!session.hasResolvedTarget()) {
-                        new MaterialAlertDialogBuilder(this)
-                            .setTitle(R.string.ai_fix_unavailable_title)
-                            .setMessage(R.string.ai_fix_unavailable_message)
-                            .setPositiveButton(R.string.common_word_ok, null)
-                            .show();
-                        return;
-                    }
-
-                    ProjectFileBean projectFileBean = findProjectFile(session.targetJavaName);
-                    if (projectFileBean == null) {
-                        SketchwareUtil.toastError(getString(R.string.ai_fix_source_screen_not_found));
-                        return;
-                    }
-
-                    Intent intent = new Intent(this, LogicEditorActivity.class);
-                    intent.putExtra("sc_id", scId);
-                    intent.putExtra("id", session.targetId);
-                    intent.putExtra("event", session.targetEventName);
-                    intent.putExtra("event_text", session.targetEventText);
-                    intent.putExtra("project_file", projectFileBean);
-                    intent.putExtra("ai_fix_session_id", sessionId);
-                    startActivity(intent);
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    try {
-                        progressDialog.dismiss();
-                    } catch (Exception ignored) {
-                    }
-                    SketchwareUtil.showAnErrorOccurredDialog(this, e.getMessage());
                 });
             }
         }).start();
@@ -503,27 +422,6 @@ public class CompileLogActivity extends BaseAppCompatActivity {
             }
         }
 
-        return null;
-    }
-
-    private ProjectFileBean findProjectFile(String javaName) {
-        if (javaName == null || javaName.trim().isEmpty()) {
-            return null;
-        }
-
-        try {
-            for (ProjectFileBean projectFileBean : a.a.a.jC.b(scId).b()) {
-                if (javaName.equals(projectFileBean.getJavaName())) {
-                    return projectFileBean;
-                }
-            }
-            for (ProjectFileBean projectFileBean : a.a.a.jC.b(scId).c()) {
-                if (javaName.equals(projectFileBean.getJavaName())) {
-                    return projectFileBean;
-                }
-            }
-        } catch (Exception ignored) {
-        }
         return null;
     }
 
