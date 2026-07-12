@@ -102,6 +102,10 @@ public class PermissionManager {
                 checkPerm.add("ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_DENIED");
                 addPerm.add("Manifest.permission.ACCESS_FINE_LOCATION");
             }
+            if ((var1 & jq.PERMISSION_ACTIVITY_RECOGNITION) == jq.PERMISSION_ACTIVITY_RECOGNITION) {
+                checkPerm.add("Build.VERSION.SDK_INT >= 29 && ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_DENIED");
+                addPerm.add("Manifest.permission.ACTIVITY_RECOGNITION");
+            }
             removePermission(true, checkPerm, addPerm);
 
             if (!checkPerm.isEmpty() && !addPerm.isEmpty()) {
@@ -149,6 +153,10 @@ public class PermissionManager {
             if ((var1 & jq.PERMISSION_ACCESS_FINE_LOCATION) == jq.PERMISSION_ACCESS_FINE_LOCATION) {
                 checkPerm.add("checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_DENIED");
                 addPerm.add("Manifest.permission.ACCESS_FINE_LOCATION");
+            }
+            if ((var1 & jq.PERMISSION_ACTIVITY_RECOGNITION) == jq.PERMISSION_ACTIVITY_RECOGNITION) {
+                checkPerm.add("Build.VERSION.SDK_INT >= 29 && checkSelfPermission(Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_DENIED");
+                addPerm.add("Manifest.permission.ACTIVITY_RECOGNITION");
             }
             removePermission(false, checkPerm, addPerm);
 

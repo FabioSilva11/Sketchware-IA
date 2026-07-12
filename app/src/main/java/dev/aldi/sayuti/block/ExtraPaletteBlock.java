@@ -1085,6 +1085,31 @@ public class ExtraPaletteBlock {
                     logicEditor.a(" ", "gyroscopeStartListen");
                     logicEditor.a(" ", "gyroscopeStopListen");
                 }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_COMPASS)) {
+                    logicEditor.a("Compass", getTitleBgColor());
+                    logicEditor.a(" ", "compassSensorStart");
+                    logicEditor.a(" ", "compassSensorStop");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_LIGHT_SENSOR)) {
+                    logicEditor.a("Light Sensor", getTitleBgColor());
+                    logicEditor.a(" ", "lightSensorStart");
+                    logicEditor.a(" ", "lightSensorStop");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_PROXIMITY_SENSOR)) {
+                    logicEditor.a("Proximity Sensor", getTitleBgColor());
+                    logicEditor.a(" ", "proximitySensorStart");
+                    logicEditor.a(" ", "proximitySensorStop");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_BAROMETER)) {
+                    logicEditor.a("Barometer", getTitleBgColor());
+                    logicEditor.a(" ", "barometerSensorStart");
+                    logicEditor.a(" ", "barometerSensorStop");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_STEP_COUNTER)) {
+                    logicEditor.a("Step Counter", getTitleBgColor());
+                    logicEditor.a(" ", "stepCounterSensorStart");
+                    logicEditor.a(" ", "stepCounterSensorStop");
+                }
                 if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD)) {
                     logicEditor.a("AdMob Interstitial", getTitleBgColor());
                     logicEditor.a(" ", "interstitialAdLoad");

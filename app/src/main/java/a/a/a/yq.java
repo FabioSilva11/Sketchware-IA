@@ -591,6 +591,8 @@ public class yq {
                     }
                     case ComponentBean.COMPONENT_TYPE_LOCATION_MANAGER ->
                             N.addPermission(activity.getActivityName(), jq.PERMISSION_ACCESS_FINE_LOCATION);
+                    case ComponentBean.COMPONENT_TYPE_STEP_COUNTER ->
+                            N.addPermission(activity.getActivityName(), jq.PERMISSION_ACTIVITY_RECOGNITION);
                     case ComponentBean.COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE ->
                             N.x.isFCMUsed = true;
                     case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN ->

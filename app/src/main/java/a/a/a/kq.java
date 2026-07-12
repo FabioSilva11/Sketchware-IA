@@ -199,6 +199,11 @@ public class kq {
             case "varBool" -> "Boolean";
             case "gridview" -> "GridView";
             case "gyroscope" -> "Gyroscope";
+            case "compass" -> "Compass";
+            case "lightsensor" -> "Light Sensor";
+            case "proximitysensor" -> "Proximity Sensor";
+            case "barometer" -> "Barometer";
+            case "stepcounter" -> "Step Counter";
             case "ratingbar" -> "RatingBar";
             case "videoad" -> "VideoAd";
             case "mediaplayer" -> "MediaPlayer";

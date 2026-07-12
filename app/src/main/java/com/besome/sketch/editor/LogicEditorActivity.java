@@ -1009,6 +1009,26 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                                             eC.d(javaName, ComponentBean.COMPONENT_TYPE_GYROSCOPE, parameter);
                                             break;
 
+                                        case "compass":
+                                            eC.d(javaName, ComponentBean.COMPONENT_TYPE_COMPASS, parameter);
+                                            break;
+
+                                        case "lightsensor":
+                                            eC.d(javaName, ComponentBean.COMPONENT_TYPE_LIGHT_SENSOR, parameter);
+                                            break;
+
+                                        case "proximitysensor":
+                                            eC.d(javaName, ComponentBean.COMPONENT_TYPE_PROXIMITY_SENSOR, parameter);
+                                            break;
+
+                                        case "barometer":
+                                            eC.d(javaName, ComponentBean.COMPONENT_TYPE_BAROMETER, parameter);
+                                            break;
+
+                                        case "stepcounter":
+                                            eC.d(javaName, ComponentBean.COMPONENT_TYPE_STEP_COUNTER, parameter);
+                                            break;
+
                                         case "interstitialad":
                                             eC.d(javaName, ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD, parameter);
                                             break;
@@ -2700,4 +2720,3 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
         }
     }
 }
-

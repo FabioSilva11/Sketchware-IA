@@ -69,6 +69,11 @@ public class mq {
             case ComponentBean.COMPONENT_TYPE_SOUNDPOOL -> "SoundPool";
             case ComponentBean.COMPONENT_TYPE_OBJECTANIMATOR -> "ObjectAnimator";
             case ComponentBean.COMPONENT_TYPE_GYROSCOPE -> "Gyroscope";
+            case ComponentBean.COMPONENT_TYPE_COMPASS -> "Compass";
+            case ComponentBean.COMPONENT_TYPE_LIGHT_SENSOR -> "LightSensor";
+            case ComponentBean.COMPONENT_TYPE_PROXIMITY_SENSOR -> "ProximitySensor";
+            case ComponentBean.COMPONENT_TYPE_BAROMETER -> "Barometer";
+            case ComponentBean.COMPONENT_TYPE_STEP_COUNTER -> "StepCounter";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
@@ -143,6 +148,11 @@ public class mq {
             case "firebase", "Firebase", "Firebase DB" -> "FirebaseDB";
             case "firebaseauth", "Firebase Auth" -> "FirebaseAuth";
             case "gyroscope", "Gyroscope" -> "Gyroscope";
+            case "compass", "Compass" -> "Compass";
+            case "lightsensor", "LightSensor" -> "LightSensor";
+            case "proximitysensor", "ProximitySensor" -> "ProximitySensor";
+            case "barometer", "Barometer" -> "Barometer";
+            case "stepcounter", "StepCounter" -> "StepCounter";
             case "InterstitialAd" -> "InterstitialAd";
             case "varBool" -> "boolean.SelectBoolean";
             case "varInt" -> "double.SelectDouble";
@@ -413,6 +423,11 @@ public class mq {
                 return importList;
 
             case "Gyroscope":
+            case "Compass":
+            case "LightSensor":
+            case "ProximitySensor":
+            case "Barometer":
+            case "StepCounter":
                 importList.add("android.content.Context");
                 importList.add("android.hardware.Sensor");
                 importList.add("android.hardware.SensorManager");
@@ -770,7 +785,8 @@ public class mq {
             case "ListString" -> "ArrayList<String>";
             case "ListMap" -> "ArrayList<HashMap<String, Object>>";
             case "Timer" -> "TimerTask";
-            case "Gyroscope" -> "SensorManager";
+            case "Gyroscope", "Compass", "LightSensor", "ProximitySensor", "Barometer",
+                 "StepCounter" -> "SensorManager";
             case "Dialog" -> "AlertDialog.Builder";
             case "FirebaseDB" -> "DatabaseReference";
             case "FirebaseStorage" -> "StorageReference";

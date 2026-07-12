@@ -52,7 +52,9 @@ public class oq {
             case "onCreateUserComplete" -> R.drawable.ic_mtrl_user_create;
             case "onSignInUserComplete" -> R.drawable.ic_mtrl_signin;
             case "onResetPasswordEmailSent" -> R.drawable.ic_mtrl_reset;
-            case "onSensorChanged", "onResponse" -> R.drawable.ic_mtrl_sensor;
+            case "onSensorChanged", "onCompassChanged", "onLightChanged",
+                 "onProximityChanged", "onPressureChanged", "onStepCountChanged",
+                 "onResponse" -> R.drawable.ic_mtrl_sensor;
             case "onAccuracyChanged" -> R.drawable.ic_mtrl_center;
             case "onInterstitialAdLoaded", "onBannerAdLoaded", "onRewardAdLoaded" ->
                     R.drawable.ic_mtrl_loaded;
@@ -116,6 +118,11 @@ public class oq {
             case "onChildRemoved" -> Helper.getResString(R.string.event_onchildremoved);
             case "onCancelled" -> Helper.getResString(R.string.event_oncancelled);
             case "onSensorChanged" -> Helper.getResString(R.string.event_onsensorchanged);
+            case "onCompassChanged" -> Helper.getResString(R.string.event_on_compass_changed);
+            case "onLightChanged" -> Helper.getResString(R.string.event_on_light_changed);
+            case "onProximityChanged" -> Helper.getResString(R.string.event_on_proximity_changed);
+            case "onPressureChanged" -> Helper.getResString(R.string.event_on_pressure_changed);
+            case "onStepCountChanged" -> Helper.getResString(R.string.event_on_step_count_changed);
             case "onCreateUserComplete" -> Helper.getResString(R.string.event_oncreateusercomplete);
             case "onSignInUserComplete" -> Helper.getResString(R.string.event_onsigninusercomplete);
             case "onResetPasswordEmailSent" ->
@@ -180,6 +187,11 @@ public class oq {
         if (classInfo.a("Gyroscope")) {
             eventList.add("onSensorChanged");
         }
+        if (classInfo.a("Compass")) eventList.add("onCompassChanged");
+        if (classInfo.a("LightSensor")) eventList.add("onLightChanged");
+        if (classInfo.a("ProximitySensor")) eventList.add("onProximityChanged");
+        if (classInfo.a("Barometer")) eventList.add("onPressureChanged");
+        if (classInfo.a("StepCounter")) eventList.add("onStepCountChanged");
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("onInterstitialAdLoaded");
@@ -292,6 +304,11 @@ public class oq {
         if (classInfo.a("Gyroscope")) {
             eventList.add("sensorEventListener");
         }
+        if (classInfo.a("Compass")) eventList.add("compassSensorEventListener");
+        if (classInfo.a("LightSensor")) eventList.add("lightSensorEventListener");
+        if (classInfo.a("ProximitySensor")) eventList.add("proximitySensorEventListener");
+        if (classInfo.a("Barometer")) eventList.add("barometerSensorEventListener");
+        if (classInfo.a("StepCounter")) eventList.add("stepCounterSensorEventListener");
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("interstitialAdLoadCallback");
@@ -373,6 +390,26 @@ public class oq {
             }
             case "sensorEventListener" -> {
                 eventList.add("onSensorChanged");
+                eventList.add("onAccuracyChanged");
+            }
+            case "compassSensorEventListener" -> {
+                eventList.add("onCompassChanged");
+                eventList.add("onAccuracyChanged");
+            }
+            case "lightSensorEventListener" -> {
+                eventList.add("onLightChanged");
+                eventList.add("onAccuracyChanged");
+            }
+            case "proximitySensorEventListener" -> {
+                eventList.add("onProximityChanged");
+                eventList.add("onAccuracyChanged");
+            }
+            case "barometerSensorEventListener" -> {
+                eventList.add("onPressureChanged");
+                eventList.add("onAccuracyChanged");
+            }
+            case "stepCounterSensorEventListener" -> {
+                eventList.add("onStepCountChanged");
                 eventList.add("onAccuracyChanged");
             }
             case "authCreateUserComplete" -> eventList.add("onCreateUserComplete");

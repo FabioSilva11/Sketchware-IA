@@ -54,6 +54,11 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
     public static final int COMPONENT_TYPE_FIREBASE_AUTH_PHONE = 28;
     public static final int COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE = 30;
     public static final int COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN = 31;
+    public static final int COMPONENT_TYPE_COMPASS = 40;
+    public static final int COMPONENT_TYPE_LIGHT_SENSOR = 41;
+    public static final int COMPONENT_TYPE_PROXIMITY_SENSOR = 42;
+    public static final int COMPONENT_TYPE_BAROMETER = 43;
+    public static final int COMPONENT_TYPE_STEP_COUNTER = 44;
 
     public Gx classInfo;
     @Expose
@@ -133,6 +138,10 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
                     "https://docs.sketchware.io/docs/component-object-animator.html";
             case COMPONENT_TYPE_GYROSCOPE ->
                     "https://docs.sketchware.io/docs/component-gyroscope.html";
+            case COMPONENT_TYPE_COMPASS, COMPONENT_TYPE_LIGHT_SENSOR,
+                 COMPONENT_TYPE_PROXIMITY_SENSOR, COMPONENT_TYPE_BAROMETER,
+                 COMPONENT_TYPE_STEP_COUNTER ->
+                    "https://developer.android.com/develop/sensors-and-location/sensors/sensors_overview";
             case COMPONENT_TYPE_FIREBASE_AUTH ->
                     "https://docs.sketchware.io/docs/component-firebase-auth.html";
             case COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE ->
@@ -167,6 +176,11 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_SOUNDPOOL -> "SoundPool";
             case COMPONENT_TYPE_OBJECTANIMATOR -> "ObjectAnimator";
             case COMPONENT_TYPE_GYROSCOPE -> "Gyroscope";
+            case COMPONENT_TYPE_COMPASS -> "Compass";
+            case COMPONENT_TYPE_LIGHT_SENSOR -> "Light Sensor";
+            case COMPONENT_TYPE_PROXIMITY_SENSOR -> "Proximity Sensor";
+            case COMPONENT_TYPE_BAROMETER -> "Barometer";
+            case COMPONENT_TYPE_STEP_COUNTER -> "Step Counter";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "Firebase Auth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "Interstitial Ad";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "Firebase Storage";
@@ -203,6 +217,11 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case "SoundPool" -> COMPONENT_TYPE_SOUNDPOOL;
             case "ObjectAnimator" -> COMPONENT_TYPE_OBJECTANIMATOR;
             case "Gyroscope" -> COMPONENT_TYPE_GYROSCOPE;
+            case "Compass" -> COMPONENT_TYPE_COMPASS;
+            case "LightSensor" -> COMPONENT_TYPE_LIGHT_SENSOR;
+            case "ProximitySensor" -> COMPONENT_TYPE_PROXIMITY_SENSOR;
+            case "Barometer" -> COMPONENT_TYPE_BAROMETER;
+            case "StepCounter" -> COMPONENT_TYPE_STEP_COUNTER;
             case "FirebaseAuth" -> COMPONENT_TYPE_FIREBASE_AUTH;
             case "InterstitialAd" -> COMPONENT_TYPE_INTERSTITIAL_AD;
             case "FirebaseStorage" -> COMPONENT_TYPE_FIREBASE_STORAGE;
@@ -239,6 +258,11 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_SOUNDPOOL -> "SoundPool";
             case COMPONENT_TYPE_OBJECTANIMATOR -> "ObjectAnimator";
             case COMPONENT_TYPE_GYROSCOPE -> "Gyroscope";
+            case COMPONENT_TYPE_COMPASS -> "Compass";
+            case COMPONENT_TYPE_LIGHT_SENSOR -> "LightSensor";
+            case COMPONENT_TYPE_PROXIMITY_SENSOR -> "ProximitySensor";
+            case COMPONENT_TYPE_BAROMETER -> "Barometer";
+            case COMPONENT_TYPE_STEP_COUNTER -> "StepCounter";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
@@ -280,6 +304,11 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_SOUNDPOOL -> R.string.component_description_soundpool;
             case COMPONENT_TYPE_OBJECTANIMATOR -> R.string.component_description_objectanimator;
             case COMPONENT_TYPE_GYROSCOPE -> R.string.component_description_gyrosope;
+            case COMPONENT_TYPE_COMPASS -> R.string.component_description_compass;
+            case COMPONENT_TYPE_LIGHT_SENSOR -> R.string.component_description_light_sensor;
+            case COMPONENT_TYPE_PROXIMITY_SENSOR -> R.string.component_description_proximity_sensor;
+            case COMPONENT_TYPE_BAROMETER -> R.string.component_description_barometer;
+            case COMPONENT_TYPE_STEP_COUNTER -> R.string.component_description_step_counter;
             case COMPONENT_TYPE_FIREBASE_AUTH -> R.string.component_description_firebase_auth;
             case COMPONENT_TYPE_INTERSTITIAL_AD -> R.string.component_description_interstitial_ad;
             case COMPONENT_TYPE_FIREBASE_STORAGE -> R.string.component_description_firebase_storage;
@@ -322,6 +351,9 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_SOUNDPOOL -> R.drawable.ic_mtrl_volume;
             case COMPONENT_TYPE_OBJECTANIMATOR -> R.drawable.ic_mtrl_animation;
             case COMPONENT_TYPE_GYROSCOPE -> R.drawable.ic_mtrl_sensors;
+            case COMPONENT_TYPE_COMPASS, COMPONENT_TYPE_LIGHT_SENSOR,
+                 COMPONENT_TYPE_PROXIMITY_SENSOR, COMPONENT_TYPE_BAROMETER,
+                 COMPONENT_TYPE_STEP_COUNTER -> R.drawable.ic_mtrl_sensors;
             case COMPONENT_TYPE_INTERSTITIAL_AD -> R.drawable.ic_mtrl_admob;
             case COMPONENT_TYPE_CAMERA -> R.drawable.ic_mtrl_camera;
             case COMPONENT_TYPE_FILE_PICKER -> R.drawable.ic_mtrl_file;
@@ -358,6 +390,11 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_SOUNDPOOL -> "SoundPool";
             case COMPONENT_TYPE_OBJECTANIMATOR -> "ObjectAnimator";
             case COMPONENT_TYPE_GYROSCOPE -> "Gyroscope";
+            case COMPONENT_TYPE_COMPASS -> "Compass";
+            case COMPONENT_TYPE_LIGHT_SENSOR -> "LightSensor";
+            case COMPONENT_TYPE_PROXIMITY_SENSOR -> "ProximitySensor";
+            case COMPONENT_TYPE_BAROMETER -> "Barometer";
+            case COMPONENT_TYPE_STEP_COUNTER -> "StepCounter";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";

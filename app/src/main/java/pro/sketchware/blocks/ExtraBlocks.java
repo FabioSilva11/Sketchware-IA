@@ -60,6 +60,17 @@ public class ExtraBlocks {
         arrayList.add(addBlock("removePermission", " ", "", "", "#493F5A", "Permission Command Block: remove %m.Permission"));
         arrayList.add(addBlock("addCustomVariable", " ", "", "", "#493F5A", "Custom Variable Block: add variable %s"));
         arrayList.add(addBlock("addInitializer", " ", "", "", "#493F5A", "Initializer Block: add initializer %s"));
+        // Android hardware sensor components
+        arrayList.add(addBlock("compassSensorStart", " ", "", "%1$s.registerListener(_%1$s_sensor_listener, %1$s.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_NORMAL);", "#607d8b", "%m.compass start listening"));
+        arrayList.add(addBlock("compassSensorStop", " ", "", "%1$s.unregisterListener(_%1$s_sensor_listener);", "#607d8b", "%m.compass stop listening"));
+        arrayList.add(addBlock("lightSensorStart", " ", "", "%1$s.registerListener(_%1$s_sensor_listener, %1$s.getDefaultSensor(Sensor.TYPE_LIGHT), SensorManager.SENSOR_DELAY_NORMAL);", "#607d8b", "%m.lightsensor start listening"));
+        arrayList.add(addBlock("lightSensorStop", " ", "", "%1$s.unregisterListener(_%1$s_sensor_listener);", "#607d8b", "%m.lightsensor stop listening"));
+        arrayList.add(addBlock("proximitySensorStart", " ", "", "%1$s.registerListener(_%1$s_sensor_listener, %1$s.getDefaultSensor(Sensor.TYPE_PROXIMITY), SensorManager.SENSOR_DELAY_NORMAL);", "#607d8b", "%m.proximitysensor start listening"));
+        arrayList.add(addBlock("proximitySensorStop", " ", "", "%1$s.unregisterListener(_%1$s_sensor_listener);", "#607d8b", "%m.proximitysensor stop listening"));
+        arrayList.add(addBlock("barometerSensorStart", " ", "", "%1$s.registerListener(_%1$s_sensor_listener, %1$s.getDefaultSensor(Sensor.TYPE_PRESSURE), SensorManager.SENSOR_DELAY_NORMAL);", "#607d8b", "%m.barometer start listening"));
+        arrayList.add(addBlock("barometerSensorStop", " ", "", "%1$s.unregisterListener(_%1$s_sensor_listener);", "#607d8b", "%m.barometer stop listening"));
+        arrayList.add(addBlock("stepCounterSensorStart", " ", "", "%1$s.registerListener(_%1$s_sensor_listener, %1$s.getDefaultSensor(Sensor.TYPE_STEP_COUNTER), SensorManager.SENSOR_DELAY_NORMAL);", "#607d8b", "%m.stepcounter start listening"));
+        arrayList.add(addBlock("stepCounterSensorStop", " ", "", "%1$s.unregisterListener(_%1$s_sensor_listener);", "#607d8b", "%m.stepcounter stop listening"));
         //OtpView Blocks
         arrayList.add(addBlock("otpViewSetFieldCount", " ", "", "%1$s.setFieldCount(%2$s);", "#4a6cd4", "%m.otpview setFieldCount %d"));
         arrayList.add(addBlock("otpViewSetOTPText", " ", "", "%1$s.setOTPText(%2$s);", "#4a6cd4", "%m.otpview setOTPText %s"));

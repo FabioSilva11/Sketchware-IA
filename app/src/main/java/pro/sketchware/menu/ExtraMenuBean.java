@@ -436,6 +436,31 @@ public class ExtraMenuBean {
                         menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_GYROSCOPE);
                         break;
 
+                        case "compass":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_compass);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_COMPASS);
+                        break;
+
+                        case "lightsensor":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_light_sensor);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_LIGHT_SENSOR);
+                        break;
+
+                        case "proximitysensor":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_proximity_sensor);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_PROXIMITY_SENSOR);
+                        break;
+
+                        case "barometer":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_barometer);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_BAROMETER);
+                        break;
+
+                        case "stepcounter":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_step_counter);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_STEP_COUNTER);
+                        break;
+
                         case "interstitialad":
                         title = logicEditor.getString(R.string.logic_editor_title_select_component_interstitialad);
                         menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD);

@@ -448,6 +448,9 @@ public class Ix {
             if (c.hasPermission(jq.PERMISSION_ACCESS_FINE_LOCATION)) {
                 writePermission(a, Manifest.permission.ACCESS_FINE_LOCATION);
             }
+            if (c.hasPermission(jq.PERMISSION_ACTIVITY_RECOGNITION)) {
+                writePermission(a, Manifest.permission.ACTIVITY_RECOGNITION);
+            }
         }
         if (FileUtil.isExistFile(fpu.getPathPermission(c.sc_id))) {
             for (String s : frc.getPermissionList()) {
