@@ -97,6 +97,26 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 }
                 break;
 
+            case ComponentBean.COMPONENT_TYPE_COMPASS:
+                showSensorWarningIfUnavailable(Sensor.TYPE_ROTATION_VECTOR);
+                break;
+
+            case ComponentBean.COMPONENT_TYPE_LIGHT_SENSOR:
+                showSensorWarningIfUnavailable(Sensor.TYPE_LIGHT);
+                break;
+
+            case ComponentBean.COMPONENT_TYPE_PROXIMITY_SENSOR:
+                showSensorWarningIfUnavailable(Sensor.TYPE_PROXIMITY);
+                break;
+
+            case ComponentBean.COMPONENT_TYPE_BAROMETER:
+                showSensorWarningIfUnavailable(Sensor.TYPE_PRESSURE);
+                break;
+
+            case ComponentBean.COMPONENT_TYPE_STEP_COUNTER:
+                showSensorWarningIfUnavailable(Sensor.TYPE_STEP_COUNTER);
+                break;
+
             case ComponentBean.COMPONENT_TYPE_FILE_PICKER:
                 binding.tiInputFilePicker.setVisibility(View.VISIBLE);
                 break;
@@ -231,6 +251,7 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 break;
 
             case ComponentBean.COMPONENT_TYPE_FRAGMENT_ADAPTER:
+            case ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER:
                 if (jC.c(scId).c().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
                     bB.b(getContext(), Helper.getResString(R.string.design_library_guide_setup_first), bB.TOAST_WARNING).show();
                     return false;
@@ -259,6 +280,13 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
         }
         jC.a(scId).k();
         return true;
+    }
+
+    private void showSensorWarningIfUnavailable(int sensorType) {
+        if (!GB.b(getContext(), sensorType)) {
+            binding.cardWarning.setVisibility(View.VISIBLE);
+            binding.warning.setText(Helper.getResString(R.string.message_device_not_support));
+        }
     }
 
     /**

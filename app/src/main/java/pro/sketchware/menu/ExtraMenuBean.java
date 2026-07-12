@@ -64,7 +64,7 @@ public class ExtraMenuBean {
         public static final int LIST_TYPE_MAP = 3;
         public static final int LIST_TYPE_STRING = 2;
 
-        public static final String[] adSize = {"AUTO_HEIGHT", "BANNER", "FLUID", "FULL_BANNER", "FULL_WIDTH", "INVALID", "LARGE_BANNER", "LEADERBOARD", "MEDIUM_RECTANGLE", "SEARCH", "SMART_BANNER", "WIDE_SKYSCRAPER"};
+        public static final String[] adSize = {"AUTO_HEIGHT", "BANNER", "FLUID", "FULL_BANNER", "FULL_WIDTH", "INVALID", "LARGE_BANNER", "LEADERBOARD", "MEDIUM_RECTANGLE", "SEARCH", "WIDE_SKYSCRAPER"};
         public static final String[] intentKey = {"EXTRA_ALLOW_MULTIPLE", "EXTRA_EMAIL", "EXTRA_INDEX", "EXTRA_INTENT", "EXTRA_PHONE_NUMBER", "EXTRA_STREAM", "EXTRA_SUBJECT", "EXTRA_TEXT", "EXTRA_TITLE"};
         public static final String[] pixelFormat = {"OPAQUE", "RGBA_1010102", "RGBA_8888", "RGBA_F16", "RGBX_8888", "RGB_565", "RGB_888", "TRANSLUCENT", "TRANSPARENT", "UNKNOWN"};
         public static final String[] patternFlags = {"CANON_EQ", "CASE_INSENSITIVE", "COMMENTS", "DOTALL", "LITERAL", "MULTILINE", "UNICODE_CASE", "UNIX_LINES"};
@@ -434,6 +434,51 @@ public class ExtraMenuBean {
                         case "gyroscope":
                         title = logicEditor.getString(R.string.logic_editor_title_select_component_gyroscope);
                         menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_GYROSCOPE);
+                        break;
+
+                        case "compass":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_compass);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_COMPASS);
+                        break;
+
+                        case "lightsensor":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_light_sensor);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_LIGHT_SENSOR);
+                        break;
+
+                        case "proximitysensor":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_proximity_sensor);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_PROXIMITY_SENSOR);
+                        break;
+
+                        case "barometer":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_barometer);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_BAROMETER);
+                        break;
+
+                        case "stepcounter":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_step_counter);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_STEP_COUNTER);
+                        break;
+
+                        case "workmanager":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_work_manager);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_WORK_MANAGER);
+                        break;
+
+                        case "alarmmanager":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_alarm_manager);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_ALARM_MANAGER);
+                        break;
+
+                        case "biometricmanager":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_biometric_manager);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER);
+                        break;
+
+                        case "fusedlocationmanager":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_fused_location_manager);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER);
                         break;
 
                         case "interstitialad":

@@ -35,12 +35,16 @@ public class Lx {
      * @return Content of a <code>build.gradle</code> file for the module ':app', with indentation
      */
     public static String getBuildGradleString(int compileSdkVersion, int minSdkVersion, String targetSdkVersion, jq metadata, boolean isViewBindingEnabled) {
+        int requiredCompileSdk = metadata.isAdMobEnabled ? 35 : (metadata.isWorkManagerUsed ? 33 : compileSdkVersion);
+        int effectiveCompileSdk = Math.max(compileSdkVersion, requiredCompileSdk);
+        int effectiveMinSdk = (metadata.isAdMobEnabled || metadata.isWorkManagerUsed
+                || metadata.isFusedLocationManagerUsed) ? Math.max(minSdkVersion, 23) : minSdkVersion;
         StringBuilder content = new StringBuilder("plugins {\r\n" +
                 "id 'com.android.application'\r\n" +
                 "}\r\n" +
                 "\r\n" +
                 "android {\r\n" +
-                "compileSdk " + compileSdkVersion + "\r\n" +
+                "compileSdk " + effectiveCompileSdk + "\r\n" +
                 "\r\n");
         if (new BuildSettings(metadata.sc_id)
                 .getValue(BuildSettings.SETTING_NO_HTTP_LEGACY, BuildSettings.SETTING_GENERIC_VALUE_FALSE)
@@ -57,7 +61,7 @@ public class Lx {
                 .append(metadata.packageName)
                 .append("\"\r\n")
                 .append("minSdkVersion ")
-                .append(minSdkVersion)
+                .append(effectiveMinSdk)
                 .append("\r\n")
                 .append("targetSdkVersion ")
                 .append(targetSdkVersion)
@@ -111,7 +115,20 @@ public class Lx {
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.PLAY_SERVICES_ADS, excludedLibraries) && metadata.isAdMobEnabled) {
-            content.append("implementation 'com.google.android.gms:play-services-ads:23.4.0'\r\n");
+            content.append("implementation 'com.google.android.gms:play-services-ads:25.4.0'\r\n");
+            content.append("implementation 'com.google.android.ump:user-messaging-platform:4.0.0'\r\n");
+        }
+
+        if (metadata.isWorkManagerUsed) {
+            content.append("implementation 'androidx.work:work-runtime:2.11.2'\r\n");
+        }
+
+        if (metadata.isBiometricManagerUsed) {
+            content.append("implementation 'androidx.biometric:biometric:1.1.0'\r\n");
+        }
+
+        if (metadata.isFusedLocationManagerUsed) {
+            content.append("implementation 'com.google.android.gms:play-services-location:21.4.0'\r\n");
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.PLAY_SERVICES_MAPS, excludedLibraries) && metadata.isMapUsed) {
@@ -434,6 +451,61 @@ public class Lx {
                     "final double _z = _orientations[2];\r\n" +
                     eventLogic + "\r\n" +
                     "}";
+            case "onCompassChanged" -> "@Override\r\n" +
+                    "public void onSensorChanged(SensorEvent _param1) {\r\n" +
+                    "float[] _rotationMatrix = new float[9];\r\n" +
+                    "SensorManager.getRotationMatrixFromVector(_rotationMatrix, _param1.values);\r\n" +
+                    "float[] _orientation = new float[3];\r\n" +
+                    "SensorManager.getOrientation(_rotationMatrix, _orientation);\r\n" +
+                    "final double _heading = (Math.toDegrees(_orientation[0]) + 360.0d) % 360.0d;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onLightChanged" -> "@Override\r\n" +
+                    "public void onSensorChanged(SensorEvent _param1) {\r\n" +
+                    "final double _lux = _param1.values[0];\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onProximityChanged" -> "@Override\r\n" +
+                    "public void onSensorChanged(SensorEvent _param1) {\r\n" +
+                    "final double _distance = _param1.values[0];\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onPressureChanged" -> "@Override\r\n" +
+                    "public void onSensorChanged(SensorEvent _param1) {\r\n" +
+                    "final double _pressure = _param1.values[0];\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onStepCountChanged" -> "@Override\r\n" +
+                    "public void onSensorChanged(SensorEvent _param1) {\r\n" +
+                    "final double _steps = _param1.values[0];\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onBiometricSuccess" -> "@Override\r\n" +
+                    "public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult _param1) {\r\n" +
+                    "super.onAuthenticationSucceeded(_param1);\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onBiometricError" -> "@Override\r\n" +
+                    "public void onAuthenticationError(int _param1, CharSequence _param2) {\r\n" +
+                    "super.onAuthenticationError(_param1, _param2);\r\n" +
+                    "final double _errorCode = _param1;\r\n" +
+                    "final String _errorMessage = _param2.toString();\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onBiometricFailed" -> "@Override\r\n" +
+                    "public void onAuthenticationFailed() {\r\n" +
+                    "super.onAuthenticationFailed();\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onFusedLocationChanged" -> "@Override\r\n" +
+                    "public void onLocationResult(LocationResult _param1) {\r\n" +
+                    "if (_param1 == null || _param1.getLastLocation() == null) return;\r\n" +
+                    "Location _location = _param1.getLastLocation();\r\n" +
+                    "final double _latitude = _location.getLatitude();\r\n" +
+                    "final double _longitude = _location.getLongitude();\r\n" +
+                    "final double _accuracy = _location.getAccuracy();\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
             case "onAccuracyChanged" -> "@Override\r\n" +
                     "public void onAccuracyChanged(Sensor _param1, int _param2) {\r\n" +
                     eventLogic + "\r\n" +
@@ -632,7 +704,20 @@ public class Lx {
                     break;
 
                 case "Gyroscope":
+                case "Compass":
+                case "LightSensor":
+                case "ProximitySensor":
+                case "Barometer":
+                case "StepCounter":
                     fieldDeclaration += "\r\nprivate SensorEventListener _" + typeInstanceName + "_sensor_listener;";
+                    break;
+
+                case "BiometricManager":
+                    fieldDeclaration += "\r\nprivate BiometricManager _" + typeInstanceName + "_manager;";
+                    break;
+
+                case "FusedLocationManager":
+                    fieldDeclaration += "\r\nprivate LocationCallback _" + typeInstanceName + "_location_callback;";
                     break;
 
                 case "FirebaseAuth":
@@ -1156,6 +1241,33 @@ public class Lx {
                         "SketchwareUtil.showMessage(getApplicationContext(), \"Gyroscope is not supported on this device\");\r\n" +
                         "}";
 
+            case "Compass":
+                return getSensorManagerInitializer(componentName, "TYPE_ROTATION_VECTOR", "Compass");
+
+            case "LightSensor":
+                return getSensorManagerInitializer(componentName, "TYPE_LIGHT", "Light sensor");
+
+            case "ProximitySensor":
+                return getSensorManagerInitializer(componentName, "TYPE_PROXIMITY", "Proximity sensor");
+
+            case "Barometer":
+                return getSensorManagerInitializer(componentName, "TYPE_PRESSURE", "Barometer");
+
+            case "StepCounter":
+                return getSensorManagerInitializer(componentName, "TYPE_STEP_COUNTER", "Step counter");
+
+            case "WorkManager":
+                return componentName + " = WorkManager.getInstance(getApplicationContext());";
+
+            case "AlarmManager":
+                return componentName + " = (AlarmManager) getSystemService(Context.ALARM_SERVICE);";
+
+            case "BiometricManager":
+                return "_" + componentName + "_manager = BiometricManager.from(this);";
+
+            case "FusedLocationManager":
+                return componentName + " = LocationServices.getFusedLocationProviderClient(this);";
+
             case "FirebaseAuth":
                 return componentName + " = FirebaseAuth.getInstance();";
 
@@ -1221,6 +1333,15 @@ public class Lx {
                 return ComponentsHandler.defineExtraVar(componentNameId, componentName);
 
         }
+    }
+
+    private static String getSensorManagerInitializer(String componentName, String sensorType,
+                                                       String displayName) {
+        return componentName + " = (SensorManager) getSystemService(Context.SENSOR_SERVICE);\r\n" +
+                "if (" + componentName + ".getDefaultSensor(Sensor." + sensorType + ") == null) {\r\n" +
+                "SketchwareUtil.showMessage(getApplicationContext(), \"" + displayName +
+                " is not supported on this device\");\r\n" +
+                "}";
     }
 
     /**
@@ -1643,6 +1764,16 @@ public class Lx {
         };
     }
 
+    private static String getSensorListenerCode(String componentName, String sensorType,
+                                                String eventLogic) {
+        String listenerName = "_" + componentName + "_sensor_listener";
+        return listenerName + " = new SensorEventListener() {\r\n" +
+                eventLogic + "\r\n" +
+                "};\r\n" +
+                componentName + ".registerListener(" + listenerName + ", " + componentName +
+                ".getDefaultSensor(Sensor." + sensorType + "), SensorManager.SENSOR_DELAY_NORMAL);";
+    }
+
     public static String getListenerCode(String eventName, String componentName, String
             eventLogic) {
         return switch (eventName) {
@@ -1658,6 +1789,22 @@ public class Lx {
                         + componentName + ".registerListener(" + sensorEventListenerName + ", " + componentName
                         + ".getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_NORMAL);";
             }
+            case "compassSensorEventListener" ->
+                    getSensorListenerCode(componentName, "TYPE_ROTATION_VECTOR", eventLogic);
+            case "lightSensorEventListener" ->
+                    getSensorListenerCode(componentName, "TYPE_LIGHT", eventLogic);
+            case "proximitySensorEventListener" ->
+                    getSensorListenerCode(componentName, "TYPE_PROXIMITY", eventLogic);
+            case "barometerSensorEventListener" ->
+                    getSensorListenerCode(componentName, "TYPE_PRESSURE", eventLogic);
+            case "stepCounterSensorEventListener" ->
+                    getSensorListenerCode(componentName, "TYPE_STEP_COUNTER", eventLogic);
+            case "biometricAuthenticationCallback" ->
+                    componentName + " = new BiometricPrompt(this, ContextCompat.getMainExecutor(this), " +
+                            "new BiometricPrompt.AuthenticationCallback() {\r\n" + eventLogic + "\r\n});";
+            case "fusedLocationCallback" ->
+                    "_" + componentName + "_location_callback = new LocationCallback() {\r\n" +
+                            eventLogic + "\r\n};";
             case "onTextChangedListener" ->
                     componentName + ".addTextChangedListener(new TextWatcher() {\r\n"
                             + eventLogic + "\r\n"

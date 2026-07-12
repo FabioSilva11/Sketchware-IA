@@ -386,6 +386,42 @@ public class Gx {
                 classInfos = "Component.Gyroscope";
                 break;
 
+            case "Compass":
+                classInfos = "Component.Sensor.Compass";
+                break;
+
+            case "LightSensor":
+                classInfos = "Component.Sensor.LightSensor";
+                break;
+
+            case "ProximitySensor":
+                classInfos = "Component.Sensor.ProximitySensor";
+                break;
+
+            case "Barometer":
+                classInfos = "Component.Sensor.Barometer";
+                break;
+
+            case "StepCounter":
+                classInfos = "Component.Sensor.StepCounter";
+                break;
+
+            case "WorkManager":
+                classInfos = "Component.Manager.WorkManager";
+                break;
+
+            case "AlarmManager":
+                classInfos = "Component.Manager.AlarmManager";
+                break;
+
+            case "BiometricManager":
+                classInfos = "Component.Manager.BiometricManager";
+                break;
+
+            case "FusedLocationManager":
+                classInfos = "Component.Manager.FusedLocationManager";
+                break;
+
             case "FirebaseStorage":
                 classInfos = "Component.FirebaseStorage";
                 break;

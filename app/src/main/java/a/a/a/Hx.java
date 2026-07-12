@@ -366,6 +366,13 @@ public class Hx {
                     case "FirebaseStorage":
                     case "FirebaseAuth":
                     case "Gyroscope":
+                    case "Compass":
+                    case "LightSensor":
+                    case "ProximitySensor":
+                    case "Barometer":
+                    case "StepCounter":
+                    case "BiometricManager":
+                    case "FusedLocationManager":
                     case "FragmentAdapter":
                     case "WebView":
                     case "MapView":

@@ -89,6 +89,9 @@ public class jq {
      */
     public static final int PERMISSION_ACCESS_FINE_LOCATION = 1024;
 
+    /** @see android.Manifest.permission#ACTIVITY_RECOGNITION */
+    public static final int PERMISSION_ACTIVITY_RECOGNITION = 2048;
+
     /**
      * Project's package name,
      * e.g. com.jbk.internal.demo.
@@ -180,6 +183,10 @@ public class jq {
      * is used in the project.
      */
     public boolean isSpeechToTextUsed = false;
+    public boolean isWorkManagerUsed = false;
+    public boolean isBiometricManagerUsed = false;
+    public boolean isFusedLocationManagerUsed = false;
+    public boolean isAlarmManagerUsed = false;
 
     /**
      * Permissions of the whole project, stored as bitfield.
@@ -333,7 +340,8 @@ public class jq {
                     || b(PERMISSION_READ_EXTERNAL_STORAGE) || b(PERMISSION_WRITE_EXTERNAL_STORAGE)
                     || b(PERMISSION_CAMERA)
                     || b(PERMISSION_RECORD_AUDIO)
-                    || b(PERMISSION_ACCESS_FINE_LOCATION);
+                    || b(PERMISSION_ACCESS_FINE_LOCATION)
+                    || b(PERMISSION_ACTIVITY_RECOGNITION);
         }
     }
 }

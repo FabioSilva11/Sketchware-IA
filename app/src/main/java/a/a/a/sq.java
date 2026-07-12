@@ -66,7 +66,7 @@ public class sq {
         h = new Pair[]{new Pair<>(1, "Sunday"), new Pair<>(2, "Monday"), new Pair<>(3, "Tuesday"), new Pair<>(4, "Wednesday"), new Pair<>(5, "Thursday"), new Pair<>(6, "Friday"), new Pair<>(7, "Saturday")};
         i = new Pair[]{new Pair<>(TextBean.INPUT_TYPE_TEXT, "text"), new Pair<>(TextBean.INPUT_TYPE_NUMBER_SIGNED, "numberSigned"), new Pair<>(TextBean.INPUT_TYPE_NUMBER_DECIMAL, "numberDecimal"), new Pair<>(TextBean.INPUT_TYPE_NUMBER_SIGNED_DECIMAL, "numberSigned|numberDecimal"), new Pair<>(TextBean.INPUT_TYPE_PHONE, "phone"), new Pair<>(TextBean.INPUT_TYPE_PASSWORD, "textPassword")};
         j = new String[]{ImageBean.SCALE_TYPE_FIT_XY, ImageBean.SCALE_TYPE_FIT_START, ImageBean.SCALE_TYPE_FIT_CENTER, ImageBean.SCALE_TYPE_FIT_END, ImageBean.SCALE_TYPE_CENTER, ImageBean.SCALE_TYPE_CENTER_CROP, ImageBean.SCALE_TYPE_CENTER_INSIDE};
-        k = new String[]{"BANNER", "MEDIUM_RECTANGLE", "LARGE_BANNER", "SMART_BANNER"};
+        k = new String[]{"BANNER", "MEDIUM_RECTANGLE", "LARGE_BANNER"};
         l = new String[]{"true", "false"};
         m = new Pair[]{new Pair<>(ViewBean.PROGRESSBAR_STYLE_CIRCLE, "Circle"), new Pair<>(ViewBean.PROGRESSBAR_STYLE_HORIZONTAL, "Horizontal")};
         n = new Pair[]{new Pair<>(10, "10sp"), new Pair<>(11, "11sp"), new Pair<>(12, "12sp"), new Pair<>(13, "13sp"), new Pair<>(14, "14sp"), new Pair<>(15, "15sp"), new Pair<>(16, "16sp"), new Pair<>(17, "17sp"), new Pair<>(18, "18sp")};

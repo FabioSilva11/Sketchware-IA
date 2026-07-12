@@ -889,6 +889,9 @@ public class ExtraPaletteBlock {
 
                     if (adMobUsed) {
                         logicEditor.a(" ", "bannerAdViewLoadAd");
+                        logicEditor.a(" ", "bannerAdViewLoadAdaptive");
+                        logicEditor.a(" ", "admobRequestConsent");
+                        logicEditor.a(" ", "admobShowPrivacyOptions");
                     }
 
                     if (mapViewUsed) {
@@ -1085,8 +1088,59 @@ public class ExtraPaletteBlock {
                     logicEditor.a(" ", "gyroscopeStartListen");
                     logicEditor.a(" ", "gyroscopeStopListen");
                 }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_COMPASS)) {
+                    logicEditor.a("Compass", getTitleBgColor());
+                    logicEditor.a(" ", "compassSensorStart");
+                    logicEditor.a(" ", "compassSensorStop");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_LIGHT_SENSOR)) {
+                    logicEditor.a("Light Sensor", getTitleBgColor());
+                    logicEditor.a(" ", "lightSensorStart");
+                    logicEditor.a(" ", "lightSensorStop");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_PROXIMITY_SENSOR)) {
+                    logicEditor.a("Proximity Sensor", getTitleBgColor());
+                    logicEditor.a(" ", "proximitySensorStart");
+                    logicEditor.a(" ", "proximitySensorStop");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_BAROMETER)) {
+                    logicEditor.a("Barometer", getTitleBgColor());
+                    logicEditor.a(" ", "barometerSensorStart");
+                    logicEditor.a(" ", "barometerSensorStop");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_STEP_COUNTER)) {
+                    logicEditor.a("Step Counter", getTitleBgColor());
+                    logicEditor.a(" ", "stepCounterSensorStart");
+                    logicEditor.a(" ", "stepCounterSensorStop");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_WORK_MANAGER)) {
+                    logicEditor.a("Work Manager", getTitleBgColor());
+                    logicEditor.a(" ", "workManagerEnqueueOnce");
+                    logicEditor.a(" ", "workManagerEnqueuePeriodic");
+                    logicEditor.a(" ", "workManagerCancelTag");
+                    logicEditor.a(" ", "workManagerCancelAll");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_ALARM_MANAGER)) {
+                    logicEditor.a("Alarm Manager", getTitleBgColor());
+                    logicEditor.a("b", "alarmManagerCanExact");
+                    logicEditor.a(" ", "alarmManagerRequestExactAccess");
+                    logicEditor.a(" ", "alarmManagerScheduleActivity");
+                    logicEditor.a(" ", "alarmManagerCancel");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER)) {
+                    logicEditor.a("Biometric Manager", getTitleBgColor());
+                    logicEditor.a("b", "biometricManagerCanAuthenticate");
+                    logicEditor.a(" ", "biometricManagerAuthenticate");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER)) {
+                    logicEditor.a("Fused Location Manager", getTitleBgColor());
+                    logicEditor.a(" ", "fusedLocationStart");
+                    logicEditor.a(" ", "fusedLocationStop");
+                }
                 if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD)) {
                     logicEditor.a("AdMob Interstitial", getTitleBgColor());
+                    logicEditor.a(" ", "admobRequestConsent");
+                    logicEditor.a(" ", "admobShowPrivacyOptions");
                     logicEditor.a(" ", "interstitialAdLoad");
                     logicEditor.a(" ", "interstitialAdShow");
                     logicEditor.a("b", "interstitialAdIsLoaded");

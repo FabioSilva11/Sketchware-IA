@@ -360,7 +360,7 @@ public class ViewBeanFactory {
             }
             case ViewBean.VIEW_TYPE_WIDGET_ADVIEW -> {
                 var adSize = attributes.getOrDefault("app:adSize", null);
-                bean.adSize = Objects.requireNonNullElse(adSize, "SMART_BANNER");
+                bean.adSize = Objects.requireNonNullElse(adSize, "BANNER");
                 var adUnitId = attributes.getOrDefault("app:adUnitId", null);
                 //noinspection StatementWithEmptyBody
                 if (adUnitId != null) {

@@ -591,6 +591,15 @@ public class yq {
                     }
                     case ComponentBean.COMPONENT_TYPE_LOCATION_MANAGER ->
                             N.addPermission(activity.getActivityName(), jq.PERMISSION_ACCESS_FINE_LOCATION);
+                    case ComponentBean.COMPONENT_TYPE_STEP_COUNTER ->
+                            N.addPermission(activity.getActivityName(), jq.PERMISSION_ACTIVITY_RECOGNITION);
+                    case ComponentBean.COMPONENT_TYPE_WORK_MANAGER -> N.isWorkManagerUsed = true;
+                    case ComponentBean.COMPONENT_TYPE_ALARM_MANAGER -> N.isAlarmManagerUsed = true;
+                    case ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER -> N.isBiometricManagerUsed = true;
+                    case ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> {
+                        N.isFusedLocationManagerUsed = true;
+                        N.addPermission(activity.getActivityName(), jq.PERMISSION_ACCESS_FINE_LOCATION);
+                    }
                     case ComponentBean.COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE ->
                             N.x.isFCMUsed = true;
                     case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN ->
