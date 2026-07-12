@@ -217,7 +217,7 @@ public class Ix {
         var initializers = Set.of(
                 new Pair<>(builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_EMOJI2), "androidx.emoji2.text.EmojiCompatInitializer"),
                 new Pair<>(builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_LIFECYCLE_PROCESS), "androidx.lifecycle.ProcessLifecycleInitializer"),
-                new Pair<>(builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME), "androidx.work.WorkManagerInitializer")
+                new Pair<>(c.isWorkManagerUsed || builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME), "androidx.work.WorkManagerInitializer")
         );
 
         if (initializers.stream().anyMatch(initializer -> initializer.first)) {
@@ -460,7 +460,13 @@ public class Ix {
         if (c.isAdMobEnabled) {
             writePermission(a, "com.google.android.gms.permission.AD_ID");
         }
-        if (builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME)) {
+        if (c.isAlarmManagerUsed) {
+            writePermission(a, "android.permission.SCHEDULE_EXACT_ALARM");
+        }
+        if (c.isBiometricManagerUsed) {
+            writePermission(a, "android.permission.USE_BIOMETRIC");
+        }
+        if (c.isWorkManagerUsed || builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME)) {
             writePermission(a, "android.permission.WAKE_LOCK");
             writePermission(a, "android.permission.ACCESS_NETWORK_STATE");
             writePermission(a, "android.permission.RECEIVE_BOOT_COMPLETED");
@@ -629,7 +635,7 @@ public class Ix {
             writeAndroidxRoomService(applicationTag);
         }
         writeAndroidxStartupInitializationProvider(applicationTag);
-        if (builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME)) {
+        if (c.isWorkManagerUsed || builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME)) {
             writeAndroidxWorkRuntimeTags(applicationTag);
         }
         if (c.isFirebaseEnabled || c.isAdMobEnabled || c.isMapUsed) {

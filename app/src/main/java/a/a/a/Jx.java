@@ -384,7 +384,7 @@ public class Jx {
             if (!buildConfig.isFirebaseEnabled) {
                 sb.append(EOL);
             }
-            sb.append("MobileAds.initialize(this);");
+            sb.append("MobileAds.initialize(this, initializationStatus -> {});");
             sb.append(EOL);
             if (fieldsWithStaticInitializers.contains(Lx.getComponentFieldCode("InterstitialAd"))) {
                 sb.append("_ad_unit_id = \"").append(buildConfig.isDebugBuild ? "ca-app-pub-3940256099942544/1033173712" : buildConfig.interstitialAdUnitId).append("\";");

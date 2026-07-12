@@ -1239,6 +1239,10 @@ ex)\"*/*\", \"image/*\", \"audio/*\", \"text/*\""</string>
     <string name="component_description_proximity_sensor">Measures the distance to a nearby object in centimeters.</string>
     <string name="component_description_barometer">Measures atmospheric pressure in hPa.</string>
     <string name="component_description_step_counter">Reports the cumulative number of steps since the last device restart.</string>
+    <string name="component_description_work_manager">Schedules reliable deferrable background work using AndroidX WorkManager.</string>
+    <string name="component_description_alarm_manager">Schedules and cancels exact alarms that can reopen the current activity.</string>
+    <string name="component_description_biometric_manager">Checks biometric availability and displays a secure authentication prompt.</string>
+    <string name="component_description_fused_location_manager">Provides high-accuracy location updates through Google Play services.</string>
     <string name="component_description_intent">Intent is used to start a new Activity</string>
     <string name="component_description_interstitial_ad">Interstitial Ad lets you add fullscreen advertisements.</string>
     <string name="component_description_location_manager">LocationManager is used to load a data of the current location</string>
@@ -1578,6 +1582,10 @@ Do you want to continue?"</string>
     <string name="event_on_proximity_changed">onProximityChanged</string>
     <string name="event_on_pressure_changed">onPressureChanged</string>
     <string name="event_on_step_count_changed">onStepCountChanged</string>
+    <string name="event_on_biometric_success">onBiometricSuccess</string>
+    <string name="event_on_biometric_error">onBiometricError</string>
+    <string name="event_on_biometric_failed">onBiometricFailed</string>
+    <string name="event_on_fused_location_changed">onFusedLocationChanged</string>
     <string name="event_onsigninusercomplete">onSignInUserComplete</string>
     <string name="event_onstart">On activity becoming visible</string>
     <string name="event_onstarttrackingtouch">onStartTrackingTouch</string>
@@ -1682,6 +1690,10 @@ Please try again after removing the blocks with this variable"</string>
     <string name="logic_editor_title_select_component_proximity_sensor">Select Proximity Sensor component</string>
     <string name="logic_editor_title_select_component_barometer">Select Barometer component</string>
     <string name="logic_editor_title_select_component_step_counter">Select Step Counter component</string>
+    <string name="logic_editor_title_select_component_work_manager">Select Work Manager component</string>
+    <string name="logic_editor_title_select_component_alarm_manager">Select Alarm Manager component</string>
+    <string name="logic_editor_title_select_component_biometric_manager">Select Biometric Manager component</string>
+    <string name="logic_editor_title_select_component_fused_location_manager">Select Fused Location Manager component</string>
     <string name="logic_editor_title_select_component_intent">Select intent component</string>
     <string name="logic_editor_title_select_component_intent_action">Select intent action</string>
     <string name="logic_editor_title_select_component_intent_flags">Select intent flag</string>

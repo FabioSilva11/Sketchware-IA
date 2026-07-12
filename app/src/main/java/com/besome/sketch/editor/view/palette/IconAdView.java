@@ -29,7 +29,7 @@ public class IconAdView extends IconBase {
         layoutBean.paddingBottom = 0;
         layoutBean.width = -1;
         layoutBean.height = -2;
-        viewBean.adSize = "SMART_BANNER";
+        viewBean.adSize = "BANNER";
         viewBean.adUnitId = "debug : ca-app-pub-3940256099942544/6300978111";
         viewBean.convert = "com.google.android.gms.ads.AdView";
         return viewBean;

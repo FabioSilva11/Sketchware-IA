@@ -54,6 +54,8 @@ public class oq {
             case "onResetPasswordEmailSent" -> R.drawable.ic_mtrl_reset;
             case "onSensorChanged", "onCompassChanged", "onLightChanged",
                  "onProximityChanged", "onPressureChanged", "onStepCountChanged",
+                 "onBiometricSuccess", "onBiometricError", "onBiometricFailed",
+                 "onFusedLocationChanged",
                  "onResponse" -> R.drawable.ic_mtrl_sensor;
             case "onAccuracyChanged" -> R.drawable.ic_mtrl_center;
             case "onInterstitialAdLoaded", "onBannerAdLoaded", "onRewardAdLoaded" ->
@@ -123,6 +125,10 @@ public class oq {
             case "onProximityChanged" -> Helper.getResString(R.string.event_on_proximity_changed);
             case "onPressureChanged" -> Helper.getResString(R.string.event_on_pressure_changed);
             case "onStepCountChanged" -> Helper.getResString(R.string.event_on_step_count_changed);
+            case "onBiometricSuccess" -> Helper.getResString(R.string.event_on_biometric_success);
+            case "onBiometricError" -> Helper.getResString(R.string.event_on_biometric_error);
+            case "onBiometricFailed" -> Helper.getResString(R.string.event_on_biometric_failed);
+            case "onFusedLocationChanged" -> Helper.getResString(R.string.event_on_fused_location_changed);
             case "onCreateUserComplete" -> Helper.getResString(R.string.event_oncreateusercomplete);
             case "onSignInUserComplete" -> Helper.getResString(R.string.event_onsigninusercomplete);
             case "onResetPasswordEmailSent" ->
@@ -192,6 +198,12 @@ public class oq {
         if (classInfo.a("ProximitySensor")) eventList.add("onProximityChanged");
         if (classInfo.a("Barometer")) eventList.add("onPressureChanged");
         if (classInfo.a("StepCounter")) eventList.add("onStepCountChanged");
+        if (classInfo.a("BiometricManager")) {
+            eventList.add("onBiometricSuccess");
+            eventList.add("onBiometricError");
+            eventList.add("onBiometricFailed");
+        }
+        if (classInfo.a("FusedLocationManager")) eventList.add("onFusedLocationChanged");
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("onInterstitialAdLoaded");
@@ -309,6 +321,8 @@ public class oq {
         if (classInfo.a("ProximitySensor")) eventList.add("proximitySensorEventListener");
         if (classInfo.a("Barometer")) eventList.add("barometerSensorEventListener");
         if (classInfo.a("StepCounter")) eventList.add("stepCounterSensorEventListener");
+        if (classInfo.a("BiometricManager")) eventList.add("biometricAuthenticationCallback");
+        if (classInfo.a("FusedLocationManager")) eventList.add("fusedLocationCallback");
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("interstitialAdLoadCallback");
@@ -412,6 +426,12 @@ public class oq {
                 eventList.add("onStepCountChanged");
                 eventList.add("onAccuracyChanged");
             }
+            case "biometricAuthenticationCallback" -> {
+                eventList.add("onBiometricSuccess");
+                eventList.add("onBiometricError");
+                eventList.add("onBiometricFailed");
+            }
+            case "fusedLocationCallback" -> eventList.add("onFusedLocationChanged");
             case "authCreateUserComplete" -> eventList.add("onCreateUserComplete");
             case "authSignInUserComplete" -> eventList.add("onSignInUserComplete");
             case "authResetEmailSent" -> eventList.add("onResetPasswordEmailSent");

@@ -204,6 +204,10 @@ public class kq {
             case "proximitysensor" -> "Proximity Sensor";
             case "barometer" -> "Barometer";
             case "stepcounter" -> "Step Counter";
+            case "workmanager" -> "Work Manager";
+            case "alarmmanager" -> "Alarm Manager";
+            case "biometricmanager" -> "Biometric Manager";
+            case "fusedlocationmanager" -> "Fused Location Manager";
             case "ratingbar" -> "RatingBar";
             case "videoad" -> "VideoAd";
             case "mediaplayer" -> "MediaPlayer";

@@ -74,6 +74,10 @@ public class mq {
             case ComponentBean.COMPONENT_TYPE_PROXIMITY_SENSOR -> "ProximitySensor";
             case ComponentBean.COMPONENT_TYPE_BAROMETER -> "Barometer";
             case ComponentBean.COMPONENT_TYPE_STEP_COUNTER -> "StepCounter";
+            case ComponentBean.COMPONENT_TYPE_WORK_MANAGER -> "WorkManager";
+            case ComponentBean.COMPONENT_TYPE_ALARM_MANAGER -> "AlarmManager";
+            case ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER -> "BiometricManager";
+            case ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "FusedLocationManager";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
@@ -153,6 +157,10 @@ public class mq {
             case "proximitysensor", "ProximitySensor" -> "ProximitySensor";
             case "barometer", "Barometer" -> "Barometer";
             case "stepcounter", "StepCounter" -> "StepCounter";
+            case "workmanager", "WorkManager" -> "WorkManager";
+            case "alarmmanager", "AlarmManager" -> "AlarmManager";
+            case "biometricmanager", "BiometricManager" -> "BiometricManager";
+            case "fusedlocationmanager", "FusedLocationManager" -> "FusedLocationManager";
             case "InterstitialAd" -> "InterstitialAd";
             case "varBool" -> "boolean.SelectBoolean";
             case "varInt" -> "double.SelectDouble";
@@ -342,6 +350,7 @@ public class mq {
             case "AdView":
                 importList.add("com.google.android.gms.ads.AdView");
                 importList.add("com.google.android.gms.ads.AdRequest");
+                importList.add("com.google.android.gms.ads.AdSize");
                 return importList;
 
             case "ProgressBar":
@@ -433,6 +442,39 @@ public class mq {
                 importList.add("android.hardware.SensorManager");
                 importList.add("android.hardware.SensorEvent");
                 importList.add("android.hardware.SensorEventListener");
+                return importList;
+
+            case "WorkManager":
+                importList.add("androidx.work.WorkManager");
+                importList.add("androidx.work.OneTimeWorkRequest");
+                importList.add("androidx.work.PeriodicWorkRequest");
+                importList.add("androidx.work.ListenableWorker");
+                importList.add("java.util.concurrent.TimeUnit");
+                return importList;
+
+            case "AlarmManager":
+                importList.add("android.app.AlarmManager");
+                importList.add("android.app.PendingIntent");
+                importList.add("android.content.Context");
+                importList.add("android.content.Intent");
+                return importList;
+
+            case "BiometricManager":
+                importList.add("androidx.biometric.BiometricManager");
+                importList.add("androidx.biometric.BiometricPrompt");
+                importList.add("androidx.core.content.ContextCompat");
+                importList.add("java.util.concurrent.Executor");
+                return importList;
+
+            case "FusedLocationManager":
+                importList.add("com.google.android.gms.location.FusedLocationProviderClient");
+                importList.add("com.google.android.gms.location.LocationCallback");
+                importList.add("com.google.android.gms.location.LocationRequest");
+                importList.add("com.google.android.gms.location.LocationResult");
+                importList.add("com.google.android.gms.location.LocationServices");
+                importList.add("com.google.android.gms.location.Priority");
+                importList.add("android.location.Location");
+                importList.add("android.os.Looper");
                 return importList;
 
             case "FloatingActionButton":
@@ -787,6 +829,10 @@ public class mq {
             case "Timer" -> "TimerTask";
             case "Gyroscope", "Compass", "LightSensor", "ProximitySensor", "Barometer",
                  "StepCounter" -> "SensorManager";
+            case "WorkManager" -> "WorkManager";
+            case "AlarmManager" -> "AlarmManager";
+            case "BiometricManager" -> "BiometricPrompt";
+            case "FusedLocationManager" -> "FusedLocationProviderClient";
             case "Dialog" -> "AlertDialog.Builder";
             case "FirebaseDB" -> "DatabaseReference";
             case "FirebaseStorage" -> "StorageReference";

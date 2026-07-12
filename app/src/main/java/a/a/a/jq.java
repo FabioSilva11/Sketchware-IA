@@ -183,6 +183,10 @@ public class jq {
      * is used in the project.
      */
     public boolean isSpeechToTextUsed = false;
+    public boolean isWorkManagerUsed = false;
+    public boolean isBiometricManagerUsed = false;
+    public boolean isFusedLocationManagerUsed = false;
+    public boolean isAlarmManagerUsed = false;
 
     /**
      * Permissions of the whole project, stored as bitfield.

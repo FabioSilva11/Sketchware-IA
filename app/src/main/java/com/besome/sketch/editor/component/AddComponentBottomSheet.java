@@ -76,6 +76,10 @@ public class AddComponentBottomSheet extends BottomSheetDialogFragment {
         componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_PROXIMITY_SENSOR));
         componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_BAROMETER));
         componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_STEP_COUNTER));
+        componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_WORK_MANAGER));
+        componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_ALARM_MANAGER));
+        componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER));
+        componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER));
         componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_TEXT_TO_SPEECH));
         componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_SPEECH_TO_TEXT));
         componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_REQUEST_NETWORK));

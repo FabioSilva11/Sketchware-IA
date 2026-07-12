@@ -949,8 +949,8 @@ public class Ox {
             case ViewBean.VIEW_TYPE_WIDGET_ADVIEW:
                 String adSize = viewBean.adSize;
                 if (!toNotAdd.contains("app:adSize") && !injectHandler.contains("adSize")) {
-                    if (adSize == null || adSize.isEmpty()) {
-                        nx.addAttribute("app", "adSize", "SMART_BANNER");
+                    if (adSize == null || adSize.isEmpty() || "SMART_BANNER".equals(adSize)) {
+                        nx.addAttribute("app", "adSize", "BANNER");
                     } else {
                         nx.addAttribute("app", "adSize", adSize);
                     }

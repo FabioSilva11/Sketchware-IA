@@ -251,6 +251,7 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 break;
 
             case ComponentBean.COMPONENT_TYPE_FRAGMENT_ADAPTER:
+            case ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER:
                 if (jC.c(scId).c().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
                     bB.b(getContext(), Helper.getResString(R.string.design_library_guide_setup_first), bB.TOAST_WARNING).show();
                     return false;

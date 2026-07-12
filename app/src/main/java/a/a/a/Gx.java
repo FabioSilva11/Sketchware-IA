@@ -406,6 +406,22 @@ public class Gx {
                 classInfos = "Component.Sensor.StepCounter";
                 break;
 
+            case "WorkManager":
+                classInfos = "Component.Manager.WorkManager";
+                break;
+
+            case "AlarmManager":
+                classInfos = "Component.Manager.AlarmManager";
+                break;
+
+            case "BiometricManager":
+                classInfos = "Component.Manager.BiometricManager";
+                break;
+
+            case "FusedLocationManager":
+                classInfos = "Component.Manager.FusedLocationManager";
+                break;
+
             case "FirebaseStorage":
                 classInfos = "Component.FirebaseStorage";
                 break;

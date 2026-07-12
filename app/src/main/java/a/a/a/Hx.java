@@ -371,6 +371,8 @@ public class Hx {
                     case "ProximitySensor":
                     case "Barometer":
                     case "StepCounter":
+                    case "BiometricManager":
+                    case "FusedLocationManager":
                     case "FragmentAdapter":
                     case "WebView":
                     case "MapView":

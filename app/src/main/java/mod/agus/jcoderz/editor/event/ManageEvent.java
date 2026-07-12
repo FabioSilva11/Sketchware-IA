@@ -877,6 +877,8 @@ public class ManageEvent {
             case "onProximityChanged" -> "%d.distance";
             case "onPressureChanged" -> "%d.pressure";
             case "onStepCountChanged" -> "%d.steps";
+            case "onBiometricError" -> "%d.errorCode %s.errorMessage";
+            case "onFusedLocationChanged" -> "%d.latitude %d.longitude %d.accuracy";
             case "onBannerAdFailedToLoad", "onRewardAdFailedToLoad", "onInterstitialAdFailedToLoad",
                  "onAdFailedToShowFullScreenContent" -> "%d.errorCode %d.errorMessage";
             default -> EventsHandler.getBlocks(eventName);
@@ -979,6 +981,9 @@ public class ManageEvent {
             case "onProximityChanged" -> "When " + targetId + " proximity changed %d.distance";
             case "onPressureChanged" -> "When " + targetId + " pressure changed %d.pressure";
             case "onStepCountChanged" -> "When " + targetId + " step count changed %d.steps";
+            case "onBiometricSuccess", "onBiometricFailed" -> "When " + targetId + " " + eventName;
+            case "onBiometricError" -> "When " + targetId + " biometric error %d.errorCode %s.errorMessage";
+            case "onFusedLocationChanged" -> "When " + targetId + " location changed %d.latitude %d.longitude %d.accuracy";
             case "onBannerAdFailedToLoad", "onInterstitialAdFailedToLoad", "onRewardAdFailedToLoad",
                  "onAdFailedToShowFullScreenContent" ->
                     targetId + ": " + eventName + " %d.errorCode %s.errorMessage";

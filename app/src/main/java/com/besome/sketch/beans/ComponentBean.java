@@ -59,6 +59,10 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
     public static final int COMPONENT_TYPE_PROXIMITY_SENSOR = 42;
     public static final int COMPONENT_TYPE_BAROMETER = 43;
     public static final int COMPONENT_TYPE_STEP_COUNTER = 44;
+    public static final int COMPONENT_TYPE_WORK_MANAGER = 45;
+    public static final int COMPONENT_TYPE_ALARM_MANAGER = 46;
+    public static final int COMPONENT_TYPE_BIOMETRIC_MANAGER = 50;
+    public static final int COMPONENT_TYPE_FUSED_LOCATION_MANAGER = 51;
 
     public Gx classInfo;
     @Expose
@@ -142,6 +146,10 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
                  COMPONENT_TYPE_PROXIMITY_SENSOR, COMPONENT_TYPE_BAROMETER,
                  COMPONENT_TYPE_STEP_COUNTER ->
                     "https://developer.android.com/develop/sensors-and-location/sensors/sensors_overview";
+            case COMPONENT_TYPE_WORK_MANAGER -> "https://developer.android.com/topic/libraries/architecture/workmanager";
+            case COMPONENT_TYPE_ALARM_MANAGER -> "https://developer.android.com/develop/background-work/services/alarms";
+            case COMPONENT_TYPE_BIOMETRIC_MANAGER -> "https://developer.android.com/identity/sign-in/biometric-auth";
+            case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "https://developers.google.com/location-context/fused-location-provider";
             case COMPONENT_TYPE_FIREBASE_AUTH ->
                     "https://docs.sketchware.io/docs/component-firebase-auth.html";
             case COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE ->
@@ -181,6 +189,10 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_PROXIMITY_SENSOR -> "Proximity Sensor";
             case COMPONENT_TYPE_BAROMETER -> "Barometer";
             case COMPONENT_TYPE_STEP_COUNTER -> "Step Counter";
+            case COMPONENT_TYPE_WORK_MANAGER -> "Work Manager";
+            case COMPONENT_TYPE_ALARM_MANAGER -> "Alarm Manager";
+            case COMPONENT_TYPE_BIOMETRIC_MANAGER -> "Biometric Manager";
+            case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "Fused Location Manager";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "Firebase Auth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "Interstitial Ad";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "Firebase Storage";
@@ -222,6 +234,10 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case "ProximitySensor" -> COMPONENT_TYPE_PROXIMITY_SENSOR;
             case "Barometer" -> COMPONENT_TYPE_BAROMETER;
             case "StepCounter" -> COMPONENT_TYPE_STEP_COUNTER;
+            case "WorkManager" -> COMPONENT_TYPE_WORK_MANAGER;
+            case "AlarmManager" -> COMPONENT_TYPE_ALARM_MANAGER;
+            case "BiometricManager" -> COMPONENT_TYPE_BIOMETRIC_MANAGER;
+            case "FusedLocationManager" -> COMPONENT_TYPE_FUSED_LOCATION_MANAGER;
             case "FirebaseAuth" -> COMPONENT_TYPE_FIREBASE_AUTH;
             case "InterstitialAd" -> COMPONENT_TYPE_INTERSTITIAL_AD;
             case "FirebaseStorage" -> COMPONENT_TYPE_FIREBASE_STORAGE;
@@ -263,6 +279,10 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_PROXIMITY_SENSOR -> "ProximitySensor";
             case COMPONENT_TYPE_BAROMETER -> "Barometer";
             case COMPONENT_TYPE_STEP_COUNTER -> "StepCounter";
+            case COMPONENT_TYPE_WORK_MANAGER -> "WorkManager";
+            case COMPONENT_TYPE_ALARM_MANAGER -> "AlarmManager";
+            case COMPONENT_TYPE_BIOMETRIC_MANAGER -> "BiometricManager";
+            case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "FusedLocationManager";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
@@ -309,6 +329,10 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_PROXIMITY_SENSOR -> R.string.component_description_proximity_sensor;
             case COMPONENT_TYPE_BAROMETER -> R.string.component_description_barometer;
             case COMPONENT_TYPE_STEP_COUNTER -> R.string.component_description_step_counter;
+            case COMPONENT_TYPE_WORK_MANAGER -> R.string.component_description_work_manager;
+            case COMPONENT_TYPE_ALARM_MANAGER -> R.string.component_description_alarm_manager;
+            case COMPONENT_TYPE_BIOMETRIC_MANAGER -> R.string.component_description_biometric_manager;
+            case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> R.string.component_description_fused_location_manager;
             case COMPONENT_TYPE_FIREBASE_AUTH -> R.string.component_description_firebase_auth;
             case COMPONENT_TYPE_INTERSTITIAL_AD -> R.string.component_description_interstitial_ad;
             case COMPONENT_TYPE_FIREBASE_STORAGE -> R.string.component_description_firebase_storage;
@@ -353,7 +377,10 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_GYROSCOPE -> R.drawable.ic_mtrl_sensors;
             case COMPONENT_TYPE_COMPASS, COMPONENT_TYPE_LIGHT_SENSOR,
                  COMPONENT_TYPE_PROXIMITY_SENSOR, COMPONENT_TYPE_BAROMETER,
-                 COMPONENT_TYPE_STEP_COUNTER -> R.drawable.ic_mtrl_sensors;
+                 COMPONENT_TYPE_STEP_COUNTER, COMPONENT_TYPE_WORK_MANAGER,
+                 COMPONENT_TYPE_ALARM_MANAGER,
+                 COMPONENT_TYPE_BIOMETRIC_MANAGER, COMPONENT_TYPE_FUSED_LOCATION_MANAGER ->
+                    R.drawable.ic_mtrl_sensors;
             case COMPONENT_TYPE_INTERSTITIAL_AD -> R.drawable.ic_mtrl_admob;
             case COMPONENT_TYPE_CAMERA -> R.drawable.ic_mtrl_camera;
             case COMPONENT_TYPE_FILE_PICKER -> R.drawable.ic_mtrl_file;
@@ -395,6 +422,10 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_PROXIMITY_SENSOR -> "ProximitySensor";
             case COMPONENT_TYPE_BAROMETER -> "Barometer";
             case COMPONENT_TYPE_STEP_COUNTER -> "StepCounter";
+            case COMPONENT_TYPE_WORK_MANAGER -> "WorkManager";
+            case COMPONENT_TYPE_ALARM_MANAGER -> "AlarmManager";
+            case COMPONENT_TYPE_BIOMETRIC_MANAGER -> "BiometricManager";
+            case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "FusedLocationManager";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
