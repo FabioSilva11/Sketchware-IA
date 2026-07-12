@@ -295,7 +295,7 @@ public class AiProviderService {
     }
 
     public String sendTextMessage(String systemPrompt, String userPrompt) throws IOException {
-        return sendTextMessage(settingsRepository.currentSelection(), systemPrompt, userPrompt);
+        return sendTextMessage(settingsRepository.currentSelection(), systemPrompt, userPrompt, java.util.Collections.emptyList());
     }
 
     /** Uses a model from IaSettings without changing the app-wide current model. */
@@ -304,12 +304,25 @@ public class AiProviderService {
         return sendTextMessage(
                 settingsRepository.selection(providerId, modelName),
                 systemPrompt,
-                userPrompt
+                userPrompt,
+                java.util.Collections.emptyList()
+        );
+    }
+
+    public String sendTextMessage(String providerId, String modelName,
+                                  String systemPrompt, String userPrompt,
+                                  java.util.List<String> imageDataUrls) throws IOException {
+        return sendTextMessage(
+                settingsRepository.selection(providerId, modelName),
+                systemPrompt,
+                userPrompt,
+                imageDataUrls == null ? java.util.Collections.emptyList() : imageDataUrls
         );
     }
 
     private String sendTextMessage(AiSettingsRepository.Selection selection,
-                                   String systemPrompt, String userPrompt) throws IOException {
+                                   String systemPrompt, String userPrompt,
+                                   java.util.List<String> imageDataUrls) throws IOException {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             // Blocking network call + Thread.sleep retries would ANR the app.
             throw new IllegalStateException("sendTextMessage must not be called on the main thread");
@@ -328,10 +341,10 @@ public class AiProviderService {
         }
 
         Request request = providerConfig.family == ProviderFamily.ANTHROPIC
-                ? buildAnthropicTextRequest(providerConfig, currentModel, systemPrompt, userPrompt)
+                ? buildAnthropicTextRequest(providerConfig, currentModel, systemPrompt, userPrompt, imageDataUrls)
                 : providerConfig.family == ProviderFamily.GEMINI
-                ? buildGeminiTextRequest(providerConfig, currentModel, systemPrompt, userPrompt)
-                : buildOpenAiCompatibleTextRequest(providerConfig, currentProvider, currentModel, systemPrompt, userPrompt);
+                ? buildGeminiTextRequest(providerConfig, currentModel, systemPrompt, userPrompt, imageDataUrls)
+                : buildOpenAiCompatibleTextRequest(providerConfig, currentProvider, currentModel, systemPrompt, userPrompt, imageDataUrls);
 
         IOException lastException = null;
         for (int attempt = 0; attempt <= MAX_PROVIDER_RETRIES; attempt++) {
@@ -1085,7 +1098,8 @@ public class AiProviderService {
     }
 
     private Request buildOpenAiCompatibleTextRequest(ProviderConfig providerConfig, String providerId,
-                                                     String modelName, String systemPrompt, String userPrompt) throws IOException {
+                                                     String modelName, String systemPrompt, String userPrompt,
+                                                     java.util.List<String> imageDataUrls) throws IOException {
         try {
             JSONArray messages = new JSONArray();
             if (!TextUtils.isEmpty(systemPrompt)) {
@@ -1093,9 +1107,17 @@ public class AiProviderService {
                         .put("role", "system")
                         .put("content", systemPrompt));
             }
-            messages.put(new JSONObject()
-                    .put("role", "user")
-                    .put("content", userPrompt == null ? "" : userPrompt));
+            Object userContent = userPrompt == null ? "" : userPrompt;
+            if (!imageDataUrls.isEmpty()) {
+                JSONArray content = new JSONArray().put(new JSONObject()
+                        .put("type", "text").put("text", userContent));
+                for (String dataUrl : imageDataUrls) {
+                    content.put(new JSONObject().put("type", "image_url")
+                            .put("image_url", new JSONObject().put("url", dataUrl)));
+                }
+                userContent = content;
+            }
+            messages.put(new JSONObject().put("role", "user").put("content", userContent));
 
             JSONObject jsonBody = new JSONObject();
             VoidPortLlmMessage.putModelIfNeeded(jsonBody, providerConfig, modelName);
@@ -1116,7 +1138,8 @@ public class AiProviderService {
     }
 
     private Request buildAnthropicTextRequest(ProviderConfig providerConfig, String modelName,
-                                              String systemPrompt, String userPrompt) throws IOException {
+                                              String systemPrompt, String userPrompt,
+                                              java.util.List<String> imageDataUrls) throws IOException {
         try {
             JSONObject jsonBody = new JSONObject();
             jsonBody.put("model", modelName);
@@ -1125,9 +1148,19 @@ public class AiProviderService {
                 jsonBody.put("system", systemPrompt);
             }
             JSONArray messages = new JSONArray();
-            messages.put(new JSONObject()
-                    .put("role", "user")
-                    .put("content", userPrompt == null ? "" : userPrompt));
+            Object userContent = userPrompt == null ? "" : userPrompt;
+            if (!imageDataUrls.isEmpty()) {
+                JSONArray content = new JSONArray().put(new JSONObject()
+                        .put("type", "text").put("text", userContent));
+                for (String dataUrl : imageDataUrls) {
+                    String[] image = splitDataUrl(dataUrl);
+                    content.put(new JSONObject().put("type", "image")
+                            .put("source", new JSONObject().put("type", "base64")
+                                    .put("media_type", image[0]).put("data", image[1])));
+                }
+                userContent = content;
+            }
+            messages.put(new JSONObject().put("role", "user").put("content", userContent));
             jsonBody.put("messages", messages);
 
             return new Request.Builder()
@@ -1141,13 +1174,19 @@ public class AiProviderService {
     }
 
     private Request buildGeminiTextRequest(ProviderConfig providerConfig, String modelName,
-                                           String systemPrompt, String userPrompt) throws IOException {
+                                           String systemPrompt, String userPrompt,
+                                           java.util.List<String> imageDataUrls) throws IOException {
         try {
             JSONObject jsonBody = new JSONObject();
+            JSONArray parts = new JSONArray().put(new JSONObject()
+                    .put("text", userPrompt == null ? "" : userPrompt));
+            for (String dataUrl : imageDataUrls) {
+                String[] image = splitDataUrl(dataUrl);
+                parts.put(new JSONObject().put("inlineData", new JSONObject()
+                        .put("mimeType", image[0]).put("data", image[1])));
+            }
             jsonBody.put("contents", new JSONArray().put(new JSONObject()
-                    .put("role", "user")
-                    .put("parts", new JSONArray().put(new JSONObject()
-                            .put("text", userPrompt == null ? "" : userPrompt)))));
+                    .put("role", "user").put("parts", parts)));
             if (!TextUtils.isEmpty(systemPrompt)) {
                 jsonBody.put("systemInstruction", new JSONObject()
                         .put("parts", new JSONArray().put(new JSONObject()
@@ -1166,6 +1205,14 @@ public class AiProviderService {
         } catch (Exception e) {
             throw new IOException("Request preparation error", e);
         }
+    }
+
+    private static String[] splitDataUrl(String dataUrl) throws IOException {
+        if (dataUrl == null || !dataUrl.startsWith("data:") || !dataUrl.contains(";base64,")) {
+            throw new IOException("Invalid image data URL");
+        }
+        int separator = dataUrl.indexOf(";base64,");
+        return new String[]{dataUrl.substring(5, separator), dataUrl.substring(separator + 8)};
     }
 
     private String parseOpenAiCompatibleTextResponse(String body) throws IOException {

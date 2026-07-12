@@ -18,6 +18,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.util.Pair;
+import android.util.Base64;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -78,6 +79,8 @@ import com.topjohnwu.superuser.Shell;
 import de.hdodenhof.circleimageview.CircleImageView;
 
 import java.io.File;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -877,9 +880,12 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                 // Criar gerador com histórico
                 String referenceContext = buildReferenceContext(referenceNotes, referenceImageUrisSnapshot);
                 List<String> availableDrawables = getAvailableProjectDrawables();
+                List<String> referenceImageDataUrls = buildReferenceImageDataUrls(referenceImageUrisSnapshot);
 
                 updateAiLayoutLoadingDialog(getString(R.string.ai_layout_generator_loading_subtitle));
-                pro.sketchware.ia.GeradorDeLayout gerador = new pro.sketchware.ia.GeradorDeLayout(prompt, currentLayoutXml, history, referenceContext, availableDrawables);
+                pro.sketchware.ia.GeradorDeLayout gerador = new pro.sketchware.ia.GeradorDeLayout(
+                        prompt, currentLayoutXml, history, referenceContext,
+                        availableDrawables, referenceImageDataUrls);
                 final String cleanXml = gerador.gerarLayout();
                 ParsedGeneratedLayout generatedLayout = prepareGeneratedLayout(cleanXml);
 
@@ -1051,6 +1057,34 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             context.append("User reference notes: ").append(referenceNotes.trim());
         }
         return context.toString();
+    }
+
+    private List<String> buildReferenceImageDataUrls(List<Uri> uris) {
+        List<String> images = new ArrayList<>();
+        if (uris == null) return images;
+        for (Uri uri : uris) {
+            if (images.size() >= 3 || uri == null) break;
+            try (InputStream input = getContentResolver().openInputStream(uri);
+                 ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                if (input == null) continue;
+                byte[] buffer = new byte[8192];
+                int read;
+                int total = 0;
+                while ((read = input.read(buffer)) != -1) {
+                    total += read;
+                    if (total > 4 * 1024 * 1024) {
+                        throw new java.io.IOException("Reference image exceeds 4 MB");
+                    }
+                    output.write(buffer, 0, read);
+                }
+                String mime = getContentResolver().getType(uri);
+                if (mime == null || !mime.startsWith("image/")) mime = "image/jpeg";
+                images.add("data:" + mime + ";base64," + Base64.encodeToString(output.toByteArray(), Base64.NO_WRAP));
+            } catch (Exception e) {
+                Log.e("DesignActivity", "Failed to prepare AI reference image", e);
+            }
+        }
+        return images;
     }
 
     private List<String> getAvailableProjectDrawables() {

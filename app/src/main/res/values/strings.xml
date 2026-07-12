@@ -2522,27 +2522,9 @@ Please try again later"</string>
     <string name="ai_layout_generator_m3_loading_subtitle">Upgrading components and styles while preserving your original layout structure...</string>
     <string name="common_word_generate">Generate</string>
 
-    <string name="ai_fix_title">AI Error Fix</string>
-    <string name="ai_fix_loading_title">Analyzing errors</string>
-    <string name="ai_fix_loading_subtitle">Scanning project logic and logs to find a solution...</string>
-    <string name="ai_fix_applying_title">Applying fixes</string>
-    <string name="ai_fix_applying_subtitle">Modifying blocks with the suggested solution...</string>
     <string name="ai_explain_title">AI Explanation</string>
     <string name="ai_explain_loading_title">Explaining error</string>
     <string name="ai_explain_loading_subtitle">Analyzing the compilation log to provide a clear explanation...</string>
-    <string name="ai_fix_no_logic">No logic found in the project.</string>
-    <string name="ai_fix_success_title">Fix Applied!</string>
-    <string name="ai_fix_success_message">Block %1$s was successfully fixed!\n\nApplied code: %2$s</string>
-    <string name="ai_fix_error_no_json">AI did not return a valid JSON response.</string>
-    <string name="ai_fix_error_block_not_found">Block with ID %1$s not found in project. Please update manually.</string>
-    <string name="ai_fix_error_invalid_format">Invalid response format: \'id\' and \'corrected_parameters\' are required.</string>
-    <string name="ai_fix_error_connection">Check your connection and provider API settings.</string>
-    <string name="ai_fix_error_generic">Error while processing corrections: %s</string>
-    <string name="ai_fix_reason_label">Motivo:</string>
-    <string name="ai_fix_summary_title">Sugestões de Correção da IA</string>
-    <string name="ai_fix_apply_results_header">Resultado da aplicação:</string>
-    <string name="ai_fix_apply_success">Sucesso: %1$d</string>
-    <string name="ai_fix_apply_failed">Falha: %1$d</string>
 
 
     <string name="used_custom_blocks">Used Custom Blocks</string>
@@ -2879,28 +2861,6 @@ Please try again later"</string>
     <string name="chat_tool_loop_error">Error processing results (Tool Loop): %1$s</string>
     <string name="logic_editor_syntax_ok">Syntax OK</string>
     <string name="logic_editor_syntax_error_details">Syntax Error! Tap for details</string>
-    <string name="ai_fix_no_logic_blocks_available">No logic blocks available for AI Fix.</string>
-    <string name="ai_fix_loading_logic_title">Analyzing logic fix</string>
-    <string name="ai_fix_loading_logic_subtitle">Checking the current event and preparing a safe block patch...</string>
-    <string name="ai_fix_suggestion_title">AI Fix Suggestions</string>
-    <string name="ai_fix_suggestion_default_summary">AI fix suggestion</string>
-    <string name="ai_fix_applied_to_editor">AI fix applied to the editor.</string>
-    <string name="ai_fix_no_safe_changes_applied">No safe automatic changes were applied.</string>
-    <string name="ai_fix_label_summary">Summary:</string>
-    <string name="ai_fix_label_confidence">Confidence:</string>
-    <string name="ai_fix_label_auto_apply">Auto-apply:</string>
-    <string name="ai_fix_label_auto_apply_available">available</string>
-    <string name="ai_fix_label_auto_apply_manual">manual review only</string>
-    <string name="ai_fix_label_explanation">Explanation:</string>
-    <string name="ai_fix_label_operations">Operations:</string>
-    <string name="ai_fix_label_block">block</string>
-    <string name="ai_fix_label_param">param</string>
-    <string name="ai_fix_label_manual_steps">Manual steps:</string>
-    <string name="ai_fix_preparing_title">Preparing AI fix</string>
-    <string name="ai_fix_preparing_subtitle">Mapping the compile error to the right logic event...</string>
-    <string name="ai_fix_unavailable_title">AI Fix unavailable</string>
-    <string name="ai_fix_unavailable_message">I couldn\'t map this compile error to a specific logic event. This usually happens with XML errors, manifest issues, dependency problems, or logs without a Java line reference.</string>
-    <string name="ai_fix_source_screen_not_found">Failed to resolve the source screen for this error.</string>
     <string name="ai_explain_error_processing_response">Failed to process AI response.</string>
     <string name="compile_log_title">Compile log</string>
     <string name="compile_log_title_last">Last compile log</string>
@@ -2919,7 +2879,6 @@ Please try again later"</string>
     <string name="compile_log_action_format">Format options</string>
     <string name="compile_log_action_clear">Clear compile log</string>
     <string name="compile_log_action_ai_explain">Explain with AI</string>
-    <string name="compile_log_action_ai_fix">Fix with AI</string>
     <string name="common_word_apply">Apply</string>
     <string name="common_word_copied">Copied</string>
 
