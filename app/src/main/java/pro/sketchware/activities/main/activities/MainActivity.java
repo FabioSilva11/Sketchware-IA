@@ -111,7 +111,9 @@ public class MainActivity extends BasePermissionAppCompatActivity {
             restoreExternalTranslationSupport();
             maybeShowAdsNoticeOnce();
 
-            refreshProjectBackedFragments();
+            if (activeFragment instanceof ProjectsFragment) {
+                projectsFragment.refreshProjectsList();
+            }
         }
     }
 
@@ -131,7 +133,9 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     }
 
     public void n() {
-        refreshProjectBackedFragments();
+        if (activeFragment instanceof ProjectsFragment) {
+            projectsFragment.refreshProjectsList();
+        }
     }
 
     @Override
@@ -155,24 +159,13 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
                 case 212:
                     if (!(data.getStringExtra("save_as_new_id") == null ? "" : data.getStringExtra("save_as_new_id")).isEmpty() && isStoragePermissionGranted()) {
-                        refreshProjectBackedFragments();
+                        if (activeFragment instanceof ProjectsFragment) {
+                            projectsFragment.refreshProjectsList();
+                        }
                     }
                     break;
             }
         }
-    }
-
-    public void refreshChatProjectsList() {
-        if (chatFragment != null && chatFragment.isAdded()) {
-            chatFragment.refreshProjectsList();
-        }
-    }
-
-    private void refreshProjectBackedFragments() {
-        if (projectsFragment != null && projectsFragment.isAdded()) {
-            projectsFragment.refreshProjectsList();
-        }
-        refreshChatProjectsList();
     }
 
     @Override
