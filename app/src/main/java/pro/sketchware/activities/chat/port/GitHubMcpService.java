@@ -48,6 +48,8 @@ public final class GitHubMcpService {
     public static final String TOOL_CREATE_COMMIT    = TOOL_PREFIX + "create_or_update_file";
     public static final String TOOL_GET_COMMIT       = TOOL_PREFIX + "get_commit";
     public static final String TOOL_LIST_COMMITS     = TOOL_PREFIX + "list_commits";
+    public static final String TOOL_CREATE_REPO      = TOOL_PREFIX + "create_repository";
+    public static final String TOOL_CREATE_BRANCH    = TOOL_PREFIX + "create_branch";
 
     private static final String GITHUB_API = "https://api.github.com";
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
@@ -85,6 +87,21 @@ public final class GitHubMcpService {
                     params()
                         .req("owner", "string", "Repository owner")
                         .req("repo",  "string", "Repository name")));
+
+            tools.put(tool(TOOL_CREATE_REPO,
+                    "Create a GitHub repository for the authenticated user.",
+                    params()
+                        .req("name", "string", "Repository name")
+                        .opt("description", "string", "Repository description")
+                        .opt("private", "boolean", "Create a private repository (default: true)")));
+
+            tools.put(tool(TOOL_CREATE_BRANCH,
+                    "Create a branch from an existing branch or commit.",
+                    params()
+                        .req("owner", "string", "Repository owner")
+                        .req("repo", "string", "Repository name")
+                        .req("branch", "string", "New branch name")
+                        .opt("from", "string", "Source branch or commit SHA (default: repository default branch)")));
 
             tools.put(tool(TOOL_GET_FILE,
                     "Read the content of a file from a GitHub repository.",
@@ -215,6 +232,37 @@ public final class GitHubMcpService {
             case TOOL_LIST_BRANCHES: {
                 JSONArray branches = getArray(token, "/repos/" + ownerRepo(a) + "/branches?per_page=50");
                 return formatNameList(branches, "name");
+            }
+
+            case TOOL_CREATE_REPO: {
+                JSONObject body = new JSONObject();
+                body.put("name", req(a, "name"));
+                body.put("private", a.has("private") ? a.optBoolean("private", true) : true);
+                body.put("auto_init", true);
+                String description = a.optString("description", "");
+                if (!description.isEmpty()) body.put("description", description);
+                JSONObject result = postObject(token, "/user/repos", body);
+                return "Repository created: " + result.optString("html_url");
+            }
+
+            case TOOL_CREATE_BRANCH: {
+                String repoPath = "/repos/" + ownerRepo(a);
+                String from = a.optString("from", "");
+                if (from.isEmpty()) {
+                    from = getObject(token, repoPath).optString("default_branch", "main");
+                }
+                String sourceSha;
+                try {
+                    sourceSha = getObject(token, repoPath + "/git/ref/heads/" + enc(from))
+                            .getJSONObject("object").getString("sha");
+                } catch (Exception ignored) {
+                    sourceSha = from;
+                }
+                JSONObject body = new JSONObject();
+                body.put("ref", "refs/heads/" + req(a, "branch"));
+                body.put("sha", sourceSha);
+                JSONObject result = postObject(token, repoPath + "/git/refs", body);
+                return "Branch created: " + result.optString("ref");
             }
 
             case TOOL_GET_FILE: {

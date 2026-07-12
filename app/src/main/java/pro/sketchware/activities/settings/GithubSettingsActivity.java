@@ -111,7 +111,7 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
 
         TextView subtitle = new TextView(this);
         subtitle.setText("Connect to GitHub to let the AI agent browse repositories, read files, " +
-                "manage issues, open pull requests and push commits — all from the chat.");
+                "manage issues and pull requests. Android Studio projects can publish atomic snapshots.");
         subtitle.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14);
         subtitle.setTextColor(ContextCompat.getColor(this, R.color.chat_text_secondary));
         LinearLayout.LayoutParams subtitleParams = rowParams();
@@ -174,6 +174,8 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
                 "• github_list_repos — listar repositórios\n" +
                 "• github_get_repo — detalhes do repositório\n" +
                 "• github_list_branches — listar branches\n" +
+                "• github_create_repository — criar repositório\n" +
+                "• github_create_branch — criar branch\n" +
                 "• github_get_file — ler conteúdo de arquivo\n" +
                 "• github_list_files — navegar por diretório\n" +
                 "• github_search_code — pesquisar código\n" +
@@ -185,6 +187,16 @@ public class GithubSettingsActivity extends BaseAppCompatActivity {
                 "• github_list_commits — histórico de commits\n" +
                 "• github_get_commit — detalhes de um commit");
         container.addView(toolsCard);
+
+        MaterialCardView versioningCard = card();
+        LinearLayout versioningContent = cardContent(versioningCard);
+        addSubheading(versioningContent, "Versionamento de projetos Android Studio");
+        addMuted(versioningContent,
+                "Abra um projeto Android Studio e use GitHub no menu do editor. Você pode criar ou " +
+                "conectar um repositório e publicar o projeto em um único commit. Builds, caches, APKs, " +
+                "local.properties, .env e arquivos de assinatura são ignorados. Projetos nativos do " +
+                "Sketchware não são enviados por esse recurso.");
+        container.addView(versioningCard);
 
         // ── Usage tips card ────────────────────────────────────────────────────
         MaterialCardView tipsCard = card();

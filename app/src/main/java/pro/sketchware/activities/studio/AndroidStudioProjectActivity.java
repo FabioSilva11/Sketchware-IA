@@ -31,6 +31,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 import androidx.core.view.GravityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -85,6 +86,8 @@ import dev.aldi.sayuti.editor.manage.LibraryDownloaderDialogFragment;
 import dev.aldi.sayuti.editor.manage.LocalLibrariesUtil;
 import org.cosmic.ide.dependency.resolver.api.Artifact;
 import pro.sketchware.activities.chat.port.VoidPortAiAutocompleteLanguage;
+import pro.sketchware.activities.chat.port.GitHubProjectSyncService;
+import pro.sketchware.activities.chat.port.VoidPortSettings;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ActivityAndroidStudioProjectBinding;
 import pro.sketchware.databinding.ItemStudioFileTreeBinding;
@@ -123,6 +126,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private static final int MENU_READ_ONLY = 25;
     private static final int MENU_SMOOTH_MODE = 26;
     private static final int MENU_PREFERENCES = 27;
+    private static final int MENU_GITHUB = 28;
     private static final int REQUEST_PICK_STUDIO_ICON = 23051;
     private static final int MAX_TREE_NODES = 900;
     private static final int MAX_INITIAL_SCAN_FILES = 1200;
@@ -261,6 +265,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                 .setCheckable(true);
         addToolbarAction(menu, MENU_PREFERENCES, R.string.studio_action_preferences, R.drawable.ic_mtrl_settings, MenuItem.SHOW_AS_ACTION_NEVER);
         addToolbarAction(menu, MENU_DEPENDENCIES, R.string.studio_action_dependencies, R.drawable.ic_mtrl_package, MenuItem.SHOW_AS_ACTION_NEVER);
+        addToolbarAction(menu, MENU_GITHUB, "GitHub", R.drawable.ic_github, MenuItem.SHOW_AS_ACTION_NEVER);
 
         binding.studioToolbar.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == MENU_SAVE) {
@@ -311,6 +316,11 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             if (item.getItemId() == MENU_DEPENDENCIES) {
                 logStudioAction("dependencies");
                 showDependencyActions();
+                return true;
+            }
+            if (item.getItemId() == MENU_GITHUB) {
+                logStudioAction("github");
+                showGitHubVersioningDialog();
                 return true;
             }
             if (item.getItemId() == MENU_SEARCH) {
@@ -401,6 +411,13 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         return item;
     }
 
+    private MenuItem addToolbarAction(Menu menu, int id, String title, int iconRes, int showAsAction) {
+        MenuItem item = menu.add(Menu.NONE, id, Menu.NONE, title);
+        item.setIcon(iconRes);
+        item.setShowAsAction(showAsAction);
+        return item;
+    }
+
     private void updateToolbarMenus() {
         if (binding == null) {
             return;
@@ -439,6 +456,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         setToolbarItem(menu, MENU_ADD_RESOURCE, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_ADD_ICON, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_DEPENDENCIES, projectLoaded, projectLoaded);
+        setToolbarItem(menu, MENU_GITHUB, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_RENAME, canModifySelected, canModifySelected);
         setToolbarItem(menu, MENU_DELETE, canModifySelected, canModifySelected);
     }
@@ -458,6 +476,143 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             return;
         }
         item.setChecked(checked);
+    }
+
+    private void showGitHubVersioningDialog() {
+        if (projectRoot == null || !projectRoot.isDirectory()) {
+            SketchwareUtil.toast("Projeto Android Studio não encontrado");
+            return;
+        }
+        SharedPreferences prefs = getSharedPreferences(VoidPortSettings.PREFS_NAME, MODE_PRIVATE);
+        if (prefs.getString(VoidPortSettings.PREF_GITHUB_TOKEN, "").trim().isEmpty()) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("GitHub")
+                    .setMessage("Configure primeiro o token em GitHub Settings.")
+                    .setPositiveButton("OK", null)
+                    .show();
+            return;
+        }
+        GitHubProjectSyncService.Binding saved = GitHubProjectSyncService.loadBinding(prefs, scId);
+        LinearLayout form = new LinearLayout(this);
+        form.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 20,
+                getResources().getDisplayMetrics());
+        form.setPadding(pad, 0, pad, 0);
+        EditText owner = githubField("Usuário ou organização", saved.owner);
+        EditText repo = githubField("Repositório", saved.repo.isEmpty() ? safeRepositoryName() : saved.repo);
+        EditText branch = githubField("Branch", saved.branch);
+        EditText message = githubField("Mensagem do commit", "Atualiza projeto Android Studio");
+        form.addView(owner);
+        form.addView(repo);
+        form.addView(branch);
+        form.addView(message);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle("Versionar no GitHub")
+                .setMessage("Somente o projeto Android Studio será enviado. Builds, caches e segredos serão ignorados.")
+                .setView(form)
+                .setNegativeButton("Cancelar", null)
+                .setNeutralButton("Criar repositório", null)
+                .setPositiveButton(saved.isValid() ? "Commit e push" : "Conectar", null)
+                .create();
+        dialog.setOnShowListener(ignored -> {
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener(v -> {
+                String repository = repo.getText().toString().trim();
+                if (repository.isEmpty()) {
+                    repo.setError("Informe o repositório");
+                    return;
+                }
+                setGitHubDialogBusy(dialog, true, "Criando…");
+                new Thread(() -> {
+                    try {
+                        GitHubProjectSyncService.Binding created = GitHubProjectSyncService.createRepository(
+                                prefs, scId, repository, branch.getText().toString(), true);
+                        runOnUiThread(() -> {
+                            dialog.dismiss();
+                            SketchwareUtil.toast("Repositório " + created.owner + "/" + created.repo + " criado");
+                            showGitHubVersioningDialog();
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> showGitHubDialogError(dialog, e));
+                    }
+                }, "github-create-repository").start();
+            });
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                String nextOwner = owner.getText().toString();
+                String nextRepo = repo.getText().toString();
+                String nextBranch = branch.getText().toString();
+                boolean sameTarget = saved.owner.equals(nextOwner.trim())
+                        && saved.repo.equals(nextRepo.trim()) && saved.branch.equals(nextBranch.trim());
+                GitHubProjectSyncService.Binding binding = new GitHubProjectSyncService.Binding(
+                        nextOwner, nextRepo, nextBranch, sameTarget ? saved.lastCommitSha : "");
+                if (!binding.isValid()) {
+                    owner.setError(binding.owner.isEmpty() ? "Obrigatório" : null);
+                    repo.setError(binding.repo.isEmpty() ? "Obrigatório" : null);
+                    return;
+                }
+                saveCurrentFile(false);
+                setGitHubDialogBusy(dialog, true, saved.isValid() ? "Enviando…" : "Conectando…");
+                new Thread(() -> {
+                    try {
+                        if (!saved.isValid()) {
+                            GitHubProjectSyncService.verifyAndSaveBinding(prefs, scId, binding);
+                            runOnUiThread(() -> {
+                                dialog.dismiss();
+                                SketchwareUtil.toast("Projeto conectado ao GitHub");
+                                showGitHubVersioningDialog();
+                            });
+                            return;
+                        }
+                        GitHubProjectSyncService.SyncResult result = GitHubProjectSyncService.pushSnapshot(
+                                prefs, scId, projectRoot, binding, message.getText().toString());
+                        runOnUiThread(() -> {
+                            dialog.dismiss();
+                            new MaterialAlertDialogBuilder(this)
+                                    .setTitle("Push concluído")
+                                    .setMessage(result.fileCount + " arquivos em um único commit\n" +
+                                            result.commitSha.substring(0, Math.min(7, result.commitSha.length())))
+                                    .setNegativeButton("Fechar", null)
+                                    .setPositiveButton("Abrir GitHub", (d, which) ->
+                                            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(result.url))))
+                                    .show();
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> showGitHubDialogError(dialog, e));
+                    }
+                }, "github-project-sync").start();
+            });
+        });
+        dialog.show();
+    }
+
+    private EditText githubField(String hint, String value) {
+        EditText field = new EditText(this);
+        field.setHint(hint);
+        field.setSingleLine(true);
+        field.setText(value == null ? "" : value);
+        return field;
+    }
+
+    private String safeRepositoryName() {
+        CharSequence title = binding == null ? "" : binding.studioToolbar.getTitle();
+        String value = title == null ? "android-studio-project" : title.toString();
+        value = value.trim().replaceAll("[^A-Za-z0-9_.-]", "-").replaceAll("-+", "-");
+        return value.isEmpty() ? "android-studio-project" : value;
+    }
+
+    private void setGitHubDialogBusy(AlertDialog dialog, boolean busy, String label) {
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(!busy);
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setEnabled(!busy);
+        if (busy) dialog.getButton(AlertDialog.BUTTON_POSITIVE).setText(label);
+    }
+
+    private void showGitHubDialogError(AlertDialog dialog, Exception error) {
+        setGitHubDialogBusy(dialog, false, "Tentar novamente");
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Falha no GitHub")
+                .setMessage(error.getMessage() == null ? error.toString() : error.getMessage())
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     private void setupEditor() {
