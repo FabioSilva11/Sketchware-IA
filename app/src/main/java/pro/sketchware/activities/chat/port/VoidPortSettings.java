@@ -333,6 +333,16 @@ public final class VoidPortSettings {
                 "ministral-3b-latest",
                 "ministral-8b-latest"
         ))));
+        groups.add(new ProviderGroup("minimax", "minimax", "MiniMax", false, new ArrayList<>(List.of(
+                "MiniMax-M2.7",
+                "MiniMax-M2.7-highspeed",
+                "MiniMax-M2.5",
+                "MiniMax-M2.5-highspeed",
+                "MiniMax-M2.1",
+                "MiniMax-M2.1-highspeed",
+                "MiniMax-M2",
+                "M2-her"
+        ))));
         groups.add(new ProviderGroup("litellm", "liteLLM", "LiteLLM", false, new ArrayList<>()));
         return groups;
     }
@@ -355,6 +365,8 @@ public final class VoidPortSettings {
                 .addField("API Key", "groq_api_key", "", true, "groq_enabled"));
         providers.add(new ProviderCardSpec("mistral", "Mistral", "Mistral API access.", "https://console.mistral.ai/api-keys/", false)
                 .addField("API Key", "mistral_api_key", "", true, null));
+        providers.add(new ProviderCardSpec("minimax", "MiniMax", "MiniMax text models through its OpenAI-compatible API.", "https://platform.minimax.io/user-center/basic-information/interface-key", false)
+                .addField("API Key", "minimax_api_key", "", true, "minimax_enabled"));
         providers.add(new ProviderCardSpec("openai_compatible", "OpenAI-Compatible", "Use any provider that exposes an OpenAI-compatible endpoint.", null, false)
                 .addField("Base URL", "openai_compatible_base_url", "https://my-endpoint.example/v1", false, null)
                 .addField("API Key", "openai_compatible_api_key", "", true, null)
@@ -520,6 +532,7 @@ public final class VoidPortSettings {
         return switch (normalized) {
             case "gemini" -> "https://generativelanguage.googleapis.com/v1beta";
             case "anthropic" -> "https://api.anthropic.com/v1";
+            case "minimax" -> "https://api.minimax.io/v1";
             case "openai_compatible" -> "";
             default -> "https://api.openai.com/v1";
         };

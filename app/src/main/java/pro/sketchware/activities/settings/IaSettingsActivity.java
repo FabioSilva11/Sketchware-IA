@@ -482,6 +482,9 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
         if (type.contains("claude") || type.contains("anthropic")) {
             return "anthropic";
         }
+        if (type.contains("minimax")) {
+            return "minimax";
+        }
         if (type.contains("compatible")) {
             return "openai_compatible";
         }
@@ -492,6 +495,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
         return switch (type) {
             case "gemini" -> "Gemini";
             case "anthropic" -> "Anthropic";
+            case "minimax" -> "MiniMax";
             case "openai_compatible" -> "OpenAI-Compatible";
             default -> "OpenAI";
         };
@@ -618,6 +622,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
             case "deepseek" -> "https://api.deepseek.com";
             case "groq" -> "https://api.groq.com/openai/v1";
             case "mistral" -> "https://api.mistral.ai/v1";
+            case "minimax" -> "https://api.minimax.io/v1";
             case "openai_compatible" -> prefs.getString("openai_compatible_base_url", "");
             case "litellm" -> prefs.getString("litellm_base_url", "");
             default -> "https://api.openai.com/v1";
@@ -655,6 +660,9 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
         }
         if (value.contains("mistral")) {
             return R.drawable.kelivo_icon_mistral_color;
+        }
+        if (value.contains("minimax")) {
+            return R.drawable.kelivo_icon_minimax_color;
         }
         if (value.contains("openai")) {
             return R.drawable.kelivo_icon_openai;

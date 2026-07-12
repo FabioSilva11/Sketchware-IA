@@ -205,7 +205,8 @@ public class ProviderDetailActivity extends AppCompatActivity {
         if ("anthropic".equals(providerId)) {
             return "anthropic";
         }
-        if ("openai_compatible".equals(providerId) || "litellm".equals(providerId)) {
+        if ("openai_compatible".equals(providerId) || "litellm".equals(providerId)
+                || "minimax".equals(providerId)) {
             return "openai_compatible";
         }
         return "openai";
@@ -402,6 +403,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
             case "gemini" -> "https://generativelanguage.googleapis.com/v1beta";
             case "groq" -> "https://api.groq.com/openai/v1";
             case "mistral" -> "https://api.mistral.ai/v1";
+            case "minimax" -> "https://api.minimax.io/v1";
             default -> VoidPortSettings.defaultBaseForProviderType(providerFamily());
         };
     }

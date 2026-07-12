@@ -131,6 +131,14 @@ public final class VoidPortLlmMessage {
                     readHeadersJson(null),
                     true
             );
+            case "minimax" -> new ProviderConfig(
+                    "minimax",
+                    ProviderFamily.OPENAI_COMPATIBLE,
+                    configuredRequestUrl(prefs, "minimax", "https://api.minimax.io/v1", "/chat/completions"),
+                    activeApiKey(prefs, "minimax", prefs.getString("minimax_api_key", "")),
+                    readHeadersJson(null),
+                    true
+            );
             case "litellm" -> new ProviderConfig(
                     "litellm",
                     ProviderFamily.OPENAI_COMPATIBLE,
