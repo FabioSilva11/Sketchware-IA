@@ -49,6 +49,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import pro.sketchware.R;
+import pro.sketchware.ai.config.AiSettingsRepository;
 import pro.sketchware.activities.chat.port.VoidPortSettings;
 import pro.sketchware.databinding.ActivityProviderDetailBinding;
 import pro.sketchware.databinding.BottomSheetAddModelBinding;
@@ -76,7 +77,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
         binding = ActivityProviderDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        prefs = VoidPortSettings.prefs(this);
+        prefs = new AiSettingsRepository(this).preferences();
         String title = getIntent().getStringExtra(EXTRA_PROVIDER_TITLE);
         String id = getIntent().getStringExtra(EXTRA_PROVIDER_ID);
         spec = findSpec(id, title);

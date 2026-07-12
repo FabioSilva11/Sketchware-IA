@@ -22,6 +22,7 @@ import pro.sketchware.activities.chat.port.GitHubMcpService;
 import pro.sketchware.ia.tools.Tool;
 import pro.sketchware.ia.tools.ToolManager;
 import pro.sketchware.network.AiProviderService;
+import pro.sketchware.network.AiRequestHandle;
 import pro.sketchware.util.SketchwareFileDecryptor;
 
 /**
@@ -31,9 +32,7 @@ import pro.sketchware.util.SketchwareFileDecryptor;
 public class AgentManager {
 
     /** Matches Void {@code CHAT_RETRIES} / {@code RETRY_DELAY} in chatThreadService.ts */
-    private static final int MAX_LLM_RETRIES = 3;
     private static final int MAX_PREVIEW_LINES = 48;
-    private static final long RETRY_DELAY_MS = 2500L;
     private static final long STREAM_COALESCE_MS = 120L;
     /**
      * Hard limit on agentic loop iterations to prevent infinite token consumption
@@ -67,6 +66,7 @@ public class AgentManager {
     private final Handler mainHandler;
     private final Handler streamCoalesceHandler;
     private final ChatCheckpointManager checkpointManager;
+    private AiRequestHandle currentRequestHandle;
 
     private State currentState = State.IDLE;
     private ChatMessage pendingToolMessage;
@@ -195,7 +195,7 @@ public class AgentManager {
 
         int version = ++runVersion;
         beginInteractionTrace(version, displayText, stagingSelections);
-        startAgentLoop(version, 0, 0);
+        startAgentLoop(version, 0);
     }
 
     public void continueFromExistingMessage(@Nullable ChatMessage sourceMessage) {
@@ -206,7 +206,7 @@ public class AgentManager {
         String displayText = sourceMessage == null ? findLatestUserMessage() : sourceMessage.getDisplayContent();
         List<ChatReference> selections = sourceMessage == null ? null : sourceMessage.getStagingSelections();
         beginInteractionTrace(version, displayText, selections);
-        startAgentLoop(version, 0, 0);
+        startAgentLoop(version, 0);
     }
 
     public boolean cancelCurrentRun() {
@@ -215,7 +215,11 @@ public class AgentManager {
         }
 
         runVersion++;
-        aiService.cancelCurrentStream();
+        AiRequestHandle requestHandle = currentRequestHandle;
+        currentRequestHandle = null;
+        if (requestHandle != null) {
+            requestHandle.cancel();
+        }
         toolManager.cancelActiveTool();
         queuedToolCalls.clear();
         // Kill any shell processes spawned by run_command / persistent terminals;
@@ -282,7 +286,7 @@ public class AgentManager {
         return true;
     }
 
-    private void startAgentLoop(final int version, final int loopStep, final int retryCount) {
+    private void startAgentLoop(final int version, final int loopStep) {
         if (!isActiveRun(version)) {
             return;
         }
@@ -302,12 +306,12 @@ public class AgentManager {
 
         // Compact old history asynchronously before this turn if it grew too large.
         if (!compactionInFlight && !compactionFailed && shouldCompactHistory()) {
-            compactHistoryAsync(version, () -> startAgentLoop(version, loopStep, retryCount));
+            compactHistoryAsync(version, () -> startAgentLoop(version, loopStep));
             return;
         }
 
         setState(State.THINKING);
-        emitTrace("Agent loop", "step=" + loopStep + ", retry=" + retryCount);
+        emitTrace("Agent loop", "step=" + loopStep);
 
         // Context assembly walks the project file tree and decrypts files — heavy
         // work that must NOT run on the UI thread. Previously it ran synchronously
@@ -354,7 +358,7 @@ public class AgentManager {
                 clearStreamingToolState();
 
                 emitTrace("Chamada LLM iniciada");
-                aiService.sendStreamingMessage(contextResult, tools, chatMode,
+                currentRequestHandle = aiService.sendStreamingMessage(contextResult, tools, chatMode,
                 new AiProviderService.StreamListener() {
                     private final StringBuilder contentAccumulator = new StringBuilder();
                     private final StringBuilder reasoningAccumulator = new StringBuilder();
@@ -428,6 +432,7 @@ public class AgentManager {
                             if (!isActiveRun(version)) {
                                 return;
                             }
+                            currentRequestHandle = null;
 
                             flushStreamUpdate(version);
 
@@ -473,17 +478,9 @@ public class AgentManager {
                             return;
                         }
                         setState(State.ERROR);
+                        currentRequestHandle = null;
                         mainHandler.post(() -> {
                             if (!isActiveRun(version)) {
-                                return;
-                            }
-                            boolean canRetry = retryCount + 1 < MAX_LLM_RETRIES
-                                    && !botMsg.hasDisplayContent()
-                                    && !botMsg.hasReasoningContent()
-                                    && collectedToolCalls.isEmpty();
-                            if (canRetry) {
-                                removeStreamingPlaceholderIfEmpty(botMsg);
-                                mainHandler.postDelayed(() -> startAgentLoop(version, loopStep, retryCount + 1), RETRY_DELAY_MS);
                                 return;
                             }
                             removeStreamingPlaceholderIfEmpty(botMsg);
@@ -636,7 +633,7 @@ public class AgentManager {
         }
         String[] next = queuedToolCalls.pollFirst();
         if (next == null) {
-            startAgentLoop(version, loopStep + 1, 0);
+            startAgentLoop(version, loopStep + 1);
             return;
         }
         handleToolCall(next[0], next[1], next[2], version, loopStep, queuedChatMode);

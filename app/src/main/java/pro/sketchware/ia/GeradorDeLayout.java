@@ -169,14 +169,11 @@ public final class GeradorDeLayout {
         
         Log.d(TAG, "Layout generation using: " + selectedModel);
         
-        // Temporarily apply the selected model
-        LayoutGeneratorModelSelector.SelectedModel previousModel = 
-                LayoutGeneratorModelSelector.applyModelSelection(context, selectedModel);
-        
-        try {
-            String systemPrompt = "You generate Sketchware-compatible Android XML layouts. "
+        String systemPrompt = "You generate Sketchware-compatible Android XML layouts. "
                     + "Return only one XML root ViewGroup. Do not use markdown, explanations or comments.";
             String initialLayout = cleanXmlLayout(AiProviderService.getInstance().sendTextMessage(
+                    selectedModel.providerId,
+                    selectedModel.modelName,
                     systemPrompt,
                     montarPromptBase()
             ));
@@ -193,15 +190,15 @@ public final class GeradorDeLayout {
                         + initialLayout
                         + "\n\nOriginal request:\n"
                         + texto;
-                String refinedLayout = cleanXmlLayout(AiProviderService.getInstance().sendTextMessage(systemPrompt, refinePrompt));
+                String refinedLayout = cleanXmlLayout(AiProviderService.getInstance().sendTextMessage(
+                        selectedModel.providerId,
+                        selectedModel.modelName,
+                        systemPrompt,
+                        refinePrompt));
                 return looksLikeXml(refinedLayout) ? refinedLayout : initialLayout;
             } catch (IOException ignored) {
                 return initialLayout;
             }
-        } finally {
-            // Restore the previous model selection
-            LayoutGeneratorModelSelector.restoreModelSelection(context, previousModel);
-        }
     }
 
     private boolean looksLikeXml(String layout) {
