@@ -1218,6 +1218,15 @@ public final class VoidPortToolsService {
             array.put(createToolMCP("run_command",
                     "Runs a terminal command and waits for the result (default timeout 60s; set timeout_seconds for longer builds, max 300). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
                     new String[]{"command"}, new String[]{"cwd", "timeout_seconds"}));
+            array.put(createToolMCP("run_persistent_command",
+                    "Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after 5 are returned, and command continues running in background). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
+                    new String[]{"command", "persistent_terminal_id"}, null));
+            array.put(createToolMCP("open_persistent_terminal",
+                    "Use this tool when you want to run a terminal command indefinitely, like a dev server (eg `npm run dev`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.",
+                    new String[]{}, new String[]{"cwd"}));
+            array.put(createToolMCP("kill_persistent_terminal",
+                    "Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.",
+                    new String[]{"persistent_terminal_id"}, null));
             return array;
         }
 
