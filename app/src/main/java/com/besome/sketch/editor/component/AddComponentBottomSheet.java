@@ -181,7 +181,9 @@ public class AddComponentBottomSheet extends BottomSheetDialogFragment {
         InnerAddComponentBottomSheet innerAddComponentBottomSheet = InnerAddComponentBottomSheet.newInstance(sc_id, projectFileBean, componentBean, sheet -> {
             sheet.dismiss();
             dismiss();
-            onComponentCreateListener.invoke();
+            if (onComponentCreateListener != null) {
+                onComponentCreateListener.invoke();
+            }
         });
         innerAddComponentBottomSheet.show(getParentFragmentManager(), null);
     }
