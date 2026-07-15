@@ -254,6 +254,10 @@ public class ExtraPaletteBlock {
                 // Event is of a Drawer View
                 viewBean = eC.c("_drawer_" + xmlName, viewId);
             }
+            // Additional null check to prevent NullPointerException
+            if (viewBean == null) {
+                return;
+            }
             String viewBeanCustomView = viewBean.customView;
             if (viewBeanCustomView != null && !viewBeanCustomView.isEmpty()) {
                 ArrayList<ViewBean> customViews = jC.a(sc_id).d(ProjectFileBean.getXmlName(viewBeanCustomView));
