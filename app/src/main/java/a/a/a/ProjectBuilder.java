@@ -822,6 +822,9 @@ public class ProjectBuilder {
         if (yq.N.isAdMobEnabled) {
             builtInLibraryManager.addLibrary(BuiltInLibraries.PLAY_SERVICES_ADS);
         }
+        if (yq.N.isFusedLocationManagerUsed) {
+            builtInLibraryManager.addLibrary(BuiltInLibraries.PLAY_SERVICES_LOCATION);
+        }
         if (yq.N.isGsonUsed) {
             builtInLibraryManager.addLibrary(BuiltInLibraries.GSON);
         }
