@@ -14,6 +14,12 @@ import org.json.JSONObject;
 import java.util.List;
 
 import pro.sketchware.R;
+import pro.sketchware.activities.chat.agent.AgentMemory;
+import pro.sketchware.activities.chat.agent.FinishChecker;
+import pro.sketchware.activities.chat.agent.PatternMatcher;
+import pro.sketchware.activities.chat.agent.RetryManager;
+import pro.sketchware.activities.chat.agent.TaskPlanner;
+import pro.sketchware.activities.chat.agent.ToolSequenceValidator;
 import pro.sketchware.activities.chat.port.VoidToolWrapper;
 import pro.sketchware.activities.chat.port.VoidPortDiffService;
 import pro.sketchware.activities.chat.port.VoidPortMcpChannel;
@@ -39,6 +45,9 @@ public class AgentManager {
      * when the model keeps requesting tools that fail or loop.
      */
     private static final int MAX_LOOP_STEPS = 40;
+    private static final int MAX_LLM_ATTEMPTS = 3;
+    private static final long LLM_RETRY_DELAY_MS = 2500L;
+    private static final int MAX_FINISH_REJECTIONS = 3;
     /**
      * Regex that strips any characters that are not valid in a tool name.
      * Protects against models (especially free/quantized ones) leaking internal
@@ -113,6 +122,12 @@ public class AgentManager {
     private String streamingToolName = "";
     private String streamingToolId = "";
     private String streamingMcpServerName;
+    private AgentMemory agentMemory;
+    private PatternMatcher.Result requestPattern;
+    private TaskPlanner.Plan taskPlan;
+    private final java.util.List<ToolSequenceValidator.ToolUsage> toolUsageHistory = new java.util.ArrayList<>();
+    private String pendingAgentFeedback = "";
+    private int finishValidationFailures = 0;
 
     public interface AgentListener {
         void onMessageAdded(ChatMessage message);
@@ -194,6 +209,7 @@ public class AgentManager {
         listener.onMessageAdded(userMsg);
 
         int version = ++runVersion;
+        initializeAgentExecution(displayText, contextPayload, stagingSelections);
         beginInteractionTrace(version, displayText, stagingSelections);
         startAgentLoop(version, 0);
     }
@@ -205,6 +221,8 @@ public class AgentManager {
         int version = ++runVersion;
         String displayText = sourceMessage == null ? findLatestUserMessage() : sourceMessage.getDisplayContent();
         List<ChatReference> selections = sourceMessage == null ? null : sourceMessage.getStagingSelections();
+        String contextPayload = sourceMessage == null ? null : sourceMessage.getContextPayload();
+        initializeAgentExecution(displayText, contextPayload, selections);
         beginInteractionTrace(version, displayText, selections);
         startAgentLoop(version, 0);
     }
@@ -287,6 +305,10 @@ public class AgentManager {
     }
 
     private void startAgentLoop(final int version, final int loopStep) {
+        startAgentLoop(version, loopStep, 0);
+    }
+
+    private void startAgentLoop(final int version, final int loopStep, final int llmAttempt) {
         if (!isActiveRun(version)) {
             return;
         }
@@ -306,7 +328,7 @@ public class AgentManager {
 
         // Compact old history asynchronously before this turn if it grew too large.
         if (!compactionInFlight && !compactionFailed && shouldCompactHistory()) {
-            compactHistoryAsync(version, () -> startAgentLoop(version, loopStep));
+            compactHistoryAsync(version, () -> startAgentLoop(version, loopStep, llmAttempt));
             return;
         }
 
@@ -319,6 +341,7 @@ public class AgentManager {
         // Build it on a background thread, then resume streaming on the main thread.
         final java.util.List<ChatMessage> historySnapshot = new java.util.ArrayList<>(messages);
         final String latestUser = findLatestUserMessage();
+        final String agentGuidance = buildAgentGuidance();
         new Thread(() -> {
             final SharedPreferences prefs = AiChatSettingsHelper.prefs(pro.sketchware.SketchApplication.getContext());
             final String chatMode = AiChatSettingsHelper.getChatMode(prefs);
@@ -327,6 +350,7 @@ public class AgentManager {
             long contextStartedAt = SystemClock.elapsedRealtime();
             final ContextBuilder.Result contextResult = new ContextBuilder(scId, historySnapshot, toolManager)
                     .setCompactedHistory(historySummary, historyCompactedUntil)
+                    .setAgentGuidance(agentGuidance)
                     .build(latestUser, chatMode, providerId);
             final long contextMs = SystemClock.elapsedRealtime() - contextStartedAt;
             final JSONArray tools = toolManager.getToolsAsMCP(chatMode);
@@ -467,6 +491,28 @@ public class AgentManager {
                             } else {
                                 listener.onMessageUpdated(botMsg);
                             }
+                            FinishChecker.ValidationResult finishResult = FinishChecker.validate(
+                                    agentMemory,
+                                    requestPattern,
+                                    taskPlan,
+                                    toolUsageHistory,
+                                    botMsg.getDisplayContent(),
+                                    chatMode
+                            );
+                            if (!finishResult.canFinish()
+                                    && finishValidationFailures < MAX_FINISH_REJECTIONS
+                                    && loopStep + 1 < MAX_LOOP_STEPS) {
+                                finishValidationFailures++;
+                                pendingAgentFeedback = finishResult.getFeedbackPrompt();
+                                emitTrace("Finalizacao adiada", finishResult.getReason());
+                                startAgentLoop(version, loopStep + 1);
+                                return;
+                            }
+                            if (!finishResult.canFinish()) {
+                                emitTrace("Finalizacao bloqueada", finishResult.getReason());
+                                listener.onError("O agente nao concluiu as etapas obrigatorias: "
+                                        + finishResult.getReason());
+                            }
                             emitTraceSummary("resposta final sem ferramenta");
                             finishProcessing();
                         });
@@ -477,12 +523,24 @@ public class AgentManager {
                         if (!isActiveRun(version) || "cancelled".equalsIgnoreCase(message)) {
                             return;
                         }
-                        setState(State.ERROR);
                         currentRequestHandle = null;
                         mainHandler.post(() -> {
                             if (!isActiveRun(version)) {
                                 return;
                             }
+                            if (llmAttempt + 1 < MAX_LLM_ATTEMPTS) {
+                                removeMessage(botMsg);
+                                currentStreamingMessage = null;
+                                clearStreamingToolState();
+                                emitTrace("Retry LLM", "attempt=" + (llmAttempt + 2));
+                                setState(State.THINKING);
+                                mainHandler.postDelayed(
+                                        () -> startAgentLoop(version, loopStep, llmAttempt + 1),
+                                        LLM_RETRY_DELAY_MS
+                                );
+                                return;
+                            }
+                            setState(State.ERROR);
                             removeStreamingPlaceholderIfEmpty(botMsg);
                             emitTrace("Erro LLM", message);
                             listener.onError(message);
@@ -640,6 +698,19 @@ public class AgentManager {
     }
 
     private void handleToolCall(String name, String args, String id, int version, int loopStep, String chatMode) {
+        ToolSequenceValidator.ValidationResult sequenceResult = ToolSequenceValidator.validate(
+                name,
+                args == null ? "{}" : args,
+                toolUsageHistory,
+                null
+        );
+        if (!sequenceResult.isValid()) {
+            String guidance = sequenceResult.getSuggestion();
+            addUnavailableToolMessage(name, args, id, chatMode, version, loopStep,
+                    sequenceResult.getErrorMessage()
+                            + (guidance == null || guidance.isEmpty() ? "" : " " + guidance));
+            return;
+        }
         // Anti-loop detection: sliding-window cycle detection (periods 1-3).
         String signature = name + ":" + args;
         recentToolSignatures.addLast(signature);
@@ -852,6 +923,12 @@ public class AgentManager {
                 toolMsg.setExpanded(isError);
                 listener.onMessageUpdated(toolMsg);
 
+                toolUsageHistory.add(ToolSequenceValidator.createUsage(
+                        toolMsg.getToolName(),
+                        toolMsg.getToolArgs() == null ? "{}" : toolMsg.getToolArgs(),
+                        !isError
+                ));
+
                 if (!isError) {
                     consecutiveToolFailures = 0;
                     String toolName = toolMsg.getToolName();
@@ -860,8 +937,36 @@ public class AgentManager {
                             "create_file_or_folder".equals(toolName) ||
                             "delete_file_or_folder".equals(toolName);
                     listener.onToolExecuted(toolName, isMutation);
+                    if (isMutation) {
+                        ContextBuilder.invalidateWorkspaceCache(scId);
+                    }
+                    if (taskPlan != null) {
+                        taskPlan.recordToolUsage(toolName);
+                        if (agentMemory != null) {
+                            agentMemory.setProgress(taskPlan.getCompletedSteps(), taskPlan.getTotalSteps());
+                        }
+                    }
                 } else {
                     consecutiveToolFailures++;
+                    RetryManager.RetryDecision retryDecision = RetryManager.shouldRetry(
+                            toolMsg.getToolName(),
+                            toolMsg.getToolArgs() == null ? "{}" : toolMsg.getToolArgs(),
+                            result == null ? "" : result,
+                            consecutiveToolFailures,
+                            toolUsageHistory
+                    );
+                    if (retryDecision.shouldRetry()
+                            && retryDecision.getAlternativeTool() != null
+                            && retryDecision.getAlternativeArgs() != null
+                            && toolManager.hasToolForChatMode(
+                                    retryDecision.getAlternativeTool(), queuedChatMode)) {
+                        queuedToolCalls.addFirst(new String[]{
+                                retryDecision.getAlternativeTool(),
+                                retryDecision.getAlternativeArgs(),
+                                ""
+                        });
+                        emitTrace("Retry alternativo", retryDecision.getReason());
+                    }
                     if (consecutiveToolFailures >= MAX_CONSECUTIVE_TOOL_FAILURES) {
                         // Stop burning tokens: repeated tool failures indicate the
                         // model is stuck; surface the problem instead of looping.
@@ -1201,12 +1306,61 @@ public class AgentManager {
         listener.onProcessingFinished();
     }
 
+    private void initializeAgentExecution(String userText, String contextPayload,
+                                          List<ChatReference> stagingSelections) {
+        String safeText = userText == null ? "" : userText.trim();
+        if (safeText.isEmpty()) {
+            agentMemory = null;
+            requestPattern = null;
+            taskPlan = null;
+            return;
+        }
+        requestPattern = PatternMatcher.analyze(safeText, contextPayload, stagingSelections);
+        AgentMemory.Builder memoryBuilder = AgentMemory.builder(safeText)
+                .originalSelections(stagingSelections)
+                .addKeyFiles(requestPattern.getExtractedFilePaths());
+        agentMemory = memoryBuilder.build();
+        taskPlan = requestPattern.isChatOnly() || !requestPattern.hasRequiredTools()
+                ? null
+                : TaskPlanner.createPlan(requestPattern, safeText);
+        if (taskPlan != null) {
+            agentMemory.setProgress(0, taskPlan.getTotalSteps());
+        }
+        pendingAgentFeedback = "";
+        toolUsageHistory.clear();
+        finishValidationFailures = 0;
+    }
+
+    private String buildAgentGuidance() {
+        StringBuilder guidance = new StringBuilder();
+        if (agentMemory != null) {
+            guidance.append(agentMemory.buildContextInjection());
+        }
+        if (taskPlan != null) {
+            if (guidance.length() > 0) {
+                guidance.append("\n\n");
+            }
+            guidance.append(taskPlan.buildPlanSummary());
+        }
+        if (ChatMessage.hasVisibleText(pendingAgentFeedback)) {
+            if (guidance.length() > 0) {
+                guidance.append("\n\n");
+            }
+            guidance.append("FINISH VALIDATION FEEDBACK:\n").append(pendingAgentFeedback);
+            pendingAgentFeedback = "";
+        }
+        return guidance.toString();
+    }
+
     private void beginInteractionTrace(int version, String userText, List<ChatReference> stagingSelections) {
         interactionTrace = new ChatInteractionTrace(version);
         mcpStdioWarningEmitted = false;
         recentToolSignatures.clear();
         consecutiveToolFailures = 0;
         queuedToolCalls.clear();
+        toolUsageHistory.clear();
+        pendingAgentFeedback = "";
+        finishValidationFailures = 0;
         currentRunCheckpointMessage = null;
         int textChars = userText == null ? 0 : userText.trim().length();
         int selectionCount = stagingSelections == null ? 0 : stagingSelections.size();

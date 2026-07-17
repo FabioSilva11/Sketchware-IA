@@ -45,8 +45,14 @@ public final class ToolExecResult {
                 || lower.startsWith("erro")
                 || lower.startsWith("cannot ")
                 || lower.startsWith("file not found")
+                || lower.startsWith("directory not found")
+                || lower.startsWith("invalid search/replace")
+                || lower.startsWith("could not apply ")
+                || lower.startsWith("the path is a file")
                 || lower.startsWith("blocked:")
-                || lower.startsWith("comando bloqueado");
+                || lower.startsWith("comando bloqueado")
+                || (lower.startsWith("terminal command ran")
+                && lower.contains("did not finish successfully"));
         return isError ? error(result) : success(result);
     }
 }

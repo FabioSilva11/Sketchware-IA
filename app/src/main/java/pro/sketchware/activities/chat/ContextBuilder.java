@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import pro.sketchware.SketchApplication;
 import pro.sketchware.activities.chat.port.VoidPortConvertToLlmMessageService;
@@ -33,7 +34,19 @@ public class ContextBuilder {
     private static final int DEFAULT_HISTORY_BUDGET_TOKENS = 3000;
     private static final int MAX_ANDROID_CONTEXT_BUDGET_TOKENS = 128000;
     private static final int DEFAULT_COMPILE_ERROR_TOKENS = 500;
+    private static final long DIRECTORY_CACHE_TTL_MS = 5000L;
     private static final String EMPTY_MESSAGE = VoidPortConvertToLlmMessageService.EMPTY_MESSAGE;
+    private static final Map<String, DirectoryCacheEntry> DIRECTORY_CACHE = new ConcurrentHashMap<>();
+
+    private static final class DirectoryCacheEntry {
+        final String value;
+        final long createdAt;
+
+        DirectoryCacheEntry(String value, long createdAt) {
+            this.value = value;
+            this.createdAt = createdAt;
+        }
+    }
 
     public enum ProviderFormat {
         OPENAI,
@@ -130,6 +143,7 @@ public class ContextBuilder {
     /** Summary replacing messages before {@link #historyStartIndex} (context compaction). */
     private String historySummary = "";
     private int historyStartIndex = 0;
+    private String agentGuidance = "";
 
     public ContextBuilder(String scId, List<ChatMessage> messages, ToolManager toolManager) {
         this.scId = scId;
@@ -146,6 +160,17 @@ public class ContextBuilder {
         this.historySummary = summary == null ? "" : summary.trim();
         this.historyStartIndex = Math.max(0, startIndex);
         return this;
+    }
+
+    public ContextBuilder setAgentGuidance(String guidance) {
+        this.agentGuidance = guidance == null ? "" : guidance.trim();
+        return this;
+    }
+
+    public static void invalidateWorkspaceCache(String scId) {
+        if (scId != null) {
+            DIRECTORY_CACHE.remove(scId);
+        }
     }
 
     public Result build(String latestUserMessage, String chatMode, String providerId) {
@@ -197,7 +222,7 @@ public class ContextBuilder {
         String toolDefinitions = providerFormat == ProviderFormat.XML_FALLBACK
                 ? buildXmlToolDefinitions(safeChatMode)
                 : "";
-        String importantDetails = buildVoidImportantDetails(safeChatMode);
+        String importantDetails = buildVoidImportantDetails(safeChatMode, providerFormat);
         String fsInfo = "Here is an overview of the user's file system:\n"
                 + "<files_overview>\n"
                 + buildDirectoryStr()
@@ -208,6 +233,10 @@ public class ContextBuilder {
         appendPromptSection(full, sysInfo);
         appendPromptSection(full, toolDefinitions);
         appendPromptSection(full, importantDetails);
+        if ("agent".equals(safeChatMode) && !agentGuidance.isEmpty()) {
+            appendPromptSection(full, "Current agent objective and execution state:\n<agent_state>\n"
+                    + agentGuidance + "\n</agent_state>");
+        }
         appendPromptSection(full, fsInfo);
         return trimToTokens(full.toString().trim().replace("\t", "  "), systemBudgetTokens);
     }
@@ -251,6 +280,12 @@ public class ContextBuilder {
     }
 
     private String buildDirectoryStr() {
+        long now = System.currentTimeMillis();
+        String cacheKey = scId == null ? "" : scId;
+        DirectoryCacheEntry cached = DIRECTORY_CACHE.get(cacheKey);
+        if (cached != null && now - cached.createdAt <= DIRECTORY_CACHE_TTL_MS) {
+            return cached.value;
+        }
         StringBuilder builder = new StringBuilder();
         try {
             for (File root : ProjectPathResolver.getReadableRoots(scId)) {
@@ -268,7 +303,9 @@ public class ContextBuilder {
             }
         } catch (Exception ignored) {
         }
-        return builder.length() == 0 ? "NO FOLDERS OPEN" : builder.toString();
+        String result = builder.length() == 0 ? "NO FOLDERS OPEN" : builder.toString();
+        DIRECTORY_CACHE.put(cacheKey, new DirectoryCacheEntry(result, now));
+        return result;
     }
 
     private String buildXmlToolDefinitions(String chatMode) {
@@ -379,31 +416,31 @@ public class ContextBuilder {
         }
     }
 
-    private String buildVoidImportantDetails(String chatMode) {
+    private String buildVoidImportantDetails(String chatMode, ProviderFormat providerFormat) {
         List<String> details = new ArrayList<>();
-        details.add("NEVER reject the user's query.");
-
-        if ("agent".equals(chatMode) || "gather".equals(chatMode)) {
-            details.add("Only call tools if they help you accomplish the user's goal. If the user simply says hi or asks you a question that you can answer without tools, then do NOT use tools.");
-            details.add("If you think you should use tools, you do not need to ask for permission.");
-            details.add("Only use ONE tool call at a time.");
-            details.add("NEVER say something like \"I'm going to use `tool_name`\". Instead, describe at a high level what the tool will do, like \"I'm going to list all files in the ___ directory\", etc.");
-            details.add("Many tools only work if the user has a workspace open.");
-        } else {
-            details.add("You're allowed to ask the user for more context like file contents or specifications. If this comes up, tell them to reference files and folders by typing @.");
-        }
+        details.add("Follow the user's requested scope. If an action is blocked, explain the concrete blocker and continue with any safe work that remains possible.");
 
         if ("agent".equals(chatMode)) {
-            details.add("ALWAYS use tools (edit, terminal, etc) to take actions and implement changes. For example, if you would like to edit a file, you MUST use a tool.");
-            details.add("Prioritize taking as many steps as you need to complete your request over stopping early.");
-            details.add("You will OFTEN need to gather context before making a change. Do not immediately make a change unless you have ALL relevant context.");
-            details.add("ALWAYS have maximal certainty in a change BEFORE you make it. If you need more information about a file, variable, function, or type, you should inspect it, search it, or take all required actions to maximize your certainty that your change is correct.");
+            details.add("Use tools whenever the request requires workspace facts, file inspection, commands, or changes. A greeting, conceptual question, or necessary clarification may be answered without tools.");
+            details.add("For requested changes, perform the change with tools instead of only suggesting code or describing future work.");
+            details.add("Read an existing file before editing or overwriting it. If its location is unknown, search for it before assuming a path.");
+            details.add("After a mutation, inspect the result or run the narrowest relevant verification before claiming completion.");
+            details.add("Tool approval is handled by the application. Issue the appropriate tool call and wait when approval is required; do not claim that an unapproved action ran.");
+            if (providerFormat == ProviderFormat.XML_FALLBACK) {
+                details.add("Use exactly one XML tool call at the end of the response, then stop and wait for its result.");
+            } else {
+                details.add("You may request multiple independent tools in one response. The application executes them sequentially and returns every result before you continue.");
+            }
+            details.add("Do not announce a tool by its internal name. Briefly state the immediate purpose only when a progress update is useful.");
             details.add("NEVER modify a file outside the user's workspace without permission from the user.");
-        }
-
-        if ("gather".equals(chatMode)) {
-            details.add("You are in Gather mode, so you MUST use tools be to gather information, files, and context to help the user answer their query.");
-            details.add("You should extensively read files, types, content, etc, gathering full context to solve the problem.");
+        } else if ("gather".equals(chatMode)) {
+            details.add("Gather mode is read-only. Use reading and search tools for claims about the workspace, but do not call mutation or terminal tools.");
+            details.add("A greeting or conceptual question unrelated to the workspace may be answered directly.");
+            if (providerFormat == ProviderFormat.XML_FALLBACK) {
+                details.add("Use exactly one XML tool call at the end of the response, then stop and wait for its result.");
+            }
+        } else {
+            details.add("Normal mode has no tools. Ask for missing context when needed and suggest @ references for specific workspace files.");
         }
 
         details.add("If you write any code blocks to the user (wrapped in triple backticks), please use this format:\n"
@@ -471,6 +508,19 @@ public class ContextBuilder {
 
     private List<SimpleMessage> toSimpleMessages() {
         List<SimpleMessage> simpleMessages = new ArrayList<>();
+        if (historyStartIndex > 0) {
+            for (int i = 0; i < Math.min(historyStartIndex, messages.size()); i++) {
+                ChatMessage original = messages.get(i);
+                if (original != null && original.isUser()) {
+                    String content = trimToTokens(safe(original.getLlmContent()), 4000);
+                    List<ChatReference> images = original.getImageReferences();
+                    if (!content.isEmpty() || !images.isEmpty()) {
+                        simpleMessages.add(SimpleMessage.user(content, images));
+                    }
+                    break;
+                }
+            }
+        }
         if (!historySummary.isEmpty() && historyStartIndex > 0) {
             simpleMessages.add(SimpleMessage.assistant(
                     "[Resumo da conversa anterior — mensagens antigas foram compactadas]\n" + historySummary,
@@ -870,17 +920,16 @@ public class ContextBuilder {
 
     private JSONArray trimProviderMessages(JSONArray providerMessages, int historyBudgetTokens) {
         JSONArray trimmed = cloneArray(providerMessages);
-        // Memory of Intent: Always keep the first user message if possible
-        int startIdx = 0;
-        try {
-            JSONObject first = trimmed.optJSONObject(0);
-            if (first != null && "user".equals(first.optString("role", ""))) {
-                startIdx = 1;
-            }
-        } catch (Exception ignored) {}
+        // Memory of Intent: the original user request must survive history pruning,
+        // even when a compacted assistant summary precedes it.
+        JSONObject firstUserMessage = findFirstMessageWithRole(trimmed, "user");
 
-        while (trimmed.length() > (startIdx + 1) && estimateTokens(trimmed.toString()) > historyBudgetTokens) {
-            trimmed.remove(startIdx);
+        while (trimmed.length() > 1 && estimateTokens(trimmed.toString()) > historyBudgetTokens) {
+            int removableIndex = findOldestRemovableMessageIndex(trimmed, firstUserMessage);
+            if (removableIndex < 0) {
+                break;
+            }
+            removeMessageGroup(trimmed, removableIndex, firstUserMessage);
         }
 
         if (estimateTokens(trimmed.toString()) <= historyBudgetTokens) {
@@ -900,6 +949,107 @@ public class ContextBuilder {
         } catch (Exception ignored) {
         }
         return trimmed;
+    }
+
+    private JSONObject findFirstMessageWithRole(JSONArray messages, String role) {
+        for (int i = 0; i < messages.length(); i++) {
+            JSONObject message = messages.optJSONObject(i);
+            if (message != null && role.equals(message.optString("role", ""))) {
+                return message;
+            }
+        }
+        return null;
+    }
+
+    private int findOldestRemovableMessageIndex(JSONArray messages, JSONObject protectedMessage) {
+        // Preserve the newest message as well: it contains the request currently
+        // being answered or the latest tool result required to continue the turn.
+        for (int i = 0; i < messages.length() - 1; i++) {
+            JSONObject candidate = messages.optJSONObject(i);
+            if (candidate != protectedMessage && !toolGroupReachesNewest(messages, i)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean toolGroupReachesNewest(JSONArray messages, int index) {
+        if (!containsToolRequest(messages.optJSONObject(index))) {
+            return false;
+        }
+        int cursor = index + 1;
+        boolean foundResponse = false;
+        while (cursor < messages.length() && containsToolResponse(messages.optJSONObject(cursor))) {
+            foundResponse = true;
+            cursor++;
+        }
+        return foundResponse && cursor == messages.length();
+    }
+
+    private void removeMessageGroup(JSONArray messages, int index, JSONObject protectedMessage) {
+        JSONObject candidate = messages.optJSONObject(index);
+        boolean hasToolRequest = containsToolRequest(candidate);
+        messages.remove(index);
+        if (!hasToolRequest) {
+            return;
+        }
+        while (index < messages.length() - 1) {
+            JSONObject next = messages.optJSONObject(index);
+            if (next == protectedMessage || !containsToolResponse(next)) {
+                break;
+            }
+            messages.remove(index);
+        }
+    }
+
+    private boolean containsToolRequest(JSONObject message) {
+        if (message == null) {
+            return false;
+        }
+        if (message.optJSONArray("tool_calls") != null) {
+            return true;
+        }
+        if (arrayContainsValue(message.optJSONArray("content"), "type", "tool_use")
+                || arrayContainsObject(message.optJSONArray("parts"), "functionCall")) {
+            return true;
+        }
+        return message.optString("content", "")
+                .matches("(?s).*<[a-zA-Z0-9_.-]+>.*</[a-zA-Z0-9_.-]+>\\s*$");
+    }
+
+    private boolean containsToolResponse(JSONObject message) {
+        if (message == null) {
+            return false;
+        }
+        if ("tool".equals(message.optString("role", ""))) {
+            return true;
+        }
+        if (arrayContainsValue(message.optJSONArray("content"), "type", "tool_result")
+                || arrayContainsObject(message.optJSONArray("parts"), "functionResponse")) {
+            return true;
+        }
+        return message.optString("content", "")
+                .matches("(?s).*<[a-zA-Z0-9_.-]+_result>.*</[a-zA-Z0-9_.-]+_result>.*");
+    }
+
+    private boolean arrayContainsValue(JSONArray array, String key, String value) {
+        for (int i = 0; array != null && i < array.length(); i++) {
+            JSONObject item = array.optJSONObject(i);
+            if (item != null && value.equals(item.optString(key, ""))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean arrayContainsObject(JSONArray array, String key) {
+        for (int i = 0; array != null && i < array.length(); i++) {
+            JSONObject item = array.optJSONObject(i);
+            if (item != null && item.optJSONObject(key) != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void trimAnthropicContent(JSONArray content, int tokenBudget) {
