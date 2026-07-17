@@ -472,7 +472,6 @@ public class mq {
                 importList.add("com.google.android.gms.location.LocationRequest");
                 importList.add("com.google.android.gms.location.LocationResult");
                 importList.add("com.google.android.gms.location.LocationServices");
-                importList.add("com.google.android.gms.location.Priority");
                 importList.add("android.location.Location");
                 importList.add("android.os.Looper");
                 return importList;
