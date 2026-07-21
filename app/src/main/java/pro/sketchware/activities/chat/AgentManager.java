@@ -351,6 +351,7 @@ public class AgentManager {
             final ContextBuilder.Result contextResult = new ContextBuilder(scId, historySnapshot, toolManager)
                     .setCompactedHistory(historySummary, historyCompactedUntil)
                     .setAgentGuidance(agentGuidance)
+                    .setIncludeNativeReferences(loopStep == 0)
                     .build(latestUser, chatMode, providerId);
             final long contextMs = SystemClock.elapsedRealtime() - contextStartedAt;
             final JSONArray tools = toolManager.getToolsAsMCP(chatMode);
@@ -386,8 +387,11 @@ public class AgentManager {
                 new AiProviderService.StreamListener() {
                     private final StringBuilder contentAccumulator = new StringBuilder();
                     private final StringBuilder reasoningAccumulator = new StringBuilder();
-                    /** All tool calls emitted this turn: [name, args, id]. */
+                    /** Final tool calls emitted this turn: [name, args, id]. */
                     private final java.util.List<String[]> collectedToolCalls = new java.util.ArrayList<>();
+                    /** Repeated streaming updates for one tool id replace the prior payload. */
+                    private final java.util.Map<String, Integer> collectedToolCallIndexes =
+                            new java.util.LinkedHashMap<>();
 
                     @Override
                     public void onContent(String delta) {
@@ -426,7 +430,12 @@ public class AgentManager {
                         }
                         String safeArgs = ChatMessage.hasVisibleText(arguments) ? arguments : "{}";
                         String safeId = ChatMessage.hasVisibleText(id) ? id : "";
-                        collectedToolCalls.add(new String[]{sanitized, safeArgs, safeId});
+                        collectOrReplaceToolCall(
+                                collectedToolCalls,
+                                collectedToolCallIndexes,
+                                sanitized,
+                                safeArgs,
+                                safeId);
                         streamingToolName = sanitized;
                         streamingMcpServerName = resolveMcpServerName(sanitized);
                         if (!safeId.isEmpty()) {
@@ -820,8 +829,7 @@ public class AgentManager {
             listener.onMessageAdded(toolMsg);
             consecutiveToolFailures++;
             if (consecutiveToolFailures >= MAX_CONSECUTIVE_TOOL_FAILURES) {
-                listener.onError(getString(R.string.chat_tool_loop_detected)
-                        + " (" + consecutiveToolFailures + " falhas consecutivas de ferramentas)");
+                listener.onError(consecutiveToolFailureMessage());
                 finishProcessing();
                 return;
             }
@@ -971,8 +979,7 @@ public class AgentManager {
                         // Stop burning tokens: repeated tool failures indicate the
                         // model is stuck; surface the problem instead of looping.
                         emitTrace("Loop de falhas", "falhas consecutivas=" + consecutiveToolFailures);
-                        listener.onError(getString(R.string.chat_tool_loop_detected)
-                                + " (" + consecutiveToolFailures + " falhas consecutivas de ferramentas)");
+                        listener.onError(consecutiveToolFailureMessage());
                         clearPendingToolState();
                         finishProcessing();
                         return;
@@ -1460,6 +1467,30 @@ public class AgentManager {
         } catch (Exception ignored) {
             return new JSONObject();
         }
+    }
+
+    static void collectOrReplaceToolCall(java.util.List<String[]> calls,
+                                         java.util.Map<String, Integer> indexesById,
+                                         String name,
+                                         String args,
+                                         String id) {
+        String[] value = new String[]{name, args, id};
+        if (id == null || id.trim().isEmpty()) {
+            calls.add(value);
+            return;
+        }
+        Integer existingIndex = indexesById.get(id);
+        if (existingIndex != null && existingIndex >= 0 && existingIndex < calls.size()) {
+            calls.set(existingIndex, value);
+            return;
+        }
+        indexesById.put(id, calls.size());
+        calls.add(value);
+    }
+
+    private String consecutiveToolFailureMessage() {
+        return "Erro: limite de falhas consecutivas de ferramentas atingido ("
+                + consecutiveToolFailures + ").";
     }
 
     private String toolPathArg(JSONObject args) {

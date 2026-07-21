@@ -140,6 +140,23 @@ public class VoidStyleChatStorage {
         }
     }
 
+    /**
+     * Returns whether a persisted chat thread still references the given SAF URI.
+     * This is intentionally global across projects/threads because Android grants
+     * URI access per application, not per chat.
+     */
+    public boolean containsReferenceUri(String uri) {
+        if (!ChatMessage.hasVisibleText(uri)) {
+            return false;
+        }
+        storageLock.lock();
+        try {
+            return jsonContainsExactValue(readRootLocked(), uri.trim());
+        } finally {
+            storageLock.unlock();
+        }
+    }
+
     public void clearHistory(String scId, String threadId) {
         saveHistory(scId, threadId, new ArrayList<>());
     }
@@ -408,6 +425,7 @@ public class VoidStyleChatStorage {
             put(object, "displayContent", message.getDisplayContent());
             put(object, "content", message.getDisplayContent());
             put(object, "reasoning", safe(message.getReasoning(), ""));
+            put(object, "reasoningExpanded", message.isReasoningExpanded());
             put(object, "anthropicReasoning", parseArray(message.getAnthropicReasoningJson()));
             put(object, "timestamp", message.getTimestamp());
             put(object, "status", message.getStatus());
@@ -515,6 +533,7 @@ public class VoidStyleChatStorage {
         if (ChatMessage.ROLE_ASSISTANT.equals(role)) {
             ChatMessage message = new ChatMessage(object.optString("displayContent", ""), false, timestamp);
             message.setReasoning(object.optString("reasoning", ""));
+            message.setReasoningExpanded(object.optBoolean("reasoningExpanded", false));
             JSONArray anthropic = object.optJSONArray("anthropicReasoning");
             message.setAnthropicReasoningJson(anthropic == null ? "" : anthropic.toString());
             message.setStatus(object.optString("status", ""));
@@ -605,6 +624,7 @@ public class VoidStyleChatStorage {
             ChatMessage message = new ChatMessage(object.optString("message", ""), type == ChatMessage.TYPE_USER, timestamp);
             message.setLlmContent(object.optString("llmContent", object.optString("content", message.getDisplayContent())));
             message.setReasoning(object.optString("reasoning", ""));
+            message.setReasoningExpanded(object.optBoolean("reasoningExpanded", false));
             message.setStagingSelections(parseSelections(object.optJSONArray("imageReferences"), null));
             return message;
         }
@@ -634,6 +654,32 @@ public class VoidStyleChatStorage {
             }
         }
         return array;
+    }
+
+    private boolean jsonContainsExactValue(Object value, String expected) {
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            JSONArray names = object.names();
+            for (int i = 0; names != null && i < names.length(); i++) {
+                String name = names.optString(i, "");
+                if (!name.isEmpty() && jsonContainsExactValue(object.opt(name), expected)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            for (int i = 0; i < array.length(); i++) {
+                if (jsonContainsExactValue(array.opt(i), expected)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return value != null
+                && value != JSONObject.NULL
+                && expected.equals(String.valueOf(value));
     }
 
     private List<ChatReference> parseSelections(@Nullable JSONArray primary, @Nullable JSONArray fallback) {

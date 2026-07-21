@@ -42,6 +42,44 @@ public class FinishCheckerTest {
                 memory, pattern, plan, tools, "Correção aplicada e verificada.", "agent").canFinish());
     }
 
+    @Test
+    public void alternativeDiscoveryToolsSatisfyBroadImplementation() {
+        String[] discoveryTools = {
+                "ls_dir", "get_dir_tree", "search_pathnames_only", "search_for_files"
+        };
+
+        for (String discoveryTool : discoveryTools) {
+            PatternMatcher.Result pattern = PatternMatcher.analyze(
+                    "Implemente autenticação neste app", null, null);
+            TaskPlanner.Plan plan = TaskPlanner.createPlan(pattern, "Implement authentication");
+            List<ToolSequenceValidator.ToolUsage> tools = new ArrayList<>();
+
+            record(plan, tools, discoveryTool, "{}");
+            record(plan, tools, "edit_file", "{\"uri\":\"Auth.java\"}");
+            record(plan, tools, "read_file", "{\"uri\":\"Auth.java\"}");
+
+            assertTrue(discoveryTool, FinishChecker.validate(
+                    null, pattern, plan, tools, "Implementação concluída.", "agent").canFinish());
+        }
+    }
+
+    @Test
+    public void broadImplementationStillCannotFinishAsTextOnly() {
+        PatternMatcher.Result pattern = PatternMatcher.analyze(
+                "Implemente autenticação neste app", null, null);
+
+        FinishChecker.ValidationResult result = FinishChecker.validate(
+                null, pattern, null, new ArrayList<>(), "Implementação concluída.", "agent");
+
+        assertFalse(result.canFinish());
+        assertFalse(result.getFeedbackPrompt().contains(
+                PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT));
+        assertTrue(result.getFeedbackPrompt().contains("ls_dir"));
+        assertTrue(result.getFeedbackPrompt().contains("get_dir_tree"));
+        assertTrue(result.getFeedbackPrompt().contains("search_pathnames_only"));
+        assertTrue(result.getFeedbackPrompt().contains("search_for_files"));
+    }
+
     private static void record(TaskPlanner.Plan plan,
                                List<ToolSequenceValidator.ToolUsage> tools,
                                String name, String args) {

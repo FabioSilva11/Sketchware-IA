@@ -24,6 +24,12 @@ import pro.sketchware.activities.chat.ChatReference;
 public class PatternMatcher {
 
     /**
+     * Abstract capability used when the agent only needs to discover the project shape.
+     * It must never be sent to the model as a concrete tool name.
+     */
+    public static final String PROJECT_DISCOVERY_REQUIREMENT = "project_discovery";
+
+    /**
      * Type of user request detected.
      */
     public enum RequestType {
@@ -361,7 +367,7 @@ public class PatternMatcher {
         else if (hasWorkspaceContext && IMPLEMENT_PATTERN.matcher(message).find()) {
             detectedType = RequestType.GENERAL_CODING;
             maxConfidence = 70;
-            resultBuilder.addRequiredTool("get_dir_tree");
+            resultBuilder.addRequiredTool(PROJECT_DISCOVERY_REQUIREMENT);
             resultBuilder.requiresProjectExploration(true);
         }
 
@@ -399,6 +405,16 @@ public class PatternMatcher {
         resultBuilder.confidenceScore(maxConfidence);
 
         return resultBuilder.build();
+    }
+
+    /**
+     * Returns whether a successful tool call can satisfy project discovery.
+     */
+    static boolean isProjectDiscoveryTool(@Nullable String toolName) {
+        return "ls_dir".equals(toolName)
+                || "get_dir_tree".equals(toolName)
+                || "search_pathnames_only".equals(toolName)
+                || "search_for_files".equals(toolName);
     }
 
     @NonNull

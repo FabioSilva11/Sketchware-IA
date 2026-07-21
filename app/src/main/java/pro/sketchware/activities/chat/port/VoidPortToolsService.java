@@ -314,9 +314,14 @@ public final class VoidPortToolsService {
                     }
                 }
             } else {
+                if (ProjectPathResolver.isPlaceholderPath(uriStr)) {
+                    return new ToolCallResult(
+                            "Error: invalid directory path placeholder: " + uriStr);
+                }
                 ProjectPathResolver.ResolvedPath resolved = ProjectPathResolver.resolveForRead(scId, uriStr);
                 if (resolved == null) {
-                    return new ToolCallResult("[]");
+                    return new ToolCallResult(
+                            "Error: directory path is invalid, out of scope, or unavailable: " + uriStr);
                 }
 
                 File folder = resolved.getFile();
@@ -365,13 +370,17 @@ public final class VoidPortToolsService {
 
             return new ToolCallResult(resultObj.toString(), hasNextPage, hasPrevPage, itemsRemaining);
         } catch (Exception e) {
-            return new ToolCallResult("[]");
+            return new ToolCallResult("Error listing directory: " + e.getMessage());
         }
     }
 
     public static ToolCallResult getDirTree(String scId, Object uriObj) {
         try {
-            String uriStr = validateStr("uri", uriObj);
+            String uriStr = isFalsy(uriObj) ? "." : validateStr("uri", uriObj);
+            uriStr = uriStr.trim().isEmpty() ? "." : uriStr;
+            if (ProjectPathResolver.isPlaceholderPath(uriStr)) {
+                return new ToolCallResult("Error: invalid folder path placeholder: " + uriStr);
+            }
 
             ProjectPathResolver.ResolvedPath resolved = ProjectPathResolver.resolveForRead(scId, uriStr);
             if (resolved == null) {
@@ -657,12 +666,22 @@ public final class VoidPortToolsService {
             String uriStr = validateStr("uri", uriObj);
             boolean isRecursive = validateBoolean(isRecursiveObj, false);
 
-            ProjectPathResolver.ResolvedPath resolved = ProjectPathResolver.resolveForRead(scId, uriStr);
+            // Root aliases are useful for project discovery, but must never be accepted by
+            // a destructive tool. In particular, "/" resolves to the active project root
+            // for read-only tools such as get_dir_tree.
+            if (isUnsafeMutationRoot(uriStr)) {
+                return new ToolCallResult("Error: refusing to delete the active project root: " + uriStr);
+            }
+
+            ProjectPathResolver.ResolvedPath resolved = ProjectPathResolver.resolveForWrite(scId, uriStr);
             if (resolved == null) {
                 return new ToolCallResult("File/folder not found: " + uriStr);
             }
 
             File file = resolved.getFile();
+            if (isProtectedMutationRoot(file, ProjectPathResolver.getWritableRoots(scId))) {
+                return new ToolCallResult("Error: refusing to delete the active project root: " + uriStr);
+            }
             if (!file.exists()) {
                 return new ToolCallResult("File/folder not found: " + uriStr);
             }
@@ -688,6 +707,28 @@ public final class VoidPortToolsService {
         } catch (Exception e) {
             return new ToolCallResult("Error deleting file/folder: " + e.getMessage());
         }
+    }
+
+    static boolean isUnsafeMutationRoot(String uri) {
+        return ProjectPathResolver.isReadRootAlias(uri)
+                || ProjectPathResolver.hasParentTraversal(uri);
+    }
+
+    static boolean isProtectedMutationRoot(File candidate, List<File> writableRoots) {
+        if (candidate == null || writableRoots == null) {
+            return false;
+        }
+        try {
+            String candidatePath = candidate.getCanonicalPath();
+            for (File root : writableRoots) {
+                if (root != null && candidatePath.equals(root.getCanonicalPath())) {
+                    return true;
+                }
+            }
+        } catch (IOException ignored) {
+            return true;
+        }
+        return false;
     }
 
     // ============================================
@@ -1190,7 +1231,7 @@ public final class VoidPortToolsService {
                     new String[]{}, new String[]{"uri", "page_number"}));
             array.put(createToolMCP("get_dir_tree",
                     "This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder.",
-                    new String[]{"uri"}, null));
+                    new String[]{}, new String[]{"uri"}));
             array.put(createToolMCP("search_pathnames_only",
                     "Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.",
                     new String[]{"query"}, new String[]{"include_pattern", "page_number"}));
@@ -1232,7 +1273,7 @@ public final class VoidPortToolsService {
 
         array.put(createToolMCP("get_dir_tree",
             "This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder.",
-            new String[]{"uri"}, null));
+            new String[]{}, new String[]{"uri"}));
 
         // Search tools
         array.put(createToolMCP("search_pathnames_only",
@@ -1286,18 +1327,19 @@ public final class VoidPortToolsService {
             
             JSONObject params = new JSONObject();
             params.put("type", "object");
+            params.put("additionalProperties", false);
             
             JSONObject properties = new JSONObject();
             for (String param : requiredParams) {
                 JSONObject prop = new JSONObject();
-                prop.put("type", "string");
+                prop.put("type", toolParamType(param));
                 prop.put("description", toolParamDescription(name, param));
                 properties.put(param, prop);
             }
             if (optionalParams != null) {
                 for (String param : optionalParams) {
                     JSONObject prop = new JSONObject();
-                    prop.put("type", "string");
+                    prop.put("type", toolParamType(param));
                     prop.put("description", toolParamDescription(name, param));
                     properties.put(param, prop);
                 }
@@ -1331,7 +1373,7 @@ public final class VoidPortToolsService {
                 return "Optional. The FULL path to the folder. Leave this as empty or \"\" to search all folders.";
             }
             if ("get_dir_tree".equals(toolName)) {
-                return "The FULL path to the folder.";
+                return "Optional. Folder path inside the current project. Defaults to '.' (the current project root). Use '/' only as an alias for that project root, never for the device root.";
             }
             if ("create_file_or_folder".equals(toolName) || "delete_file_or_folder".equals(toolName)) {
                 return "The FULL path to the file or folder.";
@@ -1384,6 +1426,17 @@ public final class VoidPortToolsService {
             return "The ID of the terminal created using open_persistent_terminal.";
         }
         return "";
+    }
+
+    private static String toolParamType(String paramName) {
+        if ("start_line".equals(paramName) || "end_line".equals(paramName)
+                || "page_number".equals(paramName) || "timeout_seconds".equals(paramName)) {
+            return "integer";
+        }
+        if ("is_regex".equals(paramName) || "is_recursive".equals(paramName)) {
+            return "boolean";
+        }
+        return "string";
     }
 
     // ============================================

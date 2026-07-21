@@ -67,10 +67,10 @@ public class ContextBuilder {
         final String toolArgs;
         final String toolResult;
         final String toolId;
-        final List<ChatReference> imageReferences;
+        final List<ChatReference> references;
 
         private SimpleMessage(int role, String content, String reasoning, String toolName, String toolArgs,
-                              String toolResult, String toolId, List<ChatReference> imageReferences) {
+                              String toolResult, String toolId, List<ChatReference> references) {
             this.role = role;
             this.content = content == null ? "" : content;
             this.reasoning = reasoning == null ? "" : reasoning;
@@ -78,11 +78,11 @@ public class ContextBuilder {
             this.toolArgs = toolArgs == null ? "" : toolArgs;
             this.toolResult = toolResult == null ? "" : toolResult;
             this.toolId = toolId == null ? "" : toolId;
-            this.imageReferences = imageReferences == null ? new ArrayList<>() : new ArrayList<>(imageReferences);
+            this.references = references == null ? new ArrayList<>() : new ArrayList<>(references);
         }
 
-        static SimpleMessage user(String content, List<ChatReference> imageReferences) {
-            return new SimpleMessage(ROLE_USER, content, "", "", "", "", "", imageReferences);
+        static SimpleMessage user(String content, List<ChatReference> references) {
+            return new SimpleMessage(ROLE_USER, content, "", "", "", "", "", references);
         }
 
         static SimpleMessage assistant(String content, String reasoning) {
@@ -93,8 +93,8 @@ public class ContextBuilder {
             return new SimpleMessage(ROLE_TOOL, "", "", toolName, toolArgs, toolResult, toolId, null);
         }
 
-        boolean hasImageReferences() {
-            return !imageReferences.isEmpty();
+        boolean hasReferences() {
+            return !references.isEmpty();
         }
     }
 
@@ -144,6 +144,7 @@ public class ContextBuilder {
     private String historySummary = "";
     private int historyStartIndex = 0;
     private String agentGuidance = "";
+    private boolean includeNativeReferences = true;
 
     public ContextBuilder(String scId, List<ChatMessage> messages, ToolManager toolManager) {
         this.scId = scId;
@@ -164,6 +165,16 @@ public class ContextBuilder {
 
     public ContextBuilder setAgentGuidance(String guidance) {
         this.agentGuidance = guidance == null ? "" : guidance.trim();
+        return this;
+    }
+
+    /**
+     * Native blobs are useful on the first agent request, but resending them
+     * after every tool result multiplies memory and serialization cost. Bounded
+     * textual reference context remains enabled regardless of this setting.
+     */
+    public ContextBuilder setIncludeNativeReferences(boolean includeNativeReferences) {
+        this.includeNativeReferences = includeNativeReferences;
         return this;
     }
 
@@ -246,10 +257,16 @@ public class ContextBuilder {
         builder.append("Here is the user's system information:\n");
         builder.append("<system_info>\n");
         builder.append("- Android\n\n");
+        File primaryRoot = ProjectPathResolver.getPrimaryReadableRoot(scId);
+        builder.append("- Current project root:\n");
+        builder.append(primaryRoot == null ? "NOT AVAILABLE" : primaryRoot.getAbsolutePath()).append("\n\n");
         builder.append("- The user's workspace contains these folders:\n");
         builder.append(workspaceFoldersString()).append("\n\n");
+        builder.append("- Project path contract:\n");
+        builder.append("Use '.' for the current project root. '/' is also treated as that project root, never as the Android device root. ")
+                .append("Use paths returned by tools or listed above. Never send placeholders such as <uri>, <path>, undefined, or invented absolute paths.\n\n");
         builder.append("- Active file:\n");
-        builder.append("undefined\n\n");
+        builder.append("NOT SUPPLIED\n\n");
         builder.append("- Open files:\n");
         builder.append("NO OPENED FILES");
         if ("agent".equals(chatMode)) {
@@ -373,14 +390,16 @@ public class ContextBuilder {
                     if (paramName.isEmpty()) {
                         continue;
                     }
-                    JSONObject prop = properties.optJSONObject(paramName);
-                    String description = prop == null ? "" : prop.optString("description", "");
+                    if (!isRequiredXmlParameter(parameters, paramName)) {
+                        continue;
+                    }
                     builder.append("\n<").append(paramName).append(">")
-                            .append(description)
+                            .append("ACTUAL_VALUE")
                             .append("</").append(paramName).append(">");
                 }
             }
             builder.append("\n</").append(toolName).append(">");
+            appendXmlParameterDescriptions(builder, parameters, properties);
         } catch (Exception ignored) {
         }
     }
@@ -404,16 +423,54 @@ public class ContextBuilder {
                     if (paramName.isEmpty()) {
                         continue;
                     }
-                    JSONObject prop = properties.optJSONObject(paramName);
-                    String description = prop == null ? "" : prop.optString("description", "");
+                    if (!isRequiredXmlParameter(parameters, paramName)) {
+                        continue;
+                    }
                     builder.append("\n<").append(paramName).append(">")
-                            .append(description)
+                            .append("ACTUAL_VALUE")
                             .append("</").append(paramName).append(">");
                 }
             }
             builder.append("\n</").append(toolName).append(">");
+            appendXmlParameterDescriptions(builder, parameters, properties);
         } catch (Exception ignored) {
         }
+    }
+
+    private void appendXmlParameterDescriptions(StringBuilder builder, JSONObject parameters,
+                                                JSONObject properties) {
+        if (builder == null || properties == null) {
+            return;
+        }
+        JSONArray names = properties.names();
+        if (names == null || names.length() == 0) {
+            return;
+        }
+        builder.append("\nParameters:");
+        for (int i = 0; i < names.length(); i++) {
+            String name = names.optString(i, "");
+            if (name.isEmpty()) {
+                continue;
+            }
+            JSONObject property = properties.optJSONObject(name);
+            boolean isRequired = isRequiredXmlParameter(parameters, name);
+            builder.append("\n- ").append(name)
+                    .append(" (")
+                    .append(property == null ? "string" : property.optString("type", "string"))
+                    .append(isRequired ? ", required" : ", optional")
+                    .append("): ")
+                    .append(property == null ? "" : property.optString("description", ""));
+        }
+    }
+
+    private static boolean isRequiredXmlParameter(JSONObject parameters, String parameterName) {
+        JSONArray required = parameters == null ? null : parameters.optJSONArray("required");
+        for (int i = 0; required != null && i < required.length(); i++) {
+            if (parameterName.equals(required.optString(i, ""))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String buildVoidImportantDetails(String chatMode, ProviderFormat providerFormat) {
@@ -508,14 +565,17 @@ public class ContextBuilder {
 
     private List<SimpleMessage> toSimpleMessages() {
         List<SimpleMessage> simpleMessages = new ArrayList<>();
+        int userMessageBudget = Math.max(DEFAULT_HISTORY_BUDGET_TOKENS, historyBudgetTokens);
+        int latestUserIndex = findLatestUserMessageIndex();
         if (historyStartIndex > 0) {
             for (int i = 0; i < Math.min(historyStartIndex, messages.size()); i++) {
                 ChatMessage original = messages.get(i);
                 if (original != null && original.isUser()) {
-                    String content = trimToTokens(safe(original.getLlmContent()), 4000);
-                    List<ChatReference> images = original.getImageReferences();
-                    if (!content.isEmpty() || !images.isEmpty()) {
-                        simpleMessages.add(SimpleMessage.user(content, images));
+                    String content = trimToTokens(safe(original.getLlmContent()), userMessageBudget);
+                    if (!content.isEmpty()) {
+                        // Compacted/older turns retain their bounded text history,
+                        // but must not re-upload old binary attachments every loop.
+                        simpleMessages.add(SimpleMessage.user(content, null));
                     }
                     break;
                 }
@@ -536,10 +596,19 @@ public class ContextBuilder {
             }
 
             if (message.isUser()) {
-                String content = trimToTokens(safe(message.getLlmContent()), 4000);
-                List<ChatReference> imageReferences = message.getImageReferences();
-                if (!content.isEmpty() || !imageReferences.isEmpty()) {
-                    simpleMessages.add(SimpleMessage.user(content, imageReferences));
+                boolean isLatestUser = msgIndex == latestUserIndex;
+                List<ChatReference> selectedReferences = isLatestUser
+                        ? message.getStagingSelections()
+                        : java.util.Collections.emptyList();
+                String rawContent = isLatestUser
+                        ? buildLatestUserContent(message, selectedReferences)
+                        : safe(message.getLlmContent());
+                String content = trimToTokens(rawContent, userMessageBudget);
+                List<ChatReference> nativeReferences = includeNativeReferences
+                        ? selectedReferences
+                        : java.util.Collections.emptyList();
+                if (!content.isEmpty() || !nativeReferences.isEmpty()) {
+                    simpleMessages.add(SimpleMessage.user(content, nativeReferences));
                 }
                 continue;
             }
@@ -570,6 +639,29 @@ public class ContextBuilder {
         return simpleMessages;
     }
 
+    private int findLatestUserMessageIndex() {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            ChatMessage message = messages.get(i);
+            if (message != null && message.isUser()) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private String buildLatestUserContent(ChatMessage message, List<ChatReference> references) {
+        if (message == null || references == null || references.isEmpty()) {
+            return message == null ? "" : safe(message.getLlmContent());
+        }
+        // This method is reached from AgentManager's chat-context-builder thread.
+        // Text-like external files are converted to bounded plain text here, which
+        // works with every OpenAI-compatible Chat Completions endpoint.
+        String contextPayload = ChatReferenceManager.buildContextPayload(
+                SketchApplication.getContext(), references);
+        return ChatReferenceManager.buildLlmUserContent(
+                message.getDisplayContent(), contextPayload);
+    }
+
     private JSONArray buildOpenAiMessages(List<SimpleMessage> simpleMessages, String providerId) {
         JSONArray array = new JSONArray();
         boolean ollamaNative = "ollama".equals(providerId);
@@ -579,7 +671,7 @@ public class ContextBuilder {
                 if (message.role == SimpleMessage.ROLE_USER) {
                     array.put(new JSONObject()
                             .put("role", "user")
-                            .put("content", buildOpenAiUserContent(message)));
+                            .put("content", buildOpenAiUserContent(message, providerId)));
                     continue;
                 }
 
@@ -646,10 +738,14 @@ public class ContextBuilder {
         for (SimpleMessage message : simpleMessages) {
             try {
                 if (message.role == SimpleMessage.ROLE_USER) {
+                    JSONArray parts = new JSONArray().put(new JSONObject()
+                            .put("text", nonEmptyText(message.content)));
+                    JSONArray referenceParts = ChatReferenceManager.buildGeminiReferenceContentParts(
+                            SketchApplication.getContext(), message.references);
+                    appendAll(parts, referenceParts);
                     array.put(new JSONObject()
                             .put("role", "user")
-                            .put("parts", new JSONArray().put(new JSONObject()
-                                    .put("text", nonEmptyText(message.content)))));
+                            .put("parts", parts));
                     continue;
                 }
 
@@ -778,6 +874,25 @@ public class ContextBuilder {
                     continue;
                 }
 
+                if (message.role == SimpleMessage.ROLE_TOOL) {
+                    SimpleMessage previous = i > 0 ? simpleMessages.get(i - 1) : null;
+                    if (previous == null || previous.role != SimpleMessage.ROLE_ASSISTANT) {
+                        // Tool-only assistant turns have no visible ChatMessage because the
+                        // streaming placeholder is removed. Rebuild the missing assistant
+                        // XML call so the next model turn sees request -> call -> result.
+                        if (pendingUser != null) {
+                            array.put(pendingUser);
+                            pendingUser = null;
+                        }
+                        String xmlToolCall = buildXmlToolCall(message.toolName, message.toolArgs);
+                        if (!xmlToolCall.isEmpty()) {
+                            array.put(new JSONObject()
+                                    .put("role", "assistant")
+                                    .put("content", xmlToolCall));
+                        }
+                    }
+                }
+
                 if (pendingUser == null) {
                     pendingUser = new JSONObject()
                             .put("role", "user")
@@ -804,8 +919,21 @@ public class ContextBuilder {
         return array;
     }
 
-    private Object buildOpenAiUserContent(SimpleMessage message) {
-        if (!message.hasImageReferences()) {
+    private Object buildOpenAiUserContent(SimpleMessage message, String providerId) {
+        if (!message.hasReferences()) {
+            return nonEmptyText(message.content);
+        }
+
+        JSONArray attachments = ChatReferenceManager.buildOpenAiImageContentParts(
+                SketchApplication.getContext(), message.references);
+        // Generic OpenAI-compatible servers do not consistently implement the
+        // Chat Completions file block. Keep them on the universal text-context
+        // fallback while enabling native files for the official provider.
+        if (ChatReferenceManager.supportsNativeOpenAiFileBlocks(providerId)) {
+            appendAll(attachments, ChatReferenceManager.buildOpenAiFileContentParts(
+                    SketchApplication.getContext(), message.references));
+        }
+        if (attachments.length() == 0) {
             return nonEmptyText(message.content);
         }
 
@@ -814,20 +942,22 @@ public class ContextBuilder {
             content.put(new JSONObject()
                     .put("type", "text")
                     .put("text", nonEmptyText(message.content)));
-            JSONArray imageParts = ChatReferenceManager.buildOpenAiImageContentParts(
-                    SketchApplication.getContext(),
-                    message.imageReferences
-            );
-            for (int i = 0; i < imageParts.length(); i++) {
-                content.put(imageParts.get(i));
-            }
+            appendAll(content, attachments);
         } catch (Exception ignored) {
         }
         return content.length() == 0 ? nonEmptyText(message.content) : content;
     }
 
     private Object buildAnthropicUserContent(SimpleMessage message) {
-        if (!message.hasImageReferences()) {
+        if (!message.hasReferences()) {
+            return nonEmptyText(message.content);
+        }
+
+        JSONArray attachments = ChatReferenceManager.buildAnthropicImageContentParts(
+                SketchApplication.getContext(), message.references);
+        appendAll(attachments, ChatReferenceManager.buildAnthropicDocumentContentParts(
+                SketchApplication.getContext(), message.references));
+        if (attachments.length() == 0) {
             return nonEmptyText(message.content);
         }
 
@@ -836,16 +966,22 @@ public class ContextBuilder {
             content.put(new JSONObject()
                     .put("type", "text")
                     .put("text", nonEmptyText(message.content)));
-            JSONArray imageParts = ChatReferenceManager.buildAnthropicImageContentParts(
-                    SketchApplication.getContext(),
-                    message.imageReferences
-            );
-            for (int i = 0; i < imageParts.length(); i++) {
-                content.put(imageParts.get(i));
-            }
+            appendAll(content, attachments);
         } catch (Exception ignored) {
         }
         return content.length() == 0 ? nonEmptyText(message.content) : content;
+    }
+
+    private static void appendAll(JSONArray target, JSONArray source) {
+        if (target == null || source == null) {
+            return;
+        }
+        for (int i = 0; i < source.length(); i++) {
+            try {
+                target.put(source.get(i));
+            } catch (Exception ignored) {
+            }
+        }
     }
 
     private JSONArray buildAnthropicAssistantContent(SimpleMessage message) {

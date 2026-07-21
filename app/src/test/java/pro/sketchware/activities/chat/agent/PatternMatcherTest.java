@@ -45,6 +45,9 @@ public class PatternMatcherTest {
         PatternMatcher.Result result = PatternMatcher.analyze(
                 "Implemente autenticação neste app", null, null);
         assertEquals(PatternMatcher.RequestType.GENERAL_CODING, result.getPrimaryType());
-        assertTrue(result.hasRequiredTools());
+        assertEquals(1, result.getRequiredTools().size());
+        assertTrue(result.getRequiredTools().contains(
+                PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT));
+        assertFalse(result.getRequiredTools().contains("get_dir_tree"));
     }
 }

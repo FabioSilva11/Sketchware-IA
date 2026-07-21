@@ -12,6 +12,7 @@ import android.text.Spannable;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -55,6 +56,9 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         void onTranslate(String text);
 
         void onDelete(int position);
+
+        default void onReasoningVisibilityChanged(ChatMessage message) {
+        }
     }
 
     public ChatMessageAdapter(List<ChatMessage> messages) {
@@ -171,15 +175,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         }
         bindMessageImages(holder, message);
 
-        if (holder.layoutReasoning != null && holder.textReasoning != null) {
-            if (ChatMessage.hasVisibleText(reasoningText)) {
-                holder.layoutReasoning.setVisibility(View.VISIBLE);
-                holder.textReasoning.setText(reasoningText);
-            } else {
-                holder.layoutReasoning.setVisibility(View.GONE);
-                holder.textReasoning.setText("");
-            }
-        }
+        bindReasoning(holder, message, reasoningText);
 
         if (ChatMessage.hasVisibleText(displayText)
                 && (displayText.contains(PromptConstants.ORIGINAL)
@@ -201,6 +197,48 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         holder.textTime.setText(formatTime(message.getTimestamp()));
         bindKelivoHeader(holder, message);
         bindKelivoActions(holder, message, displayText);
+    }
+
+    private void bindReasoning(@NonNull MessageViewHolder holder,
+                               @NonNull ChatMessage message,
+                               String reasoningText) {
+        if (holder.layoutReasoning == null || holder.textReasoning == null) {
+            return;
+        }
+
+        boolean hasReasoning = ChatMessage.hasVisibleText(reasoningText);
+        holder.layoutReasoning.setVisibility(hasReasoning ? View.VISIBLE : View.GONE);
+        if (!hasReasoning) {
+            holder.textReasoning.setText("");
+            holder.textReasoning.setVisibility(View.GONE);
+            if (holder.actionToggleReasoning != null) {
+                holder.actionToggleReasoning.setOnClickListener(null);
+                holder.actionToggleReasoning.setVisibility(View.GONE);
+            }
+            return;
+        }
+
+        boolean expanded = message.isReasoningExpanded();
+        holder.textReasoning.setText(reasoningText);
+        holder.textReasoning.setVisibility(expanded ? View.VISIBLE : View.GONE);
+
+        if (holder.actionToggleReasoning != null) {
+            Context context = holder.itemView.getContext();
+            holder.actionToggleReasoning.setVisibility(View.VISIBLE);
+            holder.actionToggleReasoning.setImageResource(expanded
+                    ? R.drawable.ic_mtrl_preview_off
+                    : R.drawable.ic_mtrl_preview);
+            holder.actionToggleReasoning.setContentDescription(context.getString(expanded
+                    ? R.string.hide_reasoning
+                    : R.string.show_reasoning));
+            holder.actionToggleReasoning.setOnClickListener(v -> {
+                message.setReasoningExpanded(!message.isReasoningExpanded());
+                bindReasoning(holder, message, sanitizeText(message.getReasoning()));
+                if (actionListener != null) {
+                    actionListener.onReasoningVisibilityChanged(message);
+                }
+            });
+        }
     }
 
     private void bindKelivoActions(@NonNull MessageViewHolder holder, @NonNull ChatMessage message, String displayText) {
@@ -379,14 +417,36 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             return;
         }
         holder.layoutMessageImages.removeAllViews();
-        List<ChatReference> images = message.getImageReferences();
-        if (images.isEmpty()) {
+        List<ChatReference> references = message.getStagingSelections();
+        if (references.isEmpty()) {
             holder.messageImageScroll.setVisibility(View.GONE);
             return;
         }
         holder.messageImageScroll.setVisibility(View.VISIBLE);
         Context context = holder.itemView.getContext();
-        for (ChatReference reference : images) {
+        for (ChatReference reference : references) {
+            if (reference == null) {
+                continue;
+            }
+            if (!reference.isImage()) {
+                TextView chip = new TextView(context);
+                String label = sanitizeText(reference.getLabel());
+                chip.setText("@" + (label.isEmpty() ? "reference" : label));
+                chip.setTextColor(context.getColor(R.color.chat_text_primary));
+                chip.setTextSize(12f);
+                chip.setGravity(Gravity.CENTER_VERTICAL);
+                chip.setMaxWidth(dp(context, 220));
+                chip.setMaxLines(2);
+                chip.setPadding(dp(context, 10), dp(context, 8), dp(context, 10), dp(context, 8));
+                chip.setBackgroundResource(R.drawable.bg_round_outline);
+                LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                chipParams.setMarginEnd(dp(context, 8));
+                chip.setLayoutParams(chipParams);
+                holder.layoutMessageImages.addView(chip);
+                continue;
+            }
             FrameLayout frame = new FrameLayout(context);
             LinearLayout.LayoutParams frameParams = new LinearLayout.LayoutParams(dp(context, 96), dp(context, 96));
             frameParams.setMarginEnd(dp(context, 8));
@@ -622,6 +682,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         final TextView textStatusChip;
         final View layoutReasoning;
         final TextView textReasoning;
+        final ImageView actionToggleReasoning;
         final View messageImageScroll;
         final LinearLayout layoutMessageImages;
         final View layoutMessageActions;
@@ -644,6 +705,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             textStatusChip = itemView.findViewById(R.id.text_status_chip);
             layoutReasoning = itemView.findViewById(R.id.layout_reasoning);
             textReasoning = itemView.findViewById(R.id.text_reasoning);
+            actionToggleReasoning = itemView.findViewById(R.id.action_toggle_reasoning);
             messageImageScroll = itemView.findViewById(R.id.message_image_scroll);
             layoutMessageImages = itemView.findViewById(R.id.layout_message_images);
             layoutMessageActions = itemView.findViewById(R.id.layout_message_actions);

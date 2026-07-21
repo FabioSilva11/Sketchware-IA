@@ -2827,6 +2827,8 @@ Please try again later"</string>
     <string name="kelivo_action_share">Share</string>
     <string name="kelivo_action_delete">Delete message</string>
     <string name="chat_reasoning_label">Reasoning</string>
+    <string name="show_reasoning">Show reasoning</string>
+    <string name="hide_reasoning">Hide reasoning</string>
     <string name="kelivo_message_edit_title">Edit message</string>
     <string name="kelivo_message_edit_save_send">Save &amp; Send</string>
     <string name="kelivo_thread_actions_title">Chat options</string>
@@ -2906,12 +2908,18 @@ Please try again later"</string>
     <string name="chat_attach_content_description">Attach context</string>
     <string name="chat_attach_project_reference">Mention file/folder</string>
     <string name="chat_attach_reference_image">Reference image</string>
+    <string name="chat_attach_reference_file">Reference file</string>
     <string name="chat_reference_picker_title">Add @ reference</string>
     <string name="chat_reference_search_hint">Search files or folders</string>
     <string name="chat_reference_context_label">Context: %1$s</string>
     <string name="chat_reference_none">No project files found</string>
     <string name="chat_reference_image_added">Reference image added</string>
     <string name="chat_reference_images_added">Reference images added: %1$d</string>
+    <string name="chat_reference_file_added">Reference file added</string>
+    <string name="chat_reference_files_added">Reference files added: %1$d</string>
+    <string name="chat_reference_file_failed">Could not attach this file</string>
+    <string name="chat_reference_files_partial">Attached: %1$d. Without persistent access: %2$d.</string>
+    <string name="chat_reference_picker_unavailable">No persistent document picker is available on this device</string>
     <string name="chat_reference_limit">Reference limit reached</string>
     <string name="chat_remove_reference_image">Remove reference image</string>
     <string name="chat_images_only_prompt">Analyze the attached images.</string>

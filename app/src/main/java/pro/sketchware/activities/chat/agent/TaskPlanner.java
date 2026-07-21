@@ -290,11 +290,20 @@ public class TaskPlanner {
                 if (!step.isCompleted()
                         && !step.isSkipped()
                         && areDependenciesSatisfied(step)
-                        && step.getExpectedTools().contains(toolName)) {
+                        && satisfiesExpectedTool(step.getExpectedTools(), toolName)) {
                     step.setStatus(StepStatus.COMPLETED);
                     return;
                 }
             }
+        }
+
+        private boolean satisfiesExpectedTool(@NonNull List<String> expectedTools,
+                                              @NonNull String toolName) {
+            if (expectedTools.contains(toolName)) {
+                return true;
+            }
+            return expectedTools.contains(PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT)
+                    && PatternMatcher.isProjectDiscoveryTool(toolName);
         }
 
         /**
@@ -603,7 +612,7 @@ public class TaskPlanner {
     private static void addAnalyzeCodePlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
         if (patternResult.requiresProjectExploration()) {
             planBuilder.addStep(Step.builder("explore", "Explore project structure")
-                    .addExpectedTool("get_dir_tree")
+                    .addExpectedTool(PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT)
                     .critical(false)
                     .build());
         }
@@ -616,9 +625,7 @@ public class TaskPlanner {
 
     private static void addGeneralPlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
         planBuilder.addStep(Step.builder("explore", "Explore the relevant project structure")
-                .addExpectedTool("get_dir_tree")
-                .addExpectedTool("search_for_files")
-                .addExpectedTool("search_pathnames_only")
+                .addExpectedTool(PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT)
                 .critical(true)
                 .build());
         planBuilder.addStep(Step.builder("execute", "Execute requested task")

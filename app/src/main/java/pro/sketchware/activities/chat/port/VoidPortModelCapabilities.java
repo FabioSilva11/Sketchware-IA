@@ -208,8 +208,9 @@ public final class VoidPortModelCapabilities {
             return fallback;
         }
 
-        return new Capabilities(model, "", true, 4_096, 4_096,
-                SystemMessageSupport.NONE, ToolFormat.XML_FALLBACK, false, ReasoningCapabilities.none());
+        return new Capabilities(model, "", true, 16_384, 4_096,
+                defaultSystemMessageSupport(provider), defaultToolFormat(provider),
+                false, ReasoningCapabilities.none());
     }
 
     public static ToolFormat expectedToolFormat(String providerId, String modelName) {
@@ -261,11 +262,7 @@ public final class VoidPortModelCapabilities {
 
     private static Capabilities fallbackCapabilities(String providerId, String modelName) {
         String lower = modelName == null ? "" : modelName.toLowerCase(Locale.US);
-        boolean openAiCompatible = !"anthropic".equals(providerId) && !"gemini".equals(providerId);
-        ToolFormat toolFormat = openAiCompatible && !"ollama".equals(providerId) && !"vllm".equals(providerId)
-                && !"lm_studio".equals(providerId) && !"openai_compatible".equals(providerId) && !"litellm".equals(providerId)
-                ? ToolFormat.OPENAI_STYLE
-                : ToolFormat.XML_FALLBACK;
+        ToolFormat toolFormat = defaultToolFormat(providerId);
 
         if (lower.contains("gemini") && (lower.contains("2.5") || lower.contains("2-5"))) {
             return recognized(modelName, "gemini-2.5", 1_048_576, 65_536, SystemMessageSupport.SYSTEM_ROLE, ToolFormat.GEMINI_STYLE, false, ReasoningCapabilities.budget(true, 65_536, 128, 32_768, 8_192));
@@ -332,6 +329,13 @@ public final class VoidPortModelCapabilities {
         if (lower.contains("quasar") || lower.contains("quaser")) {
             return recognized(modelName, "quasar", 1_000_000, 32_000, SystemMessageSupport.SYSTEM_ROLE, toolFormat, false, ReasoningCapabilities.none());
         }
+        if (isGpt5Family(lower)) {
+            // Conservative floor for current and future GPT-5 aliases. Do not
+            // enable optional reasoning parameters solely from a model name.
+            return recognized(modelName, "gpt-5-family", 128_000, 16_384,
+                    SystemMessageSupport.SYSTEM_ROLE, toolFormat, false,
+                    ReasoningCapabilities.none());
+        }
         if (lower.contains("gpt-oss")) {
             return recognized(modelName, "gpt-oss", 128_000, 8_192, SystemMessageSupport.SYSTEM_ROLE, ToolFormat.OPENAI_STYLE, false, ReasoningCapabilities.thinkTags(true, true, 8_192));
         }
@@ -357,6 +361,55 @@ public final class VoidPortModelCapabilities {
             return exactForRequestedName(EXACT.get(key("openai", "o4-mini")), modelName);
         }
         return null;
+    }
+
+    private static ToolFormat defaultToolFormat(String providerId) {
+        String provider = providerId == null ? "" : providerId.toLowerCase(Locale.US);
+        if ("anthropic".equals(provider)) {
+            return ToolFormat.ANTHROPIC_STYLE;
+        }
+        if ("gemini".equals(provider)) {
+            return ToolFormat.GEMINI_STYLE;
+        }
+        if ("ollama".equals(provider) || "vllm".equals(provider)
+                || "lm_studio".equals(provider)) {
+            return ToolFormat.XML_FALLBACK;
+        }
+        // OpenAI-compatible and LiteLLM endpoints advertise native tool support
+        // in ProviderConfig. Unknown model names must not silently downgrade to XML.
+        return ToolFormat.OPENAI_STYLE;
+    }
+
+    private static SystemMessageSupport defaultSystemMessageSupport(String providerId) {
+        String provider = providerId == null ? "" : providerId.toLowerCase(Locale.US);
+        if ("anthropic".equals(provider)) {
+            return SystemMessageSupport.SEPARATED;
+        }
+        return SystemMessageSupport.SYSTEM_ROLE;
+    }
+
+    private static boolean isGpt5Family(String lowerModelName) {
+        if (lowerModelName == null || lowerModelName.isEmpty()) {
+            return false;
+        }
+        return containsVersionFamily(lowerModelName, "gpt-5")
+                || containsVersionFamily(lowerModelName, "gpt5");
+    }
+
+    private static boolean containsVersionFamily(String value, String marker) {
+        int from = 0;
+        while (from < value.length()) {
+            int index = value.indexOf(marker, from);
+            if (index < 0) {
+                return false;
+            }
+            int after = index + marker.length();
+            if (after >= value.length() || !Character.isDigit(value.charAt(after))) {
+                return true;
+            }
+            from = after;
+        }
+        return false;
     }
 
     private static Capabilities recognized(String modelName,

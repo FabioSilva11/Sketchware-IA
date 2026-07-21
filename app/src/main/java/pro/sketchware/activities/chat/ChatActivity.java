@@ -49,8 +49,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -71,12 +73,14 @@ public class ChatActivity extends AppCompatActivity {
     private static final int REQUEST_PICK_REFERENCE_IMAGE = 9102;
     private static final int REQUEST_CAPTURE_REFERENCE_IMAGE = 9103;
     private static final int REQUEST_PICK_USER_AVATAR = 9104;
+    private static final int REQUEST_PICK_REFERENCE_FILE = 9105;
     private static final int MAX_PENDING_REFERENCES = 8;
     private static final long STREAM_UI_UPDATE_INTERVAL_MS = 180L;
     private static final String PREF_USER_NAME = "user_name";
     private static final String PREF_LEGACY_USER_NAME = "user_display_name";
     private static final String PREF_AVATAR_TYPE = "avatar_type";
     private static final String PREF_AVATAR_VALUE = "avatar_value";
+    private static final String PREF_MANAGED_REFERENCE_URI_GRANTS = "managed_reference_uri_grants";
 
     private String sc_id;
     private ViewPager chatViewPager;
@@ -266,6 +270,7 @@ public class ChatActivity extends AppCompatActivity {
 
         // Carregar histÃ³rico do chat
         loadChatHistory();
+        reconcileManagedReferenceGrants();
     }
 
 
@@ -329,6 +334,11 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onDelete(int position) {
                 deleteMessageAtPosition(position);
+            }
+
+            @Override
+            public void onReasoningVisibilityChanged(ChatMessage message) {
+                saveChatHistory();
             }
         });
         setupKelivoUi();
@@ -1145,7 +1155,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void restorePendingReferences(ChatMessage message) {
-        pendingReferences.clear();
+        clearPendingReferences();
         if (message != null && message.hasStagingSelections()) {
             pendingReferences.addAll(message.getStagingSelections());
         }
@@ -1156,6 +1166,8 @@ public class ChatActivity extends AppCompatActivity {
         if (position < 0 || position >= messages.size()) {
             return;
         }
+        List<ChatReference> removedReferences = collectMessageReferences(
+                new ArrayList<>(messages.subList(position, messages.size())));
         int removeCount = messages.size() - position;
         for (int i = messages.size() - 1; i >= position; i--) {
             messages.remove(i);
@@ -1164,6 +1176,7 @@ public class ChatActivity extends AppCompatActivity {
         saveChatHistory();
         updateThreadSummary();
         refreshSecondaryPanels();
+        releaseReferenceGrantsIfUnused(removedReferences);
     }
 
     private void removeMessagesAfterPosition(int position) {
@@ -1174,6 +1187,8 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
         int start = position + 1;
+        List<ChatReference> removedReferences = collectMessageReferences(
+                new ArrayList<>(messages.subList(start, messages.size())));
         int removeCount = messages.size() - start;
         for (int i = messages.size() - 1; i >= start; i--) {
             messages.remove(i);
@@ -1182,6 +1197,7 @@ public class ChatActivity extends AppCompatActivity {
         saveChatHistory();
         updateThreadSummary();
         refreshSecondaryPanels();
+        releaseReferenceGrantsIfUnused(removedReferences);
     }
 
     private void startContinuationFromEditedMessage(ChatMessage sourceMessage) {
@@ -1242,10 +1258,12 @@ public class ChatActivity extends AppCompatActivity {
         if (isProcessing || position < 0 || position >= messages.size()) {
             return;
         }
-        messages.remove(position);
+        ChatMessage removed = messages.remove(position);
         messageAdapter.notifyItemRemoved(position);
         saveChatHistory();
         updateThreadSummary();
+        releaseReferenceGrantsIfUnused(
+                removed == null ? null : removed.getStagingSelections());
     }
 
     private void sendMessage(String message) {
@@ -1282,21 +1300,21 @@ public class ChatActivity extends AppCompatActivity {
         // Delegar para AgentManager (streaming e agente, paridade Void)
         List<ChatReference> stagingSelections = new ArrayList<>(pendingReferences);
         List<ChatReference> imageReferences = ChatReferenceManager.getImageReferences(stagingSelections);
-        long contextStartedAt = System.currentTimeMillis();
         String outgoingMessage = message == null ? "" : message.trim();
         if (outgoingMessage.isEmpty()) {
             outgoingMessage = imageReferences.isEmpty()
                     ? getString(R.string.chat_references_only_prompt)
                     : getString(R.string.chat_images_only_prompt);
         }
-        String contextPayload = ChatReferenceManager.buildContextPayload(this, stagingSelections);
-        long contextBuildMs = System.currentTimeMillis() - contextStartedAt;
         if (showDebug) {
-            appendDebugMessage("UI: referências/contexto montado em " + contextBuildMs + "ms"
-                    + ", refs=" + pendingReferences.size()
+            appendDebugMessage("UI: referências adiadas para montagem em segundo plano"
+                    + ", refs=" + stagingSelections.size()
                     + ", images=" + imageReferences.size());
         }
-        agentManager.processUserMessage(outgoingMessage, contextPayload, stagingSelections);
+        // ContextBuilder runs in AgentManager's background context thread. Passing
+        // null here avoids opening content:// streams and walking referenced
+        // folders on Android's main thread.
+        agentManager.processUserMessage(outgoingMessage, null, stagingSelections);
         clearPendingReferences();
     }
 
@@ -1311,7 +1329,8 @@ public class ChatActivity extends AppCompatActivity {
     private void showAttachMenu(View anchor) {
         PopupMenu popup = new PopupMenu(this, anchor);
         popup.getMenu().add(0, 1, 0, getString(R.string.chat_attach_project_reference));
-        popup.getMenu().add(0, 2, 1, getString(R.string.chat_attach_reference_image));
+        popup.getMenu().add(0, 3, 1, getString(R.string.chat_attach_reference_file));
+        popup.getMenu().add(0, 2, 2, getString(R.string.chat_attach_reference_image));
         popup.setOnMenuItemClickListener(item -> {
             if (item.getItemId() == 1) {
                 showReferencePicker(false);
@@ -1319,6 +1338,10 @@ public class ChatActivity extends AppCompatActivity {
             }
             if (item.getItemId() == 2) {
                 pickReferenceImage();
+                return true;
+            }
+            if (item.getItemId() == 3) {
+                pickReferenceFile();
                 return true;
             }
             return false;
@@ -1408,13 +1431,21 @@ public class ChatActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
         try {
             startActivityForResult(intent, REQUEST_PICK_REFERENCE_IMAGE);
-        } catch (Exception firstFailure) {
-            Intent fallback = new Intent(Intent.ACTION_GET_CONTENT);
-            fallback.addCategory(Intent.CATEGORY_OPENABLE);
-            fallback.setType("image/*");
-            fallback.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-            fallback.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivityForResult(Intent.createChooser(fallback, getString(R.string.chat_attach_reference_image)), REQUEST_PICK_REFERENCE_IMAGE);
+        } catch (Exception unavailable) {
+            Toast.makeText(this, R.string.chat_reference_picker_unavailable, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void pickReferenceFile() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        try {
+            startActivityForResult(intent, REQUEST_PICK_REFERENCE_FILE);
+        } catch (Exception unavailable) {
+            Toast.makeText(this, R.string.chat_reference_picker_unavailable, Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -1463,22 +1494,27 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void clearPendingReferences() {
+        List<ChatReference> removedReferences = new ArrayList<>(pendingReferences);
         pendingReferences.clear();
         updatePendingReferencesUi();
+        releaseReferenceGrantsIfUnused(removedReferences);
     }
 
     private void removePendingReference(ChatReference reference) {
         if (reference == null) {
             return;
         }
+        List<ChatReference> removedReferences = new ArrayList<>();
         String stableKey = reference.stableKey();
         for (int i = pendingReferences.size() - 1; i >= 0; i--) {
             ChatReference pending = pendingReferences.get(i);
             if (pending != null && pending.stableKey().equals(stableKey)) {
+                removedReferences.add(pending);
                 pendingReferences.remove(i);
             }
         }
         updatePendingReferencesUi();
+        releaseReferenceGrantsIfUnused(removedReferences);
     }
 
     private void updatePendingReferencesUi() {
@@ -2003,6 +2039,8 @@ public class ChatActivity extends AppCompatActivity {
         if (thread == null || historyManager == null) {
             return;
         }
+        List<ChatReference> removedReferences = collectMessageReferences(
+                historyManager.loadHistory(sc_id, thread.id));
         boolean wasActive = thread.id.equals(activeThreadId);
         historyManager.deleteThread(sc_id, thread.id);
         if (wasActive) {
@@ -2015,6 +2053,7 @@ public class ChatActivity extends AppCompatActivity {
         } else {
             refreshDrawerThreads();
         }
+        releaseReferenceGrantsIfUnused(removedReferences);
         Toast.makeText(this, R.string.kelivo_thread_deleted, Toast.LENGTH_SHORT).show();
     }
 
@@ -2144,6 +2183,7 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void clearChat() {
+        List<ChatReference> removedReferences = collectMessageReferences(messages);
         if (historyManager != null && sc_id != null) {
             historyManager.clearHistory(sc_id, activeThreadId);
         }
@@ -2153,6 +2193,7 @@ public class ChatActivity extends AppCompatActivity {
         addWelcomeMessage();
         updateThreadSummary();
         refreshSecondaryPanels();
+        releaseReferenceGrantsIfUnused(removedReferences);
         Toast.makeText(this, R.string.chat_cleared, Toast.LENGTH_SHORT).show();
     }
 
@@ -2243,31 +2284,60 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_PICK_REFERENCE_IMAGE) {
+        if (requestCode == REQUEST_PICK_REFERENCE_FILE) {
             if (resultCode == RESULT_OK && data != null) {
-                List<Uri> imageUris = new ArrayList<>();
-                ClipData clipData = data.getClipData();
-                if (clipData != null) {
-                    for (int i = 0; i < clipData.getItemCount(); i++) {
-                        Uri uri = clipData.getItemAt(i).getUri();
-                        if (uri != null) {
-                            imageUris.add(uri);
-                        }
+                int addedCount = 0;
+                int failedCount = 0;
+                for (Uri uri : collectResultUris(data)) {
+                    if (!persistReferenceReadPermission(data, uri)) {
+                        failedCount++;
+                        continue;
                     }
-                } else if (data.getData() != null) {
-                    imageUris.add(data.getData());
+                    ChatReference reference = ChatReferenceManager.fromDocumentUri(this, uri);
+                    if (reference == null || reference.getUri() == null) {
+                        failedCount++;
+                        releaseManagedReferenceGrantIfUnused(uri.toString());
+                    } else if (addPendingReference(reference)) {
+                        addedCount++;
+                    } else {
+                        releaseManagedReferenceGrantIfUnused(uri.toString());
+                    }
                 }
 
+                if (failedCount > 0) {
+                    Toast.makeText(this,
+                            getString(R.string.chat_reference_files_partial, addedCount, failedCount),
+                            Toast.LENGTH_LONG).show();
+                } else if (addedCount == 1) {
+                    Toast.makeText(this, R.string.chat_reference_file_added, Toast.LENGTH_SHORT).show();
+                } else if (addedCount > 1) {
+                    Toast.makeText(this, getString(R.string.chat_reference_files_added, addedCount), Toast.LENGTH_SHORT).show();
+                }
+            }
+            return;
+        }
+        if (requestCode == REQUEST_PICK_REFERENCE_IMAGE) {
+            if (resultCode == RESULT_OK && data != null) {
                 int addedCount = 0;
-                for (Uri uri : imageUris) {
-                    grantImageReadPermission(data, uri);
+                int failedCount = 0;
+                for (Uri uri : collectResultUris(data)) {
+                    if (!persistReferenceReadPermission(data, uri)) {
+                        failedCount++;
+                        continue;
+                    }
                     ChatReference reference = ChatReferenceManager.fromImageUri(this, uri);
                     if (addPendingReference(reference)) {
                         addedCount++;
+                    } else {
+                        releaseManagedReferenceGrantIfUnused(uri.toString());
                     }
                 }
 
-                if (addedCount == 1) {
+                if (failedCount > 0) {
+                    Toast.makeText(this,
+                            getString(R.string.chat_reference_files_partial, addedCount, failedCount),
+                            Toast.LENGTH_LONG).show();
+                } else if (addedCount == 1) {
                     Toast.makeText(this, R.string.chat_reference_image_added, Toast.LENGTH_SHORT).show();
                 } else if (addedCount > 1) {
                     Toast.makeText(this, getString(R.string.chat_reference_images_added, addedCount), Toast.LENGTH_SHORT).show();
@@ -2301,7 +2371,7 @@ public class ChatActivity extends AppCompatActivity {
         if (requestCode == REQUEST_PICK_USER_AVATAR) {
             if (resultCode == RESULT_OK && data != null && data.getData() != null) {
                 Uri uri = data.getData();
-                grantImageReadPermission(data, uri);
+                grantPersistableReadPermission(data, uri);
                 getSharedPreferences("chat_settings", MODE_PRIVATE)
                         .edit()
                         .putString(PREF_AVATAR_TYPE, "file")
@@ -2329,22 +2399,136 @@ public class ChatActivity extends AppCompatActivity {
         pendingCameraImageFile = null;
     }
 
-    private void grantImageReadPermission(Intent data, Uri uri) {
+    private List<Uri> collectResultUris(Intent data) {
+        List<Uri> uris = new ArrayList<>();
+        if (data == null) {
+            return uris;
+        }
+        ClipData clipData = data.getClipData();
+        if (clipData != null) {
+            for (int i = 0; i < clipData.getItemCount(); i++) {
+                Uri uri = clipData.getItemAt(i).getUri();
+                if (uri != null && !uris.contains(uri)) {
+                    uris.add(uri);
+                }
+            }
+        } else if (data.getData() != null) {
+            uris.add(data.getData());
+        }
+        return uris;
+    }
+
+    private boolean persistReferenceReadPermission(Intent data, Uri uri) {
+        if (!grantPersistableReadPermission(data, uri)) {
+            return false;
+        }
+        registerManagedReferenceGrant(uri);
+        return true;
+    }
+
+    private boolean grantPersistableReadPermission(Intent data, Uri uri) {
         if (data == null || uri == null) {
-            return;
+            return false;
         }
         int flags = data.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION;
         if (flags == 0) {
-            return;
+            return false;
         }
         try {
             getContentResolver().takePersistableUriPermission(uri, flags);
+            return true;
         } catch (Exception ignored) {
+            return false;
         }
+    }
+
+    private void registerManagedReferenceGrant(Uri uri) {
+        if (uri == null || !"content".equalsIgnoreCase(uri.getScheme())) {
+            return;
+        }
+        SharedPreferences preferences = getSharedPreferences("chat_settings", MODE_PRIVATE);
+        Set<String> managed = new HashSet<>(preferences.getStringSet(
+                PREF_MANAGED_REFERENCE_URI_GRANTS, new HashSet<>()));
+        managed.add(uri.toString());
+        preferences.edit().putStringSet(PREF_MANAGED_REFERENCE_URI_GRANTS, managed).apply();
+    }
+
+    private void reconcileManagedReferenceGrants() {
+        SharedPreferences preferences = getSharedPreferences("chat_settings", MODE_PRIVATE);
+        Set<String> managed = new HashSet<>(preferences.getStringSet(
+                PREF_MANAGED_REFERENCE_URI_GRANTS, new HashSet<>()));
+        for (String uriValue : managed) {
+            releaseManagedReferenceGrantIfUnused(uriValue);
+        }
+    }
+
+    private void releaseReferenceGrantsIfUnused(List<ChatReference> references) {
+        Set<String> uriValues = new HashSet<>();
+        for (ChatReference reference : references == null ? new ArrayList<ChatReference>() : references) {
+            if (reference != null && reference.getUri() != null) {
+                uriValues.add(reference.getUri().toString());
+            }
+        }
+        for (String uriValue : uriValues) {
+            releaseManagedReferenceGrantIfUnused(uriValue);
+        }
+    }
+
+    private void releaseManagedReferenceGrantIfUnused(String uriValue) {
+        if (!ChatMessage.hasVisibleText(uriValue)) {
+            return;
+        }
+        SharedPreferences preferences = getSharedPreferences("chat_settings", MODE_PRIVATE);
+        Set<String> managed = new HashSet<>(preferences.getStringSet(
+                PREF_MANAGED_REFERENCE_URI_GRANTS, new HashSet<>()));
+        if (!managed.contains(uriValue)
+                || isPendingReferenceUri(uriValue)
+                || isAvatarUri(uriValue)
+                || (historyManager != null && historyManager.containsReferenceUri(uriValue))) {
+            return;
+        }
+        try {
+            getContentResolver().releasePersistableUriPermission(
+                    Uri.parse(uriValue), Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (Exception ignored) {
+            // The provider may already have revoked the grant. Remove stale bookkeeping too.
+        }
+        managed.remove(uriValue);
+        preferences.edit().putStringSet(PREF_MANAGED_REFERENCE_URI_GRANTS, managed).apply();
+    }
+
+    private boolean isPendingReferenceUri(String uriValue) {
+        for (ChatReference reference : pendingReferences) {
+            if (reference != null
+                    && reference.getUri() != null
+                    && uriValue.equals(reference.getUri().toString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isAvatarUri(String uriValue) {
+        SharedPreferences preferences = getSharedPreferences("chat_settings", MODE_PRIVATE);
+        return "file".equals(preferences.getString(PREF_AVATAR_TYPE, ""))
+                && uriValue.equals(preferences.getString(PREF_AVATAR_VALUE, ""));
+    }
+
+    private List<ChatReference> collectMessageReferences(List<ChatMessage> sourceMessages) {
+        List<ChatReference> references = new ArrayList<>();
+        for (ChatMessage message : sourceMessages == null ? new ArrayList<ChatMessage>() : sourceMessages) {
+            if (message != null && message.hasStagingSelections()) {
+                references.addAll(message.getStagingSelections());
+            }
+        }
+        return references;
     }
 
     @Override
     protected void onDestroy() {
+        List<ChatReference> abandonedReferences = new ArrayList<>(pendingReferences);
+        pendingReferences.clear();
+        releaseReferenceGrantsIfUnused(abandonedReferences);
         if (textToSpeech != null) {
             textToSpeech.stop();
             textToSpeech.shutdown();

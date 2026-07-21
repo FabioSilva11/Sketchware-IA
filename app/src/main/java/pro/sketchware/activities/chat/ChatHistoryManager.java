@@ -73,6 +73,10 @@ public class ChatHistoryManager {
         }
     }
 
+    public boolean containsReferenceUri(String uri) {
+        return voidStorage.containsReferenceUri(uri);
+    }
+
     public void clearHistory(String scId) {
         if (scId == null) {
             return;

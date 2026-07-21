@@ -59,34 +59,39 @@ public final class ProjectPathResolver {
      * next existing project folder, and only to the shared root as last resort.
      */
     public static File getTerminalWorkingRoot(String scId) {
-        if (isAndroidStudioProject(scId)) {
-            return getAndroidStudioProjectRoot(scId);
+        File primary = getPrimaryReadableRoot(scId);
+        if (primary != null) {
+            return primary;
         }
-        File data = new File(getSketchwareRoot(), "data/" + scId);
-        if (data.isDirectory()) {
-            return data;
-        }
-        File mysc = new File(getSketchwareRoot(), "mysc/" + scId);
-        if (mysc.isDirectory()) {
-            return mysc;
-        }
-        File list = new File(getSketchwareRoot(), "mysc/list/" + scId);
-        if (list.isDirectory()) {
-            return list;
-        }
-        return getSketchwareRoot();
+        // Fail inside a project-specific path instead of silently executing at
+        // the shared .sketchware root when project discovery is unavailable.
+        return isAndroidStudioProject(scId)
+                ? getAndroidStudioProjectRoot(scId)
+                : new File(getSketchwareRoot(), "data/" + scId);
     }
 
     public static List<File> getReadableRoots(String scId) {
         List<File> roots = new ArrayList<>();
         if (isAndroidStudioProject(scId)) {
-            roots.add(getAndroidStudioProjectRoot(scId));
+            addReadableRoot(roots, getAndroidStudioProjectRoot(scId));
             return roots;
         }
-        roots.add(new File(getSketchwareRoot(), "data/" + scId));
-        roots.add(new File(getSketchwareRoot(), "mysc/list/" + scId));
-        roots.add(new File(getSketchwareRoot(), "mysc/" + scId));
+        addReadableRoot(roots, new File(getSketchwareRoot(), "data/" + scId));
+        addReadableRoot(roots, new File(getSketchwareRoot(), "mysc/" + scId));
+        addReadableRoot(roots, new File(getSketchwareRoot(), "mysc/list/" + scId));
         return roots;
+    }
+
+    @Nullable
+    public static File getPrimaryReadableRoot(String scId) {
+        List<File> roots = getReadableRoots(scId);
+        return roots.isEmpty() ? null : roots.get(0);
+    }
+
+    private static void addReadableRoot(List<File> roots, File root) {
+        if (root != null && root.isDirectory()) {
+            roots.add(root);
+        }
     }
 
     public static List<File> getWritableRoots(String scId) {
@@ -147,6 +152,24 @@ public final class ProjectPathResolver {
             return null;
         }
 
+        if (isPlaceholderPath(requestedPath)) {
+            ChatToolLog.w("path", "placeholder path rejected: \"" + requestedPath + "\"");
+            ChatToolLog.pathResolve(scId, requestedPath, null, false);
+            return null;
+        }
+
+        if (readOnlyScope && isReadRootAlias(requestedPath)) {
+            File primary = getPrimaryReadableRoot(scId);
+            if (primary == null) {
+                ChatToolLog.w("path", "project root alias could not be resolved for sc=" + scId);
+                ChatToolLog.pathResolve(scId, requestedPath, null, false);
+                return null;
+            }
+            String displayPath = toDisplayPath(scId, primary);
+            ChatToolLog.pathResolve(scId, requestedPath, displayPath, true);
+            return new ResolvedPath(primary, displayPath);
+        }
+
         String normalizedPath = normalize(requestedPath);
         if (normalizedPath.isEmpty()) {
             ChatToolLog.w("path", "empty/traversal after normalize: \"" + requestedPath + "\"");
@@ -185,9 +208,52 @@ public final class ProjectPathResolver {
         return new ResolvedPath(candidate, mappedRelativePath);
     }
 
+    public static boolean isReadRootAlias(String requestedPath) {
+        if (requestedPath == null) {
+            return false;
+        }
+        String value = requestedPath.trim();
+        return value.isEmpty() || ".".equals(value) || "/".equals(value) || "\\".equals(value);
+    }
+
+    public static boolean isPlaceholderPath(String requestedPath) {
+        if (requestedPath == null) {
+            return false;
+        }
+        String value = requestedPath.trim();
+        String lower = value.toLowerCase(java.util.Locale.ROOT);
+        return "<uri".equals(lower)
+                || "<uri>".equals(lower)
+                || "<path".equals(lower)
+                || "<path>".equals(lower)
+                || "<file_path".equals(lower)
+                || "<file_path>".equals(lower)
+                || "undefined".equals(lower)
+                || "null".equals(lower)
+                || (value.startsWith("{{") && value.endsWith("}}"))
+                || (value.startsWith("${") && value.endsWith("}"));
+    }
+
+    public static boolean hasParentTraversal(String requestedPath) {
+        if (requestedPath == null) {
+            return false;
+        }
+        String value = requestedPath.trim().replace("\\", "/");
+        for (String segment : value.split("/", -1)) {
+            if ("..".equals(segment)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static String normalize(String requestedPath) {
         String normalizedPath = requestedPath.trim().replace("\\", "/");
         normalizedPath = normalizedPath.replaceAll("/{2,}", "/");
+
+        if (hasParentTraversal(normalizedPath)) {
+            return "";
+        }
 
         int androidStudioIndex = normalizedPath.indexOf(wq.ANDROID_STUDIO_PROJECTS + "/");
         if (androidStudioIndex >= 0) {
@@ -201,10 +267,6 @@ public final class ProjectPathResolver {
 
         while (normalizedPath.startsWith("/")) {
             normalizedPath = normalizedPath.substring(1);
-        }
-
-        if (normalizedPath.contains("../") || normalizedPath.contains("..\\")) {
-            return "";
         }
 
         return normalizedPath;

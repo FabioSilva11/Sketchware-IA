@@ -33,4 +33,19 @@ public class TaskPlannerTest {
         plan.recordToolUsage("read_file");
         assertTrue(plan.isComplete());
     }
+
+    @Test
+    public void lsDirCompletesAbstractProjectDiscoveryStep() {
+        PatternMatcher.Result pattern = PatternMatcher.analyze(
+                "Implemente autenticação neste app", null, null);
+        TaskPlanner.Plan plan = TaskPlanner.createPlan(pattern, "Implement authentication");
+
+        plan.recordToolUsage("ls_dir");
+        assertFalse(plan.isComplete());
+        assertTrue(plan.getStepById("explore").isCompleted());
+
+        plan.recordToolUsage("edit_file");
+        plan.recordToolUsage("read_file");
+        assertTrue(plan.isComplete());
+    }
 }

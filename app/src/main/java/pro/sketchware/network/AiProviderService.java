@@ -17,6 +17,8 @@ import java.net.Proxy;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -60,6 +62,12 @@ public class AiProviderService {
     private final AiSettingsRepository settingsRepository;
     private final AiProviderAdapterRegistry providerAdapters;
     private final AiStreamingTransport streamingTransport;
+    private static final ExecutorService REQUEST_PREPARATION_EXECUTOR =
+            Executors.newSingleThreadExecutor(runnable -> {
+                Thread thread = new Thread(runnable, "ai-request-preparation");
+                thread.setPriority(Thread.NORM_PRIORITY - 1);
+                return thread;
+            });
 
     public interface StreamListener {
         void onContent(String delta);
@@ -272,26 +280,50 @@ public class AiProviderService {
 
     public AiRequestHandle sendStreamingMessage(ContextBuilder.Result requestContext, JSONArray tools, String chatMode, StreamListener listener) {
         AiRequestHandle requestHandle = new AiRequestHandle();
-        AiSettingsRepository.Selection selection = settingsRepository.currentSelection();
-        String currentProvider = selection.providerId;
-        String currentModel = selection.modelName;
-        ProviderConfig providerConfig = selection.providerConfig;
-        if (providerConfig == null) {
-            listener.onError("Unsupported provider: " + currentProvider, null);
-            return requestHandle;
-        }
-
-        if (!settingsRepository.isConfigured(selection)) {
-            listener.onError("Provider not enabled or API key missing", null);
-            return requestHandle;
-        }
-        if (providerConfig.baseUrl.isEmpty()) {
-            listener.onError("Provider endpoint is missing", null);
-            return requestHandle;
-        }
-
-        dispatchRequest(providerConfig, currentProvider, currentModel, requestContext, tools, chatMode, listener, 0, requestHandle);
+        // Capture the lightweight preference selection at call time, then move
+        // request JSON construction/toString (which may include Base64 images or
+        // documents) off Android's main thread.
+        final AiSettingsRepository.Selection selection = settingsRepository.currentSelection();
+        REQUEST_PREPARATION_EXECUTOR.execute(() -> prepareAndDispatchStreamingRequest(
+                selection, requestContext, tools, chatMode, listener, requestHandle));
         return requestHandle;
+    }
+
+    private void prepareAndDispatchStreamingRequest(AiSettingsRepository.Selection selection,
+                                                    ContextBuilder.Result requestContext,
+                                                    JSONArray tools,
+                                                    String chatMode,
+                                                    StreamListener listener,
+                                                    AiRequestHandle requestHandle) {
+        if (requestHandle.isCancelled()) {
+            return;
+        }
+        try {
+            String currentProvider = selection.providerId;
+            String currentModel = selection.modelName;
+            ProviderConfig providerConfig = selection.providerConfig;
+            if (providerConfig == null) {
+                listener.onError("Unsupported provider: " + currentProvider, null);
+                return;
+            }
+            if (!settingsRepository.isConfigured(selection)) {
+                listener.onError("Provider not enabled or API key missing", null);
+                return;
+            }
+            if (providerConfig.baseUrl.isEmpty()) {
+                listener.onError("Provider endpoint is missing", null);
+                return;
+            }
+            if (requestHandle.isCancelled()) {
+                return;
+            }
+            dispatchRequest(providerConfig, currentProvider, currentModel, requestContext,
+                    tools, chatMode, listener, 0, requestHandle);
+        } catch (Exception exception) {
+            if (!requestHandle.isCancelled()) {
+                listener.onError("Request preparation error", exception);
+            }
+        }
     }
 
     public String sendTextMessage(String systemPrompt, String userPrompt) throws IOException {
@@ -565,7 +597,7 @@ public class AiProviderService {
 
             executeStreaming(request, retryCount, providerId, listener, (call, response) -> {
                 try (BufferedSource source = response.body().source()) {
-                    readAnthropicEventStream(source, tools, listener);
+                    readAnthropicEventStream(source, requestContext, tools, listener);
                 }
             }, requestHandle);
         } catch (Exception e) {
@@ -734,7 +766,7 @@ public class AiProviderService {
     private void readOpenAiEventStream(BufferedSource source, ContextBuilder.Result requestContext,
                                        JSONArray tools, StreamListener listener) throws IOException {
         OpenAiStreamState state = new OpenAiStreamState();
-        configureXmlParser(state, tools);
+        configureXmlParser(state, requestContext, tools);
         StreamPerf perf = new StreamPerf();
         String line;
         int chunkCount = 0;
@@ -793,7 +825,7 @@ public class AiProviderService {
     private void handleOpenAiJsonResponse(String body, ContextBuilder.Result requestContext,
                                           JSONArray tools, StreamListener listener) {
         OpenAiStreamState state = new OpenAiStreamState();
-        configureXmlParser(state, tools);
+        configureXmlParser(state, requestContext, tools);
         try {
             JSONObject json = new JSONObject(body);
             JSONArray choices = json.optJSONArray("choices");
@@ -968,7 +1000,7 @@ public class AiProviderService {
         }
         boolean hasXmlTool = false;
 
-        if (!hasNativeTool) {
+        if (shouldExtractXmlToolCall(requestContext, hasNativeTool)) {
             VoidPortExtractGrammar.ToolCallExtraction extraction = state.xmlToolParser == null
                     ? null
                     : state.xmlToolParser.getLatestToolCall();
@@ -1018,7 +1050,7 @@ public class AiProviderService {
     private void readGeminiEventStream(BufferedSource source, ContextBuilder.Result requestContext,
                                        JSONArray tools, StreamListener listener) throws IOException {
         OpenAiStreamState state = new OpenAiStreamState();
-        configureXmlParser(state, tools);
+        configureXmlParser(state, requestContext, tools);
         StreamPerf perf = new StreamPerf();
         String line;
         int chunkCount = 0;
@@ -1286,10 +1318,11 @@ public class AiProviderService {
         }
     }
 
-    private void readAnthropicEventStream(BufferedSource source, JSONArray tools,
+    private void readAnthropicEventStream(BufferedSource source, ContextBuilder.Result requestContext,
+                                          JSONArray tools,
                                           StreamListener listener) throws IOException {
         AnthropicStreamState state = new AnthropicStreamState();
-        configureXmlParser(state, tools);
+        configureXmlParser(state, requestContext, tools);
         String currentEvent = "";
         StringBuilder dataBuffer = new StringBuilder();
         String line;
@@ -1342,7 +1375,7 @@ public class AiProviderService {
         }
         boolean hasXmlTool = false;
 
-        if (!hasNativeTool) {
+        if (shouldExtractXmlToolCall(requestContext, hasNativeTool)) {
             String finalContent = state.fullContent.toString();
             String finalReasoning = state.fullReasoning.toString();
             VoidPortExtractGrammar.ToolCallExtraction extraction = state.xmlToolParser == null
@@ -1730,8 +1763,10 @@ public class AiProviderService {
         return "API Error from " + providerId + ": HTTP " + statusCode + " - " + compactBody;
     }
 
-    private void configureXmlParser(OpenAiStreamState state, JSONArray tools) {
-        if (state == null || tools == null || tools.length() == 0) {
+    private void configureXmlParser(OpenAiStreamState state, ContextBuilder.Result requestContext,
+                                    JSONArray tools) {
+        if (!usesXmlToolFallback(requestContext)
+                || state == null || tools == null || tools.length() == 0) {
             return;
         }
         VoidPortExtractGrammar.XmlToolStreamParser parser = new VoidPortExtractGrammar.XmlToolStreamParser(tools);
@@ -1740,8 +1775,10 @@ public class AiProviderService {
         }
     }
 
-    private void configureXmlParser(AnthropicStreamState state, JSONArray tools) {
-        if (state == null || tools == null || tools.length() == 0) {
+    private void configureXmlParser(AnthropicStreamState state, ContextBuilder.Result requestContext,
+                                    JSONArray tools) {
+        if (!usesXmlToolFallback(requestContext)
+                || state == null || tools == null || tools.length() == 0) {
             return;
         }
         VoidPortExtractGrammar.XmlToolStreamParser parser = new VoidPortExtractGrammar.XmlToolStreamParser(tools);
@@ -1765,9 +1802,9 @@ public class AiProviderService {
         if (!step.visibleDelta.isEmpty()) {
             listener.onContent(step.visibleDelta);
         }
-        if (step.toolCall != null) {
-            maybeEmitToolCall(step.toolCall.toolName, step.toolCall.toolArguments, step.toolCall.toolId, state, listener);
-        }
+        // Do not emit a tool call from a streaming prefix. The XML parser keeps
+        // the latest complete call and completeOpenAiRequest emits it once after
+        // the response finishes.
     }
 
     private void appendAnthropicContentDelta(AnthropicStreamState state, String content, StreamListener listener) {
@@ -1785,9 +1822,17 @@ public class AiProviderService {
         if (!step.visibleDelta.isEmpty()) {
             listener.onContent(step.visibleDelta);
         }
-        if (step.toolCall != null) {
-            maybeEmitAnthropicToolCall(step.toolCall.toolName, step.toolCall.toolArguments, step.toolCall.toolId, state, listener);
-        }
+        // See appendOpenAiContentDelta: XML calls are emitted once, at EOF.
+    }
+
+    static boolean shouldExtractXmlToolCall(ContextBuilder.Result requestContext,
+                                            boolean hasNativeTool) {
+        return !hasNativeTool && usesXmlToolFallback(requestContext);
+    }
+
+    private static boolean usesXmlToolFallback(ContextBuilder.Result requestContext) {
+        return requestContext != null
+                && requestContext.getProviderFormat() == ContextBuilder.ProviderFormat.XML_FALLBACK;
     }
 
     private String trimEnd(String text) {

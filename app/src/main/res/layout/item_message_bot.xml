@@ -87,7 +87,7 @@
         android:visibility="gone">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal">
@@ -100,13 +100,24 @@
                 android:tint="@color/chat_accent" />
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
+                android:layout_weight="1"
                 android:text="@string/chat_reasoning_label"
                 android:textColor="@color/chat_accent"
                 android:textSize="11sp"
                 android:textStyle="bold" />
+
+            <ImageView
+                android:id="@+id/action_toggle_reasoning"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/show_reasoning"
+                android:padding="7dp"
+                android:src="@drawable/ic_mtrl_preview"
+                android:tint="@color/chat_accent" />
         </LinearLayout>
 
         <TextView

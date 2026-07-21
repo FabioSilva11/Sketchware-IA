@@ -249,10 +249,12 @@
                 android:importantForAutofill="no"
                 android:inputType="textCapSentences|textMultiLine"
                 android:lineSpacingExtra="2dp"
-                android:maxLines="6"
+                android:maxHeight="180dp"
                 android:minHeight="44dp"
+                android:overScrollMode="ifContentScrolls"
                 android:paddingTop="0dp"
                 android:paddingBottom="4dp"
+                android:scrollbars="vertical"
                 android:textColor="@color/chat_text_primary"
                 android:textColorHint="@color/chat_text_hint"
                 android:textSize="15sp" />

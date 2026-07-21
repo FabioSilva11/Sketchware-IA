@@ -207,6 +207,7 @@ public final class VoidPortExtractGrammar {
         }
 
         try {
+            boolean sawIncompleteToolWrapper = false;
             for (int i = 0; i < tools.length(); i++) {
                 JSONObject tool = tools.optJSONObject(i);
                 JSONObject function = tool == null ? null : tool.optJSONObject("function");
@@ -223,9 +224,13 @@ public final class VoidPortExtractGrammar {
 
                 String closeTag = "</" + toolName + ">";
                 int end = fullContent.indexOf(closeTag, start + openTag.length());
-                String cleaned = end >= 0
-                        ? (fullContent.substring(0, start) + fullContent.substring(end + closeTag.length())).trim()
-                        : fullContent.substring(0, start).trim();
+                if (end < 0) {
+                    // Never execute a partially streamed or token-truncated XML call.
+                    sawIncompleteToolWrapper = true;
+                    continue;
+                }
+                String cleaned = (fullContent.substring(0, start)
+                        + fullContent.substring(end + closeTag.length())).trim();
                 return parseXmlPrefixToToolCall(
                         toolName,
                         "xml_call_" + UUID.randomUUID(),
@@ -235,13 +240,22 @@ public final class VoidPortExtractGrammar {
                 );
             }
 
+            // An incomplete known wrapper takes precedence over permissive legacy
+            // fallbacks below. In particular, do not turn a half-streamed
+            // <edit_file> containing SEARCH/REPLACE text into an executable call.
+            if (sawIncompleteToolWrapper) {
+                return null;
+            }
+
             // Check for known incorrect tools like get_file
             if (fullContent.contains("<get_file>")) {
                 int start = fullContent.indexOf("<get_file>");
                 int end = fullContent.indexOf("</get_file>", start);
-                String cleaned = end >= 0 
-                    ? (fullContent.substring(0, start) + fullContent.substring(end + 11)).trim()
-                    : fullContent.substring(0, start).trim();
+                if (end < 0) {
+                    return null;
+                }
+                String cleaned = (fullContent.substring(0, start)
+                        + fullContent.substring(end + 11)).trim();
                 
                 return new ToolCallExtraction(
                     cleaned,
@@ -285,12 +299,13 @@ public final class VoidPortExtractGrammar {
             String closeTag = "</" + toolName + ">";
             int start = xmlPrefix == null ? -1 : xmlPrefix.indexOf(openTag);
             if (start < 0) {
-                return new ToolCallExtraction(cleanedContent, toolName, params.toString(), toolId);
+                return null;
             }
-            int end = xmlPrefix.lastIndexOf(closeTag);
-            String inner = end >= 0 && end >= start
-                    ? xmlPrefix.substring(start + openTag.length(), end)
-                    : xmlPrefix.substring(start + openTag.length());
+            int end = xmlPrefix.indexOf(closeTag, start + openTag.length());
+            if (end < 0) {
+                return null;
+            }
+            String inner = xmlPrefix.substring(start + openTag.length(), end);
 
             JSONObject schema = function == null ? null : function.optJSONObject("parameters");
             JSONObject properties = schema == null ? null : schema.optJSONObject("properties");
@@ -300,9 +315,24 @@ public final class VoidPortExtractGrammar {
                 if (paramName.isEmpty()) {
                     continue;
                 }
-                String paramValue = readXmlTagPrefix(inner, paramName);
+                String paramOpenTag = "<" + paramName + ">";
+                String paramCloseTag = "</" + paramName + ">";
+                int paramStart = inner.indexOf(paramOpenTag);
+                int paramEnd = inner.indexOf(paramCloseTag);
+                if (paramStart < 0 && paramEnd < 0) {
+                    continue;
+                }
+                if (paramStart < 0 || paramEnd < paramStart + paramOpenTag.length()) {
+                    return null;
+                }
+                String paramValue = readXmlTag(inner, paramName);
                 if (!paramValue.isEmpty()) {
-                    params.put(paramName, paramValue);
+                    Object typedValue = coerceXmlValue(
+                            paramValue,
+                            properties.optJSONObject(paramName));
+                    if (typedValue != null) {
+                        params.put(paramName, typedValue);
+                    }
                 }
             }
 
@@ -311,12 +341,61 @@ public final class VoidPortExtractGrammar {
             } else if (params.length() == 0 && !inner.trim().isEmpty() && names != null && names.length() > 0) {
                 String firstParam = names.optString(0, "");
                 if (!firstParam.isEmpty()) {
-                    params.put(firstParam, inner.trim());
+                    Object typedValue = coerceXmlValue(
+                            inner.trim(),
+                            properties.optJSONObject(firstParam));
+                    if (typedValue != null) {
+                        params.put(firstParam, typedValue);
+                    }
                 }
             }
+            if (!hasAllRequiredParameters(schema, params)) {
+                return null;
+            }
         } catch (Exception ignored) {
+            return null;
         }
         return new ToolCallExtraction(cleanedContent, toolName, params.toString(), toolId);
+    }
+
+    private static boolean hasAllRequiredParameters(JSONObject schema, JSONObject params) {
+        JSONArray required = schema == null ? null : schema.optJSONArray("required");
+        for (int i = 0; required != null && i < required.length(); i++) {
+            String name = required.optString(i, "").trim();
+            if (name.isEmpty() || !params.has(name) || params.isNull(name)) {
+                return false;
+            }
+            Object value = params.opt(name);
+            if (value instanceof String && ((String) value).trim().isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static Object coerceXmlValue(String rawValue, JSONObject propertySchema) {
+        String value = rawValue == null ? "" : rawValue.trim();
+        String type = propertySchema == null ? "string" : propertySchema.optString("type", "string");
+        try {
+            if ("integer".equals(type)) {
+                return Integer.parseInt(value);
+            }
+            if ("number".equals(type)) {
+                return Double.parseDouble(value);
+            }
+            if ("boolean".equals(type)) {
+                if ("true".equalsIgnoreCase(value)) {
+                    return true;
+                }
+                if ("false".equalsIgnoreCase(value)) {
+                    return false;
+                }
+                return null;
+            }
+            return rawValue == null ? "" : rawValue;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     /**
@@ -425,24 +504,6 @@ public final class VoidPortExtractGrammar {
             return "";
         }
         return trimBeforeAndAfterNewLines(xml.substring(start + openTag.length(), end));
-    }
-
-    private static String readXmlTagPrefix(String xml, String tagName) {
-        if (xml == null || tagName == null || tagName.trim().isEmpty()) {
-            return "";
-        }
-        String openTag = "<" + tagName + ">";
-        String closeTag = "</" + tagName + ">";
-        int start = xml.indexOf(openTag);
-        if (start < 0) {
-            return "";
-        }
-        int contentStart = start + openTag.length();
-        int end = xml.indexOf(closeTag, contentStart);
-        if (end < 0) {
-            end = xml.length();
-        }
-        return trimBeforeAndAfterNewLines(xml.substring(contentStart, end));
     }
 
     private static boolean endsWithAnyPrefixOf(String text, String value) {

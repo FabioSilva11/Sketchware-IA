@@ -52,6 +52,18 @@ public class ChatReference {
                 0, 0, "", wasAddedAsCurrentFile);
     }
 
+    /**
+     * A document selected through Android's Storage Access Framework. Unlike a
+     * project file, this reference keeps the persisted {@code content://} URI
+     * so it can still be read after the activity or process is recreated.
+     */
+    public static ChatReference externalFile(String label, Uri uri,
+                                             @Nullable String mimeType, long sizeBytes) {
+        String uriValue = uri == null ? "" : uri.toString();
+        return new ChatReference(TYPE_FILE, label, uriValue, uri, mimeType, sizeBytes,
+                0, 0, "", false);
+    }
+
     public static ChatReference folder(String label, String path) {
         return new ChatReference(TYPE_FOLDER, label, path, null, null, 0L,
                 0, 0, "", false);
@@ -73,9 +85,23 @@ public class ChatReference {
         }
         String voidType = object.optString("type", "");
         if ("File".equals(voidType)) {
+            String path = object.optString("path", "");
+            String uriValue = object.optString("uri", path);
+            if (path.isEmpty()) {
+                path = uriValue;
+            }
+            if (isDocumentUri(uriValue) || isDocumentUri(path)) {
+                String persistedUri = isDocumentUri(uriValue) ? uriValue : path;
+                return externalFile(
+                        object.optString("label", object.optString("name", "")),
+                        Uri.parse(persistedUri),
+                        object.optString("mimeType", ""),
+                        object.optLong("sizeBytes", 0L)
+                );
+            }
             return file(
                     object.optString("label", object.optString("name", "")),
-                    object.optString("path", object.optString("uri", "")),
+                    path,
                     object.optJSONObject("state") != null
                             && object.optJSONObject("state").optBoolean("wasAddedAsCurrentFile", false)
             );
@@ -140,6 +166,10 @@ public class ChatReference {
             switch (type) {
                 case TYPE_FILE:
                     object.put("type", "File");
+                    if (uri != null) {
+                        object.put("mimeType", mimeType == null ? "" : mimeType);
+                        object.put("sizeBytes", sizeBytes);
+                    }
                     break;
                 case TYPE_FOLDER:
                     object.put("type", "Folder");
@@ -222,6 +252,10 @@ public class ChatReference {
         return type == TYPE_IMAGE;
     }
 
+    public boolean isExternalFile() {
+        return type == TYPE_FILE && uri != null;
+    }
+
     public String mentionText() {
         return "@" + label;
     }
@@ -231,5 +265,10 @@ public class ChatReference {
             return type + ":" + path + ":" + startLine + ":" + endLine;
         }
         return type + ":" + path;
+    }
+
+    private static boolean isDocumentUri(String value) {
+        return value != null
+                && (value.startsWith("content://") || value.startsWith("file://"));
     }
 }

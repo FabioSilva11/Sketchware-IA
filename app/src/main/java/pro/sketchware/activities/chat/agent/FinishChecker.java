@@ -152,10 +152,19 @@ public final class FinishChecker {
         List<String> missing = new ArrayList<>();
         for (String required : requiredTools) {
             if (!isRequirementSatisfied(required, usages)) {
-                missing.add(required);
+                missing.add(describeRequirement(required));
             }
         }
         return missing;
+    }
+
+    @NonNull
+    private static String describeRequirement(@NonNull String required) {
+        if (PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT.equals(required)) {
+            return "Inspect the project with ls_dir, get_dir_tree, "
+                    + "search_pathnames_only, or search_for_files";
+        }
+        return required;
     }
 
     private static boolean isRequirementSatisfied(
@@ -167,6 +176,10 @@ public final class FinishChecker {
             }
             String used = usage.getToolName();
             if (required.equals(used)) {
+                return true;
+            }
+            if (PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT.equals(required)
+                    && PatternMatcher.isProjectDiscoveryTool(used)) {
                 return true;
             }
             if ("search_for_files".equals(required)
