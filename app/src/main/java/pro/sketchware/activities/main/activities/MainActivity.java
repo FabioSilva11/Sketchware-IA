@@ -3,6 +3,7 @@ package pro.sketchware.activities.main.activities;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -24,7 +25,6 @@ import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.core.app.ActivityCompat;
-import androidx.core.splashscreen.SplashScreen;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
@@ -94,8 +94,10 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     @IdRes
     private int currentNavItemId = R.id.item_projects;
     private static final String PREFS_ADS_NOTICE = "main_prefs";
-    private static final String KEY_ADS_NOTICE_SHOWN = "ads_notice_shown";
+    private static final String KEY_ADS_NOTICE_OPEN_COUNT = "ads_notice_open_count";
+    private static final int ADS_NOTICE_OPEN_INTERVAL = 13;
     private androidx.appcompat.app.AlertDialog adsNoticeDialog;
+    private int adsNoticeOpenCountForLaunch;
 
     private static boolean isFirebaseInitialized(Context context) {
         try {
@@ -111,7 +113,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         if (i == 9501) {
             allFilesAccessCheck();
             restoreExternalTranslationSupport();
-            maybeShowAdsNoticeOnce();
+            maybeShowAdsNoticeIfDue(adsNoticeOpenCountForLaunch);
 
             refreshProjectBackedFragments();
         }
@@ -185,7 +187,6 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         enableEdgeToEdgeNoContrast();
         boolean hasStorageAccess = isStoragePermissionGranted();
@@ -202,6 +203,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         UI.addSystemWindowInsetToPadding(binding.appbar, true, false, true, false);
 
         u = new DB(getApplicationContext(), "U1");
+        adsNoticeOpenCountForLaunch = savedInstanceState == null ? recordAdsNoticeAppOpen() : 0;
         int u1I0 = u.a("U1I0", -1);
         long u1I1 = u.e("U1I1");
         if (u1I1 <= 0) {
@@ -241,7 +243,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         }
         if (hasStorageAccess) {
             allFilesAccessCheck();
-            maybeShowAdsNoticeOnce();
+            maybeShowAdsNoticeIfDue(adsNoticeOpenCountForLaunch);
         }
 
         if (Intent.ACTION_VIEW.equals(getIntent().getAction())) {
@@ -320,10 +322,16 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         AppUpdateNotifier.checkForUpdates(this);
     }
 
-    private void maybeShowAdsNoticeOnce() {
+    private int recordAdsNoticeAppOpen() {
+        SharedPreferences prefs = getSharedPreferences(PREFS_ADS_NOTICE, MODE_PRIVATE);
+        int openCount = prefs.getInt(KEY_ADS_NOTICE_OPEN_COUNT, 0) + 1;
+        prefs.edit().putInt(KEY_ADS_NOTICE_OPEN_COUNT, openCount).apply();
+        return openCount;
+    }
+
+    private void maybeShowAdsNoticeIfDue(int openCount) {
+        if (openCount <= 0 || openCount % ADS_NOTICE_OPEN_INTERVAL != 0) return;
         if (adsNoticeDialog != null && adsNoticeDialog.isShowing()) return;
-        boolean shown = false;
-        if (shown) return;
 
         View content = getLayoutInflater().inflate(R.layout.bottomsheet_ads_notice, null);
         applyDonationDialogTranslations(content);
@@ -337,8 +345,6 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         View donate = content.findViewById(R.id.donate);
 
         close.setOnClickListener(v -> {
-            getSharedPreferences(PREFS_ADS_NOTICE, MODE_PRIVATE)
-                    .edit().putBoolean(KEY_ADS_NOTICE_SHOWN, true).apply();
             adsNoticeDialog.dismiss();
         });
 
@@ -347,8 +353,6 @@ public class MainActivity extends BasePermissionAppCompatActivity {
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(TranslationFunction.getString(this, R.string.link_donation_url)));
                 startActivity(intent);
             } catch (Exception ignored) { }
-            getSharedPreferences(PREFS_ADS_NOTICE, MODE_PRIVATE)
-                    .edit().putBoolean(KEY_ADS_NOTICE_SHOWN, true).apply();
             adsNoticeDialog.dismiss();
         });
 

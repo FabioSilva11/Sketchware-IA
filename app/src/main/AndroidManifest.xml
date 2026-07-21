@@ -108,7 +108,7 @@
             android:name="pro.sketchware.activities.main.activities.MainActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
-            android:theme="@style/Theme.SketchwarePro.Starting">
+            android:theme="@style/Theme.SketchwarePro.Main">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
