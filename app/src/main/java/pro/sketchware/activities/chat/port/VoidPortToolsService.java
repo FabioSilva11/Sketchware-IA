@@ -1256,9 +1256,7 @@ public final class VoidPortToolsService {
             array.put(createToolMCP("rewrite_file",
                     "Edits a file, deleting all the old contents and replacing them with your new contents. Use this tool if you want to edit a file you just created.",
                     new String[]{"uri", "new_content"}, null));
-            array.put(createToolMCP("run_command",
-                    "Runs a terminal command and waits for the result (default timeout 60s; set timeout_seconds for longer builds, max 300). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
-                    new String[]{"command"}, new String[]{"cwd", "timeout_seconds"}));
+            // Terminal/shell tool removed: the assistant no longer has shell access.
             return array;
         }
 
@@ -1309,10 +1307,7 @@ public final class VoidPortToolsService {
             "Edits a file, deleting all the old contents and replacing them with your new contents. Use this tool if you want to edit a file you just created.",
             new String[]{"uri", "new_content"}, null));
 
-        // Terminal tools
-        array.put(createToolMCP("run_command",
-            "Runs a terminal command and waits for the result (times out after 30s of inactivity). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
-            new String[]{"command"}, new String[]{"cwd"}));
+        // Terminal/shell tool removed: the assistant no longer has shell access.
 
         return array;
     }

@@ -114,7 +114,26 @@ public class lC {
     }
 
     public static void deleteAndroidStudioProject(String str) {
-        new oB().b(wq.getAndroidStudioProjectPath(str));
+        String projectPath = wq.getAndroidStudioProjectPath(str);
+        // Run the legacy helper first, then guarantee removal with a recursive
+        // delete so the project folder under .sketcware_ide is always cleared.
+        new oB().b(projectPath);
+        deleteRecursively(new File(projectPath));
+    }
+
+    private static void deleteRecursively(File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                deleteRecursively(child);
+            }
+        }
+        if (!file.delete()) {
+            Log.e("ERROR", "Failed to delete " + file.getAbsolutePath());
+        }
     }
 
     public static void a(Context context, boolean z) {

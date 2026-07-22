@@ -225,54 +225,7 @@ public class VoidToolWrapper implements Tool {
             false
         ));
 
-        // Terminal tools - require approval
-        manager.registerTool(new VoidToolWrapper(
-            "run_command",
-            "Runs a terminal command and waits for the result (default timeout 60s; set timeout_seconds for longer builds, max 300). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
-            createParams(new String[][]{
-                {"command", "string", "The terminal command to run."}
-            }, new String[][]{
-                {"cwd", "string", "Optional. The directory in which to run the command. Defaults to the first workspace folder."},
-                {"timeout_seconds", "integer", "Optional. Max seconds to wait for the command (default 60, max 300). Use higher values for builds."}
-            }),
-            true,
-            false,
-            false
-        ));
-
-        manager.registerTool(new VoidToolWrapper(
-            "run_persistent_command",
-            "Runs a terminal command in the persistent terminal that you created with open_persistent_terminal (results after 5 are returned, and command continues running in background). You can use this tool to run any command: sed, grep, etc. Do not edit any files with this tool; use edit_file instead. When working with git and other tools that open an editor (e.g. git diff), you should pipe to cat to get all results and not get stuck in vim.",
-            createParams(new String[][]{
-                {"command", "string", "The terminal command to run."},
-                {"persistent_terminal_id", "string", "The ID of the terminal created using open_persistent_terminal."}
-            }, null),
-            true,
-            false,
-            false
-        ));
-
-        manager.registerTool(new VoidToolWrapper(
-            "open_persistent_terminal",
-            "Use this tool when you want to run a terminal command indefinitely, like a dev server (eg `npm run dev`), a background listener, etc. Opens a new terminal in the user's environment which will not awaited for or killed.",
-            createParams(null, new String[][]{
-                {"cwd", "string", "Optional. The directory in which to run the command. Defaults to the first workspace folder."}
-            }),
-            true,
-            false,
-            false
-        ));
-
-        manager.registerTool(new VoidToolWrapper(
-            "kill_persistent_terminal",
-            "Interrupts and closes a persistent terminal that you opened with open_persistent_terminal.",
-            createParams(new String[][]{
-                {"persistent_terminal_id", "string", "The ID of the persistent terminal."}
-            }, null),
-            true,
-            false,
-            false
-        ));
+        // Terminal/shell tools removed: the assistant no longer has shell access.
     }
 
     private static boolean registerVoidToolDefinitions(ToolManager manager) {
@@ -307,9 +260,7 @@ public class VoidToolWrapper implements Tool {
 
     private static boolean requiresApprovalFor(String toolName) {
         return switch (toolName) {
-            case "rewrite_file", "edit_file", "create_file_or_folder", "delete_file_or_folder",
-                    "run_command", "open_persistent_terminal", "run_persistent_command",
-                    "kill_persistent_terminal" -> true;
+            case "rewrite_file", "edit_file", "create_file_or_folder", "delete_file_or_folder" -> true;
             default -> false;
         };
     }
