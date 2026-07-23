@@ -41,6 +41,42 @@ jobs:
           python ./.github/workflows/notify_telegram.py
         continue-on-error: true
 
+  cleanupArtifacts:
+    name: Clean up old artifacts
+    runs-on: ubuntu-latest
+    needs: notifyTelegram
+    permissions:
+      actions: write
+    steps:
+      - name: Delete old artifacts (keep only 3 most recent)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: artifacts } = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            artifacts.artifacts.sort((a, b) =>
+              new Date(b.created_at) - new Date(a.created_at)
+            );
+
+            const toDelete = artifacts.artifacts.slice(3);
+
+            console.log(`Total artifacts: ${artifacts.artifacts.length}`);
+            console.log(`Keeping: ${Math.min(artifacts.artifacts.length, 3)}`);
+            console.log(`Deleting: ${toDelete.length}`);
+
+            for (const artifact of toDelete) {
+              console.log(`Deleting: ${artifact.name} (created: ${artifact.created_at})`);
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: artifact.id
+              });
+            }
+
   build:
     name: Build APKs
     runs-on: ${{ vars.IS_USING_HOSTED_RUNNERS == 'true' && 'self-hosted' || 'ubuntu-latest' }}
