@@ -225,8 +225,45 @@ jobs:
             "./release-assets/${{ steps.release_meta.outputs.asset_name }}" \
             --title "Development Build #${{ github.run_number }} (${{ needs.build.outputs.short_sha }})" \
             --notes-file release-notes.md \
-            --prerelease \
+            --latest \
             --target "${GITHUB_SHA}"
+
+  cleanupReleases:
+    name: Clean up old releases
+    runs-on: ubuntu-latest
+    needs: publishRelease
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - name: Delete old releases (keep only 3 most recent)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            releases.sort((a, b) =>
+              new Date(b.created_at) - new Date(a.created_at)
+            );
+
+            const toDelete = releases.slice(3);
+
+            console.log(`Total releases: ${releases.length}`);
+            console.log(`Keeping: ${Math.min(releases.length, 3)}`);
+            console.log(`Deleting: ${toDelete.length}`);
+
+            for (const release of toDelete) {
+              console.log(`Deleting release: ${release.tag_name} (created: ${release.created_at})`);
+              await github.rest.repos.deleteRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id
+              });
+            }
 
   updateAppData:
     name: Update App Data
