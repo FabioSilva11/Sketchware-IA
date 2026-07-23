@@ -120,6 +120,15 @@ public class ChatFragment extends DA {
         binding.titleContainer.setVisibility(View.GONE);
     }
 
+    public void scrollToBottom() {
+        if (binding != null && binding.myprojects.getAdapter() != null) {
+            int lastPosition = binding.myprojects.getAdapter().getItemCount() - 1;
+            if (lastPosition >= 0) {
+                binding.myprojects.scrollToPosition(lastPosition);
+            }
+        }
+    }
+
 
     public void refreshProjectsList() {
         // Check if the fragment is still attached to the activity
@@ -135,6 +144,7 @@ public class ChatFragment extends DA {
         executorService.execute(() -> {
             List<HashMap<String, Object>> loadedProjects = lC.a();
             loadedProjects.sort(new ProjectComparator(preference.d("sortBy"), preference.a("pinnedProject", "-1")));
+            java.util.Collections.reverse(loadedProjects);
 
             DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new ProjectDiffCallback(projectsList, loadedProjects));
 
@@ -149,6 +159,7 @@ public class ChatFragment extends DA {
                 // Atualizar o adapter com os novos projetos
                 projectsAdapter.setAllProjects(loadedProjects);
                 diffResult.dispatchUpdatesTo(projectsAdapter);
+                scrollToBottom();
             });
         });
     }

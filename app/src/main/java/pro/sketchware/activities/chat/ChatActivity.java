@@ -2187,10 +2187,10 @@ public class ChatActivity extends AppCompatActivity {
         if (historyManager != null && sc_id != null) {
             historyManager.clearHistory(sc_id, activeThreadId);
         }
-        int messageCount = messages.size();
         messages.clear();
-        messageAdapter.notifyItemRangeRemoved(0, messageCount);
+        messageAdapter.notifyDataSetChanged();
         addWelcomeMessage();
+        scrollToBottom();
         updateThreadSummary();
         refreshSecondaryPanels();
         releaseReferenceGrantsIfUnused(removedReferences);

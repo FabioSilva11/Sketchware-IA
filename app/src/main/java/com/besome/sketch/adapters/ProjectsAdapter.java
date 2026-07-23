@@ -237,6 +237,9 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
                 shownProjects.remove(position);
                 notifyDataSetChanged();
                 allProjects.remove(projectMap);
+                if (activity instanceof pro.sketchware.activities.main.activities.MainActivity) {
+                    ((pro.sketchware.activities.main.activities.MainActivity) activity).refreshChatProjectsList();
+                }
             });
         }).start();
     }
