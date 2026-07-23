@@ -48,6 +48,7 @@ import pro.sketchware.activities.settings.GithubSettingsActivity;
 import pro.sketchware.activities.settings.IaSettingsActivity;
 import pro.sketchware.databinding.ActivityAppSettingsBinding;
 import pro.sketchware.databinding.DialogSelectApkToSignBinding;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.TranslationFunction;
@@ -90,6 +91,7 @@ public class AppSettings extends BaseAppCompatActivity {
 
         binding.topAppBar.setNavigationOnClickListener(Helper.getBackPressedClickListener(this));
         setupPreferences(binding.content);
+        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/9402654479");
     }
 
     private void setupPreferences(ViewGroup content) {

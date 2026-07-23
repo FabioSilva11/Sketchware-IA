@@ -21,6 +21,7 @@ import a.a.a.mB;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageFontBinding;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.TranslationFunction;
 
 public class ManageFontActivity extends BaseAppCompatActivity {
@@ -88,6 +89,7 @@ public class ManageFontActivity extends BaseAppCompatActivity {
         });
 
         binding.tabLayout.setupWithViewPager(binding.viewPager);
+        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/2542249577");
     }
 
     public void changeFabState(boolean state) {

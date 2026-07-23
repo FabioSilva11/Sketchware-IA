@@ -16,6 +16,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
 
+    <meta-data
+        android:name="com.google.android.gms.ads.APPLICATION_ID"
+        android:value="ca-app-pub-6598765502914364~4726281593" />
+
     <application
         android:name=".SketchApplication"
         android:allowBackup="true"

@@ -23,6 +23,7 @@ import com.besome.sketch.editor.manage.lottie.LottieCollectionFragment;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageLottieBinding;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.TranslationFunction;
 
 public class ManageLottieActivity extends BaseAppCompatActivity implements ViewPager.OnPageChangeListener {
@@ -102,6 +103,7 @@ public class ManageLottieActivity extends BaseAppCompatActivity implements ViewP
         binding.viewPager.setOffscreenPageLimit(2);
         binding.viewPager.addOnPageChangeListener(this);
         binding.tabLayout.setupWithViewPager(binding.viewPager);
+        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/9870075252");
     }
 
     @Override

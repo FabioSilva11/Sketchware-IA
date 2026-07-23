@@ -154,6 +154,7 @@ dependencies {
 
     implementation libs.libsu
     implementation libs.insetter
+    implementation 'com.google.android.gms:play-services-ads:23.6.0'
 
     implementation(libs.javaparser.symbol.solver) {
         exclude group: "com.google.guava", module: "guava"

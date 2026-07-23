@@ -48,6 +48,7 @@ import pro.sketchware.R;
 import pro.sketchware.activities.main.activities.MainActivity;
 import pro.sketchware.databinding.MyprojectsBinding;
 import pro.sketchware.databinding.SortProjectDialogBinding;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.UI;
 
 public class ProjectsFragment extends DA {
@@ -210,6 +211,10 @@ public class ProjectsFragment extends DA {
         };
 
         requireActivity().addMenuProvider(menuProvider);
+
+        if (getActivity() != null) {
+            AdManager.loadBanner(requireActivity(), binding.adContainer, "ca-app-pub-6598765502914364/1327212196");
+        }
     }
 
     private void showNewProjectTypeDialog() {

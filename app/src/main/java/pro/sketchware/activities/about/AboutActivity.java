@@ -32,6 +32,7 @@ import pro.sketchware.activities.about.fragments.TeamFragment;
 import pro.sketchware.activities.about.models.AboutAppViewModel;
 import pro.sketchware.activities.about.models.AboutResponseModel;
 import pro.sketchware.databinding.ActivityAboutAppBinding;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.Network;
 
 public class AboutActivity extends BaseAppCompatActivity {
@@ -59,6 +60,7 @@ public class AboutActivity extends BaseAppCompatActivity {
 
         initViews();
         initData();
+        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/2525937709");
     }
 
     private void initViews() {

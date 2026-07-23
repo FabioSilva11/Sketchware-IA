@@ -96,4 +96,13 @@
                 app:cornerRadius="15dp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
+
+    <LinearLayout
+        android:id="@+id/ad_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:orientation="vertical" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

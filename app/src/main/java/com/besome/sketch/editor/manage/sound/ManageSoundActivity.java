@@ -21,6 +21,7 @@ import a.a.a.mB;
 import a.a.a.ow;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageSoundBinding;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.TranslationFunction;
 
 public class ManageSoundActivity extends BaseAppCompatActivity implements ViewPager.OnPageChangeListener {
@@ -78,6 +79,7 @@ public class ManageSoundActivity extends BaseAppCompatActivity implements ViewPa
         binding.viewPager.setOffscreenPageLimit(TAB_COUNT);
         binding.viewPager.addOnPageChangeListener(this);
         binding.tabLayout.setupWithViewPager(binding.viewPager);
+        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/7586692691");
     }
 
     @Override

@@ -41,6 +41,7 @@ import a.a.a.mB;
 import a.a.a.wq;
 import a.a.a.xw;
 import pro.sketchware.R;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.TranslationFunction;
 
 public class ManageViewActivity extends BaseAppCompatActivity implements OnClickListener, ViewPager.OnPageChangeListener {
@@ -296,6 +297,8 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
         tabLayout.setupWithViewPager(viewPager);
         s = findViewById(R.id.fab);
         s.setOnClickListener(this);
+
+        AdManager.loadBanner(this, findViewById(R.id.ad_container), "ca-app-pub-6598765502914364/8899774369");
     }
 
     @Override

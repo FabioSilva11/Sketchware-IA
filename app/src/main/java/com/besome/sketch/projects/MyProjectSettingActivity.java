@@ -59,6 +59,7 @@ import pro.sketchware.control.VersionDialog;
 import pro.sketchware.databinding.MyprojectSettingBinding;
 import pro.sketchware.lib.validator.AppNameValidator;
 import pro.sketchware.lib.validator.PackageNameValidator;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.TranslationFunction;
@@ -227,6 +228,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
         }
         applyPackageNameLockIfNeeded();
         syncThemeColors();
+        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/2478153475");
     }
 
     @Override
