@@ -9,23 +9,12 @@
         android:id="@+id/libraries_list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/ad_container"
         android:background="?attr/colorSurface"
         android:clipToPadding="false"
-        android:paddingBottom="120dp"
+        android:paddingBottom="96dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:listitem="@layout/view_item_local_lib" />
-
-    <LinearLayout
-        android:id="@+id/ad_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@id/download_library_button"
-        android:layout_gravity="bottom"
-        android:gravity="center"
-        android:layout_marginBottom="8dp"
-        android:orientation="vertical" />
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar_layout"
@@ -82,7 +71,7 @@
             android:layout_height="match_parent"
             android:background="?attr/colorSurface"
             android:clipToPadding="false"
-            android:paddingBottom="120dp"
+            android:paddingBottom="96dp"
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             app:layout_behavior="@string/appbar_scrolling_view_behavior"
             tools:listitem="@layout/view_item_local_lib_search" />

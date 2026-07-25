@@ -67,6 +67,7 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<RecyclerView.View
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof NativeAdViewHolder) {
             NativeAdViewHolder adHolder = (NativeAdViewHolder) holder;
+            adHolder.adView.setVisibility(View.GONE);
             NativeAd cached = loadedAd != null ? loadedAd.get() : null;
             if (cached != null) {
                 AdManager.populateNativeAdView(cached, adHolder.adView);

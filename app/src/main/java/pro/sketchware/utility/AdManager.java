@@ -161,6 +161,12 @@ public class AdManager {
 
     public static void populateNativeAdView(@NonNull NativeAd nativeAd,
                                             @NonNull NativeAdView adView) {
+        if (nativeAd.getHeadline() == null) {
+            adView.setVisibility(View.GONE);
+            return;
+        }
+
+        adView.setVisibility(View.VISIBLE);
         adView.setHeadlineView(adView.findViewById(R.id.native_ad_headline));
         adView.setBodyView(adView.findViewById(R.id.native_ad_body));
         adView.setCallToActionView(adView.findViewById(R.id.native_ad_call_to_action));
@@ -172,9 +178,8 @@ public class AdManager {
         adView.setPriceView(adView.findViewById(R.id.native_ad_price));
 
         if (adView.getHeadlineView() instanceof TextView headlineView) {
-            if (nativeAd.getHeadline() != null) {
-                headlineView.setText(nativeAd.getHeadline());
-            }
+            headlineView.setText(nativeAd.getHeadline());
+            headlineView.setVisibility(View.VISIBLE);
         }
         if (adView.getBodyView() instanceof TextView bodyView) {
             if (nativeAd.getBody() != null) {
@@ -198,6 +203,14 @@ public class AdManager {
                 iconView.setVisibility(View.VISIBLE);
             } else {
                 iconView.setVisibility(View.GONE);
+            }
+        }
+        if (adView.getMediaView() != null) {
+            if (nativeAd.getMediaContent() != null) {
+                adView.getMediaView().setMediaContent(nativeAd.getMediaContent());
+                adView.getMediaView().setVisibility(View.VISIBLE);
+            } else {
+                adView.getMediaView().setVisibility(View.GONE);
             }
         }
         if (adView.getStarRatingView() instanceof RatingBar ratingView) {
