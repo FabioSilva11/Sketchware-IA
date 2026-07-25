@@ -134,32 +134,25 @@ class DependencyResolver(
             dependencyClasspath.add(Paths.get(it))
         }
 
-        dependency.downloadTo(
-            File(downloadPath + "/${dependency.artifactId}-v${dependency.version}/classes.${dependency.extension}")
-                .apply {
-                    parentFile?.mkdirs()
-                }
+        val mainArtifactPath = Paths.get(
+            downloadPath,
+            "${dependency.artifactId}-v${dependency.version}",
+            "classes.${dependency.extension}"
         )
+
+        if (!downloadArtifact(dependency, mainArtifactPath, callback)) {
+            return@runBlocking
+        }
 
         if (dependency.extension == "aar") {
             callback.unzipping(dependency)
-            unzip(
-                Paths.get(
-                    downloadPath,
-                    "${dependency.artifactId}-v${dependency.version}",
-                    "classes.aar"
-                )
-            )
+            if (!unzipArtifact(dependency, mainArtifactPath, callback)) {
+                return@runBlocking
+            }
             LibraryResourceSanitizer.sanitizeResourceDirectory(
                 Paths.get(downloadPath, "${dependency.artifactId}-v${dependency.version}", "res").toFile()
             )
-            Files.delete(
-                Paths.get(
-                    downloadPath,
-                    "${dependency.artifactId}-v${dependency.version}",
-                    "classes.aar"
-                )
-            )
+            Files.delete(mainArtifactPath)
             val packageName = findPackageName(
                 Paths.get(downloadPath, "${dependency.artifactId}-v${dependency.version}")
                     .toAbsolutePath().toString(),
@@ -190,7 +183,9 @@ class DependencyResolver(
         }
         dependency.resolveDependencyTree()
 
+        var dependencyResolutionFailed = false
         dependency.getAllDependencies().forEach { dep ->
+            if (dependencyResolutionFailed) return@forEach
             println("Resolving dependency: ${dep.artifactId} v${dep.version}")
             if (dep.extension != "jar" && dep.extension != "aar") {
                 callback.invalidPackaging(dep)
@@ -208,13 +203,17 @@ class DependencyResolver(
                 "classes.${dep.extension}"
             )
 
-            Files.createDirectories(path.parent)
-
-            dep.downloadTo(File(path.toString()))
+            if (!downloadArtifact(dep, path, callback)) {
+                dependencyResolutionFailed = true
+                return@forEach
+            }
 
             if (dep.extension == "aar") {
                 callback.unzipping(dep)
-                unzip(path)
+                if (!unzipArtifact(dep, path, callback)) {
+                    dependencyResolutionFailed = true
+                    return@forEach
+                }
                 LibraryResourceSanitizer.sanitizeResourceDirectory(path.parent.resolve("res").toFile())
                 Files.delete(path)
                 val packageName =
@@ -231,6 +230,10 @@ class DependencyResolver(
             }
 
             dependencyClasspath.add(jar)
+        }
+
+        if (dependencyResolutionFailed) {
+            return@runBlocking
         }
 
         dependency.getAllDependencies().forEach { dep ->
@@ -263,6 +266,46 @@ class DependencyResolver(
         }
 
         return defaultValue
+    }
+
+    private fun downloadArtifact(
+        artifact: Artifact,
+        path: Path,
+        callback: DependencyResolverCallback
+    ): Boolean {
+        return try {
+            Files.createDirectories(path.parent)
+            artifact.downloadTo(path.toFile())
+            if (Files.notExists(path) || Files.size(path) == 0L) {
+                throw IllegalStateException("Downloaded file is empty")
+            }
+            true
+        } catch (e: Throwable) {
+            Files.deleteIfExists(path)
+            callback.onDownloadError(artifact, e)
+            false
+        }
+    }
+
+    private fun unzipArtifact(
+        artifact: Artifact,
+        path: Path,
+        callback: DependencyResolverCallback
+    ): Boolean {
+        return try {
+            unzip(path)
+            true
+        } catch (e: Throwable) {
+            Files.deleteIfExists(path)
+            callback.onDownloadError(
+                artifact,
+                IllegalStateException(
+                    "Downloaded ${artifact.extension} is not a valid ZIP archive. Try downloading the dependency again.",
+                    e
+                )
+            )
+            false
+        }
     }
 
     private fun unzip(path: Path) {

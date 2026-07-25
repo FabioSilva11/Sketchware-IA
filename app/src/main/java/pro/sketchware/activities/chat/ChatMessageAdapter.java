@@ -832,7 +832,6 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         } else if (holder instanceof NativeAdViewHolder) {
             NativeAdView adView = ((NativeAdViewHolder) holder).adView;
             if (adView != null) {
-                adView.setNativeAd(null);
                 adView.setHeadlineView(null);
                 adView.setBodyView(null);
                 adView.setCallToActionView(null);
