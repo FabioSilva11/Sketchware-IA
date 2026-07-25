@@ -16,9 +16,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
 
-    <meta-data
-        android:name="com.google.android.gms.ads.APPLICATION_ID"
-        android:value="ca-app-pub-6598765502914364~4726281593" />
+
 
     <application
         android:name=".SketchApplication"
@@ -357,6 +355,13 @@
         <activity
             android:name=".activities.preview.LayoutPreviewActivity"
             android:configChanges="orientation|screenSize" />
+
+        <!-- AdMob Application ID — MUST be inside <application>.
+             Replace with your real App ID before publishing to production.
+             Current ID: ca-app-pub-6598765502914364~4726281593 -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-6598765502914364~4726281593" />
 
         <meta-data
             android:name="firebase_crashlytics_collection_enabled"
