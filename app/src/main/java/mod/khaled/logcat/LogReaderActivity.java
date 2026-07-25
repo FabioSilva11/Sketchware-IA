@@ -38,6 +38,7 @@ import pro.sketchware.databinding.ActivityLogcatreaderBinding;
 import pro.sketchware.databinding.EasyDeleteEdittextBinding;
 import pro.sketchware.databinding.ViewLogcatItemBinding;
 import pro.sketchware.lib.base.BaseTextWatcher;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
 
@@ -62,6 +63,8 @@ public class LogReaderActivity extends BaseAppCompatActivity {
         setContentView(binding.getRoot());
 
         initialize();
+
+        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/9402654479");
     }
 
     private void initialize() {

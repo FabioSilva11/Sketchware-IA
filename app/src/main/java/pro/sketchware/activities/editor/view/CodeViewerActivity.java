@@ -11,6 +11,7 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import a.a.a.Lx;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.databinding.ActivityCodeViewerBinding;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.EditorUtils;
 import pro.sketchware.utility.UI;
 
@@ -52,6 +53,8 @@ public class CodeViewerActivity extends BaseAppCompatActivity {
 
         UI.addSystemWindowInsetToPadding(binding.appBarLayout, true, true, true, false);
         UI.addSystemWindowInsetToMargin(binding.editor, true, false, true, true);
+
+        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/9402654479");
     }
 
     // Catches the physical phone hardware back button or swipe gesture

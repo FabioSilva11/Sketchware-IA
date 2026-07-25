@@ -44,6 +44,7 @@ import pro.sketchware.R;
 import pro.sketchware.databinding.ManageLocallibrariesBinding;
 import pro.sketchware.databinding.ViewItemLocalLibBinding;
 import pro.sketchware.databinding.ViewItemLocalLibSearchBinding;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.TranslationFunction;
 
@@ -232,6 +233,8 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
                 }
             }
         });
+
+        AdManager.loadBanner(this, findViewById(R.id.ad_container), "ca-app-pub-6598765502914364/7586692691");
     }
 
     private void runLoadLocalLibrariesTask() {

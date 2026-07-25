@@ -309,7 +309,7 @@ public class ChatActivity extends AppCompatActivity {
         editTextMessage.setHint(R.string.kelivo_input_hint);
 
         messages = new ArrayList<>();
-        messageAdapter = new ChatMessageAdapter(messages);
+        messageAdapter = new ChatMessageAdapter(this, messages);
         messageAdapter.setMessageActionListener(new ChatMessageAdapter.MessageActionListener() {
             @Override
             public void onRegenerate(int position) {

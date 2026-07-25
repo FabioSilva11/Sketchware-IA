@@ -34,6 +34,7 @@ import mod.jbk.util.AddMarginOnApplyWindowInsetsListener;
 import pro.sketchware.R;
 import pro.sketchware.databinding.CompileLogBinding;
 import pro.sketchware.utility.SketchwareUtil;
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.network.AiProviderService;
 import io.noties.markwon.Markwon;
 import android.os.Environment;
@@ -138,6 +139,8 @@ public class CompileLogActivity extends BaseAppCompatActivity {
         if (binding.aiExplainButton != null) {
             binding.aiExplainButton.setOnClickListener(v -> explainLogWithAI());
         }
+
+        AdManager.loadBanner(this, findViewById(R.id.ad_container), "ca-app-pub-6598765502914364/2525937709");
 
     }
 

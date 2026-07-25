@@ -43,6 +43,7 @@
         android:fillViewport="true"
         android:background="@color/chat_surface"
         android:paddingBottom="50dp"
+        android:layout_above="@id/ad_container"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <HorizontalScrollView
@@ -96,11 +97,20 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/ad_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="4dp"
+        android:gravity="center"
+        android:orientation="vertical" />
+
+    <LinearLayout
         android:id="@+id/optionsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal|bottom"
-        android:layout_marginBottom="10dp"
+        android:layout_marginBottom="8dp"
         android:animateLayoutChanges="true"
         android:gravity="center"
         android:orientation="horizontal">
