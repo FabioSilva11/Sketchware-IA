@@ -29,7 +29,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 import dev.aldi.sayuti.editor.manage.ManageLocalLibraryActivity;
@@ -91,15 +90,11 @@ public class AppSettings extends BaseAppCompatActivity {
 
         binding.topAppBar.setNavigationOnClickListener(Helper.getBackPressedClickListener(this));
         setupPreferences(binding.content);
-        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/9402654479");
     }
 
     private void setupPreferences(ViewGroup content) {
-        var preferences = new ArrayList<LibraryCategoryView>();
-
         LibraryCategoryView managersCategory = new LibraryCategoryView(this);
         managersCategory.setTitle("Managers");
-        preferences.add(managersCategory);
 
         managersCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_block, "Block manager", "Manage your own blocks to use in Logic Editor", new ActivityLauncher(new Intent(getApplicationContext(), BlocksManager.class))), true);
         managersCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_pull_down, "Block selector menu manager", "Manage your own block selector menus", openSettingsActivity(SettingsActivity.BLOCK_SELECTOR_MANAGER_FRAGMENT)), true);
@@ -110,7 +105,6 @@ public class AppSettings extends BaseAppCompatActivity {
 
         LibraryCategoryView generalCategory = new LibraryCategoryView(this);
         generalCategory.setTitle("General");
-        preferences.add(generalCategory);
 
         generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_settings_applications, "App settings", "Change general app settings", new ActivityLauncher(new Intent(getApplicationContext(), ConfigActivity.class))), true);
         generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_palette, Helper.getResString(R.string.settings_appearance), Helper.getResString(R.string.settings_appearance_description), openSettingsActivity(SettingsActivity.SETTINGS_APPEARANCE_FRAGMENT)), true);
@@ -120,7 +114,26 @@ public class AppSettings extends BaseAppCompatActivity {
         generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_apk_document, "Sign an APK file with testkey", "Sign an already existing APK file with testkey and signature schemes up to V4", v -> signApkFileDialog()), true);
         generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_settings, Helper.getResString(R.string.main_drawer_title_system_settings), "Auto-save and vibrations", new ActivityLauncher(new Intent(getApplicationContext(), SystemSettingActivity.class))), false);
 
-        preferences.forEach(content::addView);
+        // "Managers" card, then the ad between the two cards (never overlapping either),
+        // then the "General" card below it.
+        content.addView(managersCategory);
+        content.addView(createAdSlot());
+        content.addView(generalCategory);
+    }
+
+    private View createAdSlot() {
+        LinearLayout adContainer = new LinearLayout(this);
+        adContainer.setOrientation(LinearLayout.VERTICAL);
+        adContainer.setGravity(android.view.Gravity.CENTER);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        int marginVertical = (int) (8 * getResources().getDisplayMetrics().density);
+        params.topMargin = marginVertical;
+        params.bottomMargin = marginVertical;
+        adContainer.setLayoutParams(params);
+
+        AdManager.loadBanner(this, adContainer, "ca-app-pub-6598765502914364/9402654479");
+        return adContainer;
     }
 
     private View.OnClickListener openSettingsActivity(String fragmentTag) {
