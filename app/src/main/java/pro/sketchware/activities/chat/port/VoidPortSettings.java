@@ -202,6 +202,7 @@ public final class VoidPortSettings {
                 || "openrouter".equals(providerId)
                 || "grok_xai".equals(providerId)
                 || "mistral".equals(providerId)
+                || "minimax".equals(providerId)
                 || "openai_compatible".equals(providerId)
                 || "litellm".equals(providerId)
                 || "ollama".equals(providerId)
@@ -225,19 +226,23 @@ public final class VoidPortSettings {
             return !baseUrl.isEmpty();
         }
         return switch (providerId) {
-            case "ollama" -> !getPreferenceValue(prefs, "local_provider_ollama_url", "http://127.0.0.1:11434").isEmpty();
+            case "ollama" -> !getPreferenceValue(prefs, "ollama_api_key", "").isEmpty()
+                    && !getPreferenceValue(prefs, "local_provider_ollama_url", "http://127.0.0.1:11434").isEmpty();
             case "vllm" -> !getPreferenceValue(prefs, "local_provider_vllm_url", "http://localhost:8000").isEmpty();
             case "lm_studio" -> !getPreferenceValue(prefs, "local_provider_lm_studio_url", "http://localhost:1234").isEmpty();
             case "anthropic" -> !getPreferenceValue(prefs, "anthropic_api_key", "").isEmpty();
             case "openai" -> !getPreferenceValue(prefs, "openai_api_key", "").isEmpty();
             case "deepseek" -> !getPreferenceValue(prefs, "deepseek_api_key", "").isEmpty();
             case "openrouter" -> !getPreferenceValue(prefs, "openrouter_api_key", "").isEmpty();
-            case "openai_compatible" -> !getPreferenceValue(prefs, "openai_compatible_base_url", "").isEmpty();
+            case "openai_compatible" -> !getPreferenceValue(prefs, "openai_compatible_api_key", "").isEmpty()
+                    && !getPreferenceValue(prefs, "openai_compatible_base_url", "").isEmpty();
             case "gemini" -> !getPreferenceValue(prefs, "gemini_api_key", "").isEmpty();
             case "groq" -> !getPreferenceValue(prefs, "groq_api_key", "").isEmpty();
             case "grok_xai" -> !getPreferenceValue(prefs, "grok_xai_api_key", "").isEmpty();
             case "mistral" -> !getPreferenceValue(prefs, "mistral_api_key", "").isEmpty();
-            case "litellm" -> !getPreferenceValue(prefs, "litellm_base_url", "").isEmpty();
+            case "minimax" -> !getPreferenceValue(prefs, "minimax_api_key", "").isEmpty();
+            case "litellm" -> !getPreferenceValue(prefs, "litellm_api_key", "").isEmpty()
+                    && !getPreferenceValue(prefs, "litellm_base_url", "").isEmpty();
             default -> false;
         };
     }
@@ -356,6 +361,7 @@ public final class VoidPortSettings {
         providers.add(new ProviderCardSpec("gemini", "Gemini", "Google AI Studio OpenAI-compatible endpoint.", "https://aistudio.google.com/apikey", false)
                 .addField("API Key", "gemini_api_key", "", true, "gemini_enabled"));
         providers.add(new ProviderCardSpec("ollama", "Ollama", "Local Ollama server. Default: http://127.0.0.1:11434", "https://ollama.com", false)
+                .addField("API Key", "ollama_api_key", "", true, "ollama_enabled")
                 .addField("Base URL", "local_provider_ollama_url", "http://127.0.0.1:11434", false, null));
         providers.add(new ProviderCardSpec("openrouter", "OpenRouter", "Get your API key here. Rate limits depend on the selected model.", "https://openrouter.ai/keys", false)
                 .addField("API Key", "openrouter_api_key", "", true, null));
@@ -372,6 +378,7 @@ public final class VoidPortSettings {
                 .addField("API Key", "openai_compatible_api_key", "", true, null)
                 .addField("Headers JSON", "openai_compatible_headers", "{}", false, null));
         providers.add(new ProviderCardSpec("litellm", "LiteLLM", "Point this to a LiteLLM proxy if you use one.", null, false)
+                .addField("API Key", "litellm_api_key", "", true, "litellm_enabled")
                 .addField("Base URL", "litellm_base_url", "http://localhost:4000", false, null));
         return providers;
     }

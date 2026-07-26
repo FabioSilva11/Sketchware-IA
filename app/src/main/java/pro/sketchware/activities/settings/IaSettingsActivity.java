@@ -630,14 +630,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
     }
 
     private boolean isProviderEnabled(ProviderItem provider) {
-        if (provider.custom) {
-            return VoidPortSettings.isProviderConfigured(prefs, provider.id);
-        }
-        if (provider.enabledKey != null) {
-            return prefs.getBoolean(provider.enabledKey, true);
-        }
-        String value = prefs.getString(provider.statusPrefKey, "");
-        return value != null && !value.trim().isEmpty();
+        return VoidPortSettings.isProviderConfigured(prefs, provider.id);
     }
 
     @DrawableRes

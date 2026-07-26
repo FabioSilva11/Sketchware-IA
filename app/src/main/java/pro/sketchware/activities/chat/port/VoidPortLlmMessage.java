@@ -143,7 +143,7 @@ public final class VoidPortLlmMessage {
                     "litellm",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     configuredRequestUrl(prefs, "litellm", prefs.getString("litellm_base_url", ""), "/chat/completions"),
-                    "",
+                    activeApiKey(prefs, "litellm", prefs.getString("litellm_api_key", "")),
                     readHeadersJson(null),
                     true
             );
@@ -151,7 +151,7 @@ public final class VoidPortLlmMessage {
                     "ollama",
                     ProviderFamily.OPENAI_COMPATIBLE,
                     normalizeOllamaUrl(prefs.getString("local_provider_ollama_url", "http://127.0.0.1:11434")),
-                    "",
+                    activeApiKey(prefs, "ollama", prefs.getString("ollama_api_key", "")),
                     readHeadersJson(null),
                     true
             );
