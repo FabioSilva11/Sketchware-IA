@@ -183,7 +183,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onMessageAdded(ChatMessage message) {
                 runOnUiThread(() -> {
-                    messageAdapter.notifyItemInserted(messages.size() - 1);
+                    messageAdapter.notifyDataSetChanged();
                     scrollToBottom();
                     if (isProcessing && message != null && message.isBot()) {
                         message.setStreaming(true);
@@ -215,7 +215,7 @@ public class ChatActivity extends AppCompatActivity {
             @Override
             public void onMessageRemoved(ChatMessage message, int index) {
                 runOnUiThread(() -> {
-                    messageAdapter.notifyItemRemoved(index);
+                    messageAdapter.notifyDataSetChanged();
                     saveChatHistory();
                     updateThreadSummary();
                 });
@@ -266,7 +266,7 @@ public class ChatActivity extends AppCompatActivity {
                     Toast.makeText(ChatActivity.this, error, Toast.LENGTH_LONG).show();
                     ChatMessage errorMsg = new ChatMessage("Error: " + error, false, System.currentTimeMillis());
                     messages.add(errorMsg);
-                    messageAdapter.notifyItemInserted(messages.size() - 1);
+                    messageAdapter.notifyDataSetChanged();
                     scrollToBottom();
                     saveChatHistory();
                     updateThreadSummary();
@@ -1053,7 +1053,7 @@ public class ChatActivity extends AppCompatActivity {
         String welcomeMessage = getString(R.string.chat_welcome_message, projectName);
         ChatMessage welcomeMsg = new ChatMessage(welcomeMessage, false, System.currentTimeMillis());
         messages.add(welcomeMsg);
-        messageAdapter.notifyItemInserted(messages.size() - 1);
+        messageAdapter.notifyDataSetChanged();
         scrollToBottom();
 
         if (historyManager != null && sc_id != null) {
@@ -1074,7 +1074,7 @@ public class ChatActivity extends AppCompatActivity {
     private void notifyMessageChanged(ChatMessage message) {
         int index = messages.indexOf(message);
         if (index != -1) {
-            messageAdapter.notifyItemChanged(index);
+            messageAdapter.notifyDataSetChanged();
         }
     }
 
@@ -1243,7 +1243,7 @@ public class ChatActivity extends AppCompatActivity {
         if (message.isUser()) {
             message.setLlmContent(ChatReferenceManager.buildLlmUserContent(cleanText, message.getContextPayload()));
         }
-        messageAdapter.notifyItemChanged(position);
+        messageAdapter.notifyDataSetChanged();
         saveChatHistory();
         updateThreadSummary();
         refreshSecondaryPanels();
@@ -1271,7 +1271,7 @@ public class ChatActivity extends AppCompatActivity {
         for (int i = messages.size() - 1; i >= position; i--) {
             messages.remove(i);
         }
-        messageAdapter.notifyItemRangeRemoved(position, removeCount);
+        messageAdapter.notifyDataSetChanged();
         saveChatHistory();
         updateThreadSummary();
         refreshSecondaryPanels();
@@ -1292,7 +1292,7 @@ public class ChatActivity extends AppCompatActivity {
         for (int i = messages.size() - 1; i >= start; i--) {
             messages.remove(i);
         }
-        messageAdapter.notifyItemRangeRemoved(start, removeCount);
+        messageAdapter.notifyDataSetChanged();
         saveChatHistory();
         updateThreadSummary();
         refreshSecondaryPanels();
@@ -1358,7 +1358,7 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
         ChatMessage removed = messages.remove(position);
-        messageAdapter.notifyItemRemoved(position);
+        messageAdapter.notifyDataSetChanged();
         saveChatHistory();
         updateThreadSummary();
         releaseReferenceGrantsIfUnused(
@@ -1887,7 +1887,7 @@ public class ChatActivity extends AppCompatActivity {
                     "Debug"
             );
             messages.add(currentDebugMessage);
-            messageAdapter.notifyItemInserted(messages.size() - 1);
+            messageAdapter.notifyDataSetChanged();
         } else {
             String previousText = currentDebugMessage.getMessage();
             if (ChatMessage.hasVisibleText(previousText)) {
@@ -1898,7 +1898,7 @@ public class ChatActivity extends AppCompatActivity {
             currentDebugMessage.setTimestamp(System.currentTimeMillis());
             int index = messages.indexOf(currentDebugMessage);
             if (index != -1) {
-                messageAdapter.notifyItemChanged(index);
+                messageAdapter.notifyDataSetChanged();
             }
         }
 
@@ -1927,7 +1927,7 @@ public class ChatActivity extends AppCompatActivity {
             String status = message.getStatus();
             if (status != null && "Debug".equalsIgnoreCase(status.trim())) {
                 messages.remove(i);
-                messageAdapter.notifyItemRemoved(i);
+                messageAdapter.notifyDataSetChanged();
             }
         }
         saveChatHistory();
@@ -2179,7 +2179,7 @@ public class ChatActivity extends AppCompatActivity {
         int oldCount = messages.size();
         messages.clear();
         if (oldCount > 0) {
-            messageAdapter.notifyItemRangeRemoved(0, oldCount);
+            messageAdapter.notifyDataSetChanged();
         } else {
             messageAdapter.notifyDataSetChanged();
         }
@@ -2351,7 +2351,7 @@ public class ChatActivity extends AppCompatActivity {
                 "Rollback"
         );
         messages.add(rollbackMsg);
-        messageAdapter.notifyItemInserted(messages.size() - 1);
+        messageAdapter.notifyDataSetChanged();
         scrollToBottom();
         saveChatHistory();
         updateThreadSummary();

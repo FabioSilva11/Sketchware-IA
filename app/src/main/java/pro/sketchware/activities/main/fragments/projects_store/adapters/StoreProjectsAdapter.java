@@ -46,9 +46,7 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<RecyclerView.View
             this.projects.addAll(projects);
         }
         this.context = context;
-        if (projectCount() >= NATIVE_AD_INTERVAL && context != null) {
-            AdManager.preloadNativeAd(context);
-        }
+        requestNativeAdIfNeeded();
     }
 
     @NonNull
@@ -160,6 +158,9 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<RecyclerView.View
     @Override
     public int getItemCount() {
         int numProjects = projectCount();
+        if (!hasRenderableNativeAd()) {
+            return numProjects;
+        }
         return numProjects + getNativeAdCountForTotalProjects(numProjects);
     }
 
@@ -179,18 +180,16 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<RecyclerView.View
             this.projects.addAll(projects);
         }
         notifyDataSetChanged();
-        if (projectCount() >= NATIVE_AD_INTERVAL && context != null) {
-            AdManager.preloadNativeAd(context);
-        }
+        requestNativeAdIfNeeded();
     }
 
     public void addProjects(List<ProjectModel.Project> projects) {
         if (projects == null || projects.isEmpty()) {
             return;
         }
-        int start = this.projects.size();
         this.projects.addAll(projects);
-        notifyItemRangeInserted(start, projects.size());
+        notifyDataSetChanged();
+        requestNativeAdIfNeeded();
     }
 
     private int projectCount() {
@@ -198,7 +197,7 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<RecyclerView.View
     }
 
     private int getNativeAdCountForTotalProjects(int numProjects) {
-        if (numProjects < NATIVE_AD_INTERVAL) {
+        if (numProjects < NATIVE_AD_INTERVAL || !hasRenderableNativeAd()) {
             return 0;
         }
         return numProjects / NATIVE_AD_INTERVAL;
@@ -206,11 +205,38 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<RecyclerView.View
 
     private boolean isNativeAdPosition(int virtualPosition) {
         int numProjects = projectCount();
-        if (numProjects < NATIVE_AD_INTERVAL) {
+        if (numProjects < NATIVE_AD_INTERVAL || !hasRenderableNativeAd()) {
             return false;
         }
         int adjustedPos = virtualPosition + 1;
         return adjustedPos % (NATIVE_AD_INTERVAL + 1) == 0;
+    }
+
+    private boolean hasRenderableNativeAd() {
+        NativeAd ad = loadedAd != null ? loadedAd.get() : null;
+        return ad != null || AdManager.getCachedNativeAd() != null;
+    }
+
+    private void requestNativeAdIfNeeded() {
+        if (projectCount() < NATIVE_AD_INTERVAL || context == null || hasRenderableNativeAd()) {
+            return;
+        }
+        if (!loadingAd.compareAndSet(false, true)) {
+            return;
+        }
+        AdManager.preloadNativeAd(context, AdManager.NATIVE_AD_UNIT_ID, new AdManager.NativeAdLoadCallback() {
+            @Override
+            public void onNativeAdLoaded(@NonNull NativeAd nativeAd) {
+                loadingAd.set(false);
+                loadedAd = new WeakReference<>(nativeAd);
+                notifyDataSetChanged();
+            }
+
+            @Override
+            public void onNativeAdFailedToLoad(@NonNull LoadAdError error) {
+                loadingAd.set(false);
+            }
+        });
     }
 
     private int translateToProjectPosition(int virtualPosition) {
