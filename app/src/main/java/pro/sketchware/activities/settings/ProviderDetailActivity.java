@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -70,6 +72,8 @@ public class ProviderDetailActivity extends AppCompatActivity {
     private VoidPortSettings.ProviderCardSpec spec;
     private String providerId;
     private boolean showingModelsTab = false;
+    private final Handler balanceSyncHandler = new Handler(Looper.getMainLooper());
+    private final Runnable balanceSyncRunnable = this::syncProviderBalanceIfPositive;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -93,6 +97,12 @@ public class ProviderDetailActivity extends AppCompatActivity {
         bindExtraFields();
         bindTabs();
         refreshModelsTab();
+    }
+
+    @Override
+    protected void onDestroy() {
+        balanceSyncHandler.removeCallbacks(balanceSyncRunnable);
+        super.onDestroy();
     }
 
     @Nullable
@@ -353,6 +363,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
                 if (spec.custom) {
                     VoidPortSettings.updateProviderConfigValue(prefs, providerId, "apiKey", text);
                 }
+                scheduleProviderBalanceSync();
             }));
         } else {
             binding.tilApiKey.setVisibility(View.GONE);
@@ -367,6 +378,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
             if (spec.custom) {
                 VoidPortSettings.updateProviderConfigValue(prefs, providerId, "baseUrl", text);
             }
+            scheduleProviderBalanceSync();
         }));
 
         String apiPathKey = spec.custom
@@ -937,6 +949,23 @@ public class ProviderDetailActivity extends AppCompatActivity {
             VoidPortSettings.updateProviderConfigValue(prefs, providerId, "balanceApiPath", apiPath);
             VoidPortSettings.updateProviderConfigValue(prefs, providerId, "balanceResultPath", resultPath);
         }
+        scheduleProviderBalanceSync();
+    }
+
+    private void scheduleProviderBalanceSync() {
+        balanceSyncHandler.removeCallbacks(balanceSyncRunnable);
+        balanceSyncHandler.postDelayed(balanceSyncRunnable, 1200);
+    }
+
+    private void syncProviderBalanceIfPositive() {
+        AiProviderBalanceSyncService.syncIfPositive(
+                prefs,
+                providerId,
+                textOf(binding.etProviderName).isEmpty() ? spec.title : textOf(binding.etProviderName),
+                providerFamily(),
+                activeApiKey(),
+                textOf(binding.etApiBaseUrl)
+        );
     }
 
     private boolean balanceEnabled() {
