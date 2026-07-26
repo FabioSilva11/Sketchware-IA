@@ -49,7 +49,7 @@ jobs:
       actions: write
     steps:
       - name: Delete old artifacts (keep only 3 most recent)
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: artifacts } = await github.rest.actions.listArtifactsForRepo({
@@ -237,7 +237,7 @@ jobs:
       contents: write
     steps:
       - name: Delete old releases (keep only 3 most recent)
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: releases } = await github.rest.repos.listReleases({
