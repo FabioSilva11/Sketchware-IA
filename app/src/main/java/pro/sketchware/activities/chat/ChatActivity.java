@@ -24,6 +24,7 @@ import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -62,6 +63,7 @@ import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 import pro.sketchware.activities.chat.port.VoidPortChatThreadService;
 import pro.sketchware.activities.chat.port.VoidPortModelCapabilities;
+import pro.sketchware.activities.chat.port.VoidPortProviderMaxTokens;
 import pro.sketchware.activities.chat.port.VoidPortRefreshModelService;
 import pro.sketchware.activities.chat.port.VoidPortScmService;
 import pro.sketchware.activities.chat.port.VoidPortSettings;
@@ -119,6 +121,8 @@ public class ChatActivity extends AppCompatActivity {
     private ChatDiffFragment chatDiffFragment;
     private ChatArtifactsFragment chatArtifactsFragment;
     private ChatPlanFragment chatPlanFragment;
+    private ChatCompileLogFragment chatCompileLogFragment;
+    private ChatCompileRunner chatCompileRunner;
     private String currentRunStatus = "";
     private final Handler streamUiHandler = new Handler(Looper.getMainLooper());
     private ChatMessage pendingStreamingUpdate;
@@ -130,6 +134,9 @@ public class ChatActivity extends AppCompatActivity {
     private DrawerLayout drawerLayout;
     private TextView textChatTitle;
     private TextView textChatSubtitle;
+    private TextView textTokenMeter;
+    private TextView textTokenMeterPercent;
+    private ProgressBar progressTokenMeter;
     private RecyclerView drawerThreadsList;
     private EditText drawerSearch;
     private ChatDrawerAdapter drawerAdapter;
@@ -304,6 +311,9 @@ public class ChatActivity extends AppCompatActivity {
         btnMicrophone = findViewById(R.id.btn_microphone);
         textFilesChanged = findViewById(R.id.text_files_changed);
         textSelectedContext = findViewById(R.id.text_selected_context);
+        textTokenMeter = findViewById(R.id.text_token_meter);
+        textTokenMeterPercent = findViewById(R.id.text_token_meter_percent);
+        progressTokenMeter = findViewById(R.id.progress_token_meter);
         imagePreviewScroll = findViewById(R.id.selected_image_preview_scroll);
         imagePreviewList = findViewById(R.id.selected_image_preview_list);
         editTextMessage.setHint(R.string.kelivo_input_hint);
@@ -346,12 +356,13 @@ public class ChatActivity extends AppCompatActivity {
         chatDiffFragment = ChatDiffFragment.newInstance(sc_id);
         chatArtifactsFragment = ChatArtifactsFragment.newInstance(sc_id);
         chatPlanFragment = ChatPlanFragment.newInstance(sc_id);
+        chatCompileLogFragment = ChatCompileLogFragment.newInstance(sc_id);
         chatMessagesFragment.setAdapter(messageAdapter);
         chatArtifactsFragment.setMessages(messages);
         chatPlanFragment.setMessages(messages);
         chatViewPager.setAdapter(new ChatPagerAdapter(this, chatMessagesFragment, chatDiffFragment,
-                chatArtifactsFragment, chatPlanFragment));
-        chatViewPager.setOffscreenPageLimit(4);
+                chatArtifactsFragment, chatPlanFragment, chatCompileLogFragment));
+        chatViewPager.setOffscreenPageLimit(5);
         if (chatPageTabs != null) {
             chatPageTabs.setupWithViewPager(chatViewPager);
         }
@@ -414,6 +425,7 @@ public class ChatActivity extends AppCompatActivity {
         AiChatSettingsHelper.ensureValidCurrentSelection(prefs);
         updateChatModeUI();
         updateModelUI();
+        updateTokenMeter();
         updateRunStatus("");
         updateChangedFilesSummary();
         updateThreadSummary();
@@ -470,11 +482,7 @@ public class ChatActivity extends AppCompatActivity {
 
         View mapButton = findViewById(R.id.btn_header_map);
         if (mapButton != null) {
-            mapButton.setOnClickListener(v -> {
-                if (chatViewPager != null) {
-                    chatViewPager.setCurrentItem(1, true);
-                }
-            });
+            mapButton.setOnClickListener(v -> showCompileConfirmDialog());
         }
 
         drawerUserName = findViewById(R.id.drawer_user_name);
@@ -546,6 +554,60 @@ public class ChatActivity extends AppCompatActivity {
 
         refreshDrawerThreads();
         updateKelivoHeader();
+    }
+
+    private void showCompileConfirmDialog() {
+        if (chatCompileRunner != null && chatCompileRunner.isRunning()) {
+            showCompileLogPage();
+            Toast.makeText(this, R.string.chat_compile_already_running, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.chat_compile_dialog_title)
+                .setMessage(R.string.chat_compile_dialog_message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.chat_compile_dialog_positive, (dialog, which) -> startChatCompile())
+                .show();
+    }
+
+    private void startChatCompile() {
+        showCompileLogPage();
+        if (chatCompileLogFragment != null) {
+            chatCompileLogFragment.startNewLog();
+        }
+        chatCompileRunner = new ChatCompileRunner(this, sc_id, new ChatCompileRunner.Listener() {
+            @Override
+            public void onCompileProgress(String line, int step) {
+                runOnUiThread(() -> {
+                    showCompileLogPage();
+                    if (chatCompileLogFragment != null) {
+                        chatCompileLogFragment.appendLine(line);
+                    }
+                    updateRunStatus(line);
+                });
+            }
+
+            @Override
+            public void onCompileFinished(boolean success, String message) {
+                runOnUiThread(() -> {
+                    if (chatCompileLogFragment != null) {
+                        chatCompileLogFragment.appendLine("");
+                        chatCompileLogFragment.appendLine(message);
+                    }
+                    updateRunStatus("");
+                    Toast.makeText(ChatActivity.this,
+                            success ? R.string.chat_compile_success : R.string.chat_compile_failed,
+                            Toast.LENGTH_LONG).show();
+                });
+            }
+        });
+        chatCompileRunner.start();
+    }
+
+    private void showCompileLogPage() {
+        if (chatViewPager != null) {
+            chatViewPager.setCurrentItem(4, true);
+        }
     }
 
     private String getDrawerUserName() {
@@ -782,6 +844,55 @@ public class ChatActivity extends AppCompatActivity {
             }
         }
         updateKelivoHeader();
+        updateTokenMeter();
+    }
+
+    private void updateTokenMeter() {
+        if (textTokenMeter == null || textTokenMeterPercent == null || progressTokenMeter == null) {
+            return;
+        }
+        SharedPreferences prefs = AiChatSettingsHelper.prefs(this);
+        String provider = prefs.getString(AiChatSettingsHelper.PREF_CURRENT_PROVIDER, "");
+        String model = prefs.getString(AiChatSettingsHelper.PREF_CURRENT_MODEL, "");
+        int limit = VoidPortProviderMaxTokens.resolve(prefs, provider, model,
+                VoidPortProviderMaxTokens.DEFAULT_MAX_TOKENS);
+        int used = estimateConversationTokens();
+        int percent = limit <= 0 ? 0 : Math.min(100, Math.round((used * 100f) / limit));
+        textTokenMeter.setText(getString(R.string.chat_token_meter_value,
+                formatTokenCount(used),
+                formatTokenCount(limit)));
+        textTokenMeterPercent.setText(getString(R.string.chat_token_meter_percent, percent));
+        progressTokenMeter.setProgress(percent);
+    }
+
+    private int estimateConversationTokens() {
+        int chars = 0;
+        if (messages != null) {
+            for (ChatMessage message : messages) {
+                if (message == null) {
+                    continue;
+                }
+                chars += safeLength(message.getLlmContent());
+                chars += safeLength(message.getDisplayContent());
+                chars += safeLength(message.getToolArgs());
+                chars += safeLength(message.getToolResult());
+            }
+        }
+        return Math.max(0, Math.round(chars / 4f));
+    }
+
+    private int safeLength(String value) {
+        return value == null ? 0 : value.length();
+    }
+
+    private String formatTokenCount(int tokens) {
+        if (tokens >= 1_000_000) {
+            return String.format(Locale.US, "%.2fM", tokens / 1_000_000f);
+        }
+        if (tokens >= 1_000) {
+            return String.format(Locale.US, "%.1fk", tokens / 1_000f);
+        }
+        return String.valueOf(tokens);
     }
 
     private void bindModelIcon(ImageView imageView, String provider, String model, boolean useFallback) {
@@ -971,6 +1082,7 @@ public class ChatActivity extends AppCompatActivity {
             historySaveCount++;
             historySaveTotalMs += System.currentTimeMillis() - startedAt;
         }
+        updateTokenMeter();
     }
 
     private void notifyMessageChanged(ChatMessage message) {
@@ -1014,6 +1126,7 @@ public class ChatActivity extends AppCompatActivity {
         if (includeChangedFiles) {
             updateChangedFilesSummary();
         }
+        updateTokenMeter();
     }
 
     private void regenerateFromPosition(int position) {

@@ -14,18 +14,21 @@ public class ChatPagerAdapter extends FragmentStatePagerAdapter {
     private final ChatDiffFragment diffFragment;
     private final ChatArtifactsFragment artifactsFragment;
     private final ChatPlanFragment planFragment;
+    private final ChatCompileLogFragment compileLogFragment;
 
     public ChatPagerAdapter(@NonNull ChatActivity activity,
                             @NonNull ChatMessagesFragment messagesFragment,
                             @NonNull ChatDiffFragment diffFragment,
                             @NonNull ChatArtifactsFragment artifactsFragment,
-                            @NonNull ChatPlanFragment planFragment) {
+                            @NonNull ChatPlanFragment planFragment,
+                            @NonNull ChatCompileLogFragment compileLogFragment) {
         super(activity.getSupportFragmentManager(), FragmentStatePagerAdapter.BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT);
         this.activity = activity;
         this.messagesFragment = messagesFragment;
         this.diffFragment = diffFragment;
         this.artifactsFragment = artifactsFragment;
         this.planFragment = planFragment;
+        this.compileLogFragment = compileLogFragment;
     }
 
     @NonNull
@@ -35,13 +38,14 @@ public class ChatPagerAdapter extends FragmentStatePagerAdapter {
             case 1 -> diffFragment;
             case 2 -> artifactsFragment;
             case 3 -> planFragment;
+            case 4 -> compileLogFragment;
             default -> messagesFragment;
         };
     }
 
     @Override
     public int getCount() {
-        return 4;
+        return 5;
     }
 
     @Nullable
@@ -51,6 +55,7 @@ public class ChatPagerAdapter extends FragmentStatePagerAdapter {
             case 1 -> activity.getString(R.string.chat_page_diffs);
             case 2 -> activity.getString(R.string.chat_page_artifacts);
             case 3 -> activity.getString(R.string.chat_page_plan);
+            case 4 -> activity.getString(R.string.chat_page_compile_log);
             default -> activity.getString(R.string.chat_page_chat);
         };
     }

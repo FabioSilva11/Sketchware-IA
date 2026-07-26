@@ -96,9 +96,9 @@
                 android:layout_width="37dp"
                 android:layout_height="37dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/kelivo_header_map"
+                android:contentDescription="@string/chat_compile_button"
                 android:padding="8dp"
-                android:src="@drawable/kelivo_lucide_map"
+                android:src="@drawable/ic_kelivo_hammer"
                 android:tint="@color/chat_text_primary" />
 
             <ImageView
@@ -118,19 +118,71 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/chat_header"
             android:background="@color/chat_surface"
-            android:visibility="gone"
+            android:visibility="visible"
             app:tabGravity="fill"
             app:tabIndicatorColor="@color/chat_accent"
             app:tabMode="fixed"
             app:tabSelectedTextColor="@color/chat_accent"
             app:tabTextColor="@color/chat_text_secondary" />
 
+        <LinearLayout
+            android:id="@+id/layout_token_meter"
+            android:layout_width="match_parent"
+            android:layout_height="34dp"
+            android:layout_below="@id/chat_page_tabs"
+            android:background="@color/chat_surface"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="6dp">
+
+            <ImageView
+                android:layout_width="17dp"
+                android:layout_height="17dp"
+                android:src="@drawable/kelivo_icon_codex"
+                android:tint="@color/chat_accent" />
+
+            <TextView
+                android:id="@+id/text_token_meter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="7dp"
+                android:text="@string/chat_token_meter_empty"
+                android:textColor="@color/chat_text_secondary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <ProgressBar
+                android:id="@+id/progress_token_meter"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"
+                android:layout_weight="1"
+                android:max="100"
+                android:progress="0"
+                android:progressTint="@color/chat_accent"
+                android:progressBackgroundTint="@color/chat_border" />
+
+            <TextView
+                android:id="@+id/text_token_meter_percent"
+                android:layout_width="34dp"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:text="0%"
+                android:textColor="@color/chat_text_secondary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
         <androidx.viewpager.widget.ViewPager
             android:id="@+id/chat_view_pager"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_above="@id/inputContainer"
-            android:layout_below="@id/chat_header" />
+            android:layout_below="@id/layout_token_meter" />
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/inputContainer"
