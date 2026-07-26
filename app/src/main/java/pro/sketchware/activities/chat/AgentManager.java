@@ -25,6 +25,9 @@ import pro.sketchware.activities.chat.port.VoidPortDiffService;
 import pro.sketchware.activities.chat.port.VoidPortMcpChannel;
 import pro.sketchware.activities.chat.port.VoidPortSettings;
 import pro.sketchware.activities.chat.port.GitHubMcpService;
+import pro.sketchware.activities.chat.toolcall.DefaultToolCallDetector;
+import pro.sketchware.activities.chat.toolcall.ToolCall;
+import pro.sketchware.activities.chat.toolcall.ToolCallDetector;
 import pro.sketchware.ia.tools.Tool;
 import pro.sketchware.ia.tools.ToolManager;
 import pro.sketchware.network.AiProviderService;
@@ -72,6 +75,7 @@ public class AgentManager {
     private final AgentListener listener;
     private final AiProviderService aiService;
     private final ToolManager toolManager;
+    private final ToolCallDetector toolCallDetector;
     private final Handler mainHandler;
     private final Handler streamCoalesceHandler;
     private final ChatCheckpointManager checkpointManager;
@@ -149,6 +153,7 @@ public class AgentManager {
         
         this.toolManager = new ToolManager();
         VoidToolWrapper.registerAllVoidTools(this.toolManager);
+        this.toolCallDetector = new DefaultToolCallDetector();
 
         this.mainHandler = new Handler(Looper.getMainLooper());
         this.streamCoalesceHandler = new Handler(Looper.getMainLooper());
@@ -469,26 +474,42 @@ public class AgentManager {
 
                             flushStreamUpdate(version);
 
-                            if (ChatMessage.hasVisibleText(fullContent)) {
-                                botMsg.setDisplayContent(fullContent);
+                            ToolCallDetector.DetectionResult toolDetection = toolCallDetector.detect(
+                                    new ToolCallDetector.Response(
+                                            fullContent,
+                                            fullReasoning,
+                                            toToolCalls(collectedToolCalls),
+                                            tools
+                                    )
+                            );
+
+                            if (ChatMessage.hasVisibleText(toolDetection.getCleanedContent())) {
+                                botMsg.setDisplayContent(toolDetection.getCleanedContent());
+                            } else {
+                                botMsg.setDisplayContent("");
                             }
-                            if (ChatMessage.hasVisibleText(fullReasoning)) {
-                                botMsg.setReasoning(fullReasoning);
+                            if (ChatMessage.hasVisibleText(toolDetection.getCleanedReasoning())) {
+                                botMsg.setReasoning(toolDetection.getCleanedReasoning());
+                            } else {
+                                botMsg.setReasoning("");
                             }
                             botMsg.setStatus("");
 
                             boolean hasAssistantPayload = botMsg.hasDisplayContent() || botMsg.hasReasoningContent();
-                            if (!collectedToolCalls.isEmpty()) {
+                            if (toolDetection.hasToolCalls()) {
                                 if (hasAssistantPayload) {
                                     listener.onMessageUpdated(botMsg);
                                 } else {
                                     removeStreamingPlaceholderIfEmpty(botMsg);
                                 }
                                 currentStreamingMessage = null;
-                                emitTrace("LLM pediu ferramentas", "count=" + collectedToolCalls.size());
+                                emitTrace("LLM pediu ferramentas", "protocol=" + toolDetection.getProtocol()
+                                        + ", count=" + toolDetection.getToolCalls().size());
                                 clearStreamingToolState();
                                 queuedToolCalls.clear();
-                                queuedToolCalls.addAll(collectedToolCalls);
+                                for (ToolCall call : toolDetection.getToolCalls()) {
+                                    queuedToolCalls.add(call.toLegacyArray());
+                                }
                                 queuedChatMode = chatMode;
                                 processNextQueuedToolCall(version, loopStep);
                                 return;
@@ -498,6 +519,13 @@ public class AgentManager {
                             if (!hasAssistantPayload) {
                                 removeStreamingPlaceholderIfEmpty(botMsg);
                             } else {
+                                if (isInsufficientBalanceText(botMsg.getDisplayContent())) {
+                                    botMsg.setDisplayContent(clearInsufficientBalanceMessage());
+                                    listener.onMessageUpdated(botMsg);
+                                    emitTrace("Saldo insuficiente", "mensagem normalizada");
+                                    finishProcessing();
+                                    return;
+                                }
                                 listener.onMessageUpdated(botMsg);
                             }
                             FinishChecker.ValidationResult finishResult = FinishChecker.validate(
@@ -551,8 +579,9 @@ public class AgentManager {
                             }
                             setState(State.ERROR);
                             removeStreamingPlaceholderIfEmpty(botMsg);
-                            emitTrace("Erro LLM", message);
-                            listener.onError(message);
+                            String clearMessage = normalizeLlmError(message);
+                            emitTrace("Erro LLM", clearMessage);
+                            listener.onError(clearMessage);
                             emitTraceSummary("erro");
                             finishProcessing();
                         });
@@ -1469,6 +1498,20 @@ public class AgentManager {
         }
     }
 
+    private java.util.List<ToolCall> toToolCalls(java.util.List<String[]> legacyCalls) {
+        java.util.List<ToolCall> result = new java.util.ArrayList<>();
+        if (legacyCalls == null) {
+            return result;
+        }
+        for (String[] legacyCall : legacyCalls) {
+            ToolCall call = ToolCall.fromLegacyArray(legacyCall);
+            if (call.isValid()) {
+                result.add(call);
+            }
+        }
+        return result;
+    }
+
     static void collectOrReplaceToolCall(java.util.List<String[]> calls,
                                          java.util.Map<String, Integer> indexesById,
                                          String name,
@@ -1491,6 +1534,34 @@ public class AgentManager {
     private String consecutiveToolFailureMessage() {
         return "Erro: limite de falhas consecutivas de ferramentas atingido ("
                 + consecutiveToolFailures + ").";
+    }
+
+    private String normalizeLlmError(String message) {
+        return isInsufficientBalanceText(message) ? clearInsufficientBalanceMessage() : message;
+    }
+
+    private boolean isInsufficientBalanceText(String message) {
+        if (message == null || message.trim().isEmpty()) {
+            return false;
+        }
+        String text = message.toLowerCase(java.util.Locale.US);
+        return text.contains("insufficient_quota")
+                || text.contains("insufficient balance")
+                || text.contains("insufficient credits")
+                || text.contains("not enough credits")
+                || text.contains("no credit")
+                || text.contains("credit balance")
+                || text.contains("balance_not_enough")
+                || text.contains("quota exceeded")
+                || text.contains("billing hard limit")
+                || text.contains("payment required")
+                || text.contains("saldo insuficiente")
+                || text.contains("creditos insuficientes")
+                || text.contains("créditos insuficientes");
+    }
+
+    private String clearInsufficientBalanceMessage() {
+        return "Saldo insuficiente na API selecionada. Recarregue créditos, troque a API key ou escolha outro modelo/provedor para continuar.";
     }
 
     private String toolPathArg(JSONObject args) {

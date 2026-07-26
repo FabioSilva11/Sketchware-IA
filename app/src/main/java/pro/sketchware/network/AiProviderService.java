@@ -34,6 +34,7 @@ import okhttp3.Response;
 import okio.BufferedSource;
 import pro.sketchware.SketchApplication;
 import pro.sketchware.ai.config.AiSettingsRepository;
+import pro.sketchware.ai.config.DeviceLanguage;
 import pro.sketchware.activities.chat.AiChatSettingsHelper;
 import pro.sketchware.activities.chat.ContextBuilder;
 import pro.sketchware.activities.chat.port.VoidPortExtractGrammar;
@@ -372,11 +373,12 @@ public class AiProviderService {
             throw new IOException("Provider endpoint is missing: " + currentProvider);
         }
 
+        String localizedSystemPrompt = withDeviceLanguageInstruction(systemPrompt);
         Request request = providerConfig.family == ProviderFamily.ANTHROPIC
-                ? buildAnthropicTextRequest(providerConfig, currentModel, systemPrompt, userPrompt, imageDataUrls)
+                ? buildAnthropicTextRequest(providerConfig, currentModel, localizedSystemPrompt, userPrompt, imageDataUrls)
                 : providerConfig.family == ProviderFamily.GEMINI
-                ? buildGeminiTextRequest(providerConfig, currentModel, systemPrompt, userPrompt, imageDataUrls)
-                : buildOpenAiCompatibleTextRequest(providerConfig, currentProvider, currentModel, systemPrompt, userPrompt, imageDataUrls);
+                ? buildGeminiTextRequest(providerConfig, currentModel, localizedSystemPrompt, userPrompt, imageDataUrls)
+                : buildOpenAiCompatibleTextRequest(providerConfig, currentProvider, currentModel, localizedSystemPrompt, userPrompt, imageDataUrls);
 
         IOException lastException = null;
         for (int attempt = 0; attempt <= MAX_PROVIDER_RETRIES; attempt++) {
@@ -412,6 +414,17 @@ public class AiProviderService {
         }
 
         throw lastException != null ? lastException : new IOException("Unknown AI request error");
+    }
+
+    private String withDeviceLanguageInstruction(String systemPrompt) {
+        String instruction = DeviceLanguage.responseInstruction();
+        if (TextUtils.isEmpty(systemPrompt)) {
+            return instruction;
+        }
+        if (systemPrompt.contains(instruction)) {
+            return systemPrompt;
+        }
+        return systemPrompt.trim() + "\n\n" + instruction;
     }
 
     private void dispatchRequest(ProviderConfig providerConfig, String providerId, String modelName,
@@ -1754,6 +1767,10 @@ public class AiProviderService {
 
     private String buildHttpErrorMessage(String providerId, int statusCode, String errorBody) {
         String compactBody = errorBody == null ? "" : errorBody.trim();
+        if (isInsufficientBalanceError(statusCode, compactBody)) {
+            return "Saldo insuficiente no provedor " + providerId
+                    + ". Recarregue créditos, troque a API key ou selecione outro modelo/provedor para continuar.";
+        }
         if (compactBody.length() > 400) {
             compactBody = compactBody.substring(0, 400).trim() + "...";
         }
@@ -1761,6 +1778,21 @@ public class AiProviderService {
             return "API Error from " + providerId + ": HTTP " + statusCode;
         }
         return "API Error from " + providerId + ": HTTP " + statusCode + " - " + compactBody;
+    }
+
+    private boolean isInsufficientBalanceError(int statusCode, String body) {
+        String text = body == null ? "" : body.toLowerCase(java.util.Locale.US);
+        return statusCode == 402
+                || text.contains("insufficient_quota")
+                || text.contains("insufficient balance")
+                || text.contains("insufficient credits")
+                || text.contains("not enough credits")
+                || text.contains("no credit")
+                || text.contains("credit balance")
+                || text.contains("balance_not_enough")
+                || text.contains("quota exceeded")
+                || text.contains("billing hard limit")
+                || text.contains("payment required");
     }
 
     private void configureXmlParser(OpenAiStreamState state, ContextBuilder.Result requestContext,
@@ -1831,8 +1863,10 @@ public class AiProviderService {
     }
 
     private static boolean usesXmlToolFallback(ContextBuilder.Result requestContext) {
-        return requestContext != null
-                && requestContext.getProviderFormat() == ContextBuilder.ProviderFormat.XML_FALLBACK;
+        // XML tool calls are now detected centrally by ToolCallDetector in AgentManager.
+        // Keep this transport-level fallback disabled so the full assistant response,
+        // including multiple XML blocks, reaches the detector before execution.
+        return false;
     }
 
     private String trimEnd(String text) {

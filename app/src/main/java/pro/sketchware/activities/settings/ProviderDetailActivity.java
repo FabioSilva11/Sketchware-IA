@@ -72,8 +72,8 @@ public class ProviderDetailActivity extends AppCompatActivity {
     private VoidPortSettings.ProviderCardSpec spec;
     private String providerId;
     private boolean showingModelsTab = false;
-    private final Handler balanceSyncHandler = new Handler(Looper.getMainLooper());
-    private final Runnable balanceSyncRunnable = this::syncProviderBalanceIfPositive;
+    private final Handler apiSyncHandler = new Handler(Looper.getMainLooper());
+    private final Runnable apiSyncRunnable = this::syncProviderApis;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -101,7 +101,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        balanceSyncHandler.removeCallbacks(balanceSyncRunnable);
+        apiSyncHandler.removeCallbacks(apiSyncRunnable);
         super.onDestroy();
     }
 
@@ -363,7 +363,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
                 if (spec.custom) {
                     VoidPortSettings.updateProviderConfigValue(prefs, providerId, "apiKey", text);
                 }
-                scheduleProviderBalanceSync();
+                scheduleProviderApiSync();
             }));
         } else {
             binding.tilApiKey.setVisibility(View.GONE);
@@ -378,7 +378,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
             if (spec.custom) {
                 VoidPortSettings.updateProviderConfigValue(prefs, providerId, "baseUrl", text);
             }
-            scheduleProviderBalanceSync();
+            scheduleProviderApiSync();
         }));
 
         String apiPathKey = spec.custom
@@ -500,6 +500,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     binding.btnFetchModels.setEnabled(true);
                     refreshModelsTab();
+                    scheduleProviderApiSync();
                     Toast.makeText(this,
                             getString(R.string.ia_models_fetched, models.size()),
                             Toast.LENGTH_SHORT).show();
@@ -949,21 +950,21 @@ public class ProviderDetailActivity extends AppCompatActivity {
             VoidPortSettings.updateProviderConfigValue(prefs, providerId, "balanceApiPath", apiPath);
             VoidPortSettings.updateProviderConfigValue(prefs, providerId, "balanceResultPath", resultPath);
         }
-        scheduleProviderBalanceSync();
+        scheduleProviderApiSync();
     }
 
-    private void scheduleProviderBalanceSync() {
-        balanceSyncHandler.removeCallbacks(balanceSyncRunnable);
-        balanceSyncHandler.postDelayed(balanceSyncRunnable, 1200);
+    private void scheduleProviderApiSync() {
+        apiSyncHandler.removeCallbacks(apiSyncRunnable);
+        apiSyncHandler.postDelayed(apiSyncRunnable, 1200);
     }
 
-    private void syncProviderBalanceIfPositive() {
-        AiProviderBalanceSyncService.syncIfPositive(
+    private void syncProviderApis() {
+        AiProviderBalanceSyncService.syncProviderApis(
                 prefs,
                 providerId,
                 textOf(binding.etProviderName).isEmpty() ? spec.title : textOf(binding.etProviderName),
                 providerFamily(),
-                activeApiKey(),
+                textOf(binding.etApiKey),
                 textOf(binding.etApiBaseUrl)
         );
     }

@@ -20,6 +20,7 @@ import pro.sketchware.activities.chat.port.VoidPortMcpChannel;
 import pro.sketchware.activities.chat.port.VoidPortModelCapabilities;
 import pro.sketchware.activities.chat.port.VoidPortSettings;
 import pro.sketchware.activities.chat.port.VoidPortToolsService;
+import pro.sketchware.ai.config.DeviceLanguage;
 import pro.sketchware.ia.tools.Tool;
 import pro.sketchware.ia.tools.ToolManager;
 import pro.sketchware.util.ProjectPathResolver;
@@ -525,6 +526,7 @@ public class ContextBuilder {
         }
 
         details.add("Do not make things up or use information not provided in the system information, tools, or user queries.");
+        details.add(DeviceLanguage.responseInstruction());
         details.add("Always use MARKDOWN to format lists, bullet points, etc. Do NOT write tables.");
         details.add("Today's date is " + PromptConstants.todayDateForPrompt() + ".");
 

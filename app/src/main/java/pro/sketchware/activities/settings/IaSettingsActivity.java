@@ -294,7 +294,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
                     JSONObject config = buildProviderConfig(providerId, normalizedType, displayName,
                             textOf(apiKey), textOf(baseUrl), textOf(apiPath));
                     VoidPortSettings.saveProviderConfig(prefs, config);
-                    syncCustomProviderBalance(config);
+                    syncCustomProviderApis(config);
                     reloadProviders();
                     openProviderDetail(findProvider(providerId));
                 })
@@ -344,7 +344,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
                         List<JSONObject> imported = parseImportedProviders(textOf(input));
                         for (JSONObject config : imported) {
                             VoidPortSettings.saveProviderConfig(prefs, config);
-                            syncCustomProviderBalance(config);
+                            syncCustomProviderApis(config);
                         }
                         reloadProviders();
                         Toast.makeText(this,
@@ -476,8 +476,8 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
         return config;
     }
 
-    private void syncCustomProviderBalance(JSONObject config) {
-        AiProviderBalanceSyncService.syncIfPositive(
+    private void syncCustomProviderApis(JSONObject config) {
+        AiProviderBalanceSyncService.syncProviderApis(
                 prefs,
                 config.optString("id", ""),
                 config.optString("name", ""),
