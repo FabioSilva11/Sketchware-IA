@@ -35,6 +35,7 @@ public class ChatDiffFragment extends Fragment {
     private String scId;
     private TextView textDiffSummary;
     private LinearLayout diffFilesContainer;
+    private LinearLayout globalActions;
     /** Invalidates in-flight background diff computations when a newer refresh starts. */
     private int refreshGeneration = 0;
 
@@ -64,6 +65,15 @@ public class ChatDiffFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         textDiffSummary = view.findViewById(R.id.text_diff_summary);
         diffFilesContainer = view.findViewById(R.id.layout_diff_files);
+        globalActions = view.findViewById(R.id.layout_diff_global_actions);
+        View acceptAll = view.findViewById(R.id.button_accept_all_diffs);
+        View rejectAll = view.findViewById(R.id.button_reject_all_diffs);
+        if (acceptAll != null) {
+            acceptAll.setOnClickListener(v -> acceptAllChanges());
+        }
+        if (rejectAll != null) {
+            rejectAll.setOnClickListener(v -> confirmRejectAllChanges());
+        }
         refreshDiffs();
     }
 
@@ -71,6 +81,7 @@ public class ChatDiffFragment extends Fragment {
     public void onDestroyView() {
         textDiffSummary = null;
         diffFilesContainer = null;
+        globalActions = null;
         super.onDestroyView();
     }
 
@@ -84,6 +95,9 @@ public class ChatDiffFragment extends Fragment {
         changes.sort((a, b) -> Long.compare(b.timestamp, a.timestamp));
         int count = changes.size();
         textDiffSummary.setText(getString(R.string.chat_diff_summary, count));
+        if (globalActions != null) {
+            globalActions.setVisibility(count > 0 ? View.VISIBLE : View.GONE);
+        }
 
         if (count <= 0) {
             diffFilesContainer.removeAllViews();
@@ -253,6 +267,43 @@ public class ChatDiffFragment extends Fragment {
         boolean rejected = FileChangeTracker.rejectChange(scId, filePath);
         Toast.makeText(requireContext(),
                 rejected ? R.string.chat_diff_reject_success : R.string.chat_diff_reject_failed,
+                Toast.LENGTH_SHORT).show();
+        notifyHostChanged();
+    }
+
+    private void acceptAllChanges() {
+        Map<String, FileChangeTracker.FileChange> allChanges = FileChangeTracker.getAllRecentChanges(scId);
+        int accepted = 0;
+        for (String filePath : new ArrayList<>(allChanges.keySet())) {
+            if (FileChangeTracker.acceptChange(scId, filePath)) {
+                accepted++;
+            }
+        }
+        Toast.makeText(requireContext(),
+                getString(R.string.chat_diff_accept_all_success, accepted),
+                Toast.LENGTH_SHORT).show();
+        notifyHostChanged();
+    }
+
+    private void confirmRejectAllChanges() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.chat_diff_reject_all_confirm_title)
+                .setMessage(R.string.chat_diff_reject_all_confirm_message)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.chat_diff_action_reject_all, (dialog, which) -> rejectAllChanges())
+                .show();
+    }
+
+    private void rejectAllChanges() {
+        Map<String, FileChangeTracker.FileChange> allChanges = FileChangeTracker.getAllRecentChanges(scId);
+        int rejected = 0;
+        for (String filePath : new ArrayList<>(allChanges.keySet())) {
+            if (FileChangeTracker.rejectChange(scId, filePath)) {
+                rejected++;
+            }
+        }
+        Toast.makeText(requireContext(),
+                getString(R.string.chat_diff_reject_all_success, rejected),
                 Toast.LENGTH_SHORT).show();
         notifyHostChanged();
     }

@@ -28,7 +28,7 @@ import pro.sketchware.utility.FileUtil;
 final class ChatCompileRunner implements BuildProgressReceiver {
     interface Listener {
         void onCompileProgress(String line, int step);
-        void onCompileFinished(boolean success, String message);
+        void onCompileFinished(boolean success, String message, String apkPath);
     }
 
     private static final int TOTAL_STEPS = 20;
@@ -60,7 +60,7 @@ final class ChatCompileRunner implements BuildProgressReceiver {
     private void runBuild() {
         Context context = contextRef.get();
         if (context == null) {
-            finish(false, "Context unavailable.");
+            finish(false, "Context unavailable.", null);
             return;
         }
         try {
@@ -124,17 +124,17 @@ final class ChatCompileRunner implements BuildProgressReceiver {
             builder.buildApk();
             onProgress("Signing APK...", 20);
             builder.signDebugApk();
-            finish(true, "Build finished: " + workspace.finalToInstallApkPath);
+            finish(true, "Build finished: " + workspace.finalToInstallApkPath, workspace.finalToInstallApkPath);
         } catch (MissingFileException e) {
             finish(false, "Missing " + (e.isMissingDirectory() ? "directory" : "file") + ": "
-                    + e.getMissingFile().getAbsolutePath());
+                    + e.getMissingFile().getAbsolutePath(), null);
         } catch (zy e) {
             new CompileErrorSaver(scId).writeLogsToFile(e.getMessage());
-            finish(false, e.getMessage());
+            finish(false, e.getMessage(), null);
         } catch (Throwable t) {
             String stackTrace = Log.getStackTraceString(t);
             new CompileErrorSaver(scId).writeLogsToFile(stackTrace);
-            finish(false, stackTrace);
+            finish(false, stackTrace, null);
         }
     }
 
@@ -146,10 +146,10 @@ final class ChatCompileRunner implements BuildProgressReceiver {
         }
     }
 
-    private void finish(boolean success, String message) {
+    private void finish(boolean success, String message, String apkPath) {
         running = false;
         if (listener != null) {
-            listener.onCompileFinished(success, message);
+            listener.onCompileFinished(success, message, apkPath);
         }
     }
 }

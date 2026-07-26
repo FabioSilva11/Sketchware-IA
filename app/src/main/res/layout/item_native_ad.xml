@@ -55,7 +55,7 @@
         <com.google.android.gms.ads.nativead.MediaView
             android:id="@+id/native_ad_media"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="108dp"
             android:layout_marginTop="8dp"
             android:background="@drawable/bg_store_icon_card"
             android:visibility="gone" />
@@ -66,7 +66,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:ellipsize="end"
-            android:maxLines="3"
+            android:maxLines="2"
             android:textColor="@color/chat_text_secondary"
             android:textSize="13sp" />
 
@@ -142,12 +142,19 @@
                 android:id="@+id/native_ad_call_to_action"
                 style="?attr/materialButtonOutlinedStyle"
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
+                android:layout_height="40dp"
                 android:backgroundTint="@color/chat_accent"
-                android:minWidth="72dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:minHeight="40dp"
+                android:minWidth="96dp"
                 android:paddingHorizontal="12dp"
+                android:paddingVertical="0dp"
+                android:singleLine="true"
                 android:textColor="@android:color/white"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
         </LinearLayout>
     </LinearLayout>

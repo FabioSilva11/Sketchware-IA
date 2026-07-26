@@ -338,7 +338,8 @@
                     android:contentDescription="@string/kelivo_input_web"
                     android:padding="7dp"
                     android:src="@drawable/kelivo_lucide_globe"
-                    android:tint="@color/chat_text_primary" />
+                    android:tint="@color/chat_text_primary"
+                    android:visibility="gone" />
 
                 <ImageView
                     android:id="@+id/btn_chat_mode"
@@ -374,7 +375,8 @@
                     android:contentDescription="@string/kelivo_input_tools"
                     android:padding="7dp"
                     android:src="@drawable/kelivo_lucide_hammer"
-                    android:tint="@color/chat_text_primary" />
+                    android:tint="@color/chat_text_primary"
+                    android:visibility="gone" />
 
                 <View
                     android:layout_width="0dp"

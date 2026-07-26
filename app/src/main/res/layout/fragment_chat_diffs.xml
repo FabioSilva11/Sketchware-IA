@@ -16,6 +16,42 @@
         android:textColor="@color/chat_text_secondary"
         android:textSize="12sp" />
 
+    <LinearLayout
+        android:id="@+id/layout_diff_global_actions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/button_accept_all_diffs"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chat_option_row_soft"
+            android:gravity="center"
+            android:text="@string/chat_diff_action_accept_all"
+            android:textColor="@color/chat_accent"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/button_reject_all_diffs"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chat_option_row_soft"
+            android:gravity="center"
+            android:text="@string/chat_diff_action_reject_all"
+            android:textColor="@color/chat_error"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"

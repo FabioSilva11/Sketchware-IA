@@ -110,7 +110,8 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:paddingEnd="12dp"
+        android:visibility="gone">
 
         <ImageView
             android:layout_width="20dp"
@@ -147,7 +148,8 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:paddingEnd="12dp"
+        android:visibility="gone">
 
         <ImageView
             android:layout_width="20dp"

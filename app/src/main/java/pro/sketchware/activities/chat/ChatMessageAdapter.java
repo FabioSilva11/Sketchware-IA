@@ -509,11 +509,11 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             if (message.isUser()) {
                 holder.textSenderName.setText(getUserLabel(context));
                 if (holder.textAvatarIcon != null) {
-                    holder.textAvatarIcon.setVisibility(View.GONE);
+                    holder.textAvatarIcon.setImageResource(R.drawable.kelivo_lucide_bot_message_square);
+                    holder.textAvatarIcon.setVisibility(View.VISIBLE);
                 }
                 if (holder.textAvatar != null) {
-                    holder.textAvatar.setVisibility(View.VISIBLE);
-                    holder.textAvatar.setText(getUserInitial(context));
+                    holder.textAvatar.setVisibility(View.GONE);
                 }
             } else if (!message.isCheckpoint() && !message.isAwaitingUser()) {
                 holder.textSenderName.setText(getBotLabel(context));

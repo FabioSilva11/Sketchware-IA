@@ -482,7 +482,7 @@ public class ChatActivity extends AppCompatActivity {
 
         View mapButton = findViewById(R.id.btn_header_map);
         if (mapButton != null) {
-            mapButton.setOnClickListener(v -> showCompileConfirmDialog());
+            mapButton.setOnClickListener(v -> startChatCompile());
         }
 
         drawerUserName = findViewById(R.id.drawer_user_name);
@@ -556,21 +556,12 @@ public class ChatActivity extends AppCompatActivity {
         updateKelivoHeader();
     }
 
-    private void showCompileConfirmDialog() {
+    private void startChatCompile() {
         if (chatCompileRunner != null && chatCompileRunner.isRunning()) {
             showCompileLogPage();
             Toast.makeText(this, R.string.chat_compile_already_running, Toast.LENGTH_SHORT).show();
             return;
         }
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.chat_compile_dialog_title)
-                .setMessage(R.string.chat_compile_dialog_message)
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(R.string.chat_compile_dialog_positive, (dialog, which) -> startChatCompile())
-                .show();
-    }
-
-    private void startChatCompile() {
         showCompileLogPage();
         if (chatCompileLogFragment != null) {
             chatCompileLogFragment.startNewLog();
@@ -588,7 +579,7 @@ public class ChatActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onCompileFinished(boolean success, String message) {
+            public void onCompileFinished(boolean success, String message, String apkPath) {
                 runOnUiThread(() -> {
                     if (chatCompileLogFragment != null) {
                         chatCompileLogFragment.appendLine("");
@@ -598,10 +589,35 @@ public class ChatActivity extends AppCompatActivity {
                     Toast.makeText(ChatActivity.this,
                             success ? R.string.chat_compile_success : R.string.chat_compile_failed,
                             Toast.LENGTH_LONG).show();
+                    if (success) {
+                        openCompiledApkInstaller(apkPath);
+                    }
                 });
             }
         });
         chatCompileRunner.start();
+    }
+
+    private void openCompiledApkInstaller(String apkPath) {
+        if (!ChatMessage.hasVisibleText(apkPath)) {
+            Toast.makeText(this, R.string.chat_compile_apk_missing, Toast.LENGTH_LONG).show();
+            return;
+        }
+        File apkFile = new File(apkPath);
+        if (!apkFile.exists()) {
+            Toast.makeText(this, R.string.chat_compile_apk_missing, Toast.LENGTH_LONG).show();
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        Uri apkUri = FileProvider.getUriForFile(
+                getApplicationContext(),
+                getApplicationContext().getPackageName() + ".provider",
+                apkFile);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        intent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+        startActivity(intent);
     }
 
     private void showCompileLogPage() {
@@ -619,47 +635,17 @@ public class ChatActivity extends AppCompatActivity {
         return name;
     }
 
-    private String getDrawerUserInitial(String userName) {
-        String trimmed = userName == null ? "" : userName.trim();
-        if (trimmed.isEmpty()) {
-            return "f";
-        }
-        return String.valueOf(Character.toLowerCase(trimmed.charAt(0)));
-    }
-
     private void updateDrawerUserUi() {
         String userName = getDrawerUserName();
         if (drawerUserName != null) {
             drawerUserName.setText(userName);
         }
-        SharedPreferences prefs = getSharedPreferences("chat_settings", MODE_PRIVATE);
-        String avatarType = prefs.getString(PREF_AVATAR_TYPE, "");
-        String avatarValue = prefs.getString(PREF_AVATAR_VALUE, "");
-        if ("file".equals(avatarType) && ChatMessage.hasVisibleText(avatarValue) && drawerUserAvatarImage != null) {
-            drawerUserAvatarImage.setVisibility(View.VISIBLE);
-            if (drawerUserAvatar != null) {
-                drawerUserAvatar.setVisibility(View.GONE);
-            }
-            try {
-                drawerUserAvatarImage.setImageURI(Uri.parse(avatarValue));
-            } catch (Exception ignored) {
-                drawerUserAvatarImage.setImageResource(R.drawable.kelivo_lucide_image);
-            }
-            return;
-        }
         if (drawerUserAvatarImage != null) {
-            drawerUserAvatarImage.setImageDrawable(null);
-            drawerUserAvatarImage.setVisibility(View.GONE);
+            drawerUserAvatarImage.setVisibility(View.VISIBLE);
+            drawerUserAvatarImage.setImageResource(R.drawable.kelivo_lucide_bot_message_square);
         }
         if (drawerUserAvatar != null) {
-            drawerUserAvatar.setVisibility(View.VISIBLE);
-            if ("emoji".equals(avatarType) && ChatMessage.hasVisibleText(avatarValue)) {
-                drawerUserAvatar.setText(avatarValue);
-                drawerUserAvatar.setTextSize(18f);
-            } else {
-                drawerUserAvatar.setText(getDrawerUserInitial(userName));
-                drawerUserAvatar.setTextSize(14f);
-            }
+            drawerUserAvatar.setVisibility(View.GONE);
         }
     }
 
@@ -948,7 +934,7 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onUpload() {
-                showAttachMenu(btnAttach);
+                pickReferenceFile();
             }
 
             @Override
@@ -1437,29 +1423,6 @@ public class ChatActivity extends AppCompatActivity {
         if (btnSend != null) btnSend.setAlpha(enabled ? 1f : 0.55f);
         if (btnAttach != null) btnAttach.setEnabled(enabled);
         if (btnAttach != null) btnAttach.setAlpha(enabled ? 1f : 0.55f);
-    }
-
-    private void showAttachMenu(View anchor) {
-        PopupMenu popup = new PopupMenu(this, anchor);
-        popup.getMenu().add(0, 1, 0, getString(R.string.chat_attach_project_reference));
-        popup.getMenu().add(0, 3, 1, getString(R.string.chat_attach_reference_file));
-        popup.getMenu().add(0, 2, 2, getString(R.string.chat_attach_reference_image));
-        popup.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == 1) {
-                showReferencePicker(false);
-                return true;
-            }
-            if (item.getItemId() == 2) {
-                pickReferenceImage();
-                return true;
-            }
-            if (item.getItemId() == 3) {
-                pickReferenceFile();
-                return true;
-            }
-            return false;
-        });
-        popup.show();
     }
 
     private void showReferencePicker(boolean replaceAtTrigger) {
