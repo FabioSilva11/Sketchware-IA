@@ -156,9 +156,13 @@ public class KelivoModelSheetAdapter extends RecyclerView.Adapter<RecyclerView.V
     }
 
     private static boolean supportsImageInput(String providerId, String modelId) {
+        String provider = providerId == null ? "" : providerId.toLowerCase(java.util.Locale.US);
         String key = ((providerId == null ? "" : providerId)
                 + " "
                 + (modelId == null ? "" : modelId)).toLowerCase(java.util.Locale.US);
+        if ("deepseek".equals(provider)) {
+            return false;
+        }
         return key.contains("claude")
                 || key.contains("gemini")
                 || key.contains("vision")

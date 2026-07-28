@@ -322,6 +322,15 @@ public final class ProjectPathResolver {
 
     @Nullable
     private static String mapToProjectScope(String scId, String normalizedPath) {
+        // Some model/tool payloads repeat the Sketchware project id after the
+        // mysc root (mysc/<id>/<id>/app/...).  That is still a project-local
+        // path, so collapse only this exact duplicate before applying scope
+        // checks; arbitrary traversal remains rejected by normalize().
+        String duplicatedMyscPrefix = "mysc/" + scId + "/" + scId + "/";
+        if (normalizedPath.startsWith(duplicatedMyscPrefix)) {
+            normalizedPath = "mysc/" + scId + "/"
+                    + normalizedPath.substring(duplicatedMyscPrefix.length());
+        }
         if (normalizedPath.equals("project") || normalizedPath.equals("project.json")) {
             return "mysc/list/" + scId + "/project";
         }

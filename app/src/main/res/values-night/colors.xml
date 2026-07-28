@@ -38,4 +38,12 @@
     <color name="chat_text_hint">#737B95</color>
     <color name="chat_divider">#2B3044</color>
     <color name="chat_border">#30364D</color>
+    <color name="kelivo_tool_surface">#202436</color>
+    <color name="kelivo_surface_soft">#202436</color>
+    <color name="kelivo_border_soft">#30364D</color>
+    <color name="kelivo_user_bubble">#302C54</color>
+    <color name="kelivo_avatar_bg">#302C54</color>
+    <color name="kelivo_avatar_text">#B8B3FF</color>
+    <color name="kelivo_selected_row">#2C3150</color>
+    <color name="kelivo_send_bg">#8B84FF</color>
 </resources>

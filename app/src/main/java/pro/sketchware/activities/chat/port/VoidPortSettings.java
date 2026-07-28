@@ -286,8 +286,8 @@ public final class VoidPortSettings {
         groups.add(new ProviderGroup("vllm", "vLLM", "vLLM", true, new ArrayList<>()));
         groups.add(new ProviderGroup("lm_studio", "lmStudio", "LM Studio", true, new ArrayList<>()));
         groups.add(new ProviderGroup("anthropic", "anthropic", "Anthropic", false, new ArrayList<>(List.of(
-                "claude-opus-4-0",
-                "claude-sonnet-4-0",
+                "claude-opus-4-20250514",
+                "claude-sonnet-4-20250514",
                 "claude-3-7-sonnet-latest",
                 "claude-3-5-sonnet-latest",
                 "claude-3-5-haiku-latest",

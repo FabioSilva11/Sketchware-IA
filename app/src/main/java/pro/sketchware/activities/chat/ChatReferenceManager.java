@@ -230,6 +230,19 @@ public final class ChatReferenceManager {
                 || "litellm".equals(normalized);
     }
 
+    /**
+     * Image blocks are not part of the baseline Chat Completions contract.
+     * In particular DeepSeek's native API accepts only text content and rejects
+     * an {@code image_url} part before the request reaches the model.
+     */
+    static boolean supportsNativeOpenAiImageBlocks(String providerId) {
+        if (providerId == null) {
+            return false;
+        }
+        String normalized = providerId.trim().toLowerCase(Locale.US);
+        return "openai".equals(normalized) || "openrouter".equals(normalized);
+    }
+
     public static JSONArray buildAnthropicImageContentParts(Context context, List<ChatReference> references) {
         JSONArray content = new JSONArray();
         for (EncodedImage image : encodeImages(context, references)) {

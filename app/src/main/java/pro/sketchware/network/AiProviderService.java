@@ -448,7 +448,11 @@ public class AiProviderService {
                                             StreamListener listener, String providerId, int retryCount, AiRequestHandle requestHandle) {
         try {
             JSONObject jsonBody = new JSONObject();
-            jsonBody.put("contents", requestContext.getMessages());
+            boolean singleTurnOnly = isSingleTurnGeminiModel(modelName);
+            JSONArray contents = singleTurnOnly
+                    ? lastUserGeminiContent(requestContext.getMessages())
+                    : requestContext.getMessages();
+            jsonBody.put("contents", contents);
             if (!TextUtils.isEmpty(requestContext.getSystemContext())) {
                 jsonBody.put("systemInstruction", new JSONObject()
                         .put("parts", new JSONArray().put(new JSONObject()
@@ -458,12 +462,17 @@ public class AiProviderService {
                     .put("maxOutputTokens", VoidPortLlmMessage.maxOutputTokens(providerId, modelName)));
 
             boolean useNativeTools = requestContext.getProviderFormat() == ContextBuilder.ProviderFormat.GEMINI
+                    && !singleTurnOnly
                     && VoidPortLlmMessage.shouldUseNativeTools(providerId, modelName, providerConfig)
                     && tools != null
                     && tools.length() > 0
                     && !"normal".equals(chatMode);
             if (useNativeTools) {
                 jsonBody.put("tools", convertToolsToGemini(tools));
+            }
+
+            if (singleTurnOnly) {
+                emitDebug(listener, "Gemini model is single-turn; previous turns and tools were omitted: " + modelName);
             }
 
             // API key is sent via the x-goog-api-key header (see buildGeminiHeaders)
@@ -489,6 +498,26 @@ public class AiProviderService {
         } catch (Exception e) {
             listener.onError("Request preparation error", e);
         }
+    }
+
+    private static boolean isSingleTurnGeminiModel(String modelName) {
+        String normalized = modelName == null ? "" : modelName.toLowerCase(java.util.Locale.US);
+        return normalized.contains("antigravity-preview-05-2026");
+    }
+
+    private static JSONArray lastUserGeminiContent(JSONArray messages) {
+        JSONArray result = new JSONArray();
+        if (messages == null) {
+            return result;
+        }
+        for (int i = messages.length() - 1; i >= 0; i--) {
+            JSONObject message = messages.optJSONObject(i);
+            if (message != null && "user".equals(message.optString("role"))) {
+                result.put(message);
+                return result;
+            }
+        }
+        return messages;
     }
 
     private void sendOpenAiCompatibleStreamingRequest(ProviderConfig providerConfig, String modelName,

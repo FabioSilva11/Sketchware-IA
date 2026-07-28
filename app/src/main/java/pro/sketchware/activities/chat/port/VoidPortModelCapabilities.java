@@ -138,8 +138,8 @@ public final class VoidPortModelCapabilities {
 
         add("anthropic", "claude-3-7-sonnet-latest", 200_000, 8_192, SystemMessageSupport.SEPARATED, ToolFormat.ANTHROPIC_STYLE, false, ReasoningCapabilities.budget(true, 8_192, 1_024, 8_192, 1_024));
         add("anthropic", "claude-3-7-sonnet-20250219", 200_000, 8_192, SystemMessageSupport.SEPARATED, ToolFormat.ANTHROPIC_STYLE, false, ReasoningCapabilities.budget(true, 8_192, 1_024, 8_192, 1_024));
-        add("anthropic", "claude-sonnet-4-0", 200_000, 8_192, SystemMessageSupport.SEPARATED, ToolFormat.ANTHROPIC_STYLE, false, ReasoningCapabilities.none());
-        add("anthropic", "claude-opus-4-0", 200_000, 8_192, SystemMessageSupport.SEPARATED, ToolFormat.ANTHROPIC_STYLE, false, ReasoningCapabilities.none());
+        add("anthropic", "claude-sonnet-4-20250514", 200_000, 8_192, SystemMessageSupport.SEPARATED, ToolFormat.ANTHROPIC_STYLE, false, ReasoningCapabilities.none());
+        add("anthropic", "claude-opus-4-20250514", 200_000, 8_192, SystemMessageSupport.SEPARATED, ToolFormat.ANTHROPIC_STYLE, false, ReasoningCapabilities.none());
         add("anthropic", "claude-3-5-sonnet-latest", 200_000, 8_192, SystemMessageSupport.SEPARATED, ToolFormat.ANTHROPIC_STYLE, false, ReasoningCapabilities.none());
         add("anthropic", "claude-3-5-haiku-latest", 200_000, 8_192, SystemMessageSupport.SEPARATED, ToolFormat.ANTHROPIC_STYLE, false, ReasoningCapabilities.none());
         add("anthropic", "claude-3-opus-latest", 200_000, 4_096, SystemMessageSupport.SEPARATED, ToolFormat.ANTHROPIC_STYLE, false, ReasoningCapabilities.none());

@@ -963,8 +963,11 @@ public class ContextBuilder {
             return nonEmptyText(message.content);
         }
 
-        JSONArray attachments = ChatReferenceManager.buildOpenAiImageContentParts(
-                SketchApplication.getContext(), message.references);
+        JSONArray attachments = new JSONArray();
+        if (ChatReferenceManager.supportsNativeOpenAiImageBlocks(providerId)) {
+            attachments = ChatReferenceManager.buildOpenAiImageContentParts(
+                    SketchApplication.getContext(), message.references);
+        }
         // Generic OpenAI-compatible servers do not consistently implement the
         // Chat Completions file block. Keep them on the universal text-context
         // fallback while enabling native files for the official provider.

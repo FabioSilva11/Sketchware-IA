@@ -154,8 +154,10 @@ public final class VoidPortAiAutocompleteLanguage implements Language {
                 return;
             }
             text.insert(line, column, insertText);
-            CharPosition end = text.getIndexer().getCharPosition(text.getCharIndex(line, column) + insertText.length());
-            editor.setSelection(end.line, end.column);
+            // Content's indexer can still point to the pre-insert snapshot here.
+            // Calling getCharPosition with the new offset then crashes the XML
+            // editor with ArrayIndexOutOfBoundsException. CodeEditor already
+            // advances the caret for completion inserts, so do not re-index it.
             lastAcceptedAt = System.currentTimeMillis();
         }
     }
