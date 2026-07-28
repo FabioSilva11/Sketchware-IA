@@ -107,12 +107,12 @@ public class AgentManager {
     private String queuedChatMode = "agent";
 
     // ---- History compaction (context only; the visible chat is untouched) ----
-    /** Approx. chars of non-compacted history that trigger a compaction pass (~60k tokens). */
-    private static final int COMPACT_THRESHOLD_CHARS = 240_000;
-    /** Recent messages always kept verbatim in the context. */
-    private static final int COMPACT_KEEP_TAIL = 12;
+    /** Approx. chars that trigger the summary stage (~8k tokens). */
+    private static final int COMPACT_THRESHOLD_CHARS = 32_000;
+    /** Recent message groups kept verbatim after the summary stage. */
+    private static final int COMPACT_KEEP_TAIL = 8;
     /** Max chars of transcript sent to the summarizer. */
-    private static final int COMPACT_TRANSCRIPT_MAX_CHARS = 120_000;
+    private static final int COMPACT_TRANSCRIPT_MAX_CHARS = 64_000;
     private String historySummary = "";
     private int historyCompactedUntil = 0;
     private boolean compactionInFlight = false;
@@ -603,7 +603,7 @@ public class AgentManager {
     /** True when the non-compacted history is large enough to justify a summarization pass. */
     private boolean shouldCompactHistory() {
         int end = messages.size() - COMPACT_KEEP_TAIL;
-        if (end - historyCompactedUntil < 8) {
+        if (end - historyCompactedUntil < 4) {
             return false;
         }
         long chars = 0;
@@ -664,8 +664,9 @@ public class AgentManager {
                 summary = aiService.sendTextMessage(
                         "Você é um sumarizador de contexto de um agente de programação. "
                                 + "Resuma a conversa a seguir preservando: objetivo do usuário, decisões tomadas, "
-                                + "arquivos criados/alterados (com caminhos), erros encontrados e estado atual da tarefa. "
-                                + "Seja denso e factual; máximo ~600 palavras.",
+                                + "preferências do usuário, arquivos criados/alterados (com caminhos), resultados relevantes "
+                                + "de ferramentas, erros encontrados e estado atual da tarefa. Descarte detalhes repetitivos, "
+                                + "saídas extensas e dados transitórios. Seja denso e factual; máximo ~400 palavras.",
                         truncateForTranscript(transcript.toString(), COMPACT_TRANSCRIPT_MAX_CHARS));
             } catch (Exception ignored) {
             }

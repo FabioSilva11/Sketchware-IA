@@ -147,6 +147,14 @@ public final class VoidPortLlmMessage {
                     readHeadersJson(null),
                     true
             );
+            case "huggingface" -> new ProviderConfig(
+                    "huggingface",
+                    ProviderFamily.OPENAI_COMPATIBLE,
+                    configuredRequestUrl(prefs, "huggingface", "https://router.huggingface.co/v1", "/chat/completions"),
+                    activeApiKey(prefs, "huggingface", prefs.getString("huggingface_api_key", "")),
+                    readHeadersJson(null),
+                    true
+            );
             case "ollama" -> new ProviderConfig(
                     "ollama",
                     ProviderFamily.OPENAI_COMPATIBLE,

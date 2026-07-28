@@ -178,6 +178,12 @@ public final class VoidPortModelCapabilities {
         add("openrouter", "anthropic/claude-3.7-sonnet", 200_000, 8_192, SystemMessageSupport.SYSTEM_ROLE, ToolFormat.OPENAI_STYLE, false, ReasoningCapabilities.none());
         add("openrouter", "anthropic/claude-3.5-sonnet", 200_000, 8_192, SystemMessageSupport.SYSTEM_ROLE, ToolFormat.OPENAI_STYLE, false, ReasoningCapabilities.none());
 
+        // Hugging Face Inference Providers exposes an OpenAI-compatible chat
+        // endpoint. The router may select different backends, so these are
+        // conservative capabilities for the documented starter models.
+        add("huggingface", "openai/gpt-oss-120b:fastest", 128_000, 8_192, SystemMessageSupport.SYSTEM_ROLE, ToolFormat.OPENAI_STYLE, false, ReasoningCapabilities.thinkTags(true, true, 8_192));
+        add("huggingface", "deepseek-ai/DeepSeek-R1:fastest", 128_000, 8_192, SystemMessageSupport.SYSTEM_ROLE, ToolFormat.OPENAI_STYLE, false, ReasoningCapabilities.thinkTags(false, true, 8_192));
+
         add("ollama", "qwen2.5-coder:7b", 32_000, 4_096, SystemMessageSupport.SYSTEM_ROLE, ToolFormat.XML_FALLBACK, true, ReasoningCapabilities.none());
         add("ollama", "qwen2.5-coder:3b", 32_000, 4_096, SystemMessageSupport.SYSTEM_ROLE, ToolFormat.XML_FALLBACK, true, ReasoningCapabilities.none());
         add("ollama", "qwen2.5-coder:1.5b", 32_000, 4_096, SystemMessageSupport.SYSTEM_ROLE, ToolFormat.XML_FALLBACK, true, ReasoningCapabilities.none());

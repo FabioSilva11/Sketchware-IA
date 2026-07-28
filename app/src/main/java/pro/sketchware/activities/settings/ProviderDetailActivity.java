@@ -412,6 +412,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
             case "anthropic" -> "https://api.anthropic.com/v1";
             case "deepseek" -> "https://api.deepseek.com";
             case "openrouter" -> "https://openrouter.ai/api/v1";
+            case "huggingface" -> "https://router.huggingface.co/v1";
             case "gemini" -> "https://generativelanguage.googleapis.com/v1beta";
             case "groq" -> "https://api.groq.com/openai/v1";
             case "mistral" -> "https://api.mistral.ai/v1";

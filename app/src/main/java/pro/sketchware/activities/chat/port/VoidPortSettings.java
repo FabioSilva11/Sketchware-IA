@@ -203,6 +203,7 @@ public final class VoidPortSettings {
                 || "grok_xai".equals(providerId)
                 || "mistral".equals(providerId)
                 || "minimax".equals(providerId)
+                || "huggingface".equals(providerId)
                 || "openai_compatible".equals(providerId)
                 || "litellm".equals(providerId)
                 || "ollama".equals(providerId)
@@ -226,14 +227,16 @@ public final class VoidPortSettings {
             return !baseUrl.isEmpty();
         }
         return switch (providerId) {
-            case "ollama" -> !getPreferenceValue(prefs, "ollama_api_key", "").isEmpty()
-                    && !getPreferenceValue(prefs, "local_provider_ollama_url", "http://127.0.0.1:11434").isEmpty();
+            // A local Ollama server does not require a token. Requiring one made a
+            // fresh, correctly configured local install unavailable in chat.
+            case "ollama" -> !getPreferenceValue(prefs, "local_provider_ollama_url", "http://127.0.0.1:11434").isEmpty();
             case "vllm" -> !getPreferenceValue(prefs, "local_provider_vllm_url", "http://localhost:8000").isEmpty();
             case "lm_studio" -> !getPreferenceValue(prefs, "local_provider_lm_studio_url", "http://localhost:1234").isEmpty();
             case "anthropic" -> !getPreferenceValue(prefs, "anthropic_api_key", "").isEmpty();
             case "openai" -> !getPreferenceValue(prefs, "openai_api_key", "").isEmpty();
             case "deepseek" -> !getPreferenceValue(prefs, "deepseek_api_key", "").isEmpty();
             case "openrouter" -> !getPreferenceValue(prefs, "openrouter_api_key", "").isEmpty();
+            case "huggingface" -> !getPreferenceValue(prefs, "huggingface_api_key", "").isEmpty();
             case "openai_compatible" -> !getPreferenceValue(prefs, "openai_compatible_api_key", "").isEmpty()
                     && !getPreferenceValue(prefs, "openai_compatible_base_url", "").isEmpty();
             case "gemini" -> !getPreferenceValue(prefs, "gemini_api_key", "").isEmpty();
@@ -310,6 +313,10 @@ public final class VoidPortSettings {
                 "deepseek/deepseek-r1",
                 "google/gemini-2.0-flash-exp:free"
         ))));
+        groups.add(new ProviderGroup("huggingface", "huggingFace", "Hugging Face", false, new ArrayList<>(List.of(
+                "openai/gpt-oss-120b:fastest",
+                "deepseek-ai/DeepSeek-R1:fastest"
+        ))));
         groups.add(new ProviderGroup("openai_compatible", "openAICompatible", "OpenAI-Compatible", false, new ArrayList<>()));
         groups.add(new ProviderGroup("gemini", "gemini", "Gemini", false, new ArrayList<>(List.of(
                 "gemini-2.5-pro-exp-03-25",
@@ -365,6 +372,8 @@ public final class VoidPortSettings {
                 .addField("Base URL", "local_provider_ollama_url", "http://127.0.0.1:11434", false, null));
         providers.add(new ProviderCardSpec("openrouter", "OpenRouter", "Get your API key here. Rate limits depend on the selected model.", "https://openrouter.ai/keys", false)
                 .addField("API Key", "openrouter_api_key", "", true, null));
+        providers.add(new ProviderCardSpec("huggingface", "Hugging Face", "Inference Providers OpenAI-compatible chat endpoint. Use a fine-grained token with Make calls to Inference Providers.", "https://huggingface.co/settings/tokens", false)
+                .addField("API Key", "huggingface_api_key", "", true, null));
         providers.add(new ProviderCardSpec("deepseek", "DeepSeek", "Get your API key here.", "https://platform.deepseek.com/api_keys", false)
                 .addField("API Key", "deepseek_api_key", "", true, null));
         providers.add(new ProviderCardSpec("groq", "Groq", "Use Groq-hosted OpenAI-compatible models.", "https://console.groq.com/keys", false)

@@ -588,6 +588,7 @@ public class ContextBuilder {
                     "[Resumo da conversa anterior — mensagens antigas foram compactadas]\n" + historySummary,
                     ""));
         }
+        int oldToolResultsToCompact = countOldToolResultsToCompact(historyStartIndex);
         for (int msgIndex = historyStartIndex; msgIndex < messages.size(); msgIndex++) {
             ChatMessage message = messages.get(msgIndex);
             if (message == null
@@ -627,7 +628,16 @@ public class ContextBuilder {
             if (message.isTool()) {
                 String toolName = safe(message.getToolName());
                 String toolArgs = trimToTokens(safe(message.getToolArgs()), 1000);
-                String toolResult = trimToTokens(safe(message.getToolResult()), 4000);
+                // Preserve the protocol pair, but compact old tool output before
+                // it enters the provider payload. Tool calls/results must remain
+                // atomic for OpenAI, Anthropic and Gemini request formats.
+                boolean compactToolResult = oldToolResultsToCompact > 0;
+                if (compactToolResult) {
+                    oldToolResultsToCompact--;
+                }
+                String toolResult = compactToolResult
+                        ? compactToolResult(toolName, safe(message.getToolResult()))
+                        : trimToTokens(safe(message.getToolResult()), 4000);
                 if (!toolName.isEmpty() && !toolResult.isEmpty()) {
                     simpleMessages.add(SimpleMessage.tool(
                             toolName,
@@ -639,6 +649,33 @@ public class ContextBuilder {
             }
         }
         return simpleMessages;
+    }
+
+    /**
+     * First pipeline stage: preserve the two newest tool-result groups verbatim
+     * and replace older results with small, deterministic summaries. Keeping the
+     * tool call and its result in the history preserves API-valid atomic groups.
+     */
+    private int countOldToolResultsToCompact(int startIndex) {
+        int total = 0;
+        for (int i = startIndex; i < messages.size(); i++) {
+            ChatMessage message = messages.get(i);
+            if (message != null && message.isTool()) {
+                total++;
+            }
+        }
+        return Math.max(0, total - 2);
+    }
+
+    private String compactToolResult(String toolName, String result) {
+        String normalized = safe(result).replaceAll("\\s+", " ").trim();
+        if (normalized.isEmpty()) {
+            return "[Tool result compacted: " + safe(toolName) + " returned no text]";
+        }
+        String preview = trimToTokens(normalized, 96);
+        return "[Tool result compacted: " + safe(toolName)
+                + "; originalChars=" + normalized.length()
+                + "; preview=" + preview + "]";
     }
 
     private int findLatestUserMessageIndex() {
@@ -1104,7 +1141,10 @@ public class ContextBuilder {
         // being answered or the latest tool result required to continue the turn.
         for (int i = 0; i < messages.length() - 1; i++) {
             JSONObject candidate = messages.optJSONObject(i);
-            if (candidate != protectedMessage && !toolGroupReachesNewest(messages, i)) {
+            // A tool response is removed only with its preceding tool-call
+            // message. Removing it independently leaves an invalid API history.
+            if (candidate != protectedMessage && !containsToolResponse(candidate)
+                    && !toolGroupReachesNewest(messages, i)) {
                 return i;
             }
         }
@@ -1131,7 +1171,7 @@ public class ContextBuilder {
         if (!hasToolRequest) {
             return;
         }
-        while (index < messages.length() - 1) {
+        while (index < messages.length()) {
             JSONObject next = messages.optJSONObject(index);
             if (next == protectedMessage || !containsToolResponse(next)) {
                 break;
