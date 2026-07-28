@@ -1,6 +1,7 @@
 package pro.sketchware.control.logic;
 
 import com.besome.sketch.beans.BlockBean;
+import com.besome.sketch.beans.ComponentBean;
 
 import java.util.ArrayList;
 import java.util.Map.Entry;
@@ -70,12 +71,27 @@ public class PermissionManager {
         return !addedPermissions().isEmpty();
     }
 
+    private boolean usesFusedLocationManager() {
+        for (ComponentBean componentBean : jC.a(sc_id).e(javaName)) {
+            if (componentBean.type == ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER) return true;
+        }
+        return false;
+    }
+
     public String writePermission(boolean isAppCompat, int var1) {
         ArrayList<String> checkPerm = new ArrayList<>();
         ArrayList<String> addPerm = new ArrayList<>();
         StringBuilder permissionCode = new StringBuilder();
 
         addReqPermission(isAppCompat, checkPerm, addPerm);
+
+        if (usesFusedLocationManager()) {
+            String coarseLocation = isAppCompat
+                    ? "ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_DENIED"
+                    : "checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_DENIED";
+            if (!checkPerm.contains(coarseLocation)) checkPerm.add(coarseLocation);
+            if (!addPerm.contains("Manifest.permission.ACCESS_COARSE_LOCATION")) addPerm.add("Manifest.permission.ACCESS_COARSE_LOCATION");
+        }
 
         if (isAppCompat) {
             if ((var1 & jq.PERMISSION_CALL_PHONE) == jq.PERMISSION_CALL_PHONE) {

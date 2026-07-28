@@ -466,6 +466,10 @@ public class Ix {
         if (c.isBiometricManagerUsed) {
             writePermission(a, "android.permission.USE_BIOMETRIC");
         }
+        if (c.isFusedLocationManagerUsed) {
+            writePermission(a, Manifest.permission.ACCESS_FINE_LOCATION);
+            writePermission(a, Manifest.permission.ACCESS_COARSE_LOCATION);
+        }
         if (c.isWorkManagerUsed || builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME)) {
             writePermission(a, "android.permission.WAKE_LOCK");
             writePermission(a, "android.permission.ACCESS_NETWORK_STATE");

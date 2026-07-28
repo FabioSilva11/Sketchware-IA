@@ -433,7 +433,18 @@ public class Jx {
             sb.append("public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {").append(EOL);
             sb.append("super.onRequestPermissionsResult(requestCode, permissions, grantResults);").append(EOL);
             sb.append("if (requestCode == 1000) {").append(EOL);
+            sb.append("boolean _allPermissionsGranted = grantResults.length > 0;").append(EOL);
+            sb.append("for (int _grantResult : grantResults) { if (_grantResult != PackageManager.PERMISSION_GRANTED) { _allPermissionsGranted = false; break; } }").append(EOL);
+            sb.append("if (_allPermissionsGranted) {").append(EOL);
             sb.append("initializeLogic();").append(EOL);
+            for (ComponentBean componentBean : projectDataManager.e(projectFileBean.getJavaName())) {
+                if (componentBean.type == ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER) {
+                    sb.append("_").append(componentBean.componentId).append("_start_location_updates();").append(EOL);
+                }
+            }
+            sb.append("} else {").append(EOL);
+            sb.append("android.widget.Toast.makeText(this, \"Location permission denied.\", android.widget.Toast.LENGTH_SHORT).show();").append(EOL);
+            sb.append("}").append(EOL);
             sb.append("}").append(EOL);
             sb.append("}").append(EOL);
         }
@@ -540,6 +551,12 @@ public class Jx {
                 eventManager.addLifecycleEvent("onResume", "AdView", next.id);
                 eventManager.addLifecycleEvent("onPause", "AdView", next.id);
                 eventManager.addLifecycleEvent("onDestroy", "AdView", next.id);
+            }
+        }
+        for (ComponentBean componentBean : projectDataManager.e(projectFileBean.getJavaName())) {
+            if (componentBean.type == ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER) {
+                eventManager.addLifecycleEvent("onResume", "FusedLocationManager", componentBean.componentId);
+                eventManager.addLifecycleEvent("onPause", "FusedLocationManager", componentBean.componentId);
             }
         }
         if (!eventManager.k.isEmpty()) {

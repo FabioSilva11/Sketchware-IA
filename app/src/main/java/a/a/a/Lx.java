@@ -717,7 +717,25 @@ public class Lx {
                     break;
 
                 case "FusedLocationManager":
+                    fieldDeclaration += "\r\nprivate LocationRequest _" + typeInstanceName + "_location_request = LocationRequest.create()"
+                            + ".setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY).setInterval(1000L).setFastestInterval(500L);";
                     fieldDeclaration += "\r\nprivate LocationCallback _" + typeInstanceName + "_location_callback;";
+                    fieldDeclaration += "\r\nprivate boolean _" + typeInstanceName + "_location_updates_started;";
+                    fieldDeclaration += "\r\nprivate void _" + typeInstanceName + "_start_location_updates() {\r\n"
+                            + "if (" + typeInstanceName + " == null || _" + typeInstanceName + "_location_callback == null || _" + typeInstanceName + "_location_updates_started) return;\r\n"
+                            + "if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED && checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {\r\n"
+                            + "requestPermissions(new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 1000);\r\n"
+                            + "return;\r\n"
+                            + "}\r\n"
+                            + typeInstanceName + ".requestLocationUpdates(_" + typeInstanceName + "_location_request, _" + typeInstanceName + "_location_callback, Looper.getMainLooper());\r\n"
+                            + "_" + typeInstanceName + "_location_updates_started = true;\r\n"
+                            + "}";
+                    fieldDeclaration += "\r\nprivate void _" + typeInstanceName + "_stop_location_updates() {\r\n"
+                            + "if (" + typeInstanceName + " != null && _" + typeInstanceName + "_location_callback != null && _" + typeInstanceName + "_location_updates_started) {\r\n"
+                            + typeInstanceName + ".removeLocationUpdates(_" + typeInstanceName + "_location_callback);\r\n"
+                            + "_" + typeInstanceName + "_location_updates_started = false;\r\n"
+                            + "}\r\n"
+                            + "}";
                     break;
 
                 case "FirebaseAuth":
@@ -1148,6 +1166,9 @@ public class Lx {
                     code.append(viewId).append(".pause();\r\n");
                     code.append("}");
                 }
+                if (viewType.equals("FusedLocationManager")) {
+                    code.append("_").append(viewId).append("_stop_location_updates();");
+                }
                 break;
 
             case "onStart":
@@ -1164,6 +1185,9 @@ public class Lx {
                     code.append("if (").append(viewId).append(" != null) {\r\n");
                     code.append(viewId).append(".resume();\r\n");
                     code.append("}");
+                }
+                if (viewType.equals("FusedLocationManager")) {
+                    code.append("_").append(viewId).append("_start_location_updates();");
                 }
                 break;
 

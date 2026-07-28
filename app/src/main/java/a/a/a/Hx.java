@@ -126,9 +126,12 @@ public class Hx {
     }
 
     public void addLifecycleEvent(String eventName, String viewType, String viewId) {
-        if (!activityLifecycleEvents.containsKey(eventName)) {
-            activityLifecycleEvents.put(eventName, Lx.getDefaultActivityLifecycleCode(eventName, viewType, isViewBindingEnabled ? "binding." + ViewBindingBuilder.generateParameterFromId(viewId) : viewId));
-        }
+        String targetId = viewType.equals("FusedLocationManager") ? viewId
+                : (isViewBindingEnabled ? "binding." + ViewBindingBuilder.generateParameterFromId(viewId) : viewId);
+        String lifecycleCode = Lx.getDefaultActivityLifecycleCode(eventName, viewType, targetId);
+        if (lifecycleCode.isEmpty()) return;
+        String currentCode = activityLifecycleEvents.get(eventName);
+        activityLifecycleEvents.put(eventName, currentCode == null ? lifecycleCode : currentCode + Jx.EOL + lifecycleCode);
     }
 
     private void a(ArrayList<EventBean> events, HashMap<String, ArrayList<BlockBean>> logicBlocks) {
@@ -190,6 +193,13 @@ public class Hx {
                 ActivityEvent a = new ActivityEvent(name);
                 a.setLogic(logic);
                 activityEvents.add(a);
+            } else {
+                for (ActivityEvent next : activityEvents) {
+                    if (next.name.equals(name)) {
+                        next.setLogic(logic + Jx.EOL + next.logic);
+                        break;
+                    }
+                }
             }
         }
 
