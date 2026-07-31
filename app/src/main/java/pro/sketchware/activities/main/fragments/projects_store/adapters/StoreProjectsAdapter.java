@@ -200,7 +200,7 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<RecyclerView.View
         if (numProjects < NATIVE_AD_INTERVAL || !hasRenderableNativeAd()) {
             return 0;
         }
-        return numProjects / NATIVE_AD_INTERVAL;
+        return 1;
     }
 
     private boolean isNativeAdPosition(int virtualPosition) {
@@ -208,8 +208,7 @@ public class StoreProjectsAdapter extends RecyclerView.Adapter<RecyclerView.View
         if (numProjects < NATIVE_AD_INTERVAL || !hasRenderableNativeAd()) {
             return false;
         }
-        int adjustedPos = virtualPosition + 1;
-        return adjustedPos % (NATIVE_AD_INTERVAL + 1) == 0;
+        return virtualPosition == NATIVE_AD_INTERVAL;
     }
 
     private boolean hasRenderableNativeAd() {

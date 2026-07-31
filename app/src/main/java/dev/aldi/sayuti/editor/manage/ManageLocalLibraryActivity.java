@@ -510,7 +510,7 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
             if (libraryCount < NATIVE_AD_INTERVAL) {
                 return 0;
             }
-            return libraryCount / NATIVE_AD_INTERVAL;
+            return 1;
         }
 
         private boolean isNativeAdPosition(int virtualPosition) {
@@ -518,8 +518,7 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
             if (libraryCount < NATIVE_AD_INTERVAL) {
                 return false;
             }
-            int adjustedPosition = virtualPosition + 1;
-            return adjustedPosition % (NATIVE_AD_INTERVAL + 1) == 0;
+            return virtualPosition == NATIVE_AD_INTERVAL;
         }
 
         private int translateToLibraryPosition(int virtualPosition) {

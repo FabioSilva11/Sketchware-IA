@@ -10,8 +10,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.besome.sketch.tools.CollectErrorActivity;
-import com.google.android.gms.ads.MobileAds;
-
+import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.TranslationFunction;
 import pro.sketchware.utility.theme.ThemeManager;
 
@@ -43,6 +42,6 @@ public class SketchApplication extends Application {
         });
         super.onCreate();
         ThemeManager.applyTheme(this, ThemeManager.getCurrentTheme(this));
-        MobileAds.initialize(this);
+        AdManager.initialize(this);
     }
 }

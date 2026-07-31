@@ -114,9 +114,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
         for (ChatMessage msg : messages) {
             if (isBotMessage(msg)) {
                 botCount++;
-                if (botCount % NATIVE_AD_INTERVAL == 0 && botCount > 0) {
-                    ads++;
-                }
+                if (botCount == NATIVE_AD_INTERVAL) ads = 1;
             }
         }
         return ads;
@@ -133,7 +131,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             ChatMessage msg = messages.get(i);
             if (isBotMessage(msg)) {
                 botCount++;
-                if (botCount % NATIVE_AD_INTERVAL == 0 && botCount > 0) {
+                if (botCount == NATIVE_AD_INTERVAL) {
                     if (virtualCursor == virtualPosition) {
                         return true;
                     }
@@ -155,7 +153,7 @@ public class ChatMessageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHo
             ChatMessage msg = messages.get(i);
             if (isBotMessage(msg)) {
                 botCount++;
-                if (botCount % NATIVE_AD_INTERVAL == 0 && botCount > 0) {
+                if (botCount == NATIVE_AD_INTERVAL) {
                     if (virtualCursor == virtualPosition) {
                         return -1;
                     }

@@ -154,7 +154,8 @@ dependencies {
 
     implementation libs.libsu
     implementation libs.insetter
-    implementation 'com.google.android.gms:play-services-ads:23.6.0'
+    implementation 'com.google.android.gms:play-services-ads:25.4.0'
+    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
 
     implementation(libs.javaparser.symbol.solver) {
         exclude group: "com.google.guava", module: "guava"
@@ -164,7 +165,7 @@ dependencies {
     if (secrets != null) {
         googleServicesFile.text = secrets
     }
-    implementation platform("com.google.firebase:firebase-bom:34.3.0")
+    implementation platform("com.google.firebase:firebase-bom:34.16.0")
     implementation "com.google.firebase:firebase-crashlytics"
     implementation "com.google.firebase:firebase-analytics"
     implementation "com.google.firebase:firebase-messaging"
