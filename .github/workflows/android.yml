@@ -109,9 +109,12 @@ jobs:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          # L8 needs more heap than the desktop-friendly project default (2 GB).
+          # Keep this override scoped to the hosted release build.
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx5g -Dfile.encoding=UTF-8 -XX:+UseParallelGC
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease
+          ./gradlew --no-daemon --max-workers=1 assembleRelease
 
       - name: Set short SHA
         id: set_sha
