@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import pro.sketchware.BuildConfig;
@@ -61,6 +62,8 @@ public final class AdManager {
     private static final List<NativeAdLoadCallback> pendingNativeCallbacks = new ArrayList<>();
     private static final Map<ViewGroup, BannerSlot> bannerSlots =
             Collections.synchronizedMap(new IdentityHashMap<>());
+    private static final Map<ViewGroup, PendingBannerLoad> pendingBannerLoads =
+            Collections.synchronizedMap(new WeakHashMap<>());
     private static volatile Context appContext;
     private static volatile ConsentInformation consentInformation;
     @Nullable private static NativeAd cachedNativeAd;
@@ -149,8 +152,12 @@ public final class AdManager {
                                            @NonNull String requestedAdUnitId, boolean fixedSize) {
         if (!isActivityUsable(activity)) { log("ad_activity_destroyed", "banner", requestedAdUnitId, 0, null, 0, 0, null); return; }
         runWhenAdsReady(() -> {
-            if (!isActivityUsable(activity) || !container.isAttachedToWindow()) {
-                log("ad_view_not_visible", "banner", requestedAdUnitId, 0, null, 0, 0, null); return;
+            if (!isActivityUsable(activity)) {
+                log("ad_activity_destroyed", "banner", requestedAdUnitId, 0, null, 0, 0, null); return;
+            }
+            if (!container.isAttachedToWindow()) {
+                waitForBannerContainer(activity, container, requestedAdUnitId, fixedSize);
+                return;
             }
             BannerSlot old = bannerSlots.get(container);
             if (old != null && (old.loading || old.loaded)) {
@@ -166,6 +173,20 @@ public final class AdManager {
             container.addView(adView);
             slot.load();
         });
+    }
+
+    private static void waitForBannerContainer(@NonNull Activity activity, @NonNull ViewGroup container,
+                                               @NonNull String adUnitId, boolean fixedSize) {
+        synchronized (pendingBannerLoads) {
+            if (pendingBannerLoads.containsKey(container)) {
+                log("ad_duplicate_request", "banner", adUnitId, 0, "waiting_for_container", 0, 0, null);
+                return;
+            }
+            PendingBannerLoad pending = new PendingBannerLoad(activity, container, adUnitId, fixedSize);
+            pendingBannerLoads.put(container, pending);
+            container.addOnAttachStateChangeListener(pending);
+        }
+        log("ad_view_not_visible", "banner", adUnitId, 0, "waiting_for_container", 0, 0, null);
     }
 
     @NonNull private static AdSize getAdaptiveBannerAdSize(@NonNull Activity activity, @NonNull ViewGroup container) {
@@ -290,6 +311,32 @@ public final class AdManager {
             adView.loadAd(new AdRequest.Builder().build());
         }
         void destroy() { if (!destroyed) { destroyed = true; adView.destroy(); } }
+    }
+
+    private static final class PendingBannerLoad implements View.OnAttachStateChangeListener {
+        final WeakReference<Activity> activity;
+        final WeakReference<ViewGroup> container;
+        final String adUnitId;
+        final boolean fixedSize;
+
+        PendingBannerLoad(@NonNull Activity activity, @NonNull ViewGroup container,
+                          @NonNull String adUnitId, boolean fixedSize) {
+            this.activity = new WeakReference<>(activity);
+            this.container = new WeakReference<>(container);
+            this.adUnitId = adUnitId;
+            this.fixedSize = fixedSize;
+        }
+
+        @Override public void onViewAttachedToWindow(@NonNull View view) {
+            ViewGroup target = container.get();
+            if (target == null) return;
+            target.removeOnAttachStateChangeListener(this);
+            synchronized (pendingBannerLoads) { pendingBannerLoads.remove(target); }
+            Activity owner = activity.get();
+            if (isActivityUsable(owner)) loadBannerInternal(owner, target, adUnitId, fixedSize);
+        }
+
+        @Override public void onViewDetachedFromWindow(@NonNull View view) { }
     }
 
     private static void inspectBanner(@NonNull BannerSlot slot) {
