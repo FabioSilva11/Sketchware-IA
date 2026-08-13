@@ -6,12 +6,12 @@ def googleServicesFile = file("$projectDir/google-services.json")
 def analyticsEnabled = (secrets != null) || googleServicesFile.exists()
 
 apply plugin: "com.android.application"
-apply plugin: "kotlin-android"
 apply plugin: "com.google.gms.google-services"
 apply plugin: "com.google.firebase.crashlytics"
 
 android {
-    compileSdk = 36
+    // Keep the host app aligned with the API level shipped by the on-device compiler.
+    compileSdk = 37
 
     // Resolve the git hash defensively: the build must not fail when git is not
     // installed or the project was downloaded as a ZIP (no .git directory).
@@ -94,10 +94,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     androidResources {
         additionalParameters.addAll("--stable-ids", "${rootDir}/public-stable-ids.txt")
     }
@@ -113,6 +109,14 @@ android {
         exclude group: "org.jetbrains.kotlin", module: "kotlin-scripting-common"
         exclude group: "org.jetbrains.kotlin", module: "kotlin-scripting-jvm"
         exclude group: "org.jetbrains.kotlin", module: "kotlin-script-runtime"
+    }
+}
+
+// AGP 9 provides Kotlin support itself; configure its compiler through the
+// current compilerOptions DSL instead of the removed android.kotlinOptions DSL.
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget("17")
     }
 }
 
