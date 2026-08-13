@@ -64,6 +64,7 @@ final class ChatCompileRunner implements BuildProgressReceiver {
             return;
         }
         try {
+            new CompileErrorSaver(scId).startBuildLog();
             yq workspace = new yq(context, scId);
             onProgress("Deleting temporary files...", 1);
             FileUtil.deleteFile(workspace.projectMyscPath);
@@ -129,17 +130,18 @@ final class ChatCompileRunner implements BuildProgressReceiver {
             finish(false, "Missing " + (e.isMissingDirectory() ? "directory" : "file") + ": "
                     + e.getMissingFile().getAbsolutePath(), null);
         } catch (zy e) {
-            new CompileErrorSaver(scId).writeLogsToFile(e.getMessage());
+            new CompileErrorSaver(scId).appendLog("BUILD FAILED:\n" + e.getMessage());
             finish(false, e.getMessage(), null);
         } catch (Throwable t) {
             String stackTrace = Log.getStackTraceString(t);
-            new CompileErrorSaver(scId).writeLogsToFile(stackTrace);
+            new CompileErrorSaver(scId).appendLog("BUILD FAILED:\n" + stackTrace);
             finish(false, stackTrace, null);
         }
     }
 
     @Override
     public void onProgress(String progress, int step) {
+        new CompileErrorSaver(scId).appendLog("STEP " + step + "/" + TOTAL_STEPS + ": " + progress);
         if (listener != null) {
             int percent = step <= 0 ? 0 : (step * 100) / TOTAL_STEPS;
             listener.onCompileProgress(progress + " (" + percent + "%)", step);

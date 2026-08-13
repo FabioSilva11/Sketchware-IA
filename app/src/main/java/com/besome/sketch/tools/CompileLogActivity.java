@@ -382,7 +382,8 @@ public class CompileLogActivity extends BaseAppCompatActivity {
                 File latest = null;
                 long latestMod = -1;
                 for (File dir : candidates) {
-                    File log = new File(dir, "compile_log");
+                    File log = new File(dir, "compile_log.txt");
+                    if (!log.exists()) log = new File(dir, "compile_log"); // Logs from older versions
                     long m = log.exists() ? log.lastModified() : -1;
                     if (m > latestMod) {
                         latestMod = m;

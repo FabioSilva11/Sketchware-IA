@@ -7,6 +7,9 @@ import com.besome.sketch.tools.CompileLogActivity;
 
 import java.io.FileReader;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 import pro.sketchware.utility.FilePathUtil;
 import pro.sketchware.utility.FileUtil;
@@ -39,6 +42,21 @@ public class CompileErrorSaver {
     public void writeLogsToFile(String errorText) {
         if (logFileExists()) FileUtil.deleteFile(path);
         FileUtil.writeFile(path, errorText);
+    }
+
+    /** Starts a full, recoverable build log. The file is kept at compile_log.txt. */
+    public void startBuildLog() {
+        writeLogsToFile("Sketchware compiler log\nStarted: " + now() + "\nProject: " + sc_id + "\n\n");
+    }
+
+    /** Appends compiler progress or an error without discarding the earlier stages. */
+    public void appendLog(String text) {
+        String previous = getLogsFromFile();
+        FileUtil.writeFile(path, (previous == null ? "" : previous) + "[" + now() + "] " + text + "\n");
+    }
+
+    private static String now() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(new Date());
     }
 
     /**

@@ -367,7 +367,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
      * @param error The error, to be later displayed as text in {@link CompileLogActivity}
      */
     private void indicateCompileErrorOccurred(String error) {
-        new CompileErrorSaver(sc_id).writeLogsToFile(error);
+        new CompileErrorSaver(sc_id).appendLog("BUILD FAILED:\n" + error);
         Snackbar snackbar = Snackbar.make(coordinatorLayout, "Show compile log", Snackbar.LENGTH_INDEFINITE);
         snackbar.setAction(Helper.getResString(R.string.common_word_show), v -> {
             if (!mB.a()) {
@@ -1641,6 +1641,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             try {
                 var q = activity.q;
                 var sc_id = DesignActivity.sc_id;
+                new CompileErrorSaver(sc_id).startBuildLog();
                 onProgress("Deleting temporary files...", 1);
                 FileUtil.deleteFile(q.projectMyscPath);
 
@@ -1797,6 +1798,8 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
 
             DesignActivity activity = getActivity();
             if (activity == null) return;
+
+            new CompileErrorSaver(DesignActivity.sc_id).appendLog("STEP " + step + "/20: " + progress);
 
             activity.runOnUiThread(() -> {
                 progressBar.setIndeterminate(step == -1);
