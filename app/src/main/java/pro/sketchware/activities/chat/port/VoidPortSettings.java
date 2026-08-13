@@ -204,6 +204,7 @@ public final class VoidPortSettings {
                 || "mistral".equals(providerId)
                 || "minimax".equals(providerId)
                 || "huggingface".equals(providerId)
+                || "opencode_zen".equals(providerId)
                 || "openai_compatible".equals(providerId)
                 || "litellm".equals(providerId)
                 || "ollama".equals(providerId)
@@ -237,6 +238,7 @@ public final class VoidPortSettings {
             case "deepseek" -> !getPreferenceValue(prefs, "deepseek_api_key", "").isEmpty();
             case "openrouter" -> !getPreferenceValue(prefs, "openrouter_api_key", "").isEmpty();
             case "huggingface" -> !getPreferenceValue(prefs, "huggingface_api_key", "").isEmpty();
+            case "opencode_zen" -> !getPreferenceValue(prefs, "opencode_zen_api_key", "").isEmpty();
             case "openai_compatible" -> !getPreferenceValue(prefs, "openai_compatible_api_key", "").isEmpty()
                     && !getPreferenceValue(prefs, "openai_compatible_base_url", "").isEmpty();
             case "gemini" -> !getPreferenceValue(prefs, "gemini_api_key", "").isEmpty();
@@ -317,6 +319,11 @@ public final class VoidPortSettings {
                 "openai/gpt-oss-120b:fastest",
                 "deepseek-ai/DeepSeek-R1:fastest"
         ))));
+        groups.add(new ProviderGroup("opencode_zen", "openCodeZen", "OpenCode Zen", false, new ArrayList<>(List.of(
+                "gpt-5.6-sol",
+                "claude-sonnet-5",
+                "gemini-3.6-flash"
+        ))));
         groups.add(new ProviderGroup("openai_compatible", "openAICompatible", "OpenAI-Compatible", false, new ArrayList<>()));
         groups.add(new ProviderGroup("gemini", "gemini", "Gemini", false, new ArrayList<>(List.of(
                 "gemini-2.5-pro-exp-03-25",
@@ -374,6 +381,8 @@ public final class VoidPortSettings {
                 .addField("API Key", "openrouter_api_key", "", true, null));
         providers.add(new ProviderCardSpec("huggingface", "Hugging Face", "Inference Providers OpenAI-compatible chat endpoint. Use a fine-grained token with Make calls to Inference Providers.", "https://huggingface.co/settings/tokens", false)
                 .addField("API Key", "huggingface_api_key", "", true, null));
+        providers.add(new ProviderCardSpec("opencode_zen", "OpenCode Zen", "Curated coding models through the OpenAI-compatible Zen API.", "https://opencode.ai/zen", false)
+                .addField("API Key", "opencode_zen_api_key", "", true, null));
         providers.add(new ProviderCardSpec("deepseek", "DeepSeek", "Get your API key here.", "https://platform.deepseek.com/api_keys", false)
                 .addField("API Key", "deepseek_api_key", "", true, null));
         providers.add(new ProviderCardSpec("groq", "Groq", "Use Groq-hosted OpenAI-compatible models.", "https://console.groq.com/keys", false)

@@ -107,6 +107,14 @@ public final class VoidPortLlmMessage {
                     readHeadersJson("{\"HTTP-Referer\":\"https://github.com/FabioSilva11/Sketchware-IA\",\"X-Title\":\"Sketchware IA\"}"),
                     true
             );
+            case "opencode_zen" -> new ProviderConfig(
+                    "opencode_zen",
+                    ProviderFamily.OPENAI_COMPATIBLE,
+                    configuredRequestUrl(prefs, "opencode_zen", "https://opencode.ai/zen/v1", "/chat/completions"),
+                    activeApiKey(prefs, "opencode_zen", prefs.getString("opencode_zen_api_key", "")),
+                    readHeadersJson(null),
+                    true
+            );
             case "openai_compatible" -> new ProviderConfig(
                     "openai_compatible",
                     ProviderFamily.OPENAI_COMPATIBLE,

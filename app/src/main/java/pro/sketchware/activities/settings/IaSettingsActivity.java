@@ -632,6 +632,7 @@ public class IaSettingsActivity extends BaseAppCompatActivity {
             case "anthropic" -> "https://api.anthropic.com/v1";
             case "gemini" -> "https://generativelanguage.googleapis.com/v1beta";
             case "openrouter" -> "https://openrouter.ai/api/v1";
+            case "opencode_zen" -> "https://opencode.ai/zen/v1";
             case "deepseek" -> "https://api.deepseek.com";
             case "groq" -> "https://api.groq.com/openai/v1";
             case "mistral" -> "https://api.mistral.ai/v1";
