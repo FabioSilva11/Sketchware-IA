@@ -5,8 +5,8 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // API 37 requires AGP 9.1.1 or newer. Keep this in sync with the Gradle wrapper.
-        classpath 'com.android.tools.build:gradle:9.1.1'
+        // AGP 8.13.2 is the minimum release that supports Kotlin 2.3 metadata.
+        classpath 'com.android.tools.build:gradle:8.13.2'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.21"
         classpath "com.google.firebase:firebase-crashlytics-gradle:3.0.3"
         classpath "com.google.gms:google-services:4.4.2"

@@ -291,15 +291,12 @@ public class ResourceCompiler {
             args.add(buildHelper.yq.resourcesApkPath);
 
             LogUtil.d(TAG + ":l", args.toString());
-            buildHelper.logCompiler("AAPT2 link command: " + args);
             BinaryExecutor executor = new BinaryExecutor();
             executor.setCommands(args);
             if (!executor.execute().isEmpty()) {
                 LogUtil.e(TAG + ":l", executor.getLog());
-                buildHelper.logCompiler("AAPT2 link failed: " + executor.getLog());
                 throw new zy(executor.getLog());
             }
-            buildHelper.logCompiler("AAPT2 resource linking finished successfully.");
         }
 
         private void compileProjectResources(String outputPath) throws zy, MissingFileException {

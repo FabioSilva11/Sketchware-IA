@@ -9,7 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.zip.ZipFile;
 
 import a.a.a.Jp;
 import a.a.a.KB;
@@ -627,38 +626,6 @@ public class BuiltInLibraries {
             new oB().c(EXTRACTED_COMPILE_ASSETS_PATH.getAbsolutePath() + File.separator + "android.jar");
             /* Extract android.jar.zip to android.jar */
             new KB().a(androidJarPath, EXTRACTED_COMPILE_ASSETS_PATH.getAbsolutePath());
-        }
-        ensureAndroidJarIsUsable(androidJarPath, receivers);
-    }
-
-    /**
-     * A partially extracted android.jar makes ECJ report "failed to load include path".
-     * Validate it before every build and retry extraction once from the packaged archive.
-     */
-    private static void ensureAndroidJarIsUsable(String archivePath, @NonNull BuildProgressReceiver... receivers) {
-        File androidJar = new File(EXTRACTED_COMPILE_ASSETS_PATH, "android.jar");
-        if (isUsableAndroidJar(androidJar)) return;
-
-        for (BuildProgressReceiver receiver : receivers) {
-            receiver.onProgress("Repairing built-in android.jar...", 7);
-        }
-        new oB().c(androidJar.getAbsolutePath());
-        new KB().a(archivePath, EXTRACTED_COMPILE_ASSETS_PATH.getAbsolutePath());
-        if (!isUsableAndroidJar(androidJar)) {
-            throw new IllegalStateException("android.jar is missing or corrupted after extraction: "
-                    + androidJar.getAbsolutePath() + " (size=" + androidJar.length() + ")");
-        }
-    }
-
-    private static boolean isUsableAndroidJar(File androidJar) {
-        if (!androidJar.isFile() || androidJar.length() == 0) return false;
-        try (ZipFile zip = new ZipFile(androidJar)) {
-            // AAPT2 needs framework resources as well as Java framework classes.
-            // Checking only Activity.class lets a class-only/corrupt jar reach AAPT2.
-            return zip.getEntry("android/app/Activity.class") != null
-                    && zip.getEntry("resources.arsc") != null;
-        } catch (IOException ignored) {
-            return false;
         }
     }
 

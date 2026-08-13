@@ -47,7 +47,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.zip.ZipFile;
 import java.util.stream.Collectors;
 
 import mod.agus.jcoderz.dex.Dex;
@@ -186,13 +185,6 @@ public class ProjectBuilder {
      */
     public void compileResources() throws Exception {
         timestampResourceCompilationStarted = System.currentTimeMillis();
-        // Resource linking is the first consumer of android.jar (before ECJ).
-        // Re-run extraction here so a damaged framework jar is repaired before AAPT2 starts.
-        BuiltInLibraries.extractCompileAssets(progressReceiver == null
-                ? new BuildProgressReceiver[0] : new BuildProgressReceiver[]{progressReceiver});
-        logCompiler("AAPT2 starting; android.jar=" + androidJarPath + "; exists="
-                + new File(androidJarPath).isFile() + "; size=" + new File(androidJarPath).length());
-        verifyAndroidJarBeforeCompile();
         ResourceCompiler compiler = new ResourceCompiler(
                 this,
                 aapt2Binary,
@@ -548,9 +540,6 @@ public class ProjectBuilder {
      */
     public void compileJavaCode() throws zy, IOException {
         long savedTimeMillis = System.currentTimeMillis();
-        logCompiler("Java compiler starting; android.jar=" + androidJarPath + "; exists="
-                + new File(androidJarPath).isFile() + "; size=" + new File(androidJarPath).length());
-        verifyAndroidJarBeforeCompile();
         sanitizeJavaSourcesBeforeCompile();
 
         class EclipseOutOutputStream extends OutputStream {
@@ -623,37 +612,17 @@ public class ProjectBuilder {
             /* Start compiling */
             org.eclipse.jdt.internal.compiler.batch.Main main = new org.eclipse.jdt.internal.compiler.batch.Main(outWriter, errWriter, false, null, null);
             LogUtil.d(TAG, "Running Eclipse compiler with these arguments: " + args);
-            logCompiler("ECJ arguments: " + args);
             main.compile(args.toArray(new String[0]));
 
             LogUtil.d(TAG, "System.out of Eclipse compiler: " + outOutputStream.getOut());
             if (main.globalErrorsCount <= 0) {
                 LogUtil.d(TAG, "System.err of Eclipse compiler: " + errOutputStream.getOut());
                 LogUtil.d(TAG, "Compiling Java files took " + (System.currentTimeMillis() - savedTimeMillis) + " ms");
-                logCompiler("Java compiler finished successfully in " + (System.currentTimeMillis() - savedTimeMillis) + " ms");
             } else {
                 LogUtil.e(TAG, "Failed to compile Java files");
-                logCompiler("Java compiler failed: " + errOutputStream.getOut());
                 throw new zy(errOutputStream.getOut());
             }
         }
-    }
-
-    private void verifyAndroidJarBeforeCompile() throws IOException {
-        File androidJar = new File(androidJarPath);
-        try (ZipFile zip = new ZipFile(androidJar)) {
-            if (zip.getEntry("android/app/Activity.class") == null || zip.getEntry("resources.arsc") == null) {
-                throw new IOException("android.jar does not contain the Android framework classes and resources AAPT2 requires");
-            }
-        } catch (IOException e) {
-            logCompiler("Invalid android.jar: " + e.getMessage());
-            throw new IOException("Unable to load Android include path " + androidJarPath
-                    + ". Cause: " + e.getMessage(), e);
-        }
-    }
-
-    public void logCompiler(String message) {
-        new mod.jbk.diagnostic.CompileErrorSaver(yq.sc_id).appendLog(message);
     }
 
     private void sanitizeJavaSourcesBeforeCompile() {

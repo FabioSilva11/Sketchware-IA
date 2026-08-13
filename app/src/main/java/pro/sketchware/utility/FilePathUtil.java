@@ -10,7 +10,7 @@ public class FilePathUtil {
     private static final File SKETCHWARE_LOCAL_LIBS = new File(Environment.getExternalStorageDirectory(), ".sketchware/libs/local_libs");
 
     public static String getLastCompileLogPath(String sc_id) {
-        return new File(SKETCHWARE_DATA, sc_id + "/compile_log.txt").getAbsolutePath();
+        return new File(SKETCHWARE_DATA, sc_id + "/compile_log").getAbsolutePath();
     }
 
     public String getPathPermission(String sc_id) {
