@@ -186,6 +186,13 @@ public class ProjectBuilder {
      */
     public void compileResources() throws Exception {
         timestampResourceCompilationStarted = System.currentTimeMillis();
+        // Resource linking is the first consumer of android.jar (before ECJ).
+        // Re-run extraction here so a damaged framework jar is repaired before AAPT2 starts.
+        BuiltInLibraries.extractCompileAssets(progressReceiver == null
+                ? new BuildProgressReceiver[0] : new BuildProgressReceiver[]{progressReceiver});
+        logCompiler("AAPT2 starting; android.jar=" + androidJarPath + "; exists="
+                + new File(androidJarPath).isFile() + "; size=" + new File(androidJarPath).length());
+        verifyAndroidJarBeforeCompile();
         ResourceCompiler compiler = new ResourceCompiler(
                 this,
                 aapt2Binary,
@@ -543,7 +550,7 @@ public class ProjectBuilder {
         long savedTimeMillis = System.currentTimeMillis();
         logCompiler("Java compiler starting; android.jar=" + androidJarPath + "; exists="
                 + new File(androidJarPath).isFile() + "; size=" + new File(androidJarPath).length());
-        verifyAndroidJarBeforeJavaCompile();
+        verifyAndroidJarBeforeCompile();
         sanitizeJavaSourcesBeforeCompile();
 
         class EclipseOutOutputStream extends OutputStream {
@@ -632,20 +639,20 @@ public class ProjectBuilder {
         }
     }
 
-    private void verifyAndroidJarBeforeJavaCompile() throws IOException {
+    private void verifyAndroidJarBeforeCompile() throws IOException {
         File androidJar = new File(androidJarPath);
         try (ZipFile zip = new ZipFile(androidJar)) {
-            if (zip.getEntry("android/app/Activity.class") == null) {
-                throw new IOException("android.jar does not contain android/app/Activity.class");
+            if (zip.getEntry("android/app/Activity.class") == null || zip.getEntry("resources.arsc") == null) {
+                throw new IOException("android.jar does not contain the Android framework classes and resources AAPT2 requires");
             }
         } catch (IOException e) {
             logCompiler("Invalid android.jar: " + e.getMessage());
             throw new IOException("Unable to load Android include path " + androidJarPath
-                    + ". Rebuild will repair it automatically; retry the build. Cause: " + e.getMessage(), e);
+                    + ". Cause: " + e.getMessage(), e);
         }
     }
 
-    private void logCompiler(String message) {
+    public void logCompiler(String message) {
         new mod.jbk.diagnostic.CompileErrorSaver(yq.sc_id).appendLog(message);
     }
 

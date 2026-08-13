@@ -653,7 +653,10 @@ public class BuiltInLibraries {
     private static boolean isUsableAndroidJar(File androidJar) {
         if (!androidJar.isFile() || androidJar.length() == 0) return false;
         try (ZipFile zip = new ZipFile(androidJar)) {
-            return zip.getEntry("android/app/Activity.class") != null;
+            // AAPT2 needs framework resources as well as Java framework classes.
+            // Checking only Activity.class lets a class-only/corrupt jar reach AAPT2.
+            return zip.getEntry("android/app/Activity.class") != null
+                    && zip.getEntry("resources.arsc") != null;
         } catch (IOException ignored) {
             return false;
         }
