@@ -596,6 +596,7 @@ public class yq {
                             N.addPermission(activity.getActivityName(), jq.PERMISSION_ACTIVITY_RECOGNITION);
                     case ComponentBean.COMPONENT_TYPE_WORK_MANAGER -> N.isWorkManagerUsed = true;
                     case ComponentBean.COMPONENT_TYPE_ALARM_MANAGER -> N.isAlarmManagerUsed = true;
+                    case ComponentBean.COMPONENT_TYPE_NOTIFICATION -> N.isNotificationUsed = true;
                     case ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER -> N.isBiometricManagerUsed = true;
                     case ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> {
                         N.isFusedLocationManagerUsed = true;
@@ -688,6 +689,12 @@ public class yq {
                         case "setImageUrl":
                             N.isGlideUsed = true;
                             N.addPermission(jq.PERMISSION_INTERNET);
+                            break;
+
+                        case "showNotification":
+                        case "createNotificationChannel":
+                        case "requestNotificationPermission":
+                            N.isNotificationUsed = true;
                             break;
 
                         case "webViewLoadUrl":

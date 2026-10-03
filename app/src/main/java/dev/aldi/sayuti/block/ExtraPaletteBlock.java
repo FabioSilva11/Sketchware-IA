@@ -1086,6 +1086,40 @@ public class ExtraPaletteBlock {
                     logicEditor.a(" ", "firebaseauthSignInAnonymously");
                     logicEditor.a(" ", "firebaseauthResetPassword");
                     logicEditor.a(" ", "firebaseauthSignOutUser");
+                    logicEditor.a("s", "firebaseauthGetDisplayName");
+                    logicEditor.a("s", "firebaseauthGetPhotoUrl");
+                    logicEditor.a("s", "firebaseauthGetPhoneNumber");
+                    logicEditor.a("b", "firebaseauthIsEmailVerified");
+                    logicEditor.a(" ", "firebaseauthSendEmailVerification");
+                    logicEditor.a(" ", "firebaseauthUpdatePassword");
+                    logicEditor.a(" ", "firebaseauthUpdateEmail");
+                    logicEditor.a(" ", "firebaseauthUpdateProfile");
+                    logicEditor.a(" ", "firebaseauthDeleteUser");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_PHONE)) {
+                    logicEditor.a("Firebase Phone Auth", getTitleBgColor());
+                    logicEditor.a(" ", "phoneAuthSendCode");
+                    logicEditor.a(" ", "phoneAuthResendCode");
+                    logicEditor.a(" ", "phoneAuthSignInWithCode");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN)) {
+                    logicEditor.a("Google Sign-In", getTitleBgColor());
+                    logicEditor.a(" ", "googleLoginSetup");
+                    logicEditor.a(" ", "googleLoginSignIn");
+                    logicEditor.a(" ", "googleLoginSignOut");
+                    logicEditor.a("b", "googleLoginIsSignedIn");
+                    logicEditor.a("s", "googleLoginGetEmail");
+                    logicEditor.a("s", "googleLoginGetDisplayName");
+                    logicEditor.a("s", "googleLoginGetPhotoUrl");
+                    logicEditor.a(" ", "googleLoginFirebaseSignIn");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE)) {
+                    logicEditor.a("Firebase Cloud Messaging", getTitleBgColor());
+                    logicEditor.a(" ", "fcmRequestNotificationPermission");
+                    logicEditor.a(" ", "fcmGetToken");
+                    logicEditor.a(" ", "fcmSubscribeToTopic");
+                    logicEditor.a(" ", "fcmUnsubscribeFromTopic");
+                    logicEditor.a(" ", "fcmDeleteToken");
                 }
                 if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_GYROSCOPE)) {
                     logicEditor.a("Gyroscope", getTitleBgColor());
@@ -1140,6 +1174,7 @@ public class ExtraPaletteBlock {
                     logicEditor.a("Fused Location Manager", getTitleBgColor());
                     logicEditor.a(" ", "fusedLocationStart");
                     logicEditor.a(" ", "fusedLocationStop");
+                    logicEditor.a(" ", "fusedLocationGetLast");
                 }
                 if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD)) {
                     logicEditor.a("AdMob Interstitial", getTitleBgColor());

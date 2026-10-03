@@ -33,7 +33,10 @@ projects on the device, and the library table in `mod/jbk/build/BuiltInLibraries
    superclass and interfaces are in the library's own dependency closure, since a project only
    gets the libraries `BuiltInLibraries.java` lists. `verify_generated_code.py` compiles the helper
    classes `Lx.java` generates plus `smoke/GeneratedCodeSmoke.java` (the code the generators emit
-   per component) with the ECJ version the app runs, then dexes them.
+   per component) with the ECJ version the app runs, then dexes them. It also compiles every
+   built-in block a palette offers, filled in the way `Fx` fills it (numbers are doubles, every
+   value of a fixed menu is tried), and fails on platform APIs above minSdk 23 used outside an
+   `SDK_INT` check.
 
 ## Why the extra steps
 

@@ -623,7 +623,8 @@ public class Jx {
                     .replaceAll("runOnUiThread\\(new", "getActivity().runOnUiThread(new")
                     .replaceAll(".setLayoutManager\\(new LinearLayoutManager\\(this", ".setLayoutManager(new LinearLayoutManager(getContext()")
                     .replaceAll("getLayoutInflater\\(\\)", "getActivity().getLayoutInflater()")
-                    .replaceAll("getSupportFragmentManager\\(\\)", "getActivity().getSupportFragmentManager()");
+                    .replaceAll("getSupportFragmentManager\\(\\)", "getActivity().getSupportFragmentManager()")
+                    .replace("final android.app.Activity _consentActivity = this;", "final android.app.Activity _consentActivity = getActivity();");
         } else if (buildConfig.g) {
             code = code.replaceAll("getFragmentManager", "getSupportFragmentManager");
         }

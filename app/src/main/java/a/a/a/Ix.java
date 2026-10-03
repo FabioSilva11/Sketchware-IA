@@ -231,6 +231,9 @@ public class Ix {
         if (c.isBiometricManagerUsed) {
             writePermission(a, "android.permission.USE_BIOMETRIC");
         }
+        if (c.isNotificationUsed) {
+            writePermission(a, "android.permission.POST_NOTIFICATIONS");
+        }
         if (c.isFusedLocationManagerUsed) {
             writePermission(a, Manifest.permission.ACCESS_FINE_LOCATION);
             writePermission(a, Manifest.permission.ACCESS_COARSE_LOCATION);

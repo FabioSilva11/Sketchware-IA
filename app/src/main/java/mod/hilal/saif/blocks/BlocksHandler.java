@@ -179,7 +179,7 @@ public class BlocksHandler {
         hashMap.put("name", "EditTextLines");
         hashMap.put("type", " ");
         hashMap.put("typeName", "");
-        hashMap.put("code", "%s.setLines(%s);");
+        hashMap.put("code", "%s.setLines((int)(%s));");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "0");
         hashMap.put("spec", "%m.edittext set lines %d");
@@ -356,7 +356,7 @@ public class BlocksHandler {
         hashMap.put("type", " ");
         hashMap.put(
                 "code",
-                "SketchwareUtil.CustomToast(getApplicationContext(), %s, %s, %s, %s, %s,"
+                "SketchwareUtil.CustomToast(getApplicationContext(), %s, %s, (int)(%s), %s, (int)(%s),"
                         + " SketchwareUtil.%s);");
         hashMap.put("color", "#8A55D7");
         hashMap.put("palette", "-1");
@@ -371,7 +371,7 @@ public class BlocksHandler {
         hashMap.put("type", " ");
         hashMap.put(
                 "code",
-                "SketchwareUtil.CustomToastWithIcon(getApplicationContext(), %s, %s, %s, %s, %s,"
+                "SketchwareUtil.CustomToastWithIcon(getApplicationContext(), %s, %s, (int)(%s), %s, (int)(%s),"
                         + " SketchwareUtil.%s, R.drawable.%s);");
         hashMap.put("color", "#8A55D7");
         hashMap.put("palette", "-1");
@@ -513,7 +513,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "sendBroadcast");
         hashMap.put("type", " ");
-        hashMap.put("code", "sendBroadcast(%s);");
+        hashMap.put("code", "sendBroadcast(new Intent(%s));");
         hashMap.put("color", "#2CA5E2");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "sendBroadcast %s");
@@ -585,7 +585,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "listscrollparam");
         hashMap.put("type", "d");
-        hashMap.put("code", "ListView.%s");
+        hashMap.put("code", "AbsListView.OnScrollListener.%s");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "%m.listscrollparam");
@@ -603,7 +603,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "menuAddItem");
         hashMap.put("type", " ");
-        hashMap.put("code", "menu.add(0, %s, 0, %s);");
+        hashMap.put("code", "menu.add(0, (int)(%s), 0, %s);");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "Menu add id %d title %s");
@@ -614,9 +614,9 @@ public class BlocksHandler {
         hashMap.put("type", " ");
         hashMap.put(
                 "code",
-                "MenuItem %1$s = menu.add(Menu.NONE, %2$s, Menu.NONE, %3$s);\r\n"
+                "MenuItem %1$s = menu.add(Menu.NONE, (int)(%2$s), Menu.NONE, %3$s);\r\n"
                         + "%1$s.setIcon(R.drawable.%4$s);\r\n"
-                        + "%s.setShowAsAction(MenuItem.%5$s);");
+                        + "%1$s.setShowAsAction(MenuItem.%5$s);");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put(
@@ -636,7 +636,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "submenuAddItem");
         hashMap.put("type", " ");
-        hashMap.put("code", "%s.add(0, %s, 0, %s);");
+        hashMap.put("code", "%s.add(0, (int)(%s), 0, %s);");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "%m.submenu add id %d title %s");
@@ -645,7 +645,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "getAssetFile");
         hashMap.put("type", " ");
-        hashMap.put("code", "java.io.InputStream %s = getAssets().open(%s);");
+        hashMap.put("code", "java.io.InputStream %1$s = new Object() {\r\njava.io.InputStream open(String _path) {\r\ntry {\r\nreturn getAssets().open(_path);\r\n} catch (java.io.IOException _e) {\r\nreturn null;\r\n}\r\n}\r\n}.open(%2$s);");
         hashMap.put("color", "#A1887F");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "%m.inputstream getFileFromAsset path %s");
@@ -820,7 +820,7 @@ public class BlocksHandler {
         hashMap.put("name", "addViews");
         hashMap.put("type", " ");
         hashMap.put("typeName", "");
-        hashMap.put("code", "%s.addView(%s, %s);");
+        hashMap.put("code", "%s.addView(%s, (int)(%s));");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "%m.view addView %m.view index %d");
@@ -952,7 +952,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "setThreshold");
         hashMap.put("type", " ");
-        hashMap.put("code", "%s.setThreshold(%s);");
+        hashMap.put("code", "%s.setThreshold((int)(%s));");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "%m.mactv setThreshold %d");
@@ -1311,7 +1311,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "setSelectedTabIndicatorHeight");
         hashMap.put("type", " ");
-        hashMap.put("code", "%s.setSelectedTabIndicatorHeight(%s);");
+        hashMap.put("code", "%s.setSelectedTabIndicatorHeight((int)(%s));");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "%m.tablayout setSelectedTabIndicatorHeight %d");
@@ -1338,7 +1338,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "bottomMenuAddItem");
         hashMap.put("type", " ");
-        hashMap.put("code", "%s.getMenu().add(0, %s, 0, %s).setIcon(R.drawable.%s);");
+        hashMap.put("code", "%s.getMenu().add(0, (int)(%s), 0, %s).setIcon(R.drawable.%s);");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "%m.bottomnavigation add item id %d title %s icon %m.resource");
@@ -1605,7 +1605,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "pagerSetFragmentAdapter");
         hashMap.put("type", " ");
-        hashMap.put("code", "%2$s.setTabCount(%3$s);\r\n%1$s.setAdapter(%2$s);");
+        hashMap.put("code", "%2$s.setTabCount((int)(%3$s));\r\n%1$s.setAdapter(%2$s);");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "%m.viewpager setFragmentAdapter %m.fragmentAdapter TabCount %d");
@@ -2003,7 +2003,7 @@ public class BlocksHandler {
         hashMap = new HashMap<>();
         hashMap.put("name", "tilSetCounterMaxLength");
         hashMap.put("type", " ");
-        hashMap.put("code", "%s.setCounterMaxLength(%s);");
+        hashMap.put("code", "%s.setCounterMaxLength((int)(%s));");
         hashMap.put("color", "#4A6CD4");
         hashMap.put("palette", "-1");
         hashMap.put("spec", "%m.textinputlayout setCounterMaxLength %d ");

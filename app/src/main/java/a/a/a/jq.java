@@ -187,6 +187,10 @@ public class jq {
     public boolean isBiometricManagerUsed = false;
     public boolean isFusedLocationManagerUsed = false;
     public boolean isAlarmManagerUsed = false;
+    /**
+     * Whether the project posts notifications, which needs POST_NOTIFICATIONS on Android 13+.
+     */
+    public boolean isNotificationUsed = false;
 
     /**
      * Permissions of the whole project, stored as bitfield.

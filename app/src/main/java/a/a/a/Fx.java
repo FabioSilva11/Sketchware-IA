@@ -958,10 +958,11 @@ public class Fx {
                 opcode = "(FirebaseAuth.getInstance().getCurrentUser() != null)";
                 break;
             case "firebaseauthGetCurrentUser":
-                opcode = "FirebaseAuth.getInstance().getCurrentUser().getEmail()";
+                // Empty when nobody is signed in, instead of a NullPointerException
+                opcode = "(FirebaseAuth.getInstance().getCurrentUser() != null && FirebaseAuth.getInstance().getCurrentUser().getEmail() != null ? FirebaseAuth.getInstance().getCurrentUser().getEmail() : \"\")";
                 break;
             case "firebaseauthGetUid":
-                opcode = "FirebaseAuth.getInstance().getCurrentUser().getUid()";
+                opcode = "(FirebaseAuth.getInstance().getCurrentUser() != null ? FirebaseAuth.getInstance().getCurrentUser().getUid() : \"\")";
                 break;
             case "firebaseauthResetPassword":
                 if (!params.get(1).equals("\"\"")) {
@@ -1123,9 +1124,15 @@ public class Fx {
                 opcode = String.format("%s.isRunning()", params.get(0));
                 break;
             case "interstitialadCreate":
-            case "interstitialadLoadAd":
-            case "interstitialadShow":
+                // InterstitialAd.load() creates the ad now
                 opcode = "";
+                break;
+            // Blocks from projects made before the current Mobile Ads API, mapped onto it
+            case "interstitialadLoadAd":
+                opcode = String.format("InterstitialAd.load(%s.this, _ad_unit_id, new AdRequest.Builder().build(), _%s_interstitial_ad_load_callback);", activityName, params.get(0));
+                break;
+            case "interstitialadShow":
+                opcode = String.format("if (%s != null) %s.show(%s.this);", params.get(0), params.get(0), activityName);
                 break;
             case "firebasestorageUploadFile":
                 if (!params.get(1).equals("\"\"") && !params.get(2).equals("\"\"")) {
@@ -1290,6 +1297,9 @@ public class Fx {
                 break;
             case "camerastarttakepicture":
                 opcode = String.format("startActivityForResult(%s, REQ_CD_%s);", params.get(0), params.get(0).toUpperCase());
+                break;
+            case "googleLoginSignIn":
+                opcode = String.format("if (%s != null) startActivityForResult(%s.getSignInIntent(), REQ_CD_%s);", params.get(0), params.get(0), params.get(0).toUpperCase());
                 break;
             case "setImageFilePath":
                 if (!params.get(1).equals("\"\"")) {

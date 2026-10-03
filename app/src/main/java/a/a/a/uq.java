@@ -20,7 +20,7 @@ public class uq {
     public static final String[] q = {"MAP_TYPE_NONE", "MAP_TYPE_NORMAL", "MAP_TYPE_SATELLITE", "MAP_TYPE_TERRAIN", "MAP_TYPE_HYBRID"};
     public static final String[] r = {"HUE_RED", "HUE_ORANGE", "HUE_YELLOW", "HUE_GREEN", "HUE_CYAN", "HUE_AZURE", "HUE_BLUE", "HUE_VIOLET", "HUE_MAGENTA", "HUE_ROSE"};
 
-    public static final String[] TIL_BOX_MODE = {"NONE", "OUTLINED", "FILLED"};
+    public static final String[] TIL_BOX_MODE = {"NONE", "OUTLINE", "FILLED"};
     public static final String[] FAB_SIZE = {"AUTO", "MINI", "NORMAL"};
     public static final String[] FAB_VISIBLE = {"show", "hide"};
     public static final String[] MENU_ACTION = {
@@ -132,7 +132,7 @@ public class uq {
     };
     public static final String[] CODEVIEW_LANGUAGE = {
             "AUTO",
-            "1C",
+            "_1C",
             "ABNF",
             "ACCESS_LOG",
             "ACTIONSCRIPT",

@@ -588,6 +588,8 @@ public class ManageEvent {
                     "}";
             case "onCodeSent" -> "@Override\r\n" +
                     "public void onCodeSent(String _verificationId, PhoneAuthProvider.ForceResendingToken _token) {\r\n" +
+                    // Kept for the "resend code" block
+                    (targetId.isEmpty() ? "" : targetId + "_resendToken = _token;\r\n") +
                     eventLogic + "\r\n" +
                     "}";
             case "onTimeChanged" -> "@Override\r\n" +
