@@ -733,7 +733,7 @@ public class Lx {
                     fieldDeclaration += "\r\nprivate void _" + typeInstanceName + "_start_location_updates() {\r\n"
                             + "if (" + typeInstanceName + " == null || _" + typeInstanceName + "_location_callback == null || _" + typeInstanceName + "_location_updates_started) return;\r\n"
                             + "if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED && checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {\r\n"
-                            + "requestPermissions(new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 1000);\r\n"
+                            + "requestPermissions(new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 1001);\r\n"
                             + "return;\r\n"
                             + "}\r\n"
                             + typeInstanceName + ".requestLocationUpdates(_" + typeInstanceName + "_location_request, _" + typeInstanceName + "_location_callback, Looper.getMainLooper());\r\n"
@@ -1196,7 +1196,10 @@ public class Lx {
                     code.append("}");
                 }
                 if (viewType.equals("FusedLocationManager")) {
-                    code.append("_").append(viewId).append("_start_location_updates();");
+                    // Only resumes updates: asking for the permission here would ask again every time it's denied
+                    code.append("if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED || checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) {\r\n");
+                    code.append("_").append(viewId).append("_start_location_updates();\r\n");
+                    code.append("}");
                 }
                 break;
 

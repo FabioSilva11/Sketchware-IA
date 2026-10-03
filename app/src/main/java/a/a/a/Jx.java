@@ -388,7 +388,8 @@ public class Jx {
             if (!buildConfig.isFirebaseEnabled) {
                 sb.append(EOL);
             }
-            sb.append("MobileAds.initialize(this, new OnInitializationCompleteListener() { @Override public void onInitializationComplete(InitializationStatus initializationStatus) {} });");
+            // Fully qualified: nothing imports the initialization package
+            sb.append("MobileAds.initialize(this, new com.google.android.gms.ads.initialization.OnInitializationCompleteListener() { @Override public void onInitializationComplete(com.google.android.gms.ads.initialization.InitializationStatus initializationStatus) {} });");
             sb.append(EOL);
             if (fieldsWithStaticInitializers.contains(Lx.getComponentFieldCode("InterstitialAd"))) {
                 sb.append("_ad_unit_id = \"").append(buildConfig.isDebugBuild ? "ca-app-pub-3940256099942544/1033173712" : buildConfig.interstitialAdUnitId).append("\";");
@@ -436,20 +437,23 @@ public class Jx {
             sb.append("@Override").append(EOL);
             sb.append("public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {").append(EOL);
             sb.append("super.onRequestPermissionsResult(requestCode, permissions, grantResults);").append(EOL);
+            // The app's logic runs whether or not every permission was granted; blocks that need
+            // one check it themselves.
             sb.append("if (requestCode == 1000) {").append(EOL);
-            sb.append("boolean _allPermissionsGranted = grantResults.length > 0;").append(EOL);
-            sb.append("for (int _grantResult : grantResults) { if (_grantResult != PackageManager.PERMISSION_GRANTED) { _allPermissionsGranted = false; break; } }").append(EOL);
-            sb.append("if (_allPermissionsGranted) {").append(EOL);
             sb.append("initializeLogic();").append(EOL);
+            sb.append("}").append(EOL);
+            StringBuilder startLocationUpdates = new StringBuilder();
             for (ComponentBean componentBean : projectDataManager.e(projectFileBean.getJavaName())) {
                 if (componentBean.type == ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER) {
-                    sb.append("_").append(componentBean.componentId).append("_start_location_updates();").append(EOL);
+                    startLocationUpdates.append("_").append(componentBean.componentId).append("_start_location_updates();").append(EOL);
                 }
             }
-            sb.append("} else {").append(EOL);
-            sb.append("android.widget.Toast.makeText(this, \"Location permission denied.\", android.widget.Toast.LENGTH_SHORT).show();").append(EOL);
-            sb.append("}").append(EOL);
-            sb.append("}").append(EOL);
+            if (startLocationUpdates.length() > 0) {
+                // 1001 is what the location updates helper requests with
+                sb.append("if ((requestCode == 1000 || requestCode == 1001) && (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED || checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED)) {").append(EOL);
+                sb.append(startLocationUpdates);
+                sb.append("}").append(EOL);
+            }
             sb.append("}").append(EOL);
         }
         sb.append(EOL);
@@ -741,11 +745,35 @@ public class Jx {
 
     /**
      * Pads the Activity's content by the system bars (and the keyboard, for adjustResize windows)
-     * so edge-to-edge layouts look like they did before. Only uses framework APIs and an anonymous
-     * class, so it compiles without AppCompat and with any Java language level.
+     * so edge-to-edge layouts look like they did before. Edge-to-edge also stops the window from
+     * drawing the theme's statusBarColor and navigationBarColor, which left light status bar icons
+     * on a light background, so views in those colors are drawn behind the bars instead.
+     * Only uses framework APIs and an anonymous class, so it compiles without AppCompat and with
+     * any Java language level.
      */
     private static String getSystemBarInsetsCode() {
         return "if (android.os.Build.VERSION.SDK_INT >= 35) {" + EOL +
+                "final android.content.res.TypedArray _barColors = obtainStyledAttributes(new int[] {android.R.attr.statusBarColor, android.R.attr.navigationBarColor});" + EOL +
+                "int _statusBarColor = _barColors.getColor(0, android.graphics.Color.TRANSPARENT);" + EOL +
+                "int _navigationBarColor = _barColors.getColor(1, android.graphics.Color.TRANSPARENT);" + EOL +
+                "_barColors.recycle();" + EOL +
+                "final android.view.View _statusBarBackground = new android.view.View(this);" + EOL +
+                "_statusBarBackground.setBackgroundColor(_statusBarColor);" + EOL +
+                "final android.view.View _navigationBarBackground = new android.view.View(this);" + EOL +
+                "_navigationBarBackground.setBackgroundColor(_navigationBarColor);" + EOL +
+                // Dark icons on light bars and light icons on dark ones
+                "android.view.WindowInsetsController _barsController = getWindow().getInsetsController();" + EOL +
+                "if (_barsController != null) {" + EOL +
+                "if (android.graphics.Color.alpha(_statusBarColor) != 0) {" + EOL +
+                "_barsController.setSystemBarsAppearance(android.graphics.Color.luminance(_statusBarColor) > 0.5f ? android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS : 0, android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS);" + EOL +
+                "}" + EOL +
+                "if (android.graphics.Color.alpha(_navigationBarColor) != 0) {" + EOL +
+                "_barsController.setSystemBarsAppearance(android.graphics.Color.luminance(_navigationBarColor) > 0.5f ? android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS : 0, android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS);" + EOL +
+                "}" + EOL +
+                "}" + EOL +
+                "android.view.ViewGroup _decorView = (android.view.ViewGroup) getWindow().getDecorView();" + EOL +
+                "_decorView.addView(_statusBarBackground, new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, 0, android.view.Gravity.TOP));" + EOL +
+                "_decorView.addView(_navigationBarBackground, new android.widget.FrameLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, 0, android.view.Gravity.BOTTOM));" + EOL +
                 "findViewById(android.R.id.content).setOnApplyWindowInsetsListener(new android.view.View.OnApplyWindowInsetsListener() {" + EOL +
                 "@Override" + EOL +
                 "public android.view.WindowInsets onApplyWindowInsets(android.view.View _view, android.view.WindowInsets _insets) {" + EOL +
@@ -755,6 +783,10 @@ public class Jx {
                 "}" + EOL +
                 "android.graphics.Insets _bars = _insets.getInsets(_types);" + EOL +
                 "_view.setPadding(_bars.left, _bars.top, _bars.right, _bars.bottom);" + EOL +
+                "_statusBarBackground.getLayoutParams().height = _insets.getInsets(android.view.WindowInsets.Type.statusBars()).top;" + EOL +
+                "_statusBarBackground.requestLayout();" + EOL +
+                "_navigationBarBackground.getLayoutParams().height = _insets.getInsets(android.view.WindowInsets.Type.navigationBars()).bottom;" + EOL +
+                "_navigationBarBackground.requestLayout();" + EOL +
                 "return _insets;" + EOL +
                 "}" + EOL +
                 "});" + EOL +

@@ -525,7 +525,7 @@ public class GeneratedCodeSmoke extends AppCompatActivity {
     private void _location_start_location_updates() {
         if (location == null || _location_location_callback == null || _location_location_updates_started) return;
         if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED && checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 1000);
+            requestPermissions(new String[] {android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, 1001);
             return;
         }
         location.requestLocationUpdates(_location_location_request, _location_location_callback, Looper.getMainLooper());

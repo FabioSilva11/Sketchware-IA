@@ -67,6 +67,19 @@ public class PermissionManager {
         }
     }
 
+    /**
+     * Android 13+ never grants READ/WRITE_EXTERNAL_STORAGE to apps targeting API 33+, so checking
+     * them there would request permissions on every launch.
+     */
+    private void onlyCheckGrantableStoragePermissions(boolean isAppCompat, ArrayList<String> checkPerm) {
+        for (String permission : new String[]{"Manifest.permission.READ_EXTERNAL_STORAGE", "Manifest.permission.WRITE_EXTERNAL_STORAGE"}) {
+            int index = checkPerm.indexOf(formatPermission(isAppCompat, permission));
+            if (index >= 0) {
+                checkPerm.set(index, "(Build.VERSION.SDK_INT < 33 || getApplicationInfo().targetSdkVersion < 33) && " + checkPerm.get(index));
+            }
+        }
+    }
+
     public boolean hasNewPermission() {
         return !addedPermissions().isEmpty();
     }
@@ -123,6 +136,7 @@ public class PermissionManager {
                 addPerm.add("Manifest.permission.ACTIVITY_RECOGNITION");
             }
             removePermission(true, checkPerm, addPerm);
+            onlyCheckGrantableStoragePermissions(true, checkPerm);
 
             if (!checkPerm.isEmpty() && !addPerm.isEmpty()) {
                 permissionCode.append("if (");
@@ -175,6 +189,7 @@ public class PermissionManager {
                 addPerm.add("Manifest.permission.ACTIVITY_RECOGNITION");
             }
             removePermission(false, checkPerm, addPerm);
+            onlyCheckGrantableStoragePermissions(false, checkPerm);
 
             if (!checkPerm.isEmpty() && !addPerm.isEmpty()) {
                 permissionCode.append("if (Build.VERSION.SDK_INT >= 23) {" + Jx.EOL + "if (");
