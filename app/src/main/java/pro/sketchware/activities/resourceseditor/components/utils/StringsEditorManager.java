@@ -52,7 +52,8 @@ public class StringsEditorManager {
                     addToListMap(listMap, (Element) node);
                 }
             }
-            if (isDefaultVariant && !hasAppNameKey) {
+            // Callers that only read strings don't set sc_id; saving then wrote to .sketchware/data/null.
+            if (isDefaultVariant && !hasAppNameKey && sc_id != null) {
                 HashMap<String, Object> map = new HashMap<>();
                 map.put("key", "app_name");
                 map.put("text", yB.c(lC.b(sc_id), "my_app_name"));
