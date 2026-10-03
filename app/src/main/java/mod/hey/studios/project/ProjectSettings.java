@@ -10,6 +10,7 @@ import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 
+import com.besome.sketch.Config;
 import com.google.gson.Gson;
 
 import java.io.File;
@@ -91,11 +92,12 @@ public class ProjectSettings {
     }
 
     /**
-     * @return The configured minimum SDK version. Returns 21 if none or an invalid value was set.
+     * @return The configured minimum SDK version. Returns {@link Config#VAR_DEFAULT_MIN_SDK_VERSION}
+     * if none or an invalid value was set.
      * @see #SETTING_MINIMUM_SDK_VERSION
      */
     public int getMinSdkVersion() {
-        return getIntValue(SETTING_MINIMUM_SDK_VERSION, 21, "minimum SDK version");
+        return getIntValue(SETTING_MINIMUM_SDK_VERSION, Config.VAR_DEFAULT_MIN_SDK_VERSION, "minimum SDK version");
     }
 
     public int getCompileSdkVersion(int defaultValue) {

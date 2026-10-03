@@ -94,7 +94,7 @@ public class ExcludeBuiltInLibrariesActivity extends BaseAppCompatActivity {
                 if (config != null) {
                     List<BuiltInLibraries.BuiltInLibrary> libraries = config.second.stream()
                             .map(s -> {
-                                Optional<BuiltInLibraries.BuiltInLibrary> library = BuiltInLibraries.BuiltInLibrary.ofName(s);
+                                Optional<BuiltInLibraries.BuiltInLibrary> library = BuiltInLibraries.BuiltInLibrary.ofNameAcrossVersions(s);
                                 return library.orElse(null);
                             })
                             .filter(Objects::nonNull)

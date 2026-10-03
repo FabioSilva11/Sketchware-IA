@@ -1,0 +1,20 @@
+// Standalone build used only to resolve the libraries that ship inside
+// app/src/main/assets/libs/libs.zip and dexs.zip. It is not part of the app build.
+// Run it through tools/builtin-libs/build_builtin_libs.py.
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "builtin-libs"

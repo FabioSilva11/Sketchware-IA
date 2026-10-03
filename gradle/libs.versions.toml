@@ -1,33 +1,40 @@
 [versions]
-activity = "1.11.0"
-appcompat = "1.7.1"
+activity = "1.13.0"
+androidGradlePlugin = "9.4.1"
+appcompat = "1.8.0"
 desugar_jdk_libs_nio = "2.1.5"
-firebaseBom = "34.3.0"
-sora-editor = "0.23.5"
-bundletool = "1.18.2"
+firebaseBom = "34.19.0"
+sora-editor = "0.23.6"
+bundletool = "1.18.3"
 cardview = "1.0.0"
 circleimageview = "3.1.0"
-coil = "2.0.0"
-coilSvg = "2.0.0"
+coil = "2.7.0"
+coilSvg = "2.7.0"
 markwon = "4.6.2"
-coreSplashscreen = "1.0.1"
-libsu = "5.0.4"
+coreSplashscreen = "1.2.0"
+libsu = "6.0.0"
 dependencyresolver = "05ec26af0b"
 ecj = "3.26.0"
-exifinterface = "1.4.1"
+exifinterface = "1.4.2"
 filepicker = "74526bea66"
+firebaseCrashlyticsPlugin = "3.0.8"
 flexbox = "3.0.0"
-glide = "5.0.4"
-gson = "2.13.1"
+glide = "5.0.9"
+googleServices = "4.5.0"
+gson = "2.14.0"
 insetter = "0.6.1"
-javaparserSymbolSolver = "3.25.3"
+javaparserSymbolSolver = "3.28.2"
+json = "20260814"
+junit = "4.13.2"
 kotlincForSketchware = "2.1.21_rc3"
 kotlinCompiler = "2.1.21"
-lottie = "6.6.7"
-material = "1.14.0-alpha05"
+kotlinGradlePlugin = "2.4.20"
+lottie = "6.7.1"
+material = "1.14.0"
 nbJavacAndroid = "17.0.0.3"
-okhttp = "4.12.0"
-okio = "3.16.0"
+okhttp = "5.5.0"
+okio = "3.18.2"
+playServicesAds = "25.5.0"
 preference = "1.2.1"
 proguardCore = "9.0.2"
 protobufJava = "3.19.2"
@@ -36,9 +43,10 @@ recyclerview = "1.4.0"
 scpkixJdk15on = "1.47.0.2"
 sdklib = "25.3.0"
 staxApi = "1.0-2"
-swiperefreshlayout = "1.1.0"
+swiperefreshlayout = "1.2.0"
+userMessagingPlatform = "4.0.0"
 viewpager = "1.1.0"
-woodstoxCore = "7.1.1"
+woodstoxCore = "7.3.0"
 zipalignJava = "1.2.2"
 
 [libraries]
@@ -56,9 +64,12 @@ desugar_jdk_libs_nio = { module = "com.android.tools:desugar_jdk_libs_nio", vers
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
 firebase-crashlytics = { module = "com.google.firebase:firebase-crashlytics" }
+firebase-database = { module = "com.google.firebase:firebase-database" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 
 flexbox = { module = "com.google.android.flexbox:flexbox", version.ref = "flexbox" }
+play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
+user-messaging-platform = { module = "com.google.android.ump:user-messaging-platform", version.ref = "userMessagingPlatform" }
 lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 
@@ -109,6 +120,14 @@ woodstox-core = { module = "com.fasterxml.woodstox:woodstox-core", version.ref =
 
 zipalign-java = { module = "com.github.Iyxan23:zipalign-java", version.ref = "zipalignJava" }
 
+junit = { module = "junit:junit", version.ref = "junit" }
+json = { module = "org.json:json", version.ref = "json" }
+
+android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "androidGradlePlugin" }
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlinGradlePlugin" }
+firebase-crashlytics-gradle = { module = "com.google.firebase:firebase-crashlytics-gradle", version.ref = "firebaseCrashlyticsPlugin" }
+google-services = { module = "com.google.gms:google-services", version.ref = "googleServices" }
+
 [bundles]
 ui = ["androidx-activity", "androidx-appcompat", "androidx-splashscreen", "androidx-recyclerview",
     "androidx-cardview", "androidx-viewpager", "androidx-swiperefreshlayout", "material", "lottie",
@@ -120,4 +139,5 @@ bundletool = ["bundletool", "protobuf-java"]
 shrinker = ["r8", "proguard-core"]
 kotlin_compiler = ["kotlinc-for1-sketchware", "nb-javac-android", "woodstox-core"]
 editor_and_lang = ["editor", "language-java", "language-textmate"]
-firebase = ["firebase-analytics", "firebase-crashlytics", "firebase-messaging"]
+firebase = ["firebase-analytics", "firebase-crashlytics", "firebase-messaging", "firebase-database"]
+ads = ["play-services-ads", "user-messaging-platform"]

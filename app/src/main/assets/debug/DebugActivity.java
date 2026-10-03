@@ -65,5 +65,17 @@ public class DebugActivity extends Activity {
         vscroll.addView(errorView);
 
         setContentView(hscroll);
+
+        if (android.os.Build.VERSION.SDK_INT >= 35) {
+            // Android 15+ draws apps edge-to-edge; keep the stack trace clear of the system bars.
+            findViewById(android.R.id.content).setOnApplyWindowInsetsListener(new android.view.View.OnApplyWindowInsetsListener() {
+                @Override
+                public android.view.WindowInsets onApplyWindowInsets(android.view.View view, android.view.WindowInsets insets) {
+                    android.graphics.Insets bars = insets.getInsets(android.view.WindowInsets.Type.systemBars() | android.view.WindowInsets.Type.displayCutout());
+                    view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+                    return insets;
+                }
+            });
+        }
     }
 }

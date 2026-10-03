@@ -2,6 +2,7 @@ package a.a.a;
 
 import android.text.TextUtils;
 
+import com.besome.sketch.Config;
 import com.besome.sketch.beans.ComponentBean;
 import com.besome.sketch.beans.ViewBean;
 import com.google.gson.Gson;
@@ -20,6 +21,7 @@ import mod.hilal.saif.components.ComponentsHandler;
 import mod.jbk.build.BuiltInLibraries;
 import mod.jbk.editor.manage.library.ExcludeBuiltInLibrariesActivity;
 import mod.pranav.viewbinding.ViewBindingBuilder;
+import pro.sketchware.util.library.BuiltInLibraryUtils;
 import pro.sketchware.utility.FileUtil;
 
 public class Lx {
@@ -35,10 +37,13 @@ public class Lx {
      * @return Content of a <code>build.gradle</code> file for the module ':app', with indentation
      */
     public static String getBuildGradleString(int compileSdkVersion, int minSdkVersion, String targetSdkVersion, jq metadata, boolean isViewBindingEnabled) {
-        int requiredCompileSdk = metadata.isAdMobEnabled ? 35 : (metadata.isWorkManagerUsed ? 33 : compileSdkVersion);
-        int effectiveCompileSdk = Math.max(compileSdkVersion, requiredCompileSdk);
-        int effectiveMinSdk = (metadata.isAdMobEnabled || metadata.isWorkManagerUsed
-                || metadata.isFusedLocationManagerUsed) ? Math.max(minSdkVersion, 23) : minSdkVersion;
+        // The bundled AndroidX libraries (e.g. androidx.core) declare minCompileSdk 37.
+        int effectiveCompileSdk = Math.max(compileSdkVersion, Config.VAR_DEFAULT_COMPILE_SDK_VERSION);
+        // Mobile Ads and WorkManager need API 24, the other bundled libraries API 23.
+        boolean needsApi24 = metadata.isAdMobEnabled || metadata.isWorkManagerUsed;
+        boolean needsApi23 = needsApi24 || metadata.g || metadata.isFirebaseEnabled || metadata.isMapUsed
+                || metadata.isFusedLocationManagerUsed || metadata.isBiometricManagerUsed;
+        int effectiveMinSdk = Math.max(minSdkVersion, needsApi24 ? 24 : needsApi23 ? 23 : 1);
         StringBuilder content = new StringBuilder("plugins {\r\n" +
                 "id 'com.android.application'\r\n" +
                 "}\r\n" +
@@ -60,10 +65,10 @@ public class Lx {
                 .append("namespace \"")
                 .append(metadata.packageName)
                 .append("\"\r\n")
-                .append("minSdkVersion ")
+                .append("minSdk ")
                 .append(effectiveMinSdk)
                 .append("\r\n")
-                .append("targetSdkVersion ")
+                .append("targetSdk ")
                 .append(targetSdkVersion)
                 .append("\r\n")
                 .append("versionCode ")
@@ -91,69 +96,68 @@ public class Lx {
                 .append("implementation fileTree(dir: 'libs', include: ['*.jar'])\r\n");
 
         List<BuiltInLibraries.BuiltInLibrary> excludedLibraries = ExcludeBuiltInLibrariesActivity.getExcludedLibraries(metadata.sc_id);
+        // Versions come from the bundled libraries so exported projects build against the same code.
         if (isLibraryNotExcluded(BuiltInLibraries.ANDROIDX_APPCOMPAT, excludedLibraries) && metadata.g) {
-            content.append("""
-                    implementation 'androidx.appcompat:appcompat:1.7.1'\r
-                    implementation 'com.google.android.material:material:1.12.0'\r
-                    """);
+            appendDependency(content, "androidx.appcompat:appcompat", BuiltInLibraries.ANDROIDX_APPCOMPAT);
+            appendDependency(content, "com.google.android.material:material", BuiltInLibraries.MATERIAL);
         }
 
         if (metadata.isFirebaseEnabled) {
-            content.append("implementation platform('com.google.firebase:firebase-bom:34.1.0')\r\n");
+            appendDependency(content, "com.google.firebase:firebase-common", BuiltInLibraries.FIREBASE_COMMON);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.FIREBASE_AUTH, excludedLibraries) && metadata.isFirebaseAuthUsed) {
-            content.append("implementation 'com.google.firebase:firebase-auth'\r\n");
+            appendDependency(content, "com.google.firebase:firebase-auth", BuiltInLibraries.FIREBASE_AUTH);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.FIREBASE_DATABASE, excludedLibraries) && metadata.isFirebaseDatabaseUsed) {
-            content.append("implementation 'com.google.firebase:firebase-database'\r\n");
+            appendDependency(content, "com.google.firebase:firebase-database", BuiltInLibraries.FIREBASE_DATABASE);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.FIREBASE_STORAGE, excludedLibraries) && metadata.isFirebaseStorageUsed) {
-            content.append("implementation 'com.google.firebase:firebase-storage'\r\n");
+            appendDependency(content, "com.google.firebase:firebase-storage", BuiltInLibraries.FIREBASE_STORAGE);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.PLAY_SERVICES_ADS, excludedLibraries) && metadata.isAdMobEnabled) {
-            content.append("implementation 'com.google.android.gms:play-services-ads:25.4.0'\r\n");
-            content.append("implementation 'com.google.android.ump:user-messaging-platform:4.0.0'\r\n");
+            appendDependency(content, "com.google.android.gms:play-services-ads", BuiltInLibraries.PLAY_SERVICES_ADS);
+            appendDependency(content, "com.google.android.ump:user-messaging-platform", BuiltInLibraries.USER_MESSAGING_PLATFORM);
         }
 
         if (metadata.isWorkManagerUsed) {
-            content.append("implementation 'androidx.work:work-runtime:2.11.2'\r\n");
+            appendDependency(content, "androidx.work:work-runtime", BuiltInLibraries.ANDROIDX_WORK_RUNTIME);
         }
 
         if (metadata.isBiometricManagerUsed) {
-            content.append("implementation 'androidx.biometric:biometric:1.1.0'\r\n");
+            appendDependency(content, "androidx.biometric:biometric", BuiltInLibraries.ANDROIDX_BIOMETRIC);
         }
 
         if (metadata.isFusedLocationManagerUsed) {
-            content.append("implementation 'com.google.android.gms:play-services-location:21.4.0'\r\n");
+            appendDependency(content, "com.google.android.gms:play-services-location", BuiltInLibraries.PLAY_SERVICES_LOCATION);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.PLAY_SERVICES_MAPS, excludedLibraries) && metadata.isMapUsed) {
-            content.append("implementation 'com.google.android.gms:play-services-maps:17.0.1'\r\n");
+            appendDependency(content, "com.google.android.gms:play-services-maps", BuiltInLibraries.PLAY_SERVICES_MAPS);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.GLIDE, excludedLibraries) && metadata.isGlideUsed) {
-            content.append("implementation 'com.github.bumptech.glide:glide:4.16.0'\r\n");
+            appendDependency(content, "com.github.bumptech.glide:glide", BuiltInLibraries.GLIDE);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.GSON, excludedLibraries) && metadata.isGsonUsed) {
-            content.append("implementation 'com.google.code.gson:gson:2.11.0'\r\n");
+            appendDependency(content, "com.google.code.gson:gson", BuiltInLibraries.GSON);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.OKHTTP_ANDROID, excludedLibraries) && metadata.isHttp3Used) {
-            content.append("implementation 'com.squareup.okhttp3:okhttp:4.12.0'\r\n");
+            appendDependency(content, "com.squareup.okhttp3:okhttp", BuiltInLibraries.OKHTTP_ANDROID);
         }
 
         ConstVarComponent extraMetadata = metadata.x;
         if (isLibraryNotExcluded(BuiltInLibraries.CIRCLEIMAGEVIEW, excludedLibraries) && extraMetadata.isCircleImageViewUsed) {
-            content.append("implementation 'de.hdodenhof:circleimageview:3.1.0'\r\n");
+            appendDependency(content, "de.hdodenhof:circleimageview", BuiltInLibraries.CIRCLEIMAGEVIEW);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.ANDROID_YOUTUBE_PLAYER, excludedLibraries) && extraMetadata.isYoutubePlayerUsed) {
-            content.append("implementation 'com.pierfrancescosoffritti:androidyoutubeplayer:10.0.5'\r\n");
+            appendDependency(content, "com.pierfrancescosoffritti.androidyoutubeplayer:core", BuiltInLibraries.ANDROID_YOUTUBE_PLAYER);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.CODEVIEW, excludedLibraries) && extraMetadata.isCodeViewUsed) {
@@ -161,7 +165,7 @@ public class Lx {
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.LOTTIE, excludedLibraries) && extraMetadata.isLottieUsed) {
-            content.append("implementation 'com.airbnb.android:lottie:6.5.2'\r\n");
+            appendDependency(content, "com.airbnb.android:lottie", BuiltInLibraries.LOTTIE);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.OTPVIEW, excludedLibraries) && extraMetadata.isOTPViewUsed) {
@@ -173,11 +177,11 @@ public class Lx {
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.PLAY_SERVICES_AUTH, excludedLibraries) && extraMetadata.isFBGoogleUsed) {
-            content.append("implementation 'com.google.android.gms:play-services-auth:19.0.0'");
+            appendDependency(content, "com.google.android.gms:play-services-auth", BuiltInLibraries.PLAY_SERVICES_AUTH);
         }
 
         if (isLibraryNotExcluded(BuiltInLibraries.FIREBASE_MESSAGING, excludedLibraries) && extraMetadata.isFCMUsed) {
-            content.append("implementation 'com.google.firebase:firebase-messaging'");
+            appendDependency(content, "com.google.firebase:firebase-messaging", BuiltInLibraries.FIREBASE_MESSAGING);
         }
 
         String sc_id = metadata.sc_id;
@@ -199,6 +203,11 @@ public class Lx {
         }
 
         return j(content + "}\r\n", false);
+    }
+
+    private static void appendDependency(StringBuilder content, String groupAndArtifact, String builtInLibraryName) {
+        content.append("implementation '").append(groupAndArtifact).append(':')
+                .append(BuiltInLibraryUtils.getVersion(builtInLibraryName)).append("'\r\n");
     }
 
     private static boolean isLibraryNotExcluded(String libraryName, List<BuiltInLibraries.BuiltInLibrary> excludedLibraries) {
@@ -717,8 +726,8 @@ public class Lx {
                     break;
 
                 case "FusedLocationManager":
-                    fieldDeclaration += "\r\nprivate LocationRequest _" + typeInstanceName + "_location_request = LocationRequest.create()"
-                            + ".setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY).setInterval(1000L).setFastestInterval(500L);";
+                    fieldDeclaration += "\r\nprivate LocationRequest _" + typeInstanceName + "_location_request = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)"
+                            + ".setMinUpdateIntervalMillis(500L).build();";
                     fieldDeclaration += "\r\nprivate LocationCallback _" + typeInstanceName + "_location_callback;";
                     fieldDeclaration += "\r\nprivate boolean _" + typeInstanceName + "_location_updates_started;";
                     fieldDeclaration += "\r\nprivate void _" + typeInstanceName + "_start_location_updates() {\r\n"
@@ -797,7 +806,7 @@ public class Lx {
                     break;
 
                 case "FirebaseCloudMessage":
-                    fieldDeclaration += "\r\nprivate OnCompleteListener " + typeInstanceName + "_onCompleteListener;";
+                    fieldDeclaration += "\r\nprivate OnCompleteListener<String> " + typeInstanceName + "_onCompleteListener;";
                     break;
 
                 case "PhoneAuthProvider.OnVerificationStateChangedCallbacks":
@@ -1755,7 +1764,7 @@ public class Lx {
                 "}\r\n" +
                 "\r\n" +
                 "tasks.register(\"clean\", Delete) {\r\n" +
-                "    delete rootProject.buildDir\r\n" +
+                "    delete rootProject.layout.buildDirectory\r\n" +
                 "}\r\n";
     }
 

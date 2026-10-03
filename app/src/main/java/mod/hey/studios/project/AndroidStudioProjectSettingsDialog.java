@@ -1,5 +1,6 @@
 package mod.hey.studios.project;
 
+import static com.besome.sketch.Config.VAR_DEFAULT_COMPILE_SDK_VERSION;
 import static com.besome.sketch.Config.VAR_DEFAULT_MIN_SDK_VERSION;
 import static com.besome.sketch.Config.VAR_DEFAULT_TARGET_SDK_VERSION;
 
@@ -52,7 +53,7 @@ public class AndroidStudioProjectSettingsDialog {
 
         binding.etCompileSdkVersion.setText(settings.getValue(
                 ProjectSettings.SETTING_COMPILE_SDK_VERSION,
-                readCompileSdk(buildGradle, String.valueOf(VAR_DEFAULT_TARGET_SDK_VERSION))));
+                readCompileSdk(buildGradle, String.valueOf(VAR_DEFAULT_COMPILE_SDK_VERSION))));
         binding.etMinimumSdkVersion.setText(settings.getValue(
                 ProjectSettings.SETTING_MINIMUM_SDK_VERSION,
                 readMinSdk(buildGradle, String.valueOf(VAR_DEFAULT_MIN_SDK_VERSION))));
@@ -106,7 +107,7 @@ public class AndroidStudioProjectSettingsDialog {
         boolean kotlinDsl = buildFile.getName().endsWith(".kts");
         String compileSdk = settings.getValue(
                 ProjectSettings.SETTING_COMPILE_SDK_VERSION,
-                readCompileSdk(content, String.valueOf(VAR_DEFAULT_TARGET_SDK_VERSION)));
+                readCompileSdk(content, String.valueOf(VAR_DEFAULT_COMPILE_SDK_VERSION)));
         String minSdk = settings.getValue(
                 ProjectSettings.SETTING_MINIMUM_SDK_VERSION,
                 readMinSdk(content, String.valueOf(VAR_DEFAULT_MIN_SDK_VERSION)));

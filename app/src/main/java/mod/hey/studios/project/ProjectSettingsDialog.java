@@ -1,5 +1,6 @@
 package mod.hey.studios.project;
 
+import static com.besome.sketch.Config.VAR_DEFAULT_COMPILE_SDK_VERSION;
 import static com.besome.sketch.Config.VAR_DEFAULT_MIN_SDK_VERSION;
 import static com.besome.sketch.Config.VAR_DEFAULT_TARGET_SDK_VERSION;
 
@@ -35,7 +36,7 @@ public class ProjectSettingsDialog {
             }
         });
 
-        binding.etCompileSdkVersion.setText(settings.getValue(ProjectSettings.SETTING_COMPILE_SDK_VERSION, String.valueOf(VAR_DEFAULT_TARGET_SDK_VERSION)));
+        binding.etCompileSdkVersion.setText(settings.getValue(ProjectSettings.SETTING_COMPILE_SDK_VERSION, String.valueOf(VAR_DEFAULT_COMPILE_SDK_VERSION)));
         binding.etMinimumSdkVersion.setText(settings.getValue(ProjectSettings.SETTING_MINIMUM_SDK_VERSION, String.valueOf(VAR_DEFAULT_MIN_SDK_VERSION)));
         binding.etTargetSdkVersion.setText(settings.getValue(ProjectSettings.SETTING_TARGET_SDK_VERSION, String.valueOf(VAR_DEFAULT_TARGET_SDK_VERSION)));
         binding.etApplicationClassName.setText(settings.getValue(ProjectSettings.SETTING_APPLICATION_CLASS, ".SketchApplication"));

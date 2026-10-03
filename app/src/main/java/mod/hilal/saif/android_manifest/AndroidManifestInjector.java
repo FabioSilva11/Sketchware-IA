@@ -289,6 +289,21 @@ public class AndroidManifestInjector {
         return returnValue.toString();
     }
 
+    /**
+     * @param attribute An attribute name with its prefix, e.g. {@code android:theme}
+     * @return Whether the project injects that attribute into its &lt;application&gt; tag
+     */
+    public static boolean isApplicationAttributeInjected(String projectId, String attribute) {
+        for (HashMap<String, Object> injection : readAndroidManifestAttributeInjections(projectId)) {
+            if ("_application_attrs".equals(injection.get("name"))
+                    && injection.get("value") instanceof String value
+                    && value.contains(attribute + "=")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void addToApp(XmlBuilder nx, String projectId) {
         ArrayList<HashMap<String, Object>> attributes = readAndroidManifestAttributeInjections(projectId);
 

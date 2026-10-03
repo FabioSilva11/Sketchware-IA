@@ -1,5 +1,6 @@
 package a.a.a;
 
+import java.io.File;
 import java.util.Objects;
 
 import mod.jbk.build.BuiltInLibraries;
@@ -12,17 +13,11 @@ public class Jp {
     private final String name;
     private final String packageName;
     private final boolean hasResources;
-    private final boolean hasAssets;
 
     public Jp(String libraryName) {
         name = libraryName;
         hasResources = BuiltInLibraryUtils.hasResources(libraryName);
-        hasAssets = libraryName.equals(BuiltInLibraries.CODEVIEW);
-        if (hasResources || hasAssets) {
-            packageName = BuiltInLibraryUtils.getPackageName(libraryName);
-        } else {
-            packageName = "";
-        }
+        packageName = hasResources ? BuiltInLibraryUtils.getPackageName(libraryName) : "";
     }
 
     @Override
@@ -65,6 +60,8 @@ public class Jp {
      * <code>false</code> otherwise
      */
     public boolean hasAssets() {
-        return hasAssets;
+        // Checked when asked rather than on construction, as libraries get extracted after
+        // the project's library list is built. E.g. CodeView's scripts, OkHttp's public suffix list.
+        return new File(BuiltInLibraries.getLibraryPath(name), "assets").isDirectory();
     }
 }

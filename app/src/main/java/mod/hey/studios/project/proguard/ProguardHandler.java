@@ -85,7 +85,23 @@ public class ProguardHandler {
                     -keepclasseswithmembers class * {
                         @android.support.annotation.Keep <init>(...);
                     }
-                    
+
+                    -keep class androidx.annotation.Keep
+
+                    -keep @androidx.annotation.Keep class * {*;}
+
+                    -keepclasseswithmembers class * {
+                        @androidx.annotation.Keep <methods>;
+                    }
+
+                    -keepclasseswithmembers class * {
+                        @androidx.annotation.Keep <fields>;
+                    }
+
+                    -keepclasseswithmembers class * {
+                        @androidx.annotation.Keep <init>(...);
+                    }
+
                     -keepclassmembers class * {
                         @android.webkit.JavascriptInterface <methods>;\
                     }
@@ -102,9 +118,33 @@ public class ProguardHandler {
                     """);
         } else {
             removeVerboseRule(rulePath);
+            addAndroidxKeepRules(rulePath);
         }
 
         return rulePath;
+    }
+
+    /**
+     * Rules files created before the AndroidX migration only honor the support library's @Keep.
+     */
+    private static void addAndroidxKeepRules(String rulePath) {
+        String rules = FileUtil.readFile(rulePath);
+        if (!rules.contains("androidx.annotation.Keep")) {
+            FileUtil.writeFile(rulePath, rules + """
+
+                    -keep class androidx.annotation.Keep
+                    -keep @androidx.annotation.Keep class * {*;}
+                    -keepclasseswithmembers class * {
+                        @androidx.annotation.Keep <methods>;
+                    }
+                    -keepclasseswithmembers class * {
+                        @androidx.annotation.Keep <fields>;
+                    }
+                    -keepclasseswithmembers class * {
+                        @androidx.annotation.Keep <init>(...);
+                    }
+                    """);
+        }
     }
 
     private static void removeVerboseRule(String rulePath) {

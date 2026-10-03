@@ -16,6 +16,7 @@ import android.view.View;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.SystemBarStyle;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -29,9 +30,16 @@ import a.a.a.MA;
 import a.a.a.lC;
 import dev.chrisbanes.insetter.Insetter;
 import pro.sketchware.dialogs.ProgressDialog;
+import pro.sketchware.utility.StoragePermission;
+import pro.sketchware.utility.SystemBarInsets;
 import pro.sketchware.utility.TranslationFunction;
 
 public abstract class BaseAppCompatActivity extends AppCompatActivity {
+    /**
+     * Whether this screen handles the system bar insets itself. Since Sketchware targets API 35+,
+     * Android 15+ draws every Activity edge-to-edge; the others get padded by the system bars.
+     */
+    private boolean laysOutEdgeToEdge;
 
     public FirebaseAnalytics mAnalytics;
 
@@ -96,7 +104,7 @@ public abstract class BaseAppCompatActivity extends AppCompatActivity {
     }
 
     public boolean isStoragePermissionGranted() {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == 0 && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == 0;
+        return StoragePermission.isGranted(this);
     }
 
     public boolean j() {
@@ -172,7 +180,16 @@ public abstract class BaseAppCompatActivity extends AppCompatActivity {
         return TranslationFunction.wrapResources(this, super.getResources());
     }
 
+    @Override
+    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
+        super.onPostCreate(savedInstanceState);
+        if (!laysOutEdgeToEdge) {
+            SystemBarInsets.keepContentClear(this);
+        }
+    }
+
     protected void enableEdgeToEdgeNoContrast() {
+        laysOutEdgeToEdge = true;
         SystemBarStyle systemBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT);
         EdgeToEdge.enable(this, systemBarStyle);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
