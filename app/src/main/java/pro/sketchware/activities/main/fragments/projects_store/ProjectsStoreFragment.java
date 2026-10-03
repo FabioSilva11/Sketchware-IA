@@ -1,452 +1,163 @@
 package pro.sketchware.activities.main.fragments.projects_store;
 
-import android.animation.ObjectAnimator;
-import android.animation.ValueAnimator;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 
-import com.google.android.material.chip.Chip;
-import com.google.android.material.chip.ChipGroup;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.transition.MaterialFadeThrough;
-
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import pro.sketchware.R;
-import pro.sketchware.activities.main.fragments.projects_store.adapters.StoreProjectsAdapter;
-import pro.sketchware.activities.main.fragments.projects_store.api.ProjectModel;
-import pro.sketchware.activities.main.fragments.projects_store.api.SketchwareStoreApi;
-import pro.sketchware.databinding.FragmentProjectsStoreBinding;
-import pro.sketchware.utility.UI;
+import pro.sketchware.databinding.FragmentP2pStoreBinding;
+import pro.sketchware.store.StoreRuntime;
+import pro.sketchware.store.core.Catalog;
+import pro.sketchware.store.core.Records;
+import pro.sketchware.store.core.StoreEngine;
+import pro.sketchware.store.ui.ListingAdapter;
+import pro.sketchware.store.ui.StoreProfileActivity;
+import pro.sketchware.store.ui.StoreProjectActivity;
+import pro.sketchware.store.ui.StorePublishActivity;
+import pro.sketchware.store.ui.StoreSettingsDialog;
 
+/**
+ * The Store tab: projects shared on the P2P network, as far as this device has learned about them.
+ */
 public class ProjectsStoreFragment extends Fragment {
-    private FragmentProjectsStoreBinding binding;
-    private SketchwareStoreApi storeApi;
-    private StoreProjectsAdapter adapter;
-    private final ArrayList<ProjectModel.Project> projects = new ArrayList<>();
-    private final ArrayList<ProjectModel.Category> categories = new ArrayList<>();
-    private final Handler searchHandler = new Handler(Looper.getMainLooper());
 
-    private String selectedKind = "all";
-    private String selectedSort = "newest";
-    private String selectedCategory;
-    private String searchQuery = "";
-    private boolean selectedFree;
-    private boolean selectedPaid;
-    private boolean selectedOpenSource;
-    private boolean selectedFeatured;
-    private int nextOffset;
-    private int totalResults;
-    private boolean loading;
-    private int requestGeneration;
-    private Runnable pendingSearch;
-    private ObjectAnimator shimmerAnimator;
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setEnterTransition(new MaterialFadeThrough());
-        setReturnTransition(new MaterialFadeThrough());
-        setExitTransition(new MaterialFadeThrough());
-        setReenterTransition(new MaterialFadeThrough());
-    }
+    private FragmentP2pStoreBinding binding;
+    private StoreRuntime runtime;
+    private ListingAdapter adapter;
+    private String query = "";
+    private final Runnable onStoreChanged = this::refresh;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        binding = FragmentProjectsStoreBinding.inflate(inflater, container, false);
-        storeApi = new SketchwareStoreApi();
+        binding = FragmentP2pStoreBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
 
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
+        runtime = StoreRuntime.get(requireContext());
+        adapter = new ListingAdapter(listing -> startActivity(StoreProjectActivity.intent(requireContext(),
+                listing.author, listing.id)));
+        int columns = getResources().getConfiguration().screenWidthDp >= 600 ? 3 : 2;
+        binding.listings.setLayoutManager(new GridLayoutManager(requireContext(), columns));
+        binding.listings.setAdapter(adapter);
+        binding.kindChips.setOnCheckedStateChangeListener((group, ids) -> refresh());
+        binding.sortChips.setOnCheckedStateChangeListener((group, ids) -> refresh());
+        binding.storeRefresh.setOnRefreshListener(() -> {
+            StoreEngine engine = runtime.engine();
+            if (engine != null) {
+                engine.syncSoon();
+            }
+            binding.storeRefresh.setRefreshing(false);
+        });
+        binding.storeSettings.setOnClickListener(v -> StoreSettingsDialog.show(requireActivity()));
+        binding.myStore.setOnClickListener(v -> {
+            StoreEngine engine = runtime.engine();
+            if (engine != null) {
+                startActivity(StoreProfileActivity.intent(requireContext(), engine.identity().id()));
+            }
+        });
+        binding.publish.setOnClickListener(v -> startActivity(new Intent(requireContext(), StorePublishActivity.class)));
+        runtime.start(engine -> refresh());
+        refresh();
+    }
 
-        setupOfficialStoreLink();
-        setupGrid();
-        setupFilterFab();
-        setupPaging();
-        loadStats();
-        loadCategories();
-        fetchPublications(true);
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (runtime != null) {
+            runtime.addListener(onStoreChanged);
+            refresh();
+        }
+    }
 
-        UI.addSystemWindowInsetToPadding(binding.storeContent, true, false, true, true);
-        UI.addSystemWindowInsetToMargin(binding.filterFab, false, false, true, true);
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (runtime != null) {
+            runtime.removeListener(onStoreChanged);
+        }
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (pendingSearch != null) {
-            searchHandler.removeCallbacks(pendingSearch);
-        }
-        stopShimmer();
         binding = null;
     }
 
-    private void setupOfficialStoreLink() {
-        binding.cardWarning.setOnClickListener(v -> openOfficialStoreWebsite());
-        binding.storeSideNote.setOnClickListener(v -> openOfficialStoreWebsite());
-        binding.openStoreButton.setOnClickListener(v -> openOfficialStoreWebsite());
-    }
-
-    private void setupGrid() {
-        adapter = new StoreProjectsAdapter(projects, requireActivity());
-        binding.publicationsGrid.setLayoutManager(new LinearLayoutManager(getContext()));
-        binding.publicationsGrid.setAdapter(adapter);
-        binding.publicationsGrid.setClipToPadding(false);
-        binding.publicationsGrid.setClipChildren(false);
-    }
-
-    private void setupFilterFab() {
-        binding.filterFab.setOnClickListener(v -> showFiltersDialog());
-    }
-
-    private void setupPaging() {
-        binding.loadMoreButton.setOnClickListener(v -> fetchPublications(false));
-    }
-
+    /** Called from the main toolbar's search field. */
     public void setSearchQuery(String query) {
-        String normalizedQuery = query == null ? "" : query.trim();
-        if (normalizedQuery.equals(searchQuery)) {
-            return;
-        }
-        searchQuery = normalizedQuery;
-        if (binding != null) {
-            debounceSearch();
-        }
+        this.query = query == null ? "" : query;
+        refresh();
     }
 
-    private void loadStats() {
-        storeApi.getStoreStats(stats -> {
-            if (binding == null || stats == null) {
-                return;
-            }
-            binding.statApks.setText(String.format(Locale.US, "%d\nAPKs", stats.getApks()));
-            binding.statSwbs.setText(String.format(Locale.US, "%d\nSWBs", stats.getSwbs()));
-            binding.statWebsites.setText(String.format(Locale.US, "%d\nWebsites", stats.getWebsites()));
-            binding.statUsers.setText(String.format(Locale.US, "%d\nUsers", stats.getUsers()));
-            binding.statDownloads.setText(String.format(Locale.US, "%d\nDownloads", stats.getDownloads()));
-        });
-    }
-
-    private void loadCategories() {
-        storeApi.getCategories(categories -> {
-            if (binding == null || categories == null) {
-                return;
-            }
-            this.categories.clear();
-            this.categories.addAll(categories);
-            if (!loading) {
-                binding.resultSummary.setText(resultSummaryText());
-            }
-        });
-    }
-
-    private void showFiltersDialog() {
+    private void refresh() {
         if (binding == null) {
             return;
         }
-
-        ScrollView scrollView = new ScrollView(requireContext());
-        LinearLayout content = new LinearLayout(requireContext());
-        content.setOrientation(LinearLayout.VERTICAL);
-        int padding = dp(20);
-        content.setPadding(padding, 0, padding, 0);
-        scrollView.addView(content);
-
-        addSectionTitle(content, R.string.store_filter_type);
-        ChipGroup kindGroup = createSelectionGroup();
-        addSelectableChip(kindGroup, "All", "all", "all".equals(selectedKind));
-        addSelectableChip(kindGroup, "APK", "apk", "apk".equals(selectedKind));
-        addSelectableChip(kindGroup, "SWB", "swb", "swb".equals(selectedKind));
-        addSelectableChip(kindGroup, "Website", "website", "website".equals(selectedKind));
-        content.addView(kindGroup);
-
-        addSectionTitle(content, R.string.store_filter_sort);
-        ChipGroup sortGroup = createSelectionGroup();
-        addSelectableChip(sortGroup, "Newest", "newest", "newest".equals(selectedSort));
-        addSelectableChip(sortGroup, "Downloads", "downloads", "downloads".equals(selectedSort));
-        addSelectableChip(sortGroup, "Rating", "rating", "rating".equals(selectedSort));
-        addSelectableChip(sortGroup, "Updated", "updated", "updated".equals(selectedSort));
-        addSelectableChip(sortGroup, "Likes", "likes", "likes".equals(selectedSort));
-        content.addView(sortGroup);
-
-        addSectionTitle(content, R.string.store_filter_flags);
-        CheckBox freeCheck = createCheckBox(R.string.store_filter_free, selectedFree);
-        CheckBox paidCheck = createCheckBox(R.string.store_filter_paid, selectedPaid);
-        CheckBox openSourceCheck = createCheckBox(R.string.store_filter_open_source, selectedOpenSource);
-        CheckBox featuredCheck = createCheckBox(R.string.store_filter_featured, selectedFeatured);
-        content.addView(freeCheck);
-        content.addView(paidCheck);
-        content.addView(openSourceCheck);
-        content.addView(featuredCheck);
-
-        addSectionTitle(content, R.string.store_filter_category);
-        ChipGroup categoryGroup = createSelectionGroup();
-        addSelectableChip(categoryGroup, "All", null, selectedCategory == null);
-        for (ProjectModel.Category category : categories) {
-            addSelectableChip(categoryGroup, category.getName(), category.getSlug(), category.getSlug().equals(selectedCategory));
-        }
-        content.addView(categoryGroup);
-
-        new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.store_filters_title)
-                .setView(scrollView)
-                .setNeutralButton(R.string.store_filters_clear, (dialog, which) -> {
-                    resetFilters();
-                    fetchPublications(true);
-                })
-                .setNegativeButton(android.R.string.cancel, null)
-                .setPositiveButton(R.string.store_filters_apply, (dialog, which) -> {
-                    selectedKind = checkedStringTag(kindGroup, "all");
-                    selectedSort = checkedStringTag(sortGroup, "newest");
-                    selectedCategory = checkedNullableStringTag(categoryGroup);
-                    selectedFree = freeCheck.isChecked();
-                    selectedPaid = paidCheck.isChecked();
-                    selectedOpenSource = openSourceCheck.isChecked();
-                    selectedFeatured = featuredCheck.isChecked();
-                    fetchPublications(true);
-                })
-                .show();
-    }
-
-    private ChipGroup createSelectionGroup() {
-        ChipGroup group = new ChipGroup(requireContext());
-        group.setSingleSelection(true);
-        group.setSelectionRequired(true);
-        group.setPadding(0, 4, 0, dp(8));
-        return group;
-    }
-
-    private void addSectionTitle(LinearLayout content, int titleResId) {
-        TextView title = new TextView(requireContext());
-        title.setText(titleResId);
-        title.setTextColor(requireContext().getColor(R.color.chat_text_primary));
-        title.setTextSize(14f);
-        title.setTypeface(title.getTypeface(), android.graphics.Typeface.BOLD);
-        title.setPadding(0, dp(12), 0, 0);
-        content.addView(title);
-    }
-
-    private CheckBox createCheckBox(int textResId, boolean checked) {
-        CheckBox checkBox = new CheckBox(requireContext());
-        checkBox.setText(textResId);
-        checkBox.setChecked(checked);
-        checkBox.setTextColor(requireContext().getColor(R.color.chat_text_primary));
-        checkBox.setPadding(0, 0, 0, 0);
-        return checkBox;
-    }
-
-    private void resetFilters() {
-        selectedKind = "all";
-        selectedSort = "newest";
-        selectedCategory = null;
-        selectedFree = false;
-        selectedPaid = false;
-        selectedOpenSource = false;
-        selectedFeatured = false;
-    }
-
-    private String checkedStringTag(ChipGroup group, String fallback) {
-        Object tag = checkedTag(group);
-        return tag instanceof String ? (String) tag : fallback;
-    }
-
-    private String checkedNullableStringTag(ChipGroup group) {
-        Object tag = checkedTag(group);
-        return tag instanceof String ? (String) tag : null;
-    }
-
-    private Object checkedTag(ChipGroup group) {
-        Chip chip = group.findViewById(group.getCheckedChipId());
-        return chip == null ? null : chip.getTag();
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
-    }
-
-    private void fetchPublications(boolean reset) {
-        if (binding == null || (loading && !reset)) {
+        StoreEngine engine = runtime.engine();
+        binding.myStore.setEnabled(engine != null);
+        binding.publish.setEnabled(engine != null);
+        if (engine == null) {
+            String error = runtime.startError();
+            binding.networkStatus.setText(error == null ? getString(R.string.p2p_store_starting)
+                    : getString(R.string.p2p_store_start_failed, error));
+            showEmpty(true, error == null);
+            adapter.submit(java.util.Collections.emptyList());
             return;
         }
-
-        if (reset) {
-            nextOffset = 0;
-            totalResults = 0;
-            projects.clear();
-            adapter.setProjects(projects);
-            showShimmer(true);
-        }
-
-        loading = true;
-        int generation = ++requestGeneration;
-        binding.emptyState.setVisibility(View.GONE);
-        binding.loadMoreButton.setVisibility(View.GONE);
-        binding.resultSummary.setText(R.string.store_loading);
-
-        storeApi.getPublications(
-                selectedSort,
-                selectedKind,
-                selectedCategory,
-                currentQuery(),
-                selectedFree ? Boolean.TRUE : null,
-                selectedPaid ? Boolean.TRUE : null,
-                selectedOpenSource ? Boolean.TRUE : null,
-                selectedFeatured ? Boolean.TRUE : null,
-                SketchwareStoreApi.DEFAULT_PAGE_SIZE,
-                nextOffset,
-                projectModel -> {
-                    if (binding == null || generation != requestGeneration) {
-                        return;
-                    }
-                    loading = false;
-                    handlePublications(projectModel, reset);
-                }
-        );
-    }
-
-    private void handlePublications(ProjectModel projectModel, boolean reset) {
-        showShimmer(false);
-
-        List<ProjectModel.Project> loaded = projectModel == null ? null : projectModel.getProjects();
-        totalResults = projectModel == null ? 0 : projectModel.getTotal();
-
-        if (loaded != null && !loaded.isEmpty()) {
-            if (reset) {
-                projects.clear();
-                projects.addAll(loaded);
-                adapter.setProjects(projects);
-            } else {
-                projects.addAll(loaded);
-                adapter.addProjects(loaded);
-            }
-            nextOffset = projects.size();
-        }
-
-        boolean isEmpty = projects.isEmpty();
-        binding.publicationsGrid.setVisibility(isEmpty ? View.GONE : View.VISIBLE);
-        binding.emptyState.setVisibility(isEmpty ? View.VISIBLE : View.GONE);
-        binding.loadMoreButton.setVisibility(!isEmpty && nextOffset < totalResults ? View.VISIBLE : View.GONE);
-        binding.resultSummary.setText(resultSummaryText());
-    }
-
-    private void showShimmer(boolean show) {
-        if (binding == null) {
-            return;
-        }
-        binding.shimmerContainer.setVisibility(show ? View.VISIBLE : View.GONE);
-        binding.publicationsGrid.setVisibility(show ? View.GONE : View.VISIBLE);
-        if (show) {
-            startShimmer();
+        StoreEngine.Status status = engine.status();
+        String networkText;
+        if (!status.networkAllowed) {
+            networkText = getString(R.string.p2p_store_status_waiting_wifi);
         } else {
-            stopShimmer();
+            networkText = getString(R.string.p2p_store_status, status.dhtNodes, status.users,
+                    getString(status.sharing ? R.string.p2p_store_status_sharing : R.string.p2p_store_status_not_sharing))
+                    + (status.syncing ? getString(R.string.p2p_store_status_syncing) : "");
+        }
+        binding.networkStatus.setText(networkText);
+
+        String kind = null;
+        int kindId = binding.kindChips.getCheckedChipId();
+        if (kindId == R.id.chip_sketchware) {
+            kind = Records.KIND_SKETCHWARE;
+        } else if (kindId == R.id.chip_android_studio) {
+            kind = Records.KIND_ANDROID_STUDIO;
+        }
+        String sort = Catalog.SORT_POPULAR;
+        int sortId = binding.sortChips.getCheckedChipId();
+        if (sortId == R.id.sort_newest) {
+            sort = Catalog.SORT_NEWEST;
+        } else if (sortId == R.id.sort_likes) {
+            sort = Catalog.SORT_LIKES;
+        } else if (sortId == R.id.sort_downloads) {
+            sort = Catalog.SORT_DOWNLOADS;
+        }
+        List<Catalog.Listing> listings = engine.catalog().listings(query, kind, sort, null);
+        adapter.submit(listings);
+        binding.resultSummary.setText(getString(R.string.p2p_store_results, listings.size()));
+        if (listings.isEmpty()) {
+            boolean searching = status.syncing || status.users <= 1;
+            binding.emptyTitle.setText(searching ? R.string.p2p_store_empty_searching : R.string.p2p_store_empty_none);
+            binding.emptyMessage.setText(searching ? R.string.p2p_store_empty_searching_message
+                    : R.string.p2p_store_empty_none_message);
+            showEmpty(true, searching);
+        } else {
+            showEmpty(false, false);
         }
     }
 
-    private void startShimmer() {
-        if (binding == null || shimmerAnimator != null) {
-            return;
-        }
-        shimmerAnimator = ObjectAnimator.ofFloat(binding.shimmerContainer, View.ALPHA, 0.45f, 1f);
-        shimmerAnimator.setDuration(650L);
-        shimmerAnimator.setRepeatCount(ValueAnimator.INFINITE);
-        shimmerAnimator.setRepeatMode(ValueAnimator.REVERSE);
-        shimmerAnimator.start();
-    }
-
-    private void stopShimmer() {
-        if (shimmerAnimator != null) {
-            shimmerAnimator.cancel();
-            shimmerAnimator = null;
-        }
-        if (binding != null) {
-            binding.shimmerContainer.setAlpha(1f);
-        }
-    }
-
-    private String resultSummaryText() {
-        if (projects.isEmpty() && totalResults == 0) {
-            return getString(R.string.store_empty);
-        }
-        return String.format(Locale.US, "%d of %d publications - %s - %s",
-                projects.size(),
-                totalResults,
-                selectedSort,
-                filterSummary());
-    }
-
-    private String filterSummary() {
-        StringBuilder builder = new StringBuilder("all".equals(selectedKind) ? "all types" : selectedKind.toUpperCase(Locale.US));
-        if (selectedCategory != null) {
-            builder.append(" - ").append(selectedCategoryName());
-        }
-        if (selectedFree) {
-            builder.append(" - free");
-        }
-        if (selectedPaid) {
-            builder.append(" - paid");
-        }
-        if (selectedOpenSource) {
-            builder.append(" - open source");
-        }
-        if (selectedFeatured) {
-            builder.append(" - featured");
-        }
-        return builder.toString();
-    }
-
-    private String selectedCategoryName() {
-        for (ProjectModel.Category category : categories) {
-            if (category.getSlug().equals(selectedCategory)) {
-                return category.getName();
-            }
-        }
-        return selectedCategory;
-    }
-
-    private void debounceSearch() {
-        if (pendingSearch != null) {
-            searchHandler.removeCallbacks(pendingSearch);
-        }
-        pendingSearch = () -> fetchPublications(true);
-        searchHandler.postDelayed(pendingSearch, 450L);
-    }
-
-    private String currentQuery() {
-        return searchQuery;
-    }
-
-    private Chip addSelectableChip(ViewGroup group, String text, String tag, boolean checked) {
-        Chip chip = new Chip(group.getContext());
-        chip.setId(View.generateViewId());
-        chip.setText(text);
-        chip.setTag(tag);
-        chip.setCheckable(true);
-        chip.setChecked(checked);
-        group.addView(chip);
-        return chip;
-    }
-
-    private void openOfficialStoreWebsite() {
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(SketchwareStoreApi.SITE_URL));
-        startActivity(intent);
+    private void showEmpty(boolean empty, boolean searching) {
+        binding.emptyState.setVisibility(empty ? View.VISIBLE : View.GONE);
+        binding.emptyProgress.setVisibility(searching ? View.VISIBLE : View.GONE);
+        binding.listings.setVisibility(empty ? View.GONE : View.VISIBLE);
     }
 }

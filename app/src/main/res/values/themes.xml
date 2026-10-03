@@ -43,11 +43,6 @@
         <item name="navigationViewStyle">@style/Widget.SketchwarePro.NavigationView.Main</item>
     </style>
 
-    <style name="Theme.SketchwarePro.ProjectPreview">
-        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.SketchwarePro.BottomSheetDialog
-        </item>
-    </style>
-
     <style name="Theme.SketchwarePro.SmallToolbar">
         <item name="actionBarSize">@dimen/mtrl_toolbar_default_height</item>
         <item name="toolbarStyle">@style/Widget.SketchwarePro.Toolbar.SmallText</item>

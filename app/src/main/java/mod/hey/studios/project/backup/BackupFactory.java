@@ -142,11 +142,18 @@ public class BackupFactory {
         int DEFAULT_BUFFER = 2048;
         try (ZipFile zip = new ZipFile(zipFile)) {
             destinationDir.mkdirs();
+            String destinationPath = destinationDir.getCanonicalPath() + File.separator;
             Enumeration<? extends ZipEntry> zipFileEntries = zip.entries();
             while (zipFileEntries.hasMoreElements()) {
                 ZipEntry entry = zipFileEntries.nextElement();
                 String entryName = entry.getName();
                 File destFile = new File(destinationDir, entryName);
+                // Backups can come from anyone (opened from other apps, the store): an entry
+                // like "../x" must not write outside the folder
+                String destFilePath = destFile.getCanonicalPath();
+                if (!destFilePath.equals(destinationDir.getCanonicalPath()) && !destFilePath.startsWith(destinationPath)) {
+                    return false;
+                }
                 File destinationParent = destFile.getParentFile();
                 if (destinationParent != null && !destinationParent.exists()) {
                     destinationParent.mkdirs();

@@ -11,6 +11,8 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- P2P store: finding other devices on the local network -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -324,10 +326,15 @@
             android:name="mod.khaled.logcat.LogReaderActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize" />
 
+        <!-- P2P project store -->
+        <activity android:name="pro.sketchware.store.ui.StoreProjectActivity" />
+        <activity android:name="pro.sketchware.store.ui.StoreProfileActivity" />
         <activity
-            android:name="pro.sketchware.activities.main.fragments.projects_store.ProjectPreviewActivity"
-            android:configChanges="orientation|screenSize"
-            android:theme="@style/Theme.SketchwarePro.ProjectPreview" />
+            android:name="pro.sketchware.store.ui.StoreEditProfileActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name="pro.sketchware.store.ui.StorePublishActivity"
+            android:windowSoftInputMode="adjustResize" />
 
         <activity android:name="pro.sketchware.activities.settings.SettingsActivity" />
         <activity android:name="pro.sketchware.activities.settings.IaSettingsActivity" />

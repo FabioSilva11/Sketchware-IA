@@ -146,6 +146,8 @@ dependencies {
     implementation libs.markwon
 
     implementation libs.bundles.networking
+    // P2P project store: BitTorrent engine with the Mainline DHT (BEP 44 signed items)
+    implementation libs.bundles.p2p
 
     implementation libs.ecj
     implementation libs.stax.api

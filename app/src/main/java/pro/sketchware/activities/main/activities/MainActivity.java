@@ -54,6 +54,7 @@ import pro.sketchware.R;
 import pro.sketchware.activities.about.AboutActivity;
 import pro.sketchware.activities.main.fragments.projects.ProjectsFragment;
 import pro.sketchware.activities.main.fragments.projects_store.ProjectsStoreFragment;
+import pro.sketchware.store.StoreRuntime;
 import pro.sketchware.activities.main.fragments.web_service.WebServiceFragment;
 import pro.sketchware.activities.main.fragments.chat.ChatFragment;
 import pro.sketchware.databinding.MainBinding;
@@ -197,6 +198,10 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
         setContentView(binding.getRoot());
         setSupportActionBar(binding.toolbar);
+        // While the app is open this device is part of the P2P store network, sharing what it has
+        if (StoreRuntime.get(this).settings().isSharing()) {
+            StoreRuntime.get(this).start(null);
+        }
 
         binding.statusBarOverlapper.setMinimumHeight(UI.getStatusBarHeight(this));
         UI.addSystemWindowInsetToPadding(binding.appbar, true, false, true, false);
@@ -555,6 +560,11 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
+        if (StoreRuntime.projectsChanged) {
+            // A project was imported from the store
+            StoreRuntime.projectsChanged = false;
+            refreshProjectBackedFragments();
+        }
         /* Check if the device is running low on storage space */
         long freeMegabytes = GB.c();
         if (freeMegabytes < 100 && freeMegabytes > 0) {

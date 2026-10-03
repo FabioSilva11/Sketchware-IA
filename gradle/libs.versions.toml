@@ -22,6 +22,7 @@ flexbox = "3.0.0"
 glide = "5.0.9"
 googleServices = "4.5.0"
 gson = "2.14.0"
+libtorrent4j = "2.1.0-39"
 insetter = "0.6.1"
 javaparserSymbolSolver = "3.28.2"
 json = "20260814"
@@ -96,6 +97,11 @@ markwon = { module = "io.noties.markwon:core", version.ref = "markwon" }
 
 ecj = { module = "org.eclipse.jdt:ecj", version.ref = "ecj" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+libtorrent4j = { module = "org.libtorrent4j:libtorrent4j", version.ref = "libtorrent4j" }
+libtorrent4j-android-arm = { module = "org.libtorrent4j:libtorrent4j-android-arm", version.ref = "libtorrent4j" }
+libtorrent4j-android-arm64 = { module = "org.libtorrent4j:libtorrent4j-android-arm64", version.ref = "libtorrent4j" }
+libtorrent4j-android-x86 = { module = "org.libtorrent4j:libtorrent4j-android-x86", version.ref = "libtorrent4j" }
+libtorrent4j-android-x86-64 = { module = "org.libtorrent4j:libtorrent4j-android-x86_64", version.ref = "libtorrent4j" }
 
 kotlin-compiler = { module = "org.jetbrains.kotlin:kotlin-compiler", version.ref = "kotlinCompiler" }
 kotlinc-for1-sketchware = { module = "com.github.waelchateur:kotlinc-for-sketchware", version.ref = "kotlincForSketchware" }
@@ -129,6 +135,7 @@ firebase-crashlytics-gradle = { module = "com.google.firebase:firebase-crashlyti
 google-services = { module = "com.google.gms:google-services", version.ref = "googleServices" }
 
 [bundles]
+p2p = ["libtorrent4j", "libtorrent4j-android-arm", "libtorrent4j-android-arm64", "libtorrent4j-android-x86", "libtorrent4j-android-x86-64"]
 ui = ["androidx-activity", "androidx-appcompat", "androidx-splashscreen", "androidx-recyclerview",
     "androidx-cardview", "androidx-viewpager", "androidx-swiperefreshlayout", "material", "lottie",
     "flexbox", "androidx-exifinterface", "androidx-preference"]

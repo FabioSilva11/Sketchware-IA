@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="24dp">
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/sharing"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/p2p_store_setting_sharing" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/p2p_store_setting_sharing_summary"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="@color/chat_text_secondary" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/wifi_only"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="@string/p2p_store_setting_wifi_only" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/p2p_store_setting_wifi_only_summary"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="@color/chat_text_secondary" />
+
+    <TextView
+        android:id="@+id/cache_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:textColor="@color/chat_text_primary" />
+
+    <com.google.android.material.slider.Slider
+        android:id="@+id/cache_limit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:stepSize="1"
+        android:valueFrom="0"
+        android:valueTo="5" />
+
+    <TextView
+        android:id="@+id/cache_usage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="@color/chat_text_secondary" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/clear_cache"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/p2p_store_clear_cache" />
+
+    <TextView
+        android:id="@+id/identity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:fontFamily="monospace"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="@color/chat_text_secondary"
+        android:textIsSelectable="true" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/p2p_store_privacy_note"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="@color/chat_text_secondary" />
+</LinearLayout>
