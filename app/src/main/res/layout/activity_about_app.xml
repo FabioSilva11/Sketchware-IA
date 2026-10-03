@@ -70,13 +70,15 @@
             android:orientation="vertical" />
     </LinearLayout>
 
-    <!-- Sits right above the banner, which sits above the navigation bar -->
+    <!-- Sits above the banner, which sits above the navigation bar. Anchored views ignore their
+         margins, so the gap to the banner comes from translationY. -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/discordButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|center_horizontal"
         android:layout_margin="16dp"
+        android:translationY="-16dp"
         app:layout_anchor="@id/ad_container"
         app:layout_anchorGravity="top|center_horizontal"
         android:text="@string/about_jointelegram"
