@@ -23,6 +23,15 @@ public class BuildSettings extends ProjectSettings implements Serializable {
     public static final String SETTING_JAVA_VERSION_10 = "10";
     public static final String SETTING_JAVA_VERSION_11 = "11";
 
+    /**
+     * Dexer used when a project hasn't chosen one. Dx can't dex Java 8+ bytecode.
+     */
+    public static final String DEFAULT_DEXER = SETTING_DEXER_D8;
+    /**
+     * Java language level used when a project hasn't chosen one.
+     */
+    public static final String DEFAULT_JAVA_VERSION = SETTING_JAVA_VERSION_11;
+
     public BuildSettings(String sc_id) {
         super(sc_id);
     }

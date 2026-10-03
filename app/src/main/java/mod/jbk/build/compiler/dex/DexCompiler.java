@@ -13,19 +13,11 @@ import java.util.Collection;
 import java.util.LinkedList;
 
 import a.a.a.ProjectBuilder;
-import mod.hey.studios.project.ProjectSettings;
 import pro.sketchware.utility.FileUtil;
 
 public class DexCompiler {
     public static void compileDexFiles(ProjectBuilder builder) throws CompilationFailedException {
-        int minApiLevel;
-
-        try {
-            minApiLevel = Integer.parseInt(builder.settings.getValue(
-                    ProjectSettings.SETTING_MINIMUM_SDK_VERSION, "21"));
-        } catch (NumberFormatException e) {
-            throw new CompilationFailedException("Invalid minSdkVersion specified in Project Settings" + e.getMessage());
-        }
+        int minApiLevel = builder.settings.getMinSdkVersion();
 
         Collection<Path> programFiles = new LinkedList<>();
         if (builder.proguard.isShrinkingEnabled()) {

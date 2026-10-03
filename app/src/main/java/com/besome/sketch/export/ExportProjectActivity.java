@@ -493,7 +493,7 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         ProjectSettings targetSettings = new ProjectSettings(androidStudioScId);
         targetSettings.setValue(
                 ProjectSettings.SETTING_COMPILE_SDK_VERSION,
-                sourceSettings.getValue(ProjectSettings.SETTING_COMPILE_SDK_VERSION, String.valueOf(Config.VAR_DEFAULT_TARGET_SDK_VERSION)));
+                sourceSettings.getValue(ProjectSettings.SETTING_COMPILE_SDK_VERSION, String.valueOf(Config.VAR_DEFAULT_COMPILE_SDK_VERSION)));
         targetSettings.setValue(
                 ProjectSettings.SETTING_MINIMUM_SDK_VERSION,
                 sourceSettings.getValue(ProjectSettings.SETTING_MINIMUM_SDK_VERSION, String.valueOf(Config.VAR_DEFAULT_MIN_SDK_VERSION)));

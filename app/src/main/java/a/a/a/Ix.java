@@ -8,7 +8,6 @@ import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Intent;
-import android.util.Pair;
 
 import com.besome.sketch.beans.ProjectFileBean;
 import com.google.gson.Gson;
@@ -18,20 +17,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import mod.agus.jcoderz.editor.manifest.EditorManifest;
 import mod.hey.studios.build.BuildSettings;
 import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.util.Helper;
 import mod.hilal.saif.android_manifest.AndroidManifestInjector;
-import mod.jbk.build.BuiltInLibraries;
-import pro.sketchware.util.library.BuiltInLibraryManager;
 import pro.sketchware.utility.FilePathUtil;
 import pro.sketchware.utility.FileResConfig;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.xml.XmlBuilder;
 
 public class Ix {
-    private final BuiltInLibraryManager builtInLibraryManager;
     public XmlBuilder a = new XmlBuilder("manifest");
     public ArrayList<ProjectFileBean> b;
     public BuildSettings buildSettings;
@@ -43,10 +38,9 @@ public class Ix {
     private String packageName;
     private final Set<String> addedPermissions = new HashSet<>();
 
-    public Ix(jq jq, ArrayList<ProjectFileBean> projectFileBeans, BuiltInLibraryManager builtInLibraryManager) {
+    public Ix(jq jq, ArrayList<ProjectFileBean> projectFileBeans) {
         c = jq;
         b = projectFileBeans;
-        this.builtInLibraryManager = builtInLibraryManager;
         buildSettings = new BuildSettings(jq.sc_id);
         frc = new FileResConfig(c.sc_id);
         a.addAttribute("xmlns", "android", "http://schemas.android.com/apk/res/android");
@@ -86,47 +80,6 @@ public class Ix {
         addedPermissions.add(permissionName);
     }
 
-    /**
-     * Adds Firebase metadata to AndroidManifest.
-     *
-     * @param applicationTag AndroidManifest {@link XmlBuilder} object
-     */
-    private void writeFirebaseMetaData(XmlBuilder applicationTag) {
-        XmlBuilder providerTag = new XmlBuilder("provider");
-        providerTag.addAttribute("android", "name", "com.google.firebase.provider.FirebaseInitProvider");
-        providerTag.addAttribute("android", "authorities", c.packageName + ".firebaseinitprovider");
-        providerTag.addAttribute("android", "exported", "false");
-        providerTag.addAttribute("android", "initOrder", "100");
-        applicationTag.addChildNode(providerTag);
-        XmlBuilder serviceTag = new XmlBuilder("service");
-        serviceTag.addAttribute("android", "name", "com.google.firebase.components.ComponentDiscoveryService");
-        serviceTag.addAttribute("android", "exported", "false");
-        if (c.isFirebaseAuthUsed) {
-            XmlBuilder metadataTag = new XmlBuilder("meta-data");
-            metadataTag.addAttribute("android", "name", "com.google.firebase.components:com.google.firebase.auth.FirebaseAuthRegistrar");
-            metadataTag.addAttribute("android", "value", "com.google.firebase.components.ComponentRegistrar");
-            serviceTag.addChildNode(metadataTag);
-        }
-        if (c.isFirebaseDatabaseUsed) {
-            XmlBuilder metadataTag = new XmlBuilder("meta-data");
-            metadataTag.addAttribute("android", "name", "com.google.firebase.components:com.google.firebase.database.DatabaseRegistrar");
-            metadataTag.addAttribute("android", "value", "com.google.firebase.components.ComponentRegistrar");
-            serviceTag.addChildNode(metadataTag);
-        }
-        if (c.isFirebaseStorageUsed) {
-            XmlBuilder metadataTag = new XmlBuilder("meta-data");
-            metadataTag.addAttribute("android", "name", "com.google.firebase.components:com.google.firebase.storage.StorageRegistrar");
-            metadataTag.addAttribute("android", "value", "com.google.firebase.components.ComponentRegistrar");
-            serviceTag.addChildNode(metadataTag);
-        }
-        if (c.x.isFCMUsed) {
-            XmlBuilder metadataTag = new XmlBuilder("meta-data");
-            metadataTag.addAttribute("android", "name", "com.google.firebase.components:com.google.firebase.iid.Registrar");
-            metadataTag.addAttribute("android", "value", "com.google.firebase.components.ComponentRegistrar");
-            serviceTag.addChildNode(metadataTag);
-        }
-        applicationTag.addChildNode(serviceTag);
-    }
 
     /**
      * Adds the Google Maps SDK API key metadata to AndroidManifest.
@@ -152,17 +105,6 @@ public class Ix {
         applicationTag.addChildNode(usesLibraryTag);
     }
 
-    /**
-     * Adds metadata about the GMS library version (setNodeValue resource integer).
-     *
-     * @param applicationTag {@link XmlBuilder} object to add the {@code meta-data} tag to
-     */
-    private void writeGMSVersion(XmlBuilder applicationTag) {
-        XmlBuilder metadataTag = new XmlBuilder("meta-data");
-        metadataTag.addAttribute("android", "name", "com.google.android.gms.version");
-        metadataTag.addAttribute("android", "value", "@integer/google_play_services_version");
-        applicationTag.addChildNode(metadataTag);
-    }
 
     /**
      * Registers a {@link BroadcastReceiver} in AndroidManifest.
@@ -205,182 +147,8 @@ public class Ix {
         applicationTag.addChildNode(serviceTag);
     }
 
-    private void writeAndroidxRoomService(XmlBuilder application) {
-        XmlBuilder invalidationService = new XmlBuilder("service");
-        invalidationService.addAttribute("android", "name", "androidx.room.MultiInstanceInvalidationService");
-        invalidationService.addAttribute("android", "directBootAware", "true");
-        invalidationService.addAttribute("android", "exported", "false");
-        application.addChildNode(invalidationService);
-    }
 
-    private void writeAndroidxStartupInitializationProvider(XmlBuilder application) {
-        var initializers = Set.of(
-                new Pair<>(builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_EMOJI2), "androidx.emoji2.text.EmojiCompatInitializer"),
-                new Pair<>(builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_LIFECYCLE_PROCESS), "androidx.lifecycle.ProcessLifecycleInitializer"),
-                new Pair<>(c.isWorkManagerUsed || builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME), "androidx.work.WorkManagerInitializer")
-        );
 
-        if (initializers.stream().anyMatch(initializer -> initializer.first)) {
-            XmlBuilder initializationProvider = new XmlBuilder("provider");
-            initializationProvider.addAttribute("android", "name", "androidx.startup.InitializationProvider");
-            initializationProvider.addAttribute("android", "authorities", c.packageName + ".androidx-startup");
-            initializationProvider.addAttribute("android", "exported", "false");
-            for (var pair : initializers) {
-                if (pair.first) {
-                    XmlBuilder metadata = new XmlBuilder("meta-data");
-                    metadata.addAttribute("android", "name", pair.second);
-                    metadata.addAttribute("android", "value", "androidx.startup");
-                    initializationProvider.addChildNode(metadata);
-                }
-            }
-            application.addChildNode(initializationProvider);
-        }
-    }
-
-    private void writeAndroidxWorkRuntimeTags(XmlBuilder application) {
-        XmlBuilder alarmService = new XmlBuilder("service");
-        alarmService.addAttribute("android", "name", "androidx.work.impl.background.systemalarm.SystemAlarmService");
-        alarmService.addAttribute("android", "directBootAware", "false");
-        alarmService.addAttribute("android", "enabled", "@bool/enable_system_alarm_service_default");
-        alarmService.addAttribute("android", "exported", "false");
-        application.addChildNode(alarmService);
-
-        XmlBuilder jobService = new XmlBuilder("service");
-        jobService.addAttribute("android", "name", "androidx.work.impl.background.systemjob.SystemJobService");
-        jobService.addAttribute("android", "directBootAware", "false");
-        jobService.addAttribute("android", "enabled", "@bool/enable_system_job_service_default");
-        jobService.addAttribute("android", "exported", "true");
-        jobService.addAttribute("android", "permission", "android.permission.BIND_JOB_SERVICE");
-        application.addChildNode(jobService);
-
-        XmlBuilder foregroundService = new XmlBuilder("service");
-        foregroundService.addAttribute("android", "name", "androidx.work.impl.foreground.SystemForegroundService");
-        foregroundService.addAttribute("android", "directBootAware", "false");
-        foregroundService.addAttribute("android", "enabled", "@bool/enable_system_foreground_service_default");
-        foregroundService.addAttribute("android", "exported", "false");
-        application.addChildNode(foregroundService);
-
-        XmlBuilder forceStopRunnableReceiver = new XmlBuilder("receiver");
-        forceStopRunnableReceiver.addAttribute("android", "name", "androidx.work.impl.utils.ForceStopRunnable$BroadcastReceiver");
-        forceStopRunnableReceiver.addAttribute("android", "directBootAware", "false");
-        forceStopRunnableReceiver.addAttribute("android", "enabled", "true");
-        forceStopRunnableReceiver.addAttribute("android", "exported", "false");
-        application.addChildNode(forceStopRunnableReceiver);
-
-        XmlBuilder batteryChargingReceiver = new XmlBuilder("receiver");
-        batteryChargingReceiver.addAttribute("android", "name", "androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy");
-        batteryChargingReceiver.addAttribute("android", "directBootAware", "false");
-        batteryChargingReceiver.addAttribute("android", "enabled", "false");
-        batteryChargingReceiver.addAttribute("android", "exported", "false");
-        {
-            XmlBuilder intentFilter = new XmlBuilder("intent-filter");
-            XmlBuilder connectedAction = new XmlBuilder("action");
-            connectedAction.addAttribute("android", "name", "android.intent.action.ACTION_POWER_CONNECTED");
-            intentFilter.addChildNode(connectedAction);
-            XmlBuilder disconnectedAction = new XmlBuilder("action");
-            disconnectedAction.addAttribute("android", "name", "android.intent.action.ACTION_POWER_DISCONNECTED");
-            intentFilter.addChildNode(disconnectedAction);
-            batteryChargingReceiver.addChildNode(intentFilter);
-        }
-        application.addChildNode(batteryChargingReceiver);
-
-        XmlBuilder batteryNotLowReceiver = new XmlBuilder("receiver");
-        batteryNotLowReceiver.addAttribute("android", "name", "androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryNotLowProxy");
-        batteryNotLowReceiver.addAttribute("android", "directBootAware", "false");
-        batteryNotLowReceiver.addAttribute("android", "enabled", "false");
-        batteryNotLowReceiver.addAttribute("android", "exported", "false");
-        {
-            XmlBuilder intentFilter = new XmlBuilder("intent-filter");
-            XmlBuilder okayAction = new XmlBuilder("action");
-            okayAction.addAttribute("android", "name", "android.intent.action.BATTERY_OKAY");
-            intentFilter.addChildNode(okayAction);
-            XmlBuilder lowAction = new XmlBuilder("action");
-            lowAction.addAttribute("android", "name", "android.intent.action.BATTERY_LOW");
-            intentFilter.addChildNode(lowAction);
-            batteryNotLowReceiver.addChildNode(intentFilter);
-        }
-        application.addChildNode(batteryNotLowReceiver);
-
-        XmlBuilder storageNotLowReceiver = new XmlBuilder("receiver");
-        storageNotLowReceiver.addAttribute("android", "name", "androidx.work.impl.background.systemalarm.ConstraintProxy$StorageNotLowProxy");
-        storageNotLowReceiver.addAttribute("android", "directBootAware", "false");
-        storageNotLowReceiver.addAttribute("android", "enabled", "false");
-        storageNotLowReceiver.addAttribute("android", "exported", "false");
-        {
-            XmlBuilder intentFilter = new XmlBuilder("intent-filter");
-            XmlBuilder lowAction = new XmlBuilder("action");
-            lowAction.addAttribute("android", "name", "android.intent.action.DEVICE_STORAGE_LOW");
-            intentFilter.addChildNode(lowAction);
-            XmlBuilder okAction = new XmlBuilder("action");
-            okAction.addAttribute("android", "name", "android.intent.action.DEVICE_STORAGE_OK");
-            intentFilter.addChildNode(okAction);
-            storageNotLowReceiver.addChildNode(intentFilter);
-        }
-        application.addChildNode(storageNotLowReceiver);
-
-        XmlBuilder networkStateReceiver = new XmlBuilder("receiver");
-        networkStateReceiver.addAttribute("android", "name", "androidx.work.impl.background.systemalarm.ConstraintProxy$NetworkStateProxy");
-        networkStateReceiver.addAttribute("android", "directBootAware", "false");
-        networkStateReceiver.addAttribute("android", "enabled", "false");
-        networkStateReceiver.addAttribute("android", "exported", "false");
-        {
-            XmlBuilder intentFilter = new XmlBuilder("intent-filter");
-            XmlBuilder action = new XmlBuilder("action");
-            action.addAttribute("android", "name", "android.net.conn.CONNECTIVITY_CHANGE");
-            intentFilter.addChildNode(action);
-            networkStateReceiver.addChildNode(intentFilter);
-        }
-        application.addChildNode(networkStateReceiver);
-
-        XmlBuilder rescheduleReceiver = new XmlBuilder("receiver");
-        rescheduleReceiver.addAttribute("android", "name", "androidx.work.impl.background.systemalarm.RescheduleReceiver");
-        rescheduleReceiver.addAttribute("android", "directBootAware", "false");
-        rescheduleReceiver.addAttribute("android", "enabled", "false");
-        rescheduleReceiver.addAttribute("android", "exported", "false");
-        {
-            XmlBuilder intentFilter = new XmlBuilder("intent-filter");
-            XmlBuilder bootCompletedAction = new XmlBuilder("action");
-            bootCompletedAction.addAttribute("android", "name", "android.intent.action.BOOT_COMPLETED");
-            intentFilter.addChildNode(bootCompletedAction);
-            XmlBuilder timeSetAction = new XmlBuilder("action");
-            timeSetAction.addAttribute("android", "name", "android.intent.action.TIME_SET");
-            intentFilter.addChildNode(timeSetAction);
-            XmlBuilder timezoneChangedAction = new XmlBuilder("action");
-            timezoneChangedAction.addAttribute("android", "name", "android.intent.action.TIMEZONE_CHANGED");
-            intentFilter.addChildNode(timezoneChangedAction);
-            rescheduleReceiver.addChildNode(intentFilter);
-        }
-        application.addChildNode(rescheduleReceiver);
-
-        XmlBuilder proxyUpdateReceiver = new XmlBuilder("receiver");
-        proxyUpdateReceiver.addAttribute("android", "name", "androidx.work.impl.background.systemalarm.ConstraintProxyUpdateReceiver");
-        proxyUpdateReceiver.addAttribute("android", "directBootAware", "false");
-        proxyUpdateReceiver.addAttribute("android", "enabled", "@bool/enable_system_alarm_service_default");
-        proxyUpdateReceiver.addAttribute("android", "exported", "false");
-        {
-            XmlBuilder intentFilter = new XmlBuilder("intent-filter");
-            XmlBuilder action = new XmlBuilder("action");
-            action.addAttribute("android", "name", "androidx.work.impl.background.systemalarm.UpdateProxies");
-            intentFilter.addChildNode(action);
-            proxyUpdateReceiver.addChildNode(intentFilter);
-        }
-        application.addChildNode(proxyUpdateReceiver);
-
-        XmlBuilder diagnosticsReceiver = new XmlBuilder("receiver");
-        diagnosticsReceiver.addAttribute("android", "name", "androidx.work.impl.diagnostics.DiagnosticsReceiver");
-        diagnosticsReceiver.addAttribute("android", "directBootAware", "false");
-        diagnosticsReceiver.addAttribute("android", "enabled", "true");
-        diagnosticsReceiver.addAttribute("android", "exported", "true");
-        diagnosticsReceiver.addAttribute("android", "permission", "android.permission.DUMP");
-        {
-            XmlBuilder intentFilter = new XmlBuilder("intent-filter");
-            XmlBuilder action = new XmlBuilder("action");
-            action.addAttribute("android", "name", "androidx.work.diagnostics.REQUEST_DIAGNOSTICS");
-            intentFilter.addChildNode(action);
-            diagnosticsReceiver.addChildNode(intentFilter);
-        }
-        application.addChildNode(diagnosticsReceiver);
-    }
 
     public void setYq(yq yqVar) {
         settings = new ProjectSettings(yqVar.sc_id);
@@ -457,9 +225,6 @@ public class Ix {
                 writePermission(a, s);
             }
         }
-        if (c.isAdMobEnabled) {
-            writePermission(a, "com.google.android.gms.permission.AD_ID");
-        }
         if (c.isAlarmManagerUsed) {
             writePermission(a, "android.permission.SCHEDULE_EXACT_ALARM");
         }
@@ -470,42 +235,17 @@ public class Ix {
             writePermission(a, Manifest.permission.ACCESS_FINE_LOCATION);
             writePermission(a, Manifest.permission.ACCESS_COARSE_LOCATION);
         }
-        if (c.isWorkManagerUsed || builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME)) {
+        if (c.isWorkManagerUsed) {
+            // Declared by the app itself so that no library's tools:node="remove" drops them.
             writePermission(a, "android.permission.WAKE_LOCK");
             writePermission(a, "android.permission.ACCESS_NETWORK_STATE");
             writePermission(a, "android.permission.RECEIVE_BOOT_COMPLETED");
             writePermission(a, "android.permission.FOREGROUND_SERVICE");
         }
-        if (c.x.isFCMUsed) {
-            writePermission(a, Manifest.permission.WAKE_LOCK);
-            writePermission(a, "com.google.android.c2dm.permission.RECEIVE");
-        }
         AndroidManifestInjector.getP(a, c.sc_id);
 
-        if (c.isAdMobEnabled || c.isTextToSpeechUsed || c.isSpeechToTextUsed) {
+        if (c.isTextToSpeechUsed || c.isSpeechToTextUsed) {
             XmlBuilder queries = new XmlBuilder("queries");
-            if (c.isAdMobEnabled) {
-                XmlBuilder forBrowserContent = new XmlBuilder("intent");
-                {
-                    XmlBuilder action = new XmlBuilder("action");
-                    action.addAttribute("android", "name", "android.intent.action.VIEW");
-                    forBrowserContent.addChildNode(action);
-                    XmlBuilder category = new XmlBuilder("category");
-                    category.addAttribute("android", "name", "android.intent.category.BROWSABLE");
-                    forBrowserContent.addChildNode(category);
-                    XmlBuilder data = new XmlBuilder("data");
-                    data.addAttribute("android", "scheme", "https");
-                    forBrowserContent.addChildNode(data);
-                }
-                queries.addChildNode(forBrowserContent);
-                XmlBuilder forCustomTabsService = new XmlBuilder("intent");
-                {
-                    XmlBuilder action = new XmlBuilder("action");
-                    action.addAttribute("android", "name", "android.support.customtabs.action.CustomTabsService");
-                    forCustomTabsService.addChildNode(action);
-                }
-                queries.addChildNode(forCustomTabsService);
-            }
             if (c.isTextToSpeechUsed && targetSdkVersion >= 30) {
                 XmlBuilder intent = new XmlBuilder("intent");
                 XmlBuilder action = new XmlBuilder("action");
@@ -538,6 +278,11 @@ public class Ix {
             applicationTag.addAttribute("android", "usesCleartextTraffic", "true");
         }
         AndroidManifestInjector.getAppAttrs(applicationTag, c.sc_id);
+        if (targetSdkVersion >= 33 && !AndroidManifestInjector.isApplicationAttributeInjected(c.sc_id, "android:enableOnBackInvokedCallback")) {
+            // Apps targeting API 36 get predictive back, which no longer calls onBackPressed(),
+            // the method Sketchware's onBackPressed event generates.
+            applicationTag.addAttribute("android", "enableOnBackInvokedCallback", "false");
+        }
 
         boolean hasDebugActivity = false;
         for (ProjectFileBean projectFileBean : b) {
@@ -608,46 +353,8 @@ public class Ix {
             activityTag.addAttribute("android", "theme", "@style/AppTheme.DebugActivity");
             applicationTag.addChildNode(activityTag);
         }
-        if (c.isAdMobEnabled) {
-            XmlBuilder activityTag = new XmlBuilder("activity");
-            activityTag.addAttribute("android", "name", "com.google.android.gms.ads.AdActivity");
-            activityTag.addAttribute("android", "configChanges", "keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize");
-            activityTag.addAttribute("android", "exported", "false");
-            activityTag.addAttribute("android", "theme", "@android:style/Theme.Translucent");
-            applicationTag.addChildNode(activityTag);
-
-            XmlBuilder initProvider = new XmlBuilder("provider");
-            initProvider.addAttribute("android", "name", "com.google.android.gms.ads.MobileAdsInitProvider");
-            initProvider.addAttribute("android", "authorities", c.packageName + ".mobileadsinitprovider");
-            initProvider.addAttribute("android", "exported", "false");
-            initProvider.addAttribute("android", "initOrder", "100");
-            applicationTag.addChildNode(initProvider);
-
-            XmlBuilder adService = new XmlBuilder("service");
-            adService.addAttribute("android", "name", "com.google.android.gms.ads.AdService");
-            adService.addAttribute("android", "enabled", "true");
-            adService.addAttribute("android", "exported", "false");
-            applicationTag.addChildNode(adService);
-
-            XmlBuilder testingActivity = new XmlBuilder("activity");
-            testingActivity.addAttribute("android", "name", "com.google.android.gms.ads.OutOfContextTestingActivity");
-            testingActivity.addAttribute("android", "configChanges", "keyboard|keyboardHidden|orientation|screenLayout|uiMode|screenSize|smallestScreenSize");
-            testingActivity.addAttribute("android", "exported", "false");
-            applicationTag.addChildNode(testingActivity);
-        }
-        if (builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_ROOM_RUNTIME)) {
-            writeAndroidxRoomService(applicationTag);
-        }
-        writeAndroidxStartupInitializationProvider(applicationTag);
-        if (c.isWorkManagerUsed || builtInLibraryManager.containsLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME)) {
-            writeAndroidxWorkRuntimeTags(applicationTag);
-        }
-        if (c.isFirebaseEnabled || c.isAdMobEnabled || c.isMapUsed) {
-            writeGMSVersion(applicationTag);
-        }
-        if (c.isFirebaseEnabled) {
-            writeFirebaseMetaData(applicationTag);
-        }
+        // Components, permissions and <queries> that libraries need (Firebase registrars, AdMob,
+        // WorkManager, androidx.startup, ...) are merged in from their own manifests at build time.
         if (c.u) {
             writeFileProvider(applicationTag);
         }
@@ -656,12 +363,6 @@ public class Ix {
         }
         if (c.isMapUsed) {
             writeGoogleMapMetaData(applicationTag);
-        }
-        if (c.x.isFCMUsed) {
-            EditorManifest.writeDefFCM(applicationTag);
-        }
-        if (c.x.isFBGoogleUsed) {
-            EditorManifest.manifestFBGoogleLogin(applicationTag);
         }
         if (FileUtil.isExistFile(fpu.getManifestJava(c.sc_id))) {
             ArrayList<HashMap<String, Object>> activityAttrs = getActivityAttrs();

@@ -73,6 +73,17 @@ public class BuiltInLibraryUtils {
     }
 
     /**
+     * Returns the version part of a built-in library's name, e.g. "1.8.0" for "appcompat-1.8.0".
+     */
+    public static String getVersion(String libraryName) {
+        Matcher matcher = ARTIFACT_VERSION.matcher(libraryName);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Built-in library '" + libraryName + "' has no version in its name");
+        }
+        return matcher.group(2);
+    }
+
+    /**
      * Returns the known dependencies for a given built-in library.
      *
      * @apiNote This method won't return the dependencies' sub-dependencies!

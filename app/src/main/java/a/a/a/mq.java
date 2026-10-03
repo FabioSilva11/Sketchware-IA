@@ -472,6 +472,7 @@ public class mq {
                 importList.add("com.google.android.gms.location.LocationRequest");
                 importList.add("com.google.android.gms.location.LocationResult");
                 importList.add("com.google.android.gms.location.LocationServices");
+                importList.add("com.google.android.gms.location.Priority");
                 importList.add("android.location.Location");
                 importList.add("android.os.Looper");
                 return importList;
@@ -601,7 +602,7 @@ public class mq {
                 importList.add("com.pierfrancescosoffritti.androidyoutubeplayer.core.player.utils.YouTubePlayerUtils");
                 importList.add("com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView");
                 importList.add("com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer");
-                importList.add("com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.YouTubePlayerFullScreenListener");
+                importList.add("com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.FullscreenListener");
                 return importList;
 
             case "OTPView":
@@ -658,8 +659,6 @@ public class mq {
             case "FirebaseCloudMessage":
                 importList.add("com.google.android.gms.tasks.OnCompleteListener");
                 importList.add("com.google.android.gms.tasks.Task");
-                importList.add("com.google.firebase.iid.FirebaseInstanceId");
-                importList.add("com.google.firebase.iid.InstanceIdResult");
                 importList.add("com.google.firebase.messaging.FirebaseMessaging");
                 return importList;
 

@@ -185,6 +185,26 @@ public class ManageLocalLibrary {
         return nativeLibraryDirectories;
     }
 
+    /**
+     * @return The AndroidManifest.xml files of enabled Local libraries that have one
+     */
+    public ArrayList<File> getManifests() {
+        ArrayList<File> manifests = new ArrayList<>();
+
+        for (HashMap<String, Object> localLibrary : list) {
+            Object libraryFile = localLibrary.containsKey("dexPath") ? localLibrary.get("dexPath") : localLibrary.get("jarPath");
+
+            if (libraryFile instanceof String path) {
+                File manifest = new File(new File(path).getParentFile(), "AndroidManifest.xml");
+                if (manifest.isFile()) {
+                    manifests.add(manifest);
+                }
+            }
+        }
+
+        return manifests;
+    }
+
     public ArrayList<String> getPackageNames() {
         ArrayList<String> packageNames = new ArrayList<>();
 

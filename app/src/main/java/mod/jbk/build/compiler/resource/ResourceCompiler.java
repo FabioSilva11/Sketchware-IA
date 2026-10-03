@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -20,6 +21,7 @@ import mod.hey.studios.build.BuildSettings;
 import mod.hey.studios.project.ProjectSettings;
 import mod.jbk.build.BuildProgressReceiver;
 import mod.jbk.build.BuiltInLibraries;
+import mod.jbk.build.compiler.manifest.LibraryManifestMerger;
 import mod.jbk.diagnostic.MissingFileException;
 import mod.jbk.util.LogUtil;
 import pro.sketchware.SketchApplication;
@@ -168,6 +170,21 @@ public class ResourceCompiler {
             if (progressListener != null)
                 progressListener.onProgressUpdate("Linking resources with AAPT2...", 10);
 
+            linkingAssertFileExists(buildHelper.yq.androidManifestPath);
+            File mergedManifest = new File(buildHelper.yq.binDirectoryPath, "merged_manifest" + File.separator + "AndroidManifest.xml");
+            int requiredMinSdk;
+            try {
+                requiredMinSdk = LibraryManifestMerger.merge(new File(buildHelper.yq.androidManifestPath),
+                        getLibraryManifests(), buildHelper.yq.packageName, mergedManifest);
+            } catch (IOException e) {
+                throw new zy(e.getMessage());
+            }
+            int configuredMinSdk = buildHelper.settings.getMinSdkVersion();
+            int minSdk = Math.max(configuredMinSdk, requiredMinSdk);
+            if (minSdk > configuredMinSdk) {
+                LogUtil.w(TAG + ":l", "Raising minSdkVersion from " + configuredMinSdk + " to " + minSdk + ", required by the project's libraries");
+            }
+
             ArrayList<String> args = new ArrayList<>();
             args.add(aapt2.getAbsolutePath());
             args.add("link");
@@ -180,7 +197,7 @@ public class ResourceCompiler {
             args.add("--no-version-transitions");
 
             args.add("--min-sdk-version");
-            args.add(String.valueOf(buildHelper.settings.getMinSdkVersion()));
+            args.add(String.valueOf(minSdk));
             args.add("--target-sdk-version");
             args.add(buildHelper.settings.getValue(ProjectSettings.SETTING_TARGET_SDK_VERSION, String.valueOf(VAR_DEFAULT_TARGET_SDK_VERSION)));
 
@@ -274,10 +291,9 @@ public class ResourceCompiler {
             args.add("--proguard");
             args.add(buildHelper.yq.proguardAaptRules);
 
-            /* Add AndroidManifest.xml */
-            linkingAssertFileExists(buildHelper.yq.androidManifestPath);
+            /* Add AndroidManifest.xml, merged with the manifests of the libraries in use */
             args.add("--manifest");
-            args.add(buildHelper.yq.androidManifestPath);
+            args.add(mergedManifest.getAbsolutePath());
 
             /* Use the generated R.java for used libraries */
             String extraPackages = buildHelper.getLibraryPackageNames();
@@ -297,6 +313,15 @@ public class ResourceCompiler {
                 LogUtil.e(TAG + ":l", executor.getLog());
                 throw new zy(executor.getLog());
             }
+        }
+
+        private List<File> getLibraryManifests() {
+            List<File> manifests = new ArrayList<>();
+            for (Jp library : buildHelper.builtInLibraryManager.getLibraries()) {
+                manifests.add(new File(BuiltInLibraries.getLibraryPath(library.getName()), "AndroidManifest.xml"));
+            }
+            manifests.addAll(buildHelper.mll.getManifests());
+            return manifests;
         }
 
         private void compileProjectResources(String outputPath) throws zy, MissingFileException {
