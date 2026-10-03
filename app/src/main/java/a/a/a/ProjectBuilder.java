@@ -1,9 +1,5 @@
 package a.a.a;
 
-import static android.system.OsConstants.S_IRUSR;
-import static android.system.OsConstants.S_IWUSR;
-import static android.system.OsConstants.S_IXUSR;
-
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -11,7 +7,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.StrictMode;
-import android.system.Os;
 import android.text.TextUtils;
 import android.text.format.Formatter;
 import android.util.Log;
@@ -30,7 +25,6 @@ import org.xml.sax.SAXException;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -129,7 +123,9 @@ public class ProjectBuilder {
             LogUtil.e(TAG, "Somehow failed to get package info about us!", e);
         }
 
-        aapt2Binary = new File(context.getCacheDir(), "aapt2");
+        // Packaged as a native library: the installer extracts it to a directory apps may execute
+        // from, unlike files the app writes itself (blocked since targetSdk 29).
+        aapt2Binary = new File(context.getApplicationInfo().nativeLibraryDir, "libaapt2.so");
         build_settings = new BuildSettings(yqVar.sc_id);
         this.context = context;
         yq = yqVar;
@@ -244,7 +240,7 @@ public class ProjectBuilder {
     public boolean isD8Enabled() {
         return build_settings.getValue(
                 BuildSettings.SETTING_DEXER,
-                BuildSettings.SETTING_DEXER_DX
+                BuildSettings.DEFAULT_DEXER
         ).equals(BuildSettings.SETTING_DEXER_D8);
     }
 
@@ -326,7 +322,7 @@ public class ProjectBuilder {
          * Since all versions above java 7 supports lambdas, this should work
          */
         if (!build_settings.getValue(BuildSettings.SETTING_JAVA_VERSION,
-                        BuildSettings.SETTING_JAVA_VERSION_1_7)
+                        BuildSettings.DEFAULT_JAVA_VERSION)
                 .equals(BuildSettings.SETTING_JAVA_VERSION_1_7)) {
             classpath.append(":").append(new File(BuiltInLibraries.EXTRACTED_COMPILE_ASSETS_PATH, "core-lambda-stubs.jar").getAbsolutePath());
         }
@@ -577,7 +573,7 @@ public class ProjectBuilder {
 
             ArrayList<String> args = new ArrayList<>();
             args.add("-" + build_settings.getValue(BuildSettings.SETTING_JAVA_VERSION,
-                    BuildSettings.SETTING_JAVA_VERSION_1_7));
+                    BuildSettings.DEFAULT_JAVA_VERSION));
             args.add("-nowarn");
             if (!build_settings.getValue(BuildSettings.SETTING_NO_WARNINGS,
                     BuildSettings.SETTING_GENERIC_VALUE_TRUE).equals(BuildSettings.SETTING_GENERIC_VALUE_TRUE)) {
@@ -713,9 +709,12 @@ public class ProjectBuilder {
             dexes.add(BuiltInLibraries.getLibraryDexFile(BuiltInLibraries.HTTP_LEGACY_ANDROID));
         }
 
-        /* Add used built-in libraries' DEX files */
+        /* Add used built-in libraries' DEX files; libraries with only resources have none */
         for (Jp builtInLibrary : builtInLibraryManager.getLibraries()) {
-            dexes.add(BuiltInLibraries.getLibraryDexFile(builtInLibrary.getName()));
+            File dexFile = BuiltInLibraries.getLibraryDexFile(builtInLibrary.getName());
+            if (dexFile.exists()) {
+                dexes.add(dexFile);
+            }
         }
 
         /* Add local libraries' main DEX files */
@@ -772,25 +771,15 @@ public class ProjectBuilder {
     }
 
     /**
-     * Extracts AAPT2 binaries (if they need to be extracted).
+     * Checks that the AAPT2 binary for this device's ABI got installed with the app.
      *
-     * @throws By If anything goes wrong while extracting
+     * @throws By If it's missing or not executable
      */
     public void maybeExtractAapt2() throws By {
-        var abi = Build.SUPPORTED_ABIS[0];
-        try {
-            if (hasFileChanged("aapt/aapt2-" + abi, aapt2Binary.getAbsolutePath())) {
-                Os.chmod(aapt2Binary.getAbsolutePath(), S_IRUSR | S_IWUSR | S_IXUSR);
-            }
-        } catch (Exception e) {
-            LogUtil.e(TAG, "Failed to extract AAPT2 binaries", e);
-            // noinspection ConstantValue: the bytecode's lying
-            throw new By(
-                    e instanceof FileNotFoundException fileNotFoundException ?
-                            "Looks like the device's architecture (" + abi + ") isn't supported.\n"
-                                    + Log.getStackTraceString(fileNotFoundException)
-                            : "Couldn't extract AAPT2 binaries! Message: " + e.getMessage()
-            );
+        if (!aapt2Binary.isFile() || !aapt2Binary.canExecute()) {
+            LogUtil.e(TAG, "AAPT2 isn't available at " + aapt2Binary);
+            throw new By("Looks like the device's architecture (" + Build.SUPPORTED_ABIS[0] + ") isn't supported: "
+                    + aapt2Binary + " is missing or not executable.");
         }
     }
 
@@ -833,6 +822,12 @@ public class ProjectBuilder {
         }
         if (yq.N.isHttp3Used) {
             builtInLibraryManager.addLibrary(BuiltInLibraries.OKHTTP_ANDROID);
+        }
+        if (yq.N.isWorkManagerUsed) {
+            builtInLibraryManager.addLibrary(BuiltInLibraries.ANDROIDX_WORK_RUNTIME);
+        }
+        if (yq.N.isBiometricManagerUsed) {
+            builtInLibraryManager.addLibrary(BuiltInLibraries.ANDROIDX_BIOMETRIC);
         }
 
         KotlinCompilerBridge.maybeAddKotlinBuiltInLibraryDependenciesIfPossible(this, builtInLibraryManager);

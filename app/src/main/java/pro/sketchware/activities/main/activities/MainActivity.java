@@ -111,7 +111,6 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     // onRequestPermissionsResult but for Storage access only, and only when granted
     public void g(int i) {
         if (i == 9501) {
-            allFilesAccessCheck();
             restoreExternalTranslationSupport();
             maybeShowAdsNoticeIfDue(adsNoticeOpenCountForLaunch);
 
@@ -242,7 +241,6 @@ public class MainActivity extends BasePermissionAppCompatActivity {
             showNoticeNeedStorageAccess();
         }
         if (hasStorageAccess) {
-            allFilesAccessCheck();
             maybeShowAdsNoticeIfDue(adsNoticeOpenCountForLaunch);
         }
 
@@ -571,34 +569,6 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         mAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle);
     }
 
-    private void allFilesAccessCheck() {
-        if (Build.VERSION.SDK_INT > 29) {
-            File optOutFile = new File(getFilesDir(), ".skip_all_files_access_notice");
-            boolean granted = Environment.isExternalStorageManager();
-
-            if (!optOutFile.exists() && !granted) {
-                MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(this);
-                dialog.setIcon(R.drawable.ic_expire_48dp);
-                dialog.setTitle("Android 11 storage access");
-                dialog.setMessage("Starting with Android 11, Sketchware Pro needs a new permission to avoid " + "taking ages to build projects. Don't worry, we can't do more to storage than " + "with current granted permissions.");
-                dialog.setPositiveButton(Helper.getResString(R.string.common_word_settings), (v, which) -> {
-                    FileUtil.requestAllFilesAccessPermission(this);
-                    v.dismiss();
-                });
-                dialog.setNegativeButton("Skip", null);
-                dialog.setNeutralButton("Don't show anymore", (v, which) -> {
-                    try {
-                        if (!optOutFile.createNewFile())
-                            throw new IOException("Failed to create file " + optOutFile);
-                    } catch (IOException e) {
-                        Log.e("MainActivity", "Error while trying to create " + "\"Don't show Android 11 hint\" dialog file: " + e.getMessage(), e);
-                    }
-                    v.dismiss();
-                });
-                dialog.show();
-            }
-        }
-    }
 
     private void showNoticeNeedStorageAccess() {
         MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(this);
@@ -607,7 +577,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         dialog.setMessage(TranslationFunction.getString(this, R.string.common_message_permission_need_load_project));
         dialog.setPositiveButton(TranslationFunction.getString(this, R.string.common_word_ok), (v, which) -> {
             v.dismiss();
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, 9501);
+            requestStoragePermission(9501);
         });
         dialog.show();
     }
@@ -626,7 +596,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
             storageAccessDenied = Snackbar.make(binding.layoutCoordinator, Helper.getResString(R.string.common_message_permission_denied), Snackbar.LENGTH_INDEFINITE);
             storageAccessDenied.setAction(Helper.getResString(R.string.common_word_settings), v -> {
                 storageAccessDenied.dismiss();
-                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, 9501);
+                requestStoragePermission(9501);
             });
             storageAccessDenied.setActionTextColor(Color.YELLOW);
             storageAccessDenied.show();

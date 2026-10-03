@@ -1,17 +1,41 @@
 package a.a.a;
 
-import android.content.pm.PackageManager;
-
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import pro.sketchware.R;
+import pro.sketchware.utility.StoragePermission;
 import pro.sketchware.utility.TranslationFunction;
 
 public abstract class DA extends qA {
+    /**
+     * Request code of an "All files access" request in progress, see {@link StoragePermission}.
+     */
+    private int pendingAllFilesAccessRequest = -1;
+
     public DA() {
+    }
+
+    private void requestStoragePermission(int requestCode) {
+        if (StoragePermission.usesAllFilesAccess()) {
+            pendingAllFilesAccessRequest = requestCode;
+        }
+        StoragePermission.request(this, requestCode);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (pendingAllFilesAccessRequest != -1) {
+            int requestCode = pendingAllFilesAccessRequest;
+            pendingAllFilesAccessRequest = -1;
+            if (c()) {
+                b(requestCode);
+            } else {
+                e(requestCode);
+            }
+        }
     }
 
     public boolean a(int var1) {
@@ -28,8 +52,7 @@ public abstract class DA extends qA {
     public abstract void c(int var1);
 
     public boolean c() {
-        return ContextCompat.checkSelfPermission(requireContext(), "android.permission.WRITE_EXTERNAL_STORAGE") == PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(requireContext(), "android.permission.READ_EXTERNAL_STORAGE") == PackageManager.PERMISSION_GRANTED;
+        return StoragePermission.isGranted(requireContext());
     }
 
     public abstract void d();
@@ -42,8 +65,7 @@ public abstract class DA extends qA {
             dialog.setMessage(R.string.common_message_permission_storage);
             dialog.setPositiveButton(R.string.common_word_ok, (view, which) -> {
                 if (!mB.a()) {
-                    requestPermissions(new String[]{"android.permission.WRITE_EXTERNAL_STORAGE",
-                            "android.permission.READ_EXTERNAL_STORAGE"}, var1);
+                    requestStoragePermission(var1);
                     view.dismiss();
                 }
             });
@@ -69,7 +91,11 @@ public abstract class DA extends qA {
             builder.setMessage(R.string.common_message_permission_storage1);
             builder.setPositiveButton(R.string.common_word_settings, (view, which) -> {
                 if (!mB.a()) {
-                    c(var1);
+                    if (StoragePermission.usesAllFilesAccess()) {
+                        requestStoragePermission(var1);
+                    } else {
+                        c(var1);
+                    }
                     view.dismiss();
                 }
             });

@@ -56,6 +56,7 @@ import pro.sketchware.activities.chat.port.VoidPortSettings;
 import pro.sketchware.databinding.ActivityProviderDetailBinding;
 import pro.sketchware.databinding.BottomSheetAddModelBinding;
 import pro.sketchware.databinding.ItemProviderModelRowBinding;
+import pro.sketchware.utility.SystemBarInsets;
 
 public class ProviderDetailActivity extends AppCompatActivity {
 
@@ -80,6 +81,7 @@ public class ProviderDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivityProviderDetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        SystemBarInsets.keepContentClear(this);
 
         prefs = new AiSettingsRepository(this).preferences();
         String title = getIntent().getStringExtra(EXTRA_PROVIDER_TITLE);

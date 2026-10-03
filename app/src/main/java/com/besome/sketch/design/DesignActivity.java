@@ -1881,8 +1881,8 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             DesignActivity activity = getActivity();
             if (activity == null) return null;
 
-            Intent cancelIntent = new Intent(BuildTask.ACTION_CANCEL_BUILD);
-            return PendingIntent.getBroadcast(activity, 0, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            Intent cancelIntent = new Intent(BuildTask.ACTION_CANCEL_BUILD).setPackage(activity.getPackageName());
+            return PendingIntent.getBroadcast(activity, 0, cancelIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         }
 
         private void createNotificationChannelIfNeeded() {

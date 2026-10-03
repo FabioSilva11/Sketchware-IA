@@ -6,12 +6,11 @@ def googleServicesFile = file("$projectDir/google-services.json")
 def analyticsEnabled = (secrets != null) || googleServicesFile.exists()
 
 apply plugin: "com.android.application"
-apply plugin: "kotlin-android"
 apply plugin: "com.google.gms.google-services"
 apply plugin: "com.google.firebase.crashlytics"
 
 android {
-    compileSdk = 36
+    compileSdk = 37
 
     // Resolve the git hash defensively: the build must not fail when git is not
     // installed or the project was downloaded as a ZIP (no .git directory).
@@ -31,8 +30,7 @@ android {
     defaultConfig {
         applicationId = "pro.sketchware"
         namespace = "pro.sketchware"
-        //noinspection ExpiredTargetSdkVersion since we don't target getting Sketchware Pro on Google Play.
-        targetSdk = 28
+        targetSdk = 36
         minSdk = 26
         versionCode = 150
         versionName = "8.1 preview"
@@ -58,7 +56,7 @@ android {
             if (keystoreBase64 != null && !keystoreBase64.isEmpty()) {
                 // Decode keystore from env var at build time
                 def keystoreBytes = java.util.Base64.decoder.decode(keystoreBase64)
-                def tmpKeystore = file("${buildDir}/signing/release.keystore")
+                def tmpKeystore = layout.buildDirectory.file("signing/release.keystore").get().asFile
                 tmpKeystore.parentFile.mkdirs()
                 tmpKeystore.bytes = keystoreBytes
                 storeFile = tmpKeystore
@@ -86,16 +84,16 @@ android {
         resources.excludes += "license/*"
         resources.excludes += "META-INF/DEPENDENCIES"
         resources.pickFirsts += "api_database/*"
+        // jniLibs/<abi>/libaapt2.so is the AAPT2 executable. Android only lets apps execute
+        // files the installer extracted to nativeLibraryDir, so keep it extracted and unstripped.
+        jniLibs.useLegacyPackaging = true
+        jniLibs.keepDebugSymbols += "**/libaapt2.so"
     }
 
     compileOptions {
         coreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17"
     }
 
     androidResources {
@@ -113,6 +111,12 @@ android {
         exclude group: "org.jetbrains.kotlin", module: "kotlin-scripting-common"
         exclude group: "org.jetbrains.kotlin", module: "kotlin-scripting-jvm"
         exclude group: "org.jetbrains.kotlin", module: "kotlin-script-runtime"
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 
@@ -154,8 +158,7 @@ dependencies {
 
     implementation libs.libsu
     implementation libs.insetter
-    implementation 'com.google.android.gms:play-services-ads:25.4.0'
-    implementation 'com.google.android.ump:user-messaging-platform:4.0.0'
+    implementation libs.bundles.ads
 
     implementation(libs.javaparser.symbol.solver) {
         exclude group: "com.google.guava", module: "guava"
@@ -165,14 +168,11 @@ dependencies {
     if (secrets != null) {
         googleServicesFile.text = secrets
     }
-    implementation platform("com.google.firebase:firebase-bom:34.16.0")
-    implementation "com.google.firebase:firebase-crashlytics"
-    implementation "com.google.firebase:firebase-analytics"
-    implementation "com.google.firebase:firebase-messaging"
-    implementation "com.google.firebase:firebase-database"
-    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs_nio:2.1.5"
-    testImplementation "junit:junit:4.13.2"
-    testImplementation "org.json:json:20240303"
+    implementation platform(libs.firebase.bom)
+    implementation libs.bundles.firebase
+    coreLibraryDesugaring libs.desugar.jdk.libs.nio
+    testImplementation libs.junit
+    testImplementation libs.json
 }
 
 tasks.register('createMockGoogleServices') {
