@@ -54,6 +54,8 @@ public class AboutActivity extends BaseAppCompatActivity {
 
         binding = ActivityAboutAppBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        // Edge-to-edge: keep the banner (and the button anchored to it) above the navigation bar
+        handleInsetts(binding.contentContainer);
 
         aboutAppData = new ViewModelProvider(this).get(AboutAppViewModel.class);
         sharedPref = getSharedPreferences("AppData", Activity.MODE_PRIVATE);
