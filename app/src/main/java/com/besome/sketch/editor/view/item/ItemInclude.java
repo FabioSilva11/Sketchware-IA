@@ -43,6 +43,16 @@ public class ItemInclude extends View implements ItemView {
         titlePaint.setTextSize(dp * 13);
         titlePaint.setFakeBoldText(true);
         subtitlePaint.setTextSize(dp * 11);
+        // A light card shadow, so the include reads as a block you can pick and drop like any widget.
+        setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline(View view, android.graphics.Outline outline) {
+                outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), dp * 6);
+                outline.setAlpha(0.6f);
+            }
+        });
+        setElevation(dp * 2);
+        setClickable(true);
     }
 
     /** The layout this include points to, or an empty string when none was chosen yet. */
@@ -67,10 +77,16 @@ public class ItemInclude extends View implements ItemView {
         float dp = wB.a(getContext(), 1.0F);
         boolean missing = getIncludedLayout().isEmpty();
         int accent = missing ? 0xFFD32F2F : 0xFF2E7D9A;
-        fillPaint.setColor(isSelected ? 0x5599d5d0 : (missing ? 0x14D32F2F : 0x142E7D9A));
-        borderPaint.setColor(accent);
+        // Opaque base so the shadow doesn't show through, tinted with the accent.
+        fillPaint.setColor(0xFFFFFFFF);
         rect.set(dp, dp, getWidth() - dp, getHeight() - dp);
         canvas.drawRoundRect(rect, dp * 6, dp * 6, fillPaint);
+        fillPaint.setColor(isSelected ? 0x5599d5d0 : (missing ? 0x14D32F2F : 0x142E7D9A));
+        canvas.drawRoundRect(rect, dp * 6, dp * 6, fillPaint);
+        borderPaint.setColor(accent);
+        // Selected: a solid, thicker border like the other widgets' selection; otherwise dashed.
+        borderPaint.setStrokeWidth(isSelected ? dp * 2.5f : dp * 1.5f);
+        borderPaint.setPathEffect(isSelected ? null : new DashPathEffect(new float[]{dp * 6, dp * 4}, 0));
         canvas.drawRoundRect(rect, dp * 6, dp * 6, borderPaint);
 
         titlePaint.setColor(accent);

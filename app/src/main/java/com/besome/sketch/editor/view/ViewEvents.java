@@ -62,22 +62,14 @@ public class ViewEvents extends LinearLayout {
         this.sc_id = sc_id;
         this.projectFileBean = projectFileBean;
 
-        String[] viewEvents = oq.getEventsForClass(viewBean.getClassInfo());
         events.clear();
-
-        ArrayList<EventBean> alreadyAddedEvents = jC.a(sc_id).g(projectFileBean.getJavaName());
-        for (String event : viewEvents) {
-            boolean eventAlreadyInActivity = false;
-            for (EventBean bean : alreadyAddedEvents) {
-                if (bean.eventType == EventBean.EVENT_TYPE_VIEW && viewBean.id.equals(bean.targetId) && event.equals(bean.eventName)) {
-                    eventAlreadyInActivity = true;
-                    break;
-                }
-            }
-
-            if (!event.equals("onBindCustomView") || !viewBean.customView.isEmpty() && !viewBean.customView.equals("none")) {
-                EventBean eventBean = new EventBean(EventBean.EVENT_TYPE_VIEW, viewBean.type, viewBean.id, event);
-                eventBean.isSelected = eventAlreadyInActivity;
+        int eventType = projectFileBean.fileType == ProjectFileBean.PROJECT_FILE_TYPE_DRAWER
+                ? EventBean.EVENT_TYPE_DRAWER_VIEW : EventBean.EVENT_TYPE_VIEW;
+        if (projectFileBean.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY
+                || projectFileBean.fileType == ProjectFileBean.PROJECT_FILE_TYPE_DRAWER) {
+            for (String event : com.besome.sketch.editor.event.ViewEventCatalog.eventNames(projectFileBean, viewBean)) {
+                EventBean eventBean = new EventBean(eventType, viewBean.type, viewBean.id, event);
+                eventBean.isSelected = com.besome.sketch.editor.event.ViewEventCatalog.isAdded(sc_id, projectFileBean, viewBean, event, eventType);
                 events.add(eventBean);
             }
         }

@@ -70,6 +70,16 @@ public final class LayoutPrompts {
         StringBuilder out = new StringBuilder();
         out.append("PROJECT CONTEXT\n");
         out.append("Layout file: ").append(project.currentLayout).append(".xml\n");
+        // The libraries come from the project's Library Manager; the generator never adds one.
+        out.append("Libraries: AppCompat/Material Components ").append(project.appCompat ? "ON" : "OFF")
+                .append(", Material 3 ").append(project.material3 ? "ON" : "OFF").append(". ");
+        if (project.material3) {
+            out.append("Prefer the Material 3 components of the catalog (MaterialButton, TextInputLayout with TextInputEditText, MaterialCardView, MaterialSwitch) and ?attr/ theme colors.\n");
+        } else if (project.appCompat) {
+            out.append("Material 3 is off: use the AppCompat/Material components of the catalog, no Material 3-only styles or attributes.\n");
+        } else {
+            out.append("Only framework widgets are available: don't use AndroidX or Material components, styles or app: attributes.\n");
+        }
         out.append("Drawables: ").append(project.drawables.isEmpty() ? "(none: don't use src or drawable backgrounds)" : String.join(", ", project.drawables)).append('\n');
         out.append("Colors: ").append(project.colors.isEmpty() ? "(none: use hex colors or ?attr/ theme colors)" : String.join(", ", project.colorReferences())).append('\n');
         out.append("Layouts that can be included: ").append(project.layouts.isEmpty() ? "(none)" : String.join(", ", project.layouts)).append('\n');

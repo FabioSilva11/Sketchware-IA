@@ -143,8 +143,46 @@ public class ViewPane extends RelativeLayout {
     private LayoutRelationsOverlay relationsOverlay;
     /** Drop position (dp from the content edge) of a widget dragged over a RelativeLayout/ConstraintLayout. */
     private android.graphics.Point dropPoint;
+    /** layout_gravity of a widget dragged over a FrameLayout, or -1. */
+    private int dropGravity = -1;
     private ViewGroup dropGroup;
     private long cachedStringsStamp;
+
+    private static final String TAG = "ViewPane";
+
+    /** How a container positions its children, which decides the LayoutParams class they need. */
+    private enum Container {LINEAR, RELATIVE, CONSTRAINT, FRAME}
+
+    /** RelativeLayout rules by attribute name (without the android: prefix). */
+    private static final java.util.Map<String, Integer> RELATIVE_RULES = new java.util.LinkedHashMap<>();
+    /** Rules whose value is "true"/"false"; the others point at a sibling. */
+    private static final java.util.Set<Integer> RELATIVE_BOOLEAN_RULES = new java.util.HashSet<>();
+
+    static {
+        RELATIVE_RULES.put("layout_alignParentTop", RelativeLayout.ALIGN_PARENT_TOP);
+        RELATIVE_RULES.put("layout_alignParentBottom", RelativeLayout.ALIGN_PARENT_BOTTOM);
+        RELATIVE_RULES.put("layout_alignParentLeft", RelativeLayout.ALIGN_PARENT_LEFT);
+        RELATIVE_RULES.put("layout_alignParentRight", RelativeLayout.ALIGN_PARENT_RIGHT);
+        RELATIVE_RULES.put("layout_alignParentStart", RelativeLayout.ALIGN_PARENT_START);
+        RELATIVE_RULES.put("layout_alignParentEnd", RelativeLayout.ALIGN_PARENT_END);
+        RELATIVE_RULES.put("layout_centerInParent", RelativeLayout.CENTER_IN_PARENT);
+        RELATIVE_RULES.put("layout_centerHorizontal", RelativeLayout.CENTER_HORIZONTAL);
+        RELATIVE_RULES.put("layout_centerVertical", RelativeLayout.CENTER_VERTICAL);
+        RELATIVE_BOOLEAN_RULES.addAll(RELATIVE_RULES.values());
+        RELATIVE_RULES.put("layout_above", RelativeLayout.ABOVE);
+        RELATIVE_RULES.put("layout_below", RelativeLayout.BELOW);
+        RELATIVE_RULES.put("layout_toLeftOf", RelativeLayout.LEFT_OF);
+        RELATIVE_RULES.put("layout_toRightOf", RelativeLayout.RIGHT_OF);
+        RELATIVE_RULES.put("layout_toStartOf", RelativeLayout.START_OF);
+        RELATIVE_RULES.put("layout_toEndOf", RelativeLayout.END_OF);
+        RELATIVE_RULES.put("layout_alignTop", RelativeLayout.ALIGN_TOP);
+        RELATIVE_RULES.put("layout_alignBottom", RelativeLayout.ALIGN_BOTTOM);
+        RELATIVE_RULES.put("layout_alignLeft", RelativeLayout.ALIGN_LEFT);
+        RELATIVE_RULES.put("layout_alignRight", RelativeLayout.ALIGN_RIGHT);
+        RELATIVE_RULES.put("layout_alignStart", RelativeLayout.ALIGN_START);
+        RELATIVE_RULES.put("layout_alignEnd", RelativeLayout.ALIGN_END);
+        RELATIVE_RULES.put("layout_alignBaseline", RelativeLayout.ALIGN_BASELINE);
+    }
 
     public ViewPane(Context context) {
         super(context);
@@ -197,9 +235,19 @@ public class ViewPane extends RelativeLayout {
         this.resourcesManager = resourcesManager;
     }
 
+    /**
+     * The drop preview: a translucent box with a border and a light shadow, so the widgets under it
+     * stay visible while it shows where the dragged widget will land.
+     */
     private void initTextView() {
+        float dp = getResources().getDisplayMetrics().density;
         highlightedTextView = new TextView(getContext());
-        highlightedTextView.setBackgroundResource(R.drawable.highlight);
+        android.graphics.drawable.GradientDrawable preview = new android.graphics.drawable.GradientDrawable();
+        preview.setColor(0x331E88E5);
+        preview.setStroke(Math.max(1, Math.round(2 * dp)), 0xFF1E88E5);
+        preview.setCornerRadius(4 * dp);
+        highlightedTextView.setBackground(preview);
+        highlightedTextView.setElevation(3 * dp);
         highlightedTextView.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -221,11 +269,32 @@ public class ViewPane extends RelativeLayout {
     }
 
     public void removeView(ViewBean viewBean) {
-        ViewGroup viewGroup = rootLayout.findViewWithTag(viewBean.parent);
-        viewGroup.removeView(rootLayout.findViewWithTag(viewBean.id));
-        if (viewGroup instanceof ScrollContainer) {
-            ((ScrollContainer) viewGroup).reindexChildren();
+        if (rootLayout == null || viewBean == null || viewBean.id == null) return;
+        View view = rootLayout.findViewWithTag(viewBean.id);
+        if (view == null || view == rootLayout || !(view.getParent() instanceof ViewGroup parent)) return;
+        parent.removeView(view);
+        if (parent instanceof ScrollContainer container) {
+            container.reindexChildren();
         }
+        refreshPositionRules(parent);
+        if (relationsOverlay != null) relationsOverlay.invalidate();
+    }
+
+    /** The container view with this id ("root" is the root layout), or null. */
+    private ViewGroup findContainer(String id) {
+        if (rootLayout == null || id == null) return null;
+        View view = "root".equals(id) ? rootLayout : rootLayout.findViewWithTag(id);
+        return view instanceof ViewGroup group ? group : null;
+    }
+
+    /** Whether {@code view} is {@code group} or contains it. */
+    private static boolean containsOrIs(View view, View group) {
+        for (View current = group; current != null; ) {
+            if (current == view) return true;
+            ViewParent parent = current.getParent();
+            current = parent instanceof View parentView ? parentView : null;
+        }
+        return false;
     }
 
     public ItemView g(ViewBean viewBean) {
@@ -241,31 +310,50 @@ public class ViewPane extends RelativeLayout {
         } else {
             findViewWithTag = rootLayout.findViewWithTag(viewBean.id);
         }
+        if (!(findViewWithTag instanceof ItemView)) {
+            Log.w(TAG, "No view for widget " + viewBean.id);
+            return null;
+        }
         updateItemView(findViewWithTag, viewBean);
         return (ItemView) findViewWithTag;
     }
 
+    /**
+     * Puts the view of a moved widget where its bean now says: another parent and/or another index.
+     * The view is detached from wherever it really is, so a stale preParent can't break the move, and
+     * its LayoutParams are rebuilt for the new container.
+     */
     public ItemView d(ViewBean viewBean) {
-        View findViewWithTag = rootLayout.findViewWithTag(viewBean.id);
-        if (viewBean.id.charAt(0) == '_') {
-            findViewWithTag = findViewWithTag(viewBean.id);
+        View view = viewBean.id.charAt(0) == '_' ? findViewWithTag(viewBean.id)
+                : rootLayout == null ? null : rootLayout.findViewWithTag(viewBean.id);
+        if (!(view instanceof ItemView)) {
+            Log.w(TAG, "No view for moved widget " + viewBean.id);
+            clearMoveState(viewBean);
+            return null;
         }
-        String str = viewBean.preParent;
-        if (str != null && !str.isEmpty() && !viewBean.parent.equals(viewBean.preParent)) {
-            ViewGroup viewGroup = rootLayout.findViewWithTag(viewBean.preParent);
-            viewGroup.removeView(findViewWithTag);
-            ((ScrollContainer) viewGroup).reindexChildren();
-            addViewAndUpdateIndex(findViewWithTag);
-        } else if (viewBean.index != viewBean.preIndex) {
-            ((ViewGroup) rootLayout.findViewWithTag(viewBean.parent)).removeView(findViewWithTag);
-            addViewAndUpdateIndex(findViewWithTag);
+        String preParent = viewBean.preParent;
+        boolean parentChanged = preParent != null && !preParent.isEmpty() && !viewBean.parent.equals(preParent);
+        ViewParent current = view.getParent();
+        boolean wrongParent = current != findContainer(viewBean.parent);
+        if (view != rootLayout && (parentChanged || wrongParent || viewBean.index != viewBean.preIndex)) {
+            if (current instanceof ViewGroup oldParent) {
+                oldParent.removeView(view);
+                if (oldParent instanceof ScrollContainer container) container.reindexChildren();
+                refreshPositionRules(oldParent);
+            }
+            addViewAndUpdateIndex(view);
         }
+        clearMoveState(viewBean);
+        view.setVisibility(VISIBLE);
+        if (view != rootLayout) updateItemView(view, viewBean);
+        return (ItemView) view;
+    }
+
+    private static void clearMoveState(ViewBean viewBean) {
         viewBean.preId = "";
         viewBean.preIndex = -1;
         viewBean.preParent = "";
         viewBean.preParentType = -1;
-        findViewWithTag.setVisibility(VISIBLE);
-        return (ItemView) findViewWithTag;
     }
 
     public void initialize(String sc_id, boolean isPreviewMode) {
@@ -501,7 +589,8 @@ public class ViewPane extends RelativeLayout {
             view.setVisibility(View.VISIBLE);
             return;
         }
-        updateLayout(view, viewBean);
+        ViewGroup container = view == rootLayout ? null : parentContainerOf(view, viewBean);
+        Container containerKind = updateLayout(view, viewBean, container);
         view.setRotation(viewBean.image.rotate);
         view.setAlpha(viewBean.alpha);
         view.setTranslationX(wB.a(getContext(), viewBean.translationX));
@@ -542,10 +631,11 @@ public class ViewPane extends RelativeLayout {
                 ((ItemLinearLayout) view).setLayoutGravity(viewBean.layout.gravity);
             }
         }
-        if (viewBean.parentType == ViewBean.VIEW_TYPE_LAYOUT_RELATIVE) {
-            updateRelative(view, injectHandler);
-        } else if (viewBean.parentType == ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT) {
-            updateConstraints(view, viewBean);
+        if (container instanceof ItemRelativeLayout && containerKind == Container.RELATIVE) {
+            // The rules of the siblings can point at this widget (and cycles depend on all of them).
+            refreshPositionRules(container);
+        } else if (container instanceof ItemConstraintLayout && containerKind == Container.CONSTRAINT) {
+            updateConstraints(view, viewBean, container);
         }
         if (classInfo.a("TextView")) {
             TextView textView = (TextView) view;
@@ -843,68 +933,17 @@ public class ViewPane extends RelativeLayout {
         return null;
     }
 
-    public void updateViewBeanProperties(ViewBean viewBean, int i, int i2) {
-        if (viewInfo != null) {
-            View view = viewInfo.view();
-            if (view instanceof LinearLayout) {
-                viewBean.preIndex = viewBean.index;
-                viewBean.index = viewInfo.index();
-                viewBean.preParent = viewBean.parent;
-                viewBean.parent = view.getTag().toString();
-                viewBean.preParentType = viewBean.parentType;
-                viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_LINEAR;
-            } else if (view instanceof ItemVerticalScrollView) {
-                viewBean.preIndex = viewBean.index;
-                viewBean.index = viewInfo.index();
-                viewBean.preParent = viewBean.parent;
-                viewBean.parent = view.getTag().toString();
-                viewBean.preParentType = viewBean.parentType;
-                viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_VSCROLLVIEW;
-                viewBean.layout.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-            } else if (view instanceof ItemHorizontalScrollView) {
-                viewBean.preIndex = viewBean.index;
-                viewBean.index = viewInfo.index();
-                viewBean.preParent = viewBean.parent;
-                viewBean.parent = view.getTag().toString();
-                viewBean.preParentType = viewBean.parentType;
-                viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_HSCROLLVIEW;
-                viewBean.layout.width = ViewGroup.LayoutParams.WRAP_CONTENT;
-            } else if (view instanceof ItemCardView) {
-                viewBean.preIndex = viewBean.index;
-                viewBean.index = viewInfo.index();
-                viewBean.preParent = viewBean.parent;
-                viewBean.parent = view.getTag().toString();
-                viewBean.preParentType = viewBean.parentType;
-                viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_CARDVIEW;
-                viewBean.layout.width = ViewGroup.LayoutParams.MATCH_PARENT;
-            } else if (view instanceof ItemRelativeLayout) {
-                viewBean.preIndex = viewBean.index;
-                viewBean.index = viewInfo.index();
-                viewBean.preParent = viewBean.parent;
-                viewBean.parent = view.getTag().toString();
-                viewBean.preParentType = viewBean.parentType;
-                viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_RELATIVE;
-                prepareRelationsForDrop(viewBean);
-                placeDroppedBean(viewBean, view);
-            } else if (view instanceof ItemConstraintLayout) {
-                viewBean.preIndex = viewBean.index;
-                viewBean.index = viewInfo.index();
-                viewBean.preParent = viewBean.parent;
-                viewBean.parent = view.getTag().toString();
-                viewBean.preParentType = viewBean.parentType;
-                viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT;
-                prepareRelationsForDrop(viewBean);
-                placeDroppedBean(viewBean, view);
-            } else if (view instanceof ItemFrameLayout) {
-                viewBean.preIndex = viewBean.index;
-                viewBean.index = viewInfo.index();
-                viewBean.preParent = viewBean.parent;
-                viewBean.parent = view.getTag().toString();
-                viewBean.preParentType = viewBean.parentType;
-                viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_FRAMELAYOUT;
-            }
-            prepareRelationsForDrop(viewBean);
-        } else {
+    /**
+     * Writes into the bean where a widget dropped at the current preview goes: parent, index, parent
+     * type and the position model of that parent (RelativeLayout rules and ConstraintLayout
+     * constraints at the drop point, FrameLayout gravity). Returns false when there is no valid place,
+     * e.g. outside the layout or on a single-child container that is already full.
+     */
+    public boolean updateViewBeanProperties(ViewBean viewBean, int x, int y) {
+        ViewInfo target = viewInfo;
+        if (target == null) {
+            // Outside every target: the end of the root layout, if the root can take another child.
+            if (rootLayout == null || !acceptsAnotherChild(rootLayout, viewBean)) return false;
             viewBean.preIndex = viewBean.index;
             viewBean.preParent = viewBean.parent;
             viewBean.parent = "root";
@@ -915,7 +954,65 @@ public class ViewPane extends RelativeLayout {
                 viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_LINEAR;
             }
             viewBean.index = -1;
+            prepareRelationsForDrop(viewBean);
+            return true;
         }
+        View view = target.view();
+        if (view.getTag() == null) return false;
+        String newParent = view.getTag().toString();
+        // Only a widget that is already a child of the target is moved inside it.
+        boolean sameParent = view instanceof ViewGroup group && childWithTag(group, viewBean.id) != null;
+        viewBean.preIndex = viewBean.index;
+        viewBean.preParent = viewBean.parent;
+        viewBean.parent = newParent;
+        viewBean.preParentType = viewBean.parentType;
+        viewBean.index = target.index();
+        if (view instanceof LinearLayout) {
+            viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_LINEAR;
+        } else if (view instanceof ItemVerticalScrollView) {
+            viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_VSCROLLVIEW;
+            viewBean.layout.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+        } else if (view instanceof ItemHorizontalScrollView) {
+            viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_HSCROLLVIEW;
+            viewBean.layout.width = ViewGroup.LayoutParams.WRAP_CONTENT;
+        } else if (view instanceof ItemCardView) {
+            viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_CARDVIEW;
+            viewBean.layout.width = ViewGroup.LayoutParams.MATCH_PARENT;
+        } else if (view instanceof ItemRelativeLayout) {
+            viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_RELATIVE;
+        } else if (view instanceof ItemConstraintLayout) {
+            viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT;
+        } else if (view instanceof ItemFrameLayout) {
+            viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_FRAMELAYOUT;
+        }
+        prepareRelationsForDrop(viewBean);
+        if (view instanceof ItemRelativeLayout || view instanceof ItemConstraintLayout || view instanceof ItemFrameLayout) {
+            // In these containers the order is only the drawing order: a move inside the same
+            // container keeps it, a new widget goes on top.
+            if (sameParent && viewBean.preIndex >= 0) viewBean.index = viewBean.preIndex;
+        }
+        if (view instanceof ItemRelativeLayout || view instanceof ItemConstraintLayout) {
+            placeDroppedBean(viewBean, view);
+        } else if (view instanceof ItemFrameLayout) {
+            // FrameLayout has no relations: only layout_gravity (and the margins) position a child.
+            viewBean.parentAttributes = new HashMap<>();
+            if (dropGroup == view && dropGravity >= 0) {
+                viewBean.layout.layoutGravity = dropGravity;
+            }
+        }
+        return true;
+    }
+
+    /** Whether a single-child container (ScrollView, CardView) still has room for {@code bean}. */
+    private static boolean acceptsAnotherChild(ViewGroup group, ViewBean bean) {
+        if (!(group instanceof ItemVerticalScrollView) && !(group instanceof ItemHorizontalScrollView)
+                && !(group instanceof ItemCardView)) {
+            return true;
+        }
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (isDropNeighbour(group.getChildAt(i), bean)) return false;
+        }
+        return true;
     }
 
     public View addFab(ViewBean viewBean) {
@@ -955,40 +1052,60 @@ public class ViewPane extends RelativeLayout {
         }
         if (shouldClearViewInfo) {
             viewInfo = null;
+            dropPoint = null;
+            dropGravity = -1;
+            dropGroup = null;
+            if (relationsOverlay != null) relationsOverlay.setDropTarget(null, -1);
         }
     }
 
+    /** LayoutParams of the drop preview for the container it's shown in. */
+    private static ViewGroup.LayoutParams previewParams(ViewGroup group, int width, int height) {
+        if (group instanceof LinearLayout) return new LinearLayout.LayoutParams(width, height);
+        if (group instanceof ConstraintLayout) return new ConstraintLayout.LayoutParams(width, height);
+        if (group instanceof RelativeLayout) return new RelativeLayout.LayoutParams(width, height);
+        if (group instanceof FrameLayout) return new FrameLayout.LayoutParams(width, height);
+        return new ViewGroup.MarginLayoutParams(width, height);
+    }
+
+    /** Shows the drop preview for a widget dragged to (x, y) on screen. */
     public void updateView(int x, int y, int width, int height) {
-        ViewInfo viewInfo = getViewInfo(x, y);
-        if (viewInfo == null) {
+        ViewInfo target = getViewInfo(x, y);
+        if (target == null) {
             resetView(true);
-            dropPoint = null;
-        } else if (this.viewInfo == viewInfo) {
-            positionHighlight((ViewGroup) viewInfo.view(), x, y, width, height);
-        } else if (this.viewInfo != viewInfo) {
-            resetView(true);
-            ViewGroup viewGroup = (ViewGroup) viewInfo.view();
-            viewGroup.addView(highlightedTextView, viewInfo.index());
-            if (viewGroup instanceof LinearLayout) {
-                highlightedTextView.setLayoutParams(new LinearLayout.LayoutParams(width, height));
-            } else if (viewGroup instanceof FrameLayout) {
-                highlightedTextView.setLayoutParams(new FrameLayout.LayoutParams(width, height));
-            } else {
-                highlightedTextView.setLayoutParams(new LayoutParams(width, height));
-            }
-            highlightedTextView.setVisibility(View.VISIBLE);
-            this.viewInfo = viewInfo;
-            positionHighlight(viewGroup, x, y, width, height);
+            return;
         }
+        ViewGroup group = (ViewGroup) target.view();
+        if (this.viewInfo != target || highlightedTextView.getParent() != group) {
+            resetView(true);
+            highlightedTextView.setLayoutParams(previewParams(group, width, height));
+            // The container maps the widget index to a valid child position (see EditorChildren).
+            group.addView(highlightedTextView, target.index());
+            highlightedTextView.setVisibility(View.VISIBLE);
+            this.viewInfo = target;
+        }
+        positionHighlight(group, x, y, width, height);
+        if (relationsOverlay != null) relationsOverlay.setDropTarget(group, dropGravity);
+    }
+
+    /** Thirds of a length: start, middle, end. */
+    private static int third(float position, int length, int start, int middle, int end) {
+        if (length <= 0) return start;
+        float fraction = position / length;
+        return fraction < 1f / 3f ? start : fraction > 2f / 3f ? end : middle;
     }
 
     /**
      * In RelativeLayout and ConstraintLayout a widget lands where the finger is, so the drop preview
-     * follows the finger and the position is kept for {@link #updateViewBeanProperties}.
+     * follows the finger and the position is kept for {@link #updateViewBeanProperties}. A FrameLayout
+     * places children only with layout_gravity, so the finger picks one of its nine gravity zones.
      */
     private void positionHighlight(ViewGroup group, int x, int y, int width, int height) {
-        if (!(group instanceof ItemRelativeLayout) && !(group instanceof ItemConstraintLayout)) {
-            dropPoint = null;
+        dropPoint = null;
+        dropGravity = -1;
+        dropGroup = group;
+        boolean frame = group instanceof ItemFrameLayout;
+        if (!frame && !(group instanceof ItemRelativeLayout) && !(group instanceof ItemConstraintLayout)) {
             return;
         }
         int[] location = new int[2];
@@ -998,6 +1115,15 @@ public class ViewPane extends RelativeLayout {
         float localY = (y - location[1]) / scale;
         int contentWidth = group.getWidth() - group.getPaddingLeft() - group.getPaddingRight();
         int contentHeight = group.getHeight() - group.getPaddingTop() - group.getPaddingBottom();
+        if (frame) {
+            int horizontal = third(localX - group.getPaddingLeft(), contentWidth, Gravity.LEFT, Gravity.CENTER_HORIZONTAL, Gravity.RIGHT);
+            int vertical = third(localY - group.getPaddingTop(), contentHeight, Gravity.TOP, Gravity.CENTER_VERTICAL, Gravity.BOTTOM);
+            int gravity = horizontal | vertical;
+            // top|left is where FrameLayout puts a child without layout_gravity.
+            dropGravity = gravity == (Gravity.LEFT | Gravity.TOP) ? LayoutBean.GRAVITY_NONE : gravity;
+            highlightedTextView.setLayoutParams(new FrameLayout.LayoutParams(width, height, gravity));
+            return;
+        }
         int left = width > 0 ? Math.round(localX - width / 2f) - group.getPaddingLeft() : 0;
         int top = height > 0 ? Math.round(localY - height / 2f) - group.getPaddingTop() : 0;
         left = Math.max(0, Math.min(left, Math.max(0, contentWidth - Math.max(width, 0))));
@@ -1050,209 +1176,93 @@ public class ViewPane extends RelativeLayout {
         return result;
     }
 
-    private void a(ViewBean view, ItemLinearLayout linearLayout) {
-        float scaleX = getScaleX();
-        float scaleY = getScaleY();
-        int[] locationOnScreen = new int[2];
-        linearLayout.getLocationOnScreen(locationOnScreen);
-        int layoutGravity = linearLayout.getLayoutGravity();
-        int horizontalGravity = layoutGravity & Gravity.FILL_HORIZONTAL;
-        int verticalGravity = layoutGravity & Gravity.FILL_VERTICAL;
-        Rect parentRect = new Rect(locationOnScreen[0], locationOnScreen[1], (int) (linearLayout.getWidth() * getScaleX()) + locationOnScreen[0], (int) (linearLayout.getHeight() * getScaleY()) + locationOnScreen[1]);
-        addViewInfo(parentRect, linearLayout, -1, calculateViewDepth(linearLayout));
+    /** Screen rectangle of a view inside the (scaled) pane. */
+    private Rect screenRect(View view) {
+        int[] location = new int[2];
+        view.getLocationOnScreen(location);
+        float scaleX = getScaleX() <= 0 ? 1f : getScaleX();
+        float scaleY = getScaleY() <= 0 ? 1f : getScaleY();
+        return new Rect(location[0], location[1],
+                location[0] + Math.round(view.getWidth() * scaleX),
+                location[1] + Math.round(view.getHeight() * scaleY));
+    }
 
-        int parentWidth = (int) (linearLayout.getMeasuredWidth() * scaleX);
-        int parentHeight = (int) (linearLayout.getMeasuredHeight() * scaleY);
-        int paddingLeft = parentRect.left + (int) (linearLayout.getPaddingLeft() * scaleX);
-        int paddingTop = parentRect.top + (int) (linearLayout.getPaddingTop() * scaleY);
+    /** A child that can receive a drop or be dropped next to: a visible widget other than the dragged one. */
+    private static boolean isDropNeighbour(View child, ViewBean dragged) {
+        return child instanceof ItemView && child.getTag() != null && child.getVisibility() == View.VISIBLE
+                && (dragged == null || dragged.id == null || !child.getTag().equals(dragged.id));
+    }
 
-        int childIndex = 0;
+    /** Adds the drop targets inside a child container, whatever its kind. */
+    private void addNestedTargets(ViewBean dragged, View child) {
+        if (child instanceof ItemLinearLayout linearLayout) {
+            a(dragged, linearLayout);
+        } else if (child instanceof ItemHorizontalScrollView || child instanceof ItemVerticalScrollView
+                || child instanceof ItemCardView) {
+            a(dragged, (ViewGroup) child);
+        } else if (child instanceof ItemRelativeLayout || child instanceof ItemConstraintLayout
+                || child instanceof ItemFrameLayout) {
+            addDroppableForViewGroup(dragged, (ViewGroup) child);
+        }
+    }
+
+    /**
+     * Drop targets of a LinearLayout, as Android Studio places widgets in one: the widget goes before
+     * the first child whose middle is past the finger, or at the end. Each zone runs from the middle
+     * of the previous child to the middle of the next one, measured on the children as they are laid
+     * out, so gravity, margins, padding and zoom are all taken into account.
+     */
+    private void a(ViewBean dragged, ItemLinearLayout linearLayout) {
+        Rect bounds = screenRect(linearLayout);
+        int depth = calculateViewDepth(linearLayout);
+        // Anywhere past the last middle: append.
+        addViewInfo(bounds, linearLayout, -1, depth);
+        boolean vertical = linearLayout.getOrientation() == LinearLayout.VERTICAL;
+        int previousEdge = vertical ? bounds.top : bounds.left;
+        int index = 0;
         for (int i = 0; i < linearLayout.getChildCount(); i++) {
             View child = linearLayout.getChildAt(i);
-            if (child != null && child.getTag() != null && (view == null || view.id == null || !child.getTag().equals(view.id)) && child.getVisibility() == View.VISIBLE) {
-                int[] childLocationOnScreen = new int[2];
-                linearLayout.getLocationOnScreen(childLocationOnScreen);
-                Rect childRect = new Rect();
-                var layoutParams = (LinearLayout.LayoutParams) child.getLayoutParams();
-                int leftMargin = layoutParams.leftMargin;
-                int rightMargin = layoutParams.rightMargin;
-                int topMargin = layoutParams.topMargin;
-                int bottomMargin = layoutParams.bottomMargin;
-                int childWidth = (int) (child.getMeasuredWidth() * linearLayout.getScaleX());
-                int childHeight = (int) (child.getMeasuredHeight() * linearLayout.getScaleY());
-                if (linearLayout.getOrientation() == LinearLayout.VERTICAL) {
-                    if (verticalGravity == Gravity.CENTER_VERTICAL) {
-                        int childTopY;
-                        if (i == 0) {
-                            childTopY = childLocationOnScreen[1] - (int) (topMargin * scaleY);
-                            int parentLeft = parentRect.left;
-                            addViewInfo(
-                                    new Rect(
-                                            parentLeft,
-                                            paddingTop,
-                                            parentWidth + parentLeft,
-                                            childTopY),
-                                    linearLayout,
-                                    0,
-                                    calculateViewDepth(linearLayout) + 1);
-                        } else {
-                            childTopY = paddingTop;
-                        }
-                        paddingTop =
-                                (int) ((topMargin + childHeight + bottomMargin) * scaleY)
-                                        + childTopY;
-                        int parentLeft = parentRect.left;
-                        childRect.left = paddingLeft;
-                        childRect.top = childTopY;
-                        childRect.right = parentWidth + parentLeft;
-                        childRect.bottom = paddingTop;
-                        paddingLeft = parentLeft;
-                    } else if (verticalGravity == Gravity.BOTTOM) {
-                        int childTopY = (int) (topMargin * scaleY);
-                        paddingLeft = parentRect.left;
-                        childRect.left = paddingLeft;
-                        childRect.top = paddingTop;
-                        childRect.right = parentWidth + paddingLeft;
-                        childRect.bottom = paddingTop - childTopY;
-                        paddingTop = (int) ((paddingTop + childHeight + bottomMargin) * scaleY);
-                    } else {
-                        int childBottomY =
-                                (int) ((childHeight + topMargin + bottomMargin) * scaleY)
-                                        + paddingTop;
-                        paddingLeft = parentRect.left;
-                        childRect.left = paddingLeft;
-                        childRect.top = paddingTop;
-                        childRect.right = parentWidth + paddingLeft;
-                        childRect.bottom = childBottomY;
-                        paddingTop = childBottomY;
-                    }
-                } else {
-                    if (horizontalGravity == Gravity.CENTER_HORIZONTAL) {
-                        if (i == 0) {
-                            int childStartX = childLocationOnScreen[0] - (int) (leftMargin * scaleX);
-                            int parentTop = parentRect.top;
-                            addViewInfo(
-                                    new Rect(
-                                            paddingLeft,
-                                            parentTop,
-                                            childStartX,
-                                            parentHeight + parentTop),
-                                    linearLayout,
-                                    0,
-                                    calculateViewDepth(linearLayout) + 1);
-                            paddingLeft = childStartX;
-                        }
-                        paddingTop = parentRect.top;
-                        childRect.left = paddingLeft;
-                        childRect.top = paddingTop;
-                        childRect.right =
-                                (int) ((childWidth + leftMargin + rightMargin) * scaleX)
-                                        + paddingLeft;
-                        childRect.bottom = parentHeight + paddingTop;
-                        paddingLeft = childRect.right;
-                    } else if (horizontalGravity == Gravity.RIGHT) {
-                        paddingTop = parentRect.top;
-                        childRect.left = paddingLeft;
-                        childRect.top = paddingTop;
-                        childRect.right = paddingLeft - (int) (leftMargin * scaleX);
-                        childRect.bottom = parentHeight + paddingTop;
-                        paddingLeft = (int) ((paddingLeft + childWidth + rightMargin) * scaleX);
-                    } else {
-                        paddingTop = parentRect.top;
-                        childRect.left = paddingLeft;
-                        childRect.top = paddingTop;
-                        childRect.right =
-                                (int) ((childWidth + leftMargin + rightMargin) * scaleX)
-                                        + paddingLeft;
-                        childRect.bottom = parentHeight + paddingTop;
-                        paddingLeft = childRect.right;
-                    }
-                }
-                addViewInfo(
-                        childRect, linearLayout, childIndex, calculateViewDepth(linearLayout) + 1);
-
-                if (child instanceof ItemLinearLayout) {
-                    a(view, (ItemLinearLayout) child);
-                } else if (child instanceof ItemHorizontalScrollView) {
-                    a(view, (ViewGroup) child);
-                } else if (child instanceof ItemVerticalScrollView) {
-                    a(view, (ViewGroup) child);
-                } else if (child instanceof ItemCardView) {
-                    a(view, (ViewGroup) child);
-                } else if (child instanceof ItemRelativeLayout relativeLayout) {
-                    addDroppableForViewGroup(view, relativeLayout);
-                } else if (child instanceof ItemConstraintLayout || child instanceof ItemFrameLayout) {
-                    addDroppableForViewGroup(view, (ViewGroup) child);
-                }
-                childIndex++;
+            if (!isDropNeighbour(child, dragged)) continue;
+            Rect childRect = screenRect(child);
+            int middle = vertical ? childRect.centerY() : childRect.centerX();
+            if (middle > previousEdge) {
+                Rect zone = vertical
+                        ? new Rect(bounds.left, previousEdge, bounds.right, middle)
+                        : new Rect(previousEdge, bounds.top, middle, bounds.bottom);
+                addViewInfo(zone, linearLayout, index, depth + 1);
             }
-
-
+            previousEdge = Math.max(previousEdge, middle);
+            index++;
+            addNestedTargets(dragged, child);
         }
     }
 
+    /**
+     * RelativeLayout, ConstraintLayout and FrameLayout accept a drop anywhere inside them; the drop
+     * position is worked out while the finger moves (see {@link #positionHighlight}).
+     */
     private void addDroppableForViewGroup(ViewBean viewBean, ViewGroup viewGroup) {
-        int[] viewLocationOnScreen = new int[2];
-        viewGroup.getLocationOnScreen(viewLocationOnScreen);
-        int xCoordinate = viewLocationOnScreen[0];
-        int yCoordinate = viewLocationOnScreen[1];
-        addViewInfo(new Rect(xCoordinate, yCoordinate,
-                        (int) (viewGroup.getWidth() * getScaleX()) + xCoordinate,
-                        (int) (viewGroup.getHeight() * getScaleY()) + yCoordinate),
-                viewGroup, -1, calculateViewDepth(viewGroup)
-        );
+        addViewInfo(screenRect(viewGroup), viewGroup, -1, calculateViewDepth(viewGroup));
         for (int i = 0; i < viewGroup.getChildCount(); i++) {
-            View childAt = viewGroup.getChildAt(i);
-            if (childAt != null && childAt.getTag() != null && (viewBean == null || viewBean.id == null || !childAt.getTag().equals(viewBean.id)) && childAt.getVisibility() == View.VISIBLE) {
-                if (childAt instanceof ItemLinearLayout) {
-                    a(viewBean, (ItemLinearLayout) childAt);
-                } else if (childAt instanceof ItemHorizontalScrollView) {
-                    a(viewBean, (ViewGroup) childAt);
-                } else if (childAt instanceof ItemVerticalScrollView) {
-                    a(viewBean, (ViewGroup) childAt);
-                } else if (childAt instanceof ItemCardView) {
-                    a(viewBean, (ViewGroup) childAt);
-                } else if (childAt instanceof ItemRelativeLayout relativeLayout) {
-                    addDroppableForViewGroup(viewBean, relativeLayout);
-                } else if (childAt instanceof ItemConstraintLayout || childAt instanceof ItemFrameLayout) {
-                    addDroppableForViewGroup(viewBean, (ViewGroup) childAt);
-                }
+            View child = viewGroup.getChildAt(i);
+            if (isDropNeighbour(child, viewBean)) {
+                addNestedTargets(viewBean, child);
             }
         }
     }
 
+    /** ScrollView, HorizontalScrollView and CardView hold a single child: they're a target only when empty. */
     private void a(ViewBean viewBean, ViewGroup viewGroup) {
-        int childCount = viewGroup.getChildCount();
-        int index = 0;
-        for (int i = 0; i < childCount; i++) {
-            View childAt = viewGroup.getChildAt(i);
-            if (childAt != null && childAt.getTag() != null && (viewBean == null || viewBean.id == null || !childAt.getTag().equals(viewBean.id)) && childAt.getVisibility() == View.VISIBLE) {
-                index++;
-                if (childAt instanceof ItemLinearLayout) {
-                    a(viewBean, (ItemLinearLayout) childAt);
-                } else if (childAt instanceof ItemHorizontalScrollView) {
-                    a(viewBean, (ViewGroup) childAt);
-                } else if (childAt instanceof ItemVerticalScrollView) {
-                    a(viewBean, (ViewGroup) childAt);
-                } else if (childAt instanceof ItemCardView) {
-                    a(viewBean, (ViewGroup) childAt);
-                } else if (childAt instanceof ItemRelativeLayout relativeLayout) {
-                    addDroppableForViewGroup(viewBean, relativeLayout);
-                } else if (childAt instanceof ItemConstraintLayout || childAt instanceof ItemFrameLayout) {
-                    addDroppableForViewGroup(viewBean, (ViewGroup) childAt);
-                }
+        int children = 0;
+        for (int i = 0; i < viewGroup.getChildCount(); i++) {
+            View child = viewGroup.getChildAt(i);
+            if (isDropNeighbour(child, viewBean)) {
+                children++;
+                addNestedTargets(viewBean, child);
             }
         }
-        if (index < 1) {
-            int[] viewLocationOnScreen = new int[2];
-            viewGroup.getLocationOnScreen(viewLocationOnScreen);
-            int xCoordinate = viewLocationOnScreen[0];
-            int yCoordinate = viewLocationOnScreen[1];
-            addViewInfo(new Rect(xCoordinate, yCoordinate,
-                            (int) (viewGroup.getWidth() * getScaleX()) + xCoordinate,
-                            (int) (viewGroup.getHeight() * getScaleY()) + yCoordinate),
-                    viewGroup, -1, calculateViewDepth(viewGroup)
-            );
+        if (children < 1) {
+            addViewInfo(screenRect(viewGroup), viewGroup, -1, calculateViewDepth(viewGroup));
         }
     }
 
@@ -1260,20 +1270,36 @@ public class ViewPane extends RelativeLayout {
         viewInfos.add(new ViewInfo(rect, view, i, i2));
     }
 
+    /**
+     * Adds a widget's view to the container named by its bean, at its bean index. The view is
+     * detached first if it's still attached somewhere, the index is mapped by the container (see
+     * {@link EditorChildren}), and a parent that doesn't exist or lies inside the view itself makes the
+     * widget fall back to the root layout instead of failing.
+     */
     public void addViewAndUpdateIndex(View view) {
-        ViewBean bean = ((ItemView) view).getBean();
-        if (rootLayout != null) {
-            ViewGroup viewGroup = rootLayout.findViewWithTag(bean.parent);
-            viewGroup.addView(view, bean.index);
-            if (bean.parentType == ViewBean.VIEW_TYPE_LAYOUT_RELATIVE) {
-                updateRelativeParentViews(view, new InjectAttributeHandler(bean));
-            } else if (bean.parentType == ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT) {
-                updateConstraintSiblings(viewGroup);
-            }
-            if (viewGroup instanceof ScrollContainer scrollContainer) {
-                scrollContainer.reindexChildren();
+        if (rootLayout == null || !(view instanceof ItemView item) || view == rootLayout) return;
+        ViewBean bean = item.getBean();
+        ViewGroup parent = findContainer(bean.parent);
+        if (parent == null || containsOrIs(view, parent)) {
+            Log.w(TAG, "Widget " + bean.id + " has no valid parent '" + bean.parent + "', placing it in the root layout");
+            parent = rootLayout;
+            bean.parent = "root";
+            if (rootLayout instanceof ItemView root && root.getBean() != null) {
+                bean.parentType = root.getBean().type;
             }
         }
+        if (view.getParent() instanceof ViewGroup current) {
+            current.removeView(view);
+        }
+        if (!(view.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) {
+            updateLayout(view, bean, parent);
+        }
+        parent.addView(view, bean.index);
+        if (parent instanceof ScrollContainer scrollContainer) {
+            scrollContainer.reindexChildren();
+        }
+        refreshPositionRules(parent);
+        if (relationsOverlay != null) relationsOverlay.invalidate();
     }
 
     private int getActualParentType(View view, int defaultValue) {
@@ -1298,7 +1324,41 @@ public class ViewPane extends RelativeLayout {
         return defaultValue;
     }
 
-    private void updateLayout(View view, ViewBean viewBean) {
+    /**
+     * The editor container that holds (or will hold) this widget. Views being created aren't attached
+     * yet, so their bean's parent id is used.
+     */
+    private ViewGroup parentContainerOf(View view, ViewBean viewBean) {
+        if (view.getParent() instanceof ViewGroup parent && parent != this) return parent;
+        return findContainer(viewBean.parent);
+    }
+
+    /**
+     * The positioning model of a container, from the container itself: the LayoutParams class must
+     * match the real parent view or its onMeasure fails. The bean's parent type is only used while
+     * the parent isn't known.
+     */
+    private static Container containerKind(ViewGroup container, ViewBean viewBean) {
+        if (container instanceof LinearLayout) return Container.LINEAR;
+        if (container instanceof ConstraintLayout) return Container.CONSTRAINT;
+        if (container instanceof RelativeLayout) return Container.RELATIVE;
+        if (container instanceof FrameLayout) return Container.FRAME;
+        return switch (viewBean.parentType) {
+            case ViewBean.VIEW_TYPE_LAYOUT_LINEAR, ViewBeans.VIEW_TYPE_LAYOUT_RADIOGROUP,
+                 ViewBeans.VIEW_TYPE_LAYOUT_TEXTINPUTLAYOUT -> Container.LINEAR;
+            case ViewBean.VIEW_TYPE_LAYOUT_RELATIVE -> Container.RELATIVE;
+            case ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT -> Container.CONSTRAINT;
+            default -> Container.FRAME;
+        };
+    }
+
+    /**
+     * Builds the LayoutParams of a widget from its bean for the container it lives in. Only size,
+     * margins, padding, weight and layout_gravity come from here; RelativeLayout rules and constraints
+     * are applied on top by {@link #refreshPositionRules}. Scale, rotation and translation are separate
+     * view properties and are never touched by the layout.
+     */
+    private Container updateLayout(View view, ViewBean viewBean, ViewGroup container) {
         crashlytics.log("ViewPane: Updating layout");
         LayoutBean layoutBean = viewBean.layout;
         int width = layoutBean.width;
@@ -1320,42 +1380,34 @@ public class ViewPane extends RelativeLayout {
         } else {
             view.setBackgroundColor(PropertiesUtil.parseColor(colorsEditorManager.getColorValue(context, viewBean.layout.backgroundResColor, 3, material3LibraryManager.canUseNightVariantColors())));
         }
-        if (viewBean.parentType == ViewBean.VIEW_TYPE_LAYOUT_LINEAR) {
-            LinearLayout.LayoutParams layoutParams2 = new LinearLayout.LayoutParams(width, height);
-            layoutParams2.setMargins(leftMargin, topMargin, rightMargin, bottomMargin);
-            LayoutBean layoutBean3 = viewBean.layout;
-            view.setPadding(layoutBean3.paddingLeft, layoutBean3.paddingTop, layoutBean3.paddingRight, layoutBean3.paddingBottom);
-            int layoutGravity = viewBean.layout.layoutGravity;
-            if (layoutGravity != LayoutBean.GRAVITY_NONE) {
-                layoutParams2.gravity = layoutGravity;
+        view.setPadding(layoutBean.paddingLeft, layoutBean.paddingTop, layoutBean.paddingRight, layoutBean.paddingBottom);
+        int layoutGravity = viewBean.layout.layoutGravity;
+        Container kind = view == rootLayout ? Container.RELATIVE : containerKind(container, viewBean);
+        ViewGroup.MarginLayoutParams params;
+        switch (kind) {
+            case LINEAR -> {
+                LinearLayout.LayoutParams linearParams = new LinearLayout.LayoutParams(width, height);
+                if (layoutGravity != LayoutBean.GRAVITY_NONE) {
+                    linearParams.gravity = layoutGravity;
+                }
+                linearParams.weight = viewBean.layout.weight;
+                params = linearParams;
             }
-            layoutParams2.weight = viewBean.layout.weight;
-            view.setLayoutParams(layoutParams2);
-        } else if (viewBean.parentType == ViewBean.VIEW_TYPE_LAYOUT_RELATIVE) {
-            RelativeLayout.LayoutParams layoutParams2 = new RelativeLayout.LayoutParams(width, height);
-            layoutParams2.setMargins(leftMargin, topMargin, rightMargin, bottomMargin);
-            LayoutBean layoutBean3 = viewBean.layout;
-            view.setPadding(layoutBean3.paddingLeft, layoutBean3.paddingTop, layoutBean3.paddingRight, layoutBean3.paddingBottom);
-            view.setLayoutParams(layoutParams2);
-        } else if (viewBean.parentType == ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT) {
+            case RELATIVE -> params = new RelativeLayout.LayoutParams(width, height);
             // 0dp is "match constraint" in a ConstraintLayout.
-            ConstraintLayout.LayoutParams constraintParams = new ConstraintLayout.LayoutParams(
+            case CONSTRAINT -> params = new ConstraintLayout.LayoutParams(
                     viewBean.layout.width == 0 ? 0 : width, viewBean.layout.height == 0 ? 0 : height);
-            constraintParams.setMargins(leftMargin, topMargin, rightMargin, bottomMargin);
-            LayoutBean layoutBean3 = viewBean.layout;
-            view.setPadding(layoutBean3.paddingLeft, layoutBean3.paddingTop, layoutBean3.paddingRight, layoutBean3.paddingBottom);
-            view.setLayoutParams(constraintParams);
-        } else {
-            FrameLayout.LayoutParams layoutParams3 = new FrameLayout.LayoutParams(width, height);
-            layoutParams3.setMargins(leftMargin, topMargin, rightMargin, bottomMargin);
-            LayoutBean layoutBean4 = viewBean.layout;
-            view.setPadding(layoutBean4.paddingLeft, layoutBean4.paddingTop, layoutBean4.paddingRight, layoutBean4.paddingBottom);
-            int layoutGravity = viewBean.layout.layoutGravity;
-            if (layoutGravity != LayoutBean.GRAVITY_NONE) {
-                layoutParams3.gravity = layoutGravity;
+            default -> {
+                FrameLayout.LayoutParams frameParams = new FrameLayout.LayoutParams(width, height);
+                if (layoutGravity != LayoutBean.GRAVITY_NONE) {
+                    frameParams.gravity = layoutGravity;
+                }
+                params = frameParams;
             }
-            view.setLayoutParams(layoutParams3);
         }
+        params.setMargins(leftMargin, topMargin, rightMargin, bottomMargin);
+        view.setLayoutParams(params);
+        return kind;
     }
 
     /** Rules like layout_below or constraints point at the old siblings; after a move they don't apply. */
@@ -1365,19 +1417,94 @@ public class ViewPane extends RelativeLayout {
         }
     }
 
-    /** Re-applies the constraints of every child, e.g. after a sibling they point to was added. */
-    private void updateConstraintSiblings(ViewGroup parent) {
-        for (int i = 0; i < parent.getChildCount(); i++) {
-            View child = parent.getChildAt(i);
-            if (child instanceof ItemView editorItem && editorItem.getBean() != null
-                    && child.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
-                updateConstraints(child, editorItem.getBean());
+    /**
+     * Re-applies the RelativeLayout rules or the constraints of every child of {@code parent}, e.g.
+     * after a sibling they point to was added, moved or removed.
+     */
+    private void refreshPositionRules(ViewGroup parent) {
+        if (parent instanceof ItemRelativeLayout) {
+            java.util.Map<String, java.util.Map<String, String>> rulesById = new java.util.HashMap<>();
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                if (parent.getChildAt(i) instanceof ItemView item && item.getBean() != null) {
+                    rulesById.put(item.getBean().id, relativeRules(item.getBean()));
+                }
+            }
+            java.util.Set<String> cyclic = LayoutRelations.cyclicRules(rulesById);
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                View child = parent.getChildAt(i);
+                if (child instanceof ItemView item && item.getBean() != null) {
+                    applyRelativeRules(child, item.getBean().id, rulesById.get(item.getBean().id), cyclic, parent);
+                }
+            }
+        } else if (parent instanceof ItemConstraintLayout) {
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                View child = parent.getChildAt(i);
+                if (child instanceof ItemView editorItem && editorItem.getBean() != null) {
+                    updateConstraints(child, editorItem.getBean(), parent);
+                }
             }
         }
     }
 
+    /**
+     * RelativeLayout rules of a widget, "android:layout_below" → "sibling_id", from the attributes
+     * typed in the inject field and from its parent attributes (which win, as they're written last).
+     */
+    private static java.util.Map<String, String> relativeRules(ViewBean bean) {
+        java.util.Map<String, String> rules = new java.util.LinkedHashMap<>();
+        for (java.util.Map.Entry<String, String> entry : InjectAttributes.parse(bean.inject).entrySet()) {
+            addRelativeRule(rules, entry.getKey(), entry.getValue());
+        }
+        for (java.util.Map.Entry<String, String> entry : bean.parentAttributes.entrySet()) {
+            addRelativeRule(rules, entry.getKey(), entry.getValue());
+        }
+        return rules;
+    }
+
+    private static void addRelativeRule(java.util.Map<String, String> rules, String key, String value) {
+        if (key == null || value == null || !key.startsWith("android:")) return;
+        if (!RELATIVE_RULES.containsKey(key.substring("android:".length()))) return;
+        rules.put(key, LayoutRelations.referenceId(value));
+    }
+
+    /**
+     * Rebuilds the rules of a RelativeLayout child on its existing LayoutParams (so size and margins
+     * are kept). A rule that points at a missing view or at a non-sibling is ignored, as RelativeLayout
+     * does, and rules on a circular dependency are left out instead of letting RelativeLayout throw.
+     */
+    private static void applyRelativeRules(View view, String id, java.util.Map<String, String> rules,
+                                           java.util.Set<String> cyclic, ViewGroup parent) {
+        if (!(view.getLayoutParams() instanceof RelativeLayout.LayoutParams params)) return;
+        for (int verb : RELATIVE_RULES.values()) {
+            params.removeRule(verb);
+        }
+        if (rules != null) {
+            for (java.util.Map.Entry<String, String> rule : rules.entrySet()) {
+                Integer verb = RELATIVE_RULES.get(rule.getKey().substring("android:".length()));
+                if (verb == null) continue;
+                if (RELATIVE_BOOLEAN_RULES.contains(verb)) {
+                    if ("true".equalsIgnoreCase(rule.getValue())) params.addRule(verb);
+                } else if (!cyclic.contains(id + " " + rule.getKey())) {
+                    View anchor = childWithTag(parent, rule.getValue());
+                    if (anchor != null && anchor != view) params.addRule(verb, anchor.getId());
+                }
+            }
+        }
+        view.setLayoutParams(params);
+    }
+
+    /** The direct child of {@code parent} with this widget id, or null. */
+    private static View childWithTag(ViewGroup parent, String id) {
+        if (id == null) return null;
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            if (id.equals(child.getTag())) return child;
+        }
+        return null;
+    }
+
     /** Applies app:layout_constraint* parent attributes to a child of a ConstraintLayout. */
-    private void updateConstraints(View view, ViewBean bean) {
+    private void updateConstraints(View view, ViewBean bean, ViewGroup parent) {
         if (!(view.getLayoutParams() instanceof ConstraintLayout.LayoutParams params)) return;
         params.leftToLeft = params.leftToRight = params.rightToLeft = params.rightToRight = ConstraintLayout.LayoutParams.UNSET;
         params.topToTop = params.topToBottom = params.bottomToTop = params.bottomToBottom = ConstraintLayout.LayoutParams.UNSET;
@@ -1406,7 +1533,7 @@ public class ViewPane extends RelativeLayout {
                     params.matchConstraintPercentHeight = parseBias(value);
                 }
                 default -> {
-                    int target = resolveConstraintTarget(value);
+                    int target = resolveConstraintTarget(value, view, parent);
                     if (target == ConstraintLayout.LayoutParams.UNSET) continue;
                     switch (attr) {
                         case "Left_toLeftOf" -> params.leftToLeft = target;
@@ -1429,11 +1556,12 @@ public class ViewPane extends RelativeLayout {
         view.setLayoutParams(params);
     }
 
-    private int resolveConstraintTarget(String value) {
+    /** "parent" or a sibling id; constraints to anything else are ignored, as ConstraintLayout does. */
+    private static int resolveConstraintTarget(String value, View view, ViewGroup parent) {
         if ("parent".equals(value)) return ConstraintLayout.LayoutParams.PARENT_ID;
-        String id = value.startsWith("@") ? value.substring(value.indexOf('/') + 1) : value;
-        View target = rootLayout == null ? null : rootLayout.findViewWithTag(id);
-        return target == null ? ConstraintLayout.LayoutParams.UNSET : target.getId();
+        if (parent == null) return ConstraintLayout.LayoutParams.UNSET;
+        View target = childWithTag(parent, LayoutRelations.referenceId(value));
+        return target == null || target == view ? ConstraintLayout.LayoutParams.UNSET : target.getId();
     }
 
     private static float parseBias(String value) {
@@ -1441,190 +1569,6 @@ public class ViewPane extends RelativeLayout {
             return Float.parseFloat(value);
         } catch (NumberFormatException e) {
             return 0.5f;
-        }
-    }
-
-    private void updateRelativeParentViews(View view, InjectAttributeHandler handler) {
-        var viewBean = handler.getBean();
-        updateRelative(view, handler);
-
-        ViewGroup parent = rootLayout.findViewWithTag(viewBean.parent);
-        if (parent == null) {
-            return;
-        }
-
-        for (int i = 0; i < parent.getChildCount(); i++) {
-            var child = parent.getChildAt(i);
-            if (child instanceof ItemView editorItem) {
-                updateRelative(child, new InjectAttributeHandler(editorItem.getBean()));
-            }
-        }
-    }
-
-    private void updateRelative(View view, InjectAttributeHandler handler) {
-        String layout_centerInParent = handler.getAttributeValueOf("layout_centerInParent");
-        String layout_centerVertical = handler.getAttributeValueOf("layout_centerVertical");
-        String layout_centerHorizontal = handler.getAttributeValueOf("layout_centerHorizontal");
-
-        var bean = handler.getBean();
-        var parent = bean.parentAttributes;
-        if (Boolean.parseBoolean(layout_centerInParent)
-                || parent.containsKey("android:layout_centerInParent")
-                && Boolean.parseBoolean(parent.get("android:layout_centerInParent")))
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class},
-                    RelativeLayout.CENTER_IN_PARENT);
-
-        if (Boolean.parseBoolean(layout_centerVertical)
-                || parent.containsKey("android:layout_centerVertical")
-                && Boolean.parseBoolean(parent.get("android:layout_centerVertical")))
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class},
-                    RelativeLayout.CENTER_VERTICAL);
-
-        if (Boolean.parseBoolean(layout_centerHorizontal)
-                || parent.containsKey("android:layout_centerHorizontal")
-                && Boolean.parseBoolean(parent.get("android:layout_centerHorizontal")))
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class},
-                    RelativeLayout.CENTER_HORIZONTAL);
-
-        String layout_alignParentStart = handler.getAttributeValueOf("layout_alignParentStart");
-        String layout_alignParentRight = handler.getAttributeValueOf("layout_alignParentRight");
-        String layout_alignParentTop = handler.getAttributeValueOf("layout_alignParentTop");
-        String layout_alignParentEnd = handler.getAttributeValueOf("layout_alignParentEnd");
-        String layout_alignParentLeft = handler.getAttributeValueOf("layout_alignParentLeft");
-        String layout_alignParentBottom = handler.getAttributeValueOf("layout_alignParentBottom");
-
-        if (Boolean.parseBoolean(layout_alignParentStart)
-                || parent.containsKey("android:layout_alignParentStart")
-                && Boolean.parseBoolean(parent.get("android:layout_alignParentStart"))) {
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class},
-                    RelativeLayout.ALIGN_PARENT_START);
-        }
-
-        if (Boolean.parseBoolean(layout_alignParentRight)
-                || parent.containsKey("android:layout_alignParentRight")
-                && Boolean.parseBoolean(parent.get("android:layout_alignParentRight"))) {
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class},
-                    RelativeLayout.ALIGN_PARENT_RIGHT);
-        }
-
-        if (Boolean.parseBoolean(layout_alignParentTop)
-                || parent.containsKey("android:layout_alignParentTop")
-                && Boolean.parseBoolean(parent.get("android:layout_alignParentTop"))) {
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class},
-                    RelativeLayout.ALIGN_PARENT_TOP);
-        }
-
-        if (Boolean.parseBoolean(layout_alignParentEnd)
-                || parent.containsKey("android:layout_alignParentEnd")
-                && Boolean.parseBoolean(parent.get("android:layout_alignParentEnd"))) {
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class},
-                    RelativeLayout.ALIGN_PARENT_END);
-        }
-
-        if (Boolean.parseBoolean(layout_alignParentLeft)
-                || parent.containsKey("android:layout_alignParentLeft")
-                && Boolean.parseBoolean(parent.get("android:layout_alignParentLeft"))) {
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class},
-                    RelativeLayout.ALIGN_PARENT_LEFT);
-        }
-
-        if (Boolean.parseBoolean(layout_alignParentBottom)
-                || parent.containsKey("android:layout_alignParentBottom")
-                && Boolean.parseBoolean(parent.get("android:layout_alignParentBottom"))) {
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class},
-                    RelativeLayout.ALIGN_PARENT_BOTTOM);
-        }
-
-        if (parent.containsKey("android:layout_alignStart")) {
-            setRelativeRule(view, parent.get("android:layout_alignStart"), RelativeLayout.ALIGN_START);
-        } else setRelativeRule(view, handler, "layout_alignStart", RelativeLayout.ALIGN_START);
-        if (parent.containsKey("android:layout_alignRight")) {
-            setRelativeRule(view, parent.get("android:layout_alignRight"), RelativeLayout.ALIGN_RIGHT);
-        } else setRelativeRule(view, handler, "layout_alignRight", RelativeLayout.ALIGN_RIGHT);
-        if (parent.containsKey("android:layout_alignTop")) {
-            setRelativeRule(view, parent.get("android:layout_alignTop"), RelativeLayout.ALIGN_TOP);
-        } else setRelativeRule(view, handler, "layout_alignTop", RelativeLayout.ALIGN_TOP);
-        if (parent.containsKey("android:layout_alignEnd")) {
-            setRelativeRule(view, parent.get("android:layout_alignEnd"), RelativeLayout.ALIGN_END);
-        } else setRelativeRule(view, handler, "layout_alignEnd", RelativeLayout.ALIGN_END);
-        if (parent.containsKey("android:layout_alignLeft")) {
-            setRelativeRule(view, parent.get("android:layout_alignLeft"), RelativeLayout.ALIGN_LEFT);
-        } else setRelativeRule(view, handler, "layout_alignLeft", RelativeLayout.ALIGN_LEFT);
-        if (parent.containsKey("android:layout_alignBottom")) {
-            setRelativeRule(view, parent.get("android:layout_alignBottom"), RelativeLayout.ALIGN_BOTTOM);
-        } else setRelativeRule(view, handler, "layout_alignBottom", RelativeLayout.ALIGN_BOTTOM);
-        if (parent.containsKey("android:layout_alignBaseline")) {
-            setRelativeRule(view, parent.get("android:layout_alignBaseline"), RelativeLayout.ALIGN_BASELINE);
-        } else
-            setRelativeRule(view, handler, "layout_alignBaseline", RelativeLayout.ALIGN_BASELINE);
-
-        if (parent.containsKey("android:layout_above")) {
-            setRelativeRule(view, parent.get("android:layout_above"), RelativeLayout.ABOVE);
-        } else setRelativeRule(view, handler, "layout_above", RelativeLayout.ABOVE);
-        if (parent.containsKey("android:layout_below")) {
-            setRelativeRule(view, parent.get("android:layout_below"), RelativeLayout.BELOW);
-        } else setRelativeRule(view, handler, "layout_below", RelativeLayout.BELOW);
-        if (parent.containsKey("android:layout_toStartOf")) {
-            setRelativeRule(view, parent.get("android:layout_toStartOf"), RelativeLayout.START_OF);
-        } else setRelativeRule(view, handler, "layout_toStartOf", RelativeLayout.START_OF);
-        if (parent.containsKey("android:layout_toRightOf")) {
-            setRelativeRule(view, parent.get("android:layout_toRightOf"), RelativeLayout.RIGHT_OF);
-        } else setRelativeRule(view, handler, "layout_toRightOf", RelativeLayout.RIGHT_OF);
-        if (parent.containsKey("android:layout_toEndOf")) {
-            setRelativeRule(view, parent.get("android:layout_toEndOf"), RelativeLayout.END_OF);
-        } else setRelativeRule(view, handler, "layout_toEndOf", RelativeLayout.END_OF);
-        if (parent.containsKey("android:layout_toLeftOf")) {
-            setRelativeRule(view, parent.get("android:layout_toLeftOf"), RelativeLayout.LEFT_OF);
-        } else setRelativeRule(view, handler, "layout_toLeftOf", RelativeLayout.LEFT_OF);
-    }
-
-    private void setRelativeRule(
-            View view, InjectAttributeHandler handler, String attribute, int rule) {
-        String referenceId = handler.getAttributeValueOf(attribute);
-        if (referenceId != null && !referenceId.isEmpty()) {
-            var reference = PropertiesUtil.getUnitOrPrefix(referenceId);
-            if (reference != null) {
-                setRelativeRule(view, reference.second, rule);
-            }
-        }
-    }
-
-    private void setRelativeRule(View view, String id, int rule) {
-        View refView = rootLayout.findViewWithTag(id);
-        if (refView != null) {
-            InvokeUtil.invoke(
-                    view.getLayoutParams(),
-                    "addRule",
-                    new Class[]{int.class, int.class},
-                    rule,
-                    refView.getId());
         }
     }
 

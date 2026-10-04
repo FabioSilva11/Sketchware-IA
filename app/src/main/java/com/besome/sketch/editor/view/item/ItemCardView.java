@@ -9,6 +9,7 @@ import android.view.View;
 import androidx.annotation.NonNull;
 
 import com.besome.sketch.beans.ViewBean;
+import com.besome.sketch.editor.view.EditorChildren;
 import com.besome.sketch.editor.view.ItemView;
 import com.besome.sketch.editor.view.ScrollContainer;
 import com.google.android.material.card.MaterialCardView;
@@ -30,13 +31,7 @@ public class ItemCardView extends MaterialCardView implements ItemView, ScrollCo
 
     @Override
     public void reindexChildren() {
-        int count = getChildCount();
-        for (int i = 0; i < count; i++) {
-            View child = getChildAt(i);
-            if (child instanceof ItemView) {
-                ((ItemView) child).getBean().index = i;
-            }
-        }
+        EditorChildren.reindex(this);
     }
 
     private void initialize(Context context) {
@@ -47,17 +42,9 @@ public class ItemCardView extends MaterialCardView implements ItemView, ScrollCo
     }
 
     @Override
-    public void addView(View child, int i) {
-        int childCount = getChildCount();
-        if (i > childCount) {
-            addView(child);
-            return;
-        }
-        int index = 0;
-        while (index < childCount && getChildAt(index).getVisibility() != View.GONE) {
-            index++;
-        }
-        super.addView(child, i);
+    public void addView(View child, int index) {
+        // index counts editor widgets, not raw children (see EditorChildren).
+        super.addView(child, EditorChildren.insertionIndex(this, index));
     }
 
     @Override

@@ -103,7 +103,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
         addableActivityEvents.clear();
         addableComponentEvents.clear();
         addableDrawerViewEvents.clear();
-        addableEtcEvents.clear();
+        addableViewEvents.clear();
         eventsToAdd.clear();
 
         for (var activityEvent : oq.getAllActivityEvents()) {
@@ -124,28 +124,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
         ArrayList<ComponentBean> components = jC.a(sc_id).e(projectFile.getJavaName());
         if (views != null) {
             for (ViewBean view : views) {
-                Set<String> toNotAdd = new Ox(new jq(), projectFile).readAttributesToReplace(view);
-                for (String viewEvent : oq.getEventsForClass(view.getClassInfo())) {
-                    boolean exists;
-                    if (viewEvent.equals("onBindCustomView") && (view.customView.isEmpty()
-                            || view.customView.equals("none"))) {
-                        exists = true;
-                    } else {
-                        exists = false;
-                        for (var existingEvent : jC.a(sc_id).g(projectFile.getJavaName())) {
-                            if (existingEvent.eventType == EventBean.EVENT_TYPE_VIEW
-                                    && view.id.equals(existingEvent.targetId)
-                                    && viewEvent.equals(existingEvent.eventName)) {
-                                exists = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    if (!exists && !toNotAdd.contains("android:id")) {
-                        addableViewEvents.add(new EventBean(EventBean.EVENT_TYPE_VIEW, view.type, view.id, viewEvent));
-                    }
-                }
+                addableViewEvents.addAll(ViewEventCatalog.addable(sc_id, projectFile, view, EventBean.EVENT_TYPE_VIEW));
             }
         }
         if (components != null) {
@@ -168,40 +147,13 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
         }
         ViewBean fab;
         if (projectFile.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_FAB) && (fab = jC.a(sc_id).h(projectFile.getXmlName())) != null) {
-            for (String fabEvent : oq.getEventsForClass(fab.getClassInfo())) {
-                boolean exists = false;
-                for (var existingFabEvent : jC.a(sc_id).g(projectFile.getJavaName())) {
-                    if (existingFabEvent.eventType == EventBean.EVENT_TYPE_VIEW
-                            && fab.id.equals(existingFabEvent.targetId)
-                            && fabEvent.equals(existingFabEvent.eventName)) {
-                        exists = true;
-                        break;
-                    }
-                }
-                if (!exists) {
-                    addableViewEvents.add(new EventBean(EventBean.EVENT_TYPE_VIEW, fab.type, fab.id, fabEvent));
-                }
-            }
+            addableViewEvents.addAll(ViewEventCatalog.addable(sc_id, projectFile, fab, EventBean.EVENT_TYPE_VIEW));
         }
         if (projectFile.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_DRAWER)) {
             ArrayList<ViewBean> drawerViews = jC.a(sc_id).d(projectFile.getDrawerXmlName());
             if (drawerViews != null) {
                 for (ViewBean drawerView : drawerViews) {
-                    Set<String> toNotAdd = new Ox(new jq(), projectFile).readAttributesToReplace(drawerView);
-                    for (String drawerViewEvent : oq.getEventsForClass(drawerView.getClassInfo())) {
-                        boolean exists = false;
-                        for (var existingEvent : jC.a(sc_id).g(projectFile.getJavaName())) {
-                            if (existingEvent.eventType == EventBean.EVENT_TYPE_DRAWER_VIEW
-                                    && drawerView.id.equals(existingEvent.targetId)
-                                    && drawerViewEvent.equals(existingEvent.eventName)) {
-                                exists = true;
-                                break;
-                            }
-                        }
-                        if (!exists && !toNotAdd.contains("android:id")) {
-                            addableDrawerViewEvents.add(new EventBean(EventBean.EVENT_TYPE_DRAWER_VIEW, drawerView.type, drawerView.id, drawerViewEvent));
-                        }
-                    }
+                    addableDrawerViewEvents.addAll(ViewEventCatalog.addable(sc_id, projectFile, drawerView, EventBean.EVENT_TYPE_DRAWER_VIEW));
                 }
             }
         }

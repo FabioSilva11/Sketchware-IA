@@ -103,6 +103,8 @@ public class ViewBean extends nA implements Parcelable {
     @Expose
     public String parent;
     public Gx parentClassInfo;
+    /** Parent type {@link #parentClassInfo} was built for: a widget moved to another container gets a new one. */
+    private transient int parentClassInfoType = Integer.MIN_VALUE;
     @Expose
     public int parentType;
     @Expose
@@ -390,8 +392,9 @@ public class ViewBean extends nA implements Parcelable {
         if (parentType == -1) {
             return null;
         }
-        if (parentClassInfo == null) {
+        if (parentClassInfo == null || parentClassInfoType != parentType) {
             parentClassInfo = buildClassInfo(parentType);
+            parentClassInfoType = parentType;
         }
         return parentClassInfo;
     }

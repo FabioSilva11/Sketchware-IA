@@ -11,6 +11,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.text.TextPaint;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -20,16 +21,27 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.besome.sketch.beans.ViewBean;
+import com.besome.sketch.editor.view.item.ItemFrameLayout;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 import pro.sketchware.utility.ProjectStrings;
 
 /**
- * Drawn on top of the layout editor. Shows how children of RelativeLayout and ConstraintLayout are
- * attached (to the parent or to each other), draws anchors on the selected widget that can be dragged
- * to a parent edge, to the middle of the parent or to another widget, and can switch the whole canvas
- * to a blueprint of the hierarchy. Touches that don't start on an anchor go to the widgets below.
+ * Drawn on top of the layout editor, it only shows things; the layout itself comes from the
+ * widgets' LayoutParams. It draws:
+ * <ul>
+ * <li>in Design mode, the relations and the anchors of the selected child of a RelativeLayout or
+ * ConstraintLayout (or of every child, when "show all relations" is on);</li>
+ * <li>in Blueprint mode, the outline of every widget and every relation, without the rendering;</li>
+ * <li>while dragging, the container that will receive the widget (and the gravity zones of a
+ * FrameLayout);</li>
+ * <li>while moving a widget, short alignment guides to the parent and the siblings.</li>
+ * </ul>
+ * A touch is taken only when it starts on an anchor of the selected widget; every other touch goes to
+ * the widgets below, so selecting, moving and dropping work the same in both modes.
  */
 @SuppressLint("ViewConstructor")
 public class LayoutRelationsOverlay extends View {
@@ -42,12 +54,13 @@ public class LayoutRelationsOverlay extends View {
         boolean applyRelationChange(@NonNull ViewBean bean, @NonNull Consumer<ViewBean> change);
     }
 
-    private static final int BLUEPRINT_BACKGROUND = 0xFF1F5566;
-    private static final int BLUEPRINT_LINE = 0xFF8FD3E8;
-    private static final int BLUEPRINT_TEXT = 0xFFCDEFF8;
+    private static final int BLUEPRINT_BACKGROUND = 0xFF1A3A5C;
+    private static final int BLUEPRINT_LINE = 0xFF8AB4F8;
+    private static final int BLUEPRINT_TEXT = 0xFFD2E3FC;
     private static final int RELATION_COLOR = 0xFF1E88E5;
-    private static final int RELATION_MUTED = 0x991E88E5;
     private static final int CANDIDATE_COLOR = 0xFF00C853;
+    private static final int GUIDE_COLOR = 0xFFE91E63;
+    private static final int DROP_COLOR = 0xFF1E88E5;
 
     private final ViewPane pane;
     private final Paint linePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -60,6 +73,7 @@ public class LayoutRelationsOverlay extends View {
     @Nullable
     private ItemView selected;
     private boolean blueprint;
+    private boolean showAllRelations;
     @Nullable
     private Callback callback;
 
@@ -71,6 +85,14 @@ public class LayoutRelationsOverlay extends View {
     private boolean dragMoved;
     @Nullable
     private Target candidate;
+
+    // Drop target while a widget is dragged
+    @Nullable
+    private ViewGroup dropTarget;
+    private int dropGravity = -1;
+
+    // Alignment guides while a widget is moved: x1, y1, x2, y2 per line
+    private final List<float[]> guides = new ArrayList<>();
 
     /** Where a dragged anchor would attach. */
     private static final class Target {
@@ -94,6 +116,8 @@ public class LayoutRelationsOverlay extends View {
         linePaint.setStyle(Paint.Style.STROKE);
         labelPaint.setTextSize(10 * density);
         setWillNotDraw(false);
+        setClickable(false);
+        setFocusable(false);
     }
 
     public void setCallback(@Nullable Callback callback) {
@@ -102,6 +126,7 @@ public class LayoutRelationsOverlay extends View {
 
     public void setSelected(@Nullable ItemView item) {
         selected = item;
+        resetDrag();
         invalidate();
     }
 
@@ -111,6 +136,29 @@ public class LayoutRelationsOverlay extends View {
 
     public void setBlueprint(boolean blueprint) {
         this.blueprint = blueprint;
+        invalidate();
+    }
+
+    public boolean isShowingAllRelations() {
+        return showAllRelations;
+    }
+
+    public void setShowAllRelations(boolean showAllRelations) {
+        this.showAllRelations = showAllRelations;
+        invalidate();
+    }
+
+    /** The container a dragged widget will be dropped into (null when none) and, for a FrameLayout, the gravity. */
+    public void setDropTarget(@Nullable ViewGroup target, int gravity) {
+        if (dropTarget == target && dropGravity == gravity) return;
+        dropTarget = target;
+        dropGravity = gravity;
+        invalidate();
+    }
+
+    public void clearGuides() {
+        if (guides.isEmpty()) return;
+        guides.clear();
         invalidate();
     }
 
@@ -149,10 +197,15 @@ public class LayoutRelationsOverlay extends View {
         return rect;
     }
 
+    /** The sibling of {@code view} with this widget id: relations only resolve between siblings. */
     @Nullable
-    private View findView(String id) {
-        ViewGroup root = pane.getRootLayout();
-        return root == null ? null : root.findViewWithTag(id);
+    private static View findSibling(View view, String id) {
+        if (!(view.getParent() instanceof ViewGroup parent) || id == null) return null;
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            if (child != view && id.equals(child.getTag())) return child;
+        }
+        return null;
     }
 
     private static PointF anchorPoint(RectF rect, LayoutRelations.Side side) {
@@ -183,10 +236,15 @@ public class LayoutRelationsOverlay extends View {
         if (blueprint) {
             canvas.drawColor(BLUEPRINT_BACKGROUND);
             drawBlueprint(canvas, root, 0);
-            drawAllRelations(canvas, root);
+            drawAllRelations(canvas, root, BLUEPRINT_LINE);
+        } else if (showAllRelations) {
+            drawAllRelations(canvas, root, 0x991E88E5);
+            drawSelectedRelations(canvas);
         } else {
-            drawRelationsAroundSelection(canvas);
+            drawSelectedRelations(canvas);
         }
+        drawDropTarget(canvas);
+        drawGuides(canvas);
         drawHandles(canvas);
         drawDrag(canvas);
     }
@@ -206,7 +264,15 @@ public class LayoutRelationsOverlay extends View {
             float available = rect.width() - screenDp(6f);
             if (available > screenDp(12f) && rect.height() > screenDp(10f)) {
                 CharSequence text = TextUtils.ellipsize(label, labelPaint, available, TextUtils.TruncateAt.END);
-                canvas.drawText(text, 0, text.length(), rect.left + screenDp(3f), rect.top + screenDp(11f), labelPaint);
+                float textWidth = labelPaint.measureText(text, 0, text.length());
+                if (view instanceof ViewGroup group && hasWidgetChildren(group)) {
+                    // Containers: name in the bottom-left corner, clear of their children's labels.
+                    canvas.drawText(text, 0, text.length(), rect.left + screenDp(3f), rect.bottom - screenDp(4f), labelPaint);
+                } else {
+                    // Widgets: name in the middle of their box, as in Android Studio's blueprint.
+                    canvas.drawText(text, 0, text.length(), rect.centerX() - textWidth / 2f,
+                            rect.centerY() + screenDp(3f), labelPaint);
+                }
             }
         }
         if (view instanceof ViewGroup group) {
@@ -217,6 +283,13 @@ public class LayoutRelationsOverlay extends View {
                 }
             }
         }
+    }
+
+    private static boolean hasWidgetChildren(ViewGroup group) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            if (group.getChildAt(i) instanceof ItemView) return true;
+        }
+        return false;
     }
 
     private String blueprintLabel(ViewBean bean) {
@@ -235,83 +308,101 @@ public class LayoutRelationsOverlay extends View {
         return type + " · " + bean.id;
     }
 
-    private void drawAllRelations(Canvas canvas, ViewGroup group) {
+    private void drawAllRelations(Canvas canvas, ViewGroup group, int color) {
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
             if (!(child instanceof ItemView item)) continue;
             ViewBean bean = item.getBean();
             if (LayoutRelations.supports(bean)) {
-                drawRelations(canvas, child, bean, child == selected ? 0xFFFFFFFF : BLUEPRINT_LINE);
+                drawRelations(canvas, child, bean, child == selected ? (blueprint ? 0xFFFFFFFF : RELATION_COLOR) : color);
             }
             if (child instanceof ViewGroup childGroup) {
-                drawAllRelations(canvas, childGroup);
+                drawAllRelations(canvas, childGroup, color);
             }
         }
     }
 
-    private void drawRelationsAroundSelection(Canvas canvas) {
-        ItemView item = selected;
-        if (!(item instanceof View selectedView)) return;
-        // A selected RelativeLayout/ConstraintLayout shows how its children are placed; a selected child
-        // shows its own relations and, lighter, the ones of its siblings.
-        ViewGroup group = null;
-        if (LayoutRelations.supports(item.getBean()) && selectedView.getParent() instanceof ViewGroup parent) {
-            group = parent;
-        } else if (selectedView instanceof ViewGroup container && item.getBean() != null
-                && (LayoutRelations.isRelative(item.getBean().type) || LayoutRelations.isConstraint(item.getBean().type))) {
-            group = container;
-        }
-        if (group == null) return;
-        for (int i = 0; i < group.getChildCount(); i++) {
-            View child = group.getChildAt(i);
-            if (child instanceof ItemView childItem && LayoutRelations.supports(childItem.getBean())) {
-                drawRelations(canvas, child, childItem.getBean(), child == selectedView ? RELATION_COLOR : RELATION_MUTED);
-            }
-        }
+    /** Only the relations of the selected widget: lines don't cross the canvas for nothing. */
+    private void drawSelectedRelations(Canvas canvas) {
+        ViewBean bean = selectedBean();
+        if (bean == null) return;
+        drawRelations(canvas, (View) selected, bean, RELATION_COLOR);
     }
 
+    /**
+     * Draws the connections of a widget the way Android Studio does: to a parent edge a straight line
+     * with an arrow; to another widget a curve that leaves the anchor at a right angle and enters the
+     * target's anchor; a widget held on both sides of an axis (centred, or with a bias) gets a zigzag
+     * spring on each side.
+     */
     private void drawRelations(Canvas canvas, View view, ViewBean bean, int color) {
         RectF rect = rectOf(view);
         RectF parent = view.getParent() instanceof View parentView ? contentRectOf(parentView) : null;
         if (rect == null || parent == null) return;
-        boolean constraint = LayoutRelations.isConstraint(bean.parentType);
         for (LayoutRelations.Connection connection : LayoutRelations.connections(bean)) {
             PointF from = anchorPoint(rect, connection.side);
-            PointF to = targetPoint(connection, from, parent);
-            if (to == null) continue;
-            boolean centring = connection.targetSide == null;
             linePaint.setColor(color);
             linePaint.setStrokeWidth(screenDp(1.4f));
-            linePaint.setPathEffect(centring ? new DashPathEffect(new float[]{screenDp(4), screenDp(3)}, 0) : null);
-            if (constraint && !centring) {
-                drawSpring(canvas, from, to, connection.side);
+            linePaint.setPathEffect(null);
+            if (LayoutRelations.PARENT.equals(connection.target)) {
+                PointF to = parentPoint(parent, connection.side, connection.targetSide, from);
+                boolean spring = connection.targetSide == null
+                        || LayoutRelations.hasSide(bean, LayoutRelations.opposite(connection.side));
+                if (spring) {
+                    drawSpring(canvas, from, to, connection.side);
+                } else {
+                    canvas.drawLine(from.x, from.y, to.x, to.y, linePaint);
+                }
+                drawArrow(canvas, to, outward(connection.side), color);
             } else {
-                canvas.drawLine(from.x, from.y, to.x, to.y, linePaint);
+                RectF target = rectOf(findSibling(view, LayoutRelations.referenceId(connection.target)));
+                if (target == null || connection.targetSide == null) continue;
+                PointF to = anchorPoint(target, connection.targetSide);
+                drawCurve(canvas, from, connection.side, to, connection.targetSide);
+                PointF inward = outward(connection.targetSide);
+                drawArrow(canvas, to, new PointF(-inward.x, -inward.y), color);
             }
-            drawArrow(canvas, from, to, color);
         }
         linePaint.setPathEffect(null);
     }
 
-    @Nullable
-    private PointF targetPoint(LayoutRelations.Connection connection, PointF from, RectF parent) {
-        boolean vertical = connection.side == LayoutRelations.Side.TOP || connection.side == LayoutRelations.Side.BOTTOM;
-        RectF target;
-        LayoutRelations.Side targetSide = connection.targetSide;
-        if (LayoutRelations.PARENT.equals(connection.target)) {
-            target = parent;
-            if (targetSide == null) targetSide = connection.side;
-        } else {
-            target = rectOf(findView(connection.target));
-            if (target == null) return null;
-            if (targetSide == null) targetSide = connection.side;
-        }
-        if (vertical) {
-            float y = targetSide == LayoutRelations.Side.TOP ? target.top : target.bottom;
-            return new PointF(Math.max(target.left, Math.min(target.right, from.x)), y);
-        }
-        float x = targetSide == LayoutRelations.Side.START ? target.left : target.right;
-        return new PointF(x, Math.max(target.top, Math.min(target.bottom, from.y)));
+    /** Where a connection meets the parent: the edge (or, for centring, the edge on that side) in line with the anchor. */
+    private static PointF parentPoint(RectF parent, LayoutRelations.Side side, @Nullable LayoutRelations.Side targetSide,
+                                      PointF from) {
+        LayoutRelations.Side edge = targetSide == null ? side : targetSide;
+        return switch (edge) {
+            case TOP -> new PointF(clamp(from.x, parent.left, parent.right), parent.top);
+            case BOTTOM -> new PointF(clamp(from.x, parent.left, parent.right), parent.bottom);
+            case START -> new PointF(parent.left, clamp(from.y, parent.top, parent.bottom));
+            case END -> new PointF(parent.right, clamp(from.y, parent.top, parent.bottom));
+        };
+    }
+
+    private static float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    /** Unit vector pointing out of a side of a box. */
+    private static PointF outward(LayoutRelations.Side side) {
+        return switch (side) {
+            case TOP -> new PointF(0, -1);
+            case BOTTOM -> new PointF(0, 1);
+            case START -> new PointF(-1, 0);
+            case END -> new PointF(1, 0);
+        };
+    }
+
+    /** Cubic curve from one anchor to another, leaving and entering each side at a right angle. */
+    private void drawCurve(Canvas canvas, PointF from, LayoutRelations.Side fromSide, PointF to,
+                           LayoutRelations.Side toSide) {
+        float distance = (float) Math.hypot(to.x - from.x, to.y - from.y);
+        float pull = Math.max(screenDp(18f), distance * 0.45f);
+        PointF out = outward(fromSide);
+        PointF in = outward(toSide);
+        path.reset();
+        path.moveTo(from.x, from.y);
+        path.cubicTo(from.x + out.x * pull, from.y + out.y * pull, to.x + in.x * pull, to.y + in.y * pull, to.x, to.y);
+        canvas.drawPath(path, linePaint);
     }
 
     /** The zigzag ConstraintLayout uses for constraints (as in Android Studio's blueprint). */
@@ -340,30 +431,31 @@ public class LayoutRelationsOverlay extends View {
         }
     }
 
-    private void drawArrow(Canvas canvas, PointF from, PointF to, int color) {
-        float dx = to.x - from.x;
-        float dy = to.y - from.y;
-        float length = (float) Math.hypot(dx, dy);
-        if (length < screenDp(4)) return;
-        float ux = dx / length;
-        float uy = dy / length;
+    /** Arrow head with its tip at {@code tip}, pointing along the unit vector {@code direction}. */
+    private void drawArrow(Canvas canvas, PointF tip, PointF direction, int color) {
         float size = screenDp(5f);
+        float ux = direction.x;
+        float uy = direction.y;
         path.reset();
-        path.moveTo(to.x, to.y);
-        path.lineTo(to.x - ux * size - uy * size * 0.6f, to.y - uy * size + ux * size * 0.6f);
-        path.lineTo(to.x - ux * size + uy * size * 0.6f, to.y - uy * size - ux * size * 0.6f);
+        path.moveTo(tip.x, tip.y);
+        path.lineTo(tip.x - ux * size - uy * size * 0.6f, tip.y - uy * size + ux * size * 0.6f);
+        path.lineTo(tip.x - ux * size + uy * size * 0.6f, tip.y - uy * size - ux * size * 0.6f);
         path.close();
         fillPaint.setStyle(Paint.Style.FILL);
         fillPaint.setColor(color);
         canvas.drawPath(path, fillPaint);
     }
 
+    private float handleRadius() {
+        return screenDp(5f);
+    }
+
     private void drawHandles(Canvas canvas) {
         ViewBean bean = selectedBean();
-        if (bean == null) return;
+        if (bean == null || !guides.isEmpty()) return;
         RectF rect = rectOf((View) selected);
         if (rect == null) return;
-        float radius = screenDp(6f);
+        float radius = handleRadius();
         for (LayoutRelations.Side side : LayoutRelations.Side.values()) {
             PointF point = anchorPoint(rect, side);
             boolean connected = LayoutRelations.hasSide(bean, side);
@@ -377,47 +469,227 @@ public class LayoutRelationsOverlay extends View {
         }
     }
 
+    /**
+     * While an anchor is dragged: small dots on every edge it can attach to (the middle of the
+     * siblings' sides and the parent's edges in line with it), the line following the finger and,
+     * over a target, the connection it would make ending on a filled dot, as in Android Studio.
+     */
     private void drawDrag(Canvas canvas) {
         if (dragSide == null || !dragMoved || !(selected instanceof View selectedView)) return;
         RectF rect = rectOf(selectedView);
         if (rect == null) return;
         PointF from = anchorPoint(rect, dragSide);
-        linePaint.setPathEffect(new DashPathEffect(new float[]{screenDp(5), screenDp(3)}, 0));
-        linePaint.setColor(candidate == null ? RELATION_COLOR : CANDIDATE_COLOR);
-        linePaint.setStrokeWidth(screenDp(1.5f));
-        canvas.drawLine(from.x, from.y, dragPoint.x, dragPoint.y, linePaint);
+        boolean vertical = dragSide == LayoutRelations.Side.TOP || dragSide == LayoutRelations.Side.BOTTOM;
+        float dot = screenDp(3.5f);
+        fillPaint.setStyle(Paint.Style.FILL);
         linePaint.setPathEffect(null);
-        if (candidate != null) {
-            linePaint.setStrokeWidth(screenDp(3f));
-            linePaint.setColor(CANDIDATE_COLOR);
-            RectF r = candidate.rect;
-            if (candidate.side == null) {
-                boolean vertical = dragSide == LayoutRelations.Side.TOP || dragSide == LayoutRelations.Side.BOTTOM;
-                if (vertical) {
-                    canvas.drawLine(r.left, r.centerY(), r.right, r.centerY(), linePaint);
-                } else {
-                    canvas.drawLine(r.centerX(), r.top, r.centerX(), r.bottom, linePaint);
+        linePaint.setStrokeWidth(screenDp(1.2f));
+        linePaint.setColor(RELATION_COLOR);
+        if (selectedView.getParent() instanceof ViewGroup parent) {
+            for (int i = 0; i < parent.getChildCount(); i++) {
+                View child = parent.getChildAt(i);
+                if (child == selectedView || !(child instanceof ItemView)) continue;
+                RectF other = rectOf(child);
+                if (other == null) continue;
+                for (LayoutRelations.Side side : vertical
+                        ? new LayoutRelations.Side[]{LayoutRelations.Side.TOP, LayoutRelations.Side.BOTTOM}
+                        : new LayoutRelations.Side[]{LayoutRelations.Side.START, LayoutRelations.Side.END}) {
+                    PointF p = anchorPoint(other, side);
+                    fillPaint.setColor(0xFFFFFFFF);
+                    canvas.drawCircle(p.x, p.y, dot, fillPaint);
+                    canvas.drawCircle(p.x, p.y, dot, linePaint);
                 }
-            } else {
-                switch (candidate.side) {
-                    case TOP -> canvas.drawLine(r.left, r.top, r.right, r.top, linePaint);
-                    case BOTTOM -> canvas.drawLine(r.left, r.bottom, r.right, r.bottom, linePaint);
-                    case START -> canvas.drawLine(r.left, r.top, r.left, r.bottom, linePaint);
-                    case END -> canvas.drawLine(r.right, r.top, r.right, r.bottom, linePaint);
+            }
+            RectF content = contentRectOf(parent);
+            if (content != null) {
+                for (LayoutRelations.Side side : vertical
+                        ? new LayoutRelations.Side[]{LayoutRelations.Side.TOP, LayoutRelations.Side.BOTTOM}
+                        : new LayoutRelations.Side[]{LayoutRelations.Side.START, LayoutRelations.Side.END}) {
+                    PointF p = parentPoint(content, side, side, from);
+                    fillPaint.setColor(0xFFFFFFFF);
+                    canvas.drawCircle(p.x, p.y, dot, fillPaint);
+                    canvas.drawCircle(p.x, p.y, dot, linePaint);
                 }
             }
         }
+        if (candidate == null) {
+            linePaint.setPathEffect(new DashPathEffect(new float[]{screenDp(5), screenDp(3)}, 0));
+            linePaint.setColor(RELATION_COLOR);
+            linePaint.setStrokeWidth(screenDp(1.5f));
+            canvas.drawLine(from.x, from.y, dragPoint.x, dragPoint.y, linePaint);
+            linePaint.setPathEffect(null);
+            return;
+        }
+        PointF to = candidatePoint(candidate, from, vertical);
+        linePaint.setPathEffect(null);
+        linePaint.setColor(CANDIDATE_COLOR);
+        linePaint.setStrokeWidth(screenDp(1.8f));
+        if (LayoutRelations.PARENT.equals(candidate.id) || candidate.side == null) {
+            canvas.drawLine(from.x, from.y, to.x, to.y, linePaint);
+        } else {
+            drawCurve(canvas, from, dragSide, to, candidate.side);
+        }
+        fillPaint.setColor(CANDIDATE_COLOR);
+        canvas.drawCircle(to.x, to.y, screenDp(5f), fillPaint);
+    }
+
+    /** The point a candidate connection ends on: a sibling's anchor, the parent edge in line, or the parent's middle. */
+    private PointF candidatePoint(Target target, PointF from, boolean vertical) {
+        RectF r = target.rect;
+        if (target.side == null) {
+            return vertical ? new PointF(from.x, r.centerY()) : new PointF(r.centerX(), from.y);
+        }
+        if (LayoutRelations.PARENT.equals(target.id)) {
+            return parentPoint(r, target.side, target.side, from);
+        }
+        return anchorPoint(r, target.side);
+    }
+
+    /** Outline of the container that will receive the dragged widget; nine zones on a FrameLayout. */
+    private void drawDropTarget(Canvas canvas) {
+        RectF rect = rectOf(dropTarget);
+        if (rect == null) return;
+        linePaint.setPathEffect(new DashPathEffect(new float[]{screenDp(6), screenDp(4)}, 0));
+        linePaint.setColor(DROP_COLOR);
+        linePaint.setStrokeWidth(screenDp(2f));
+        canvas.drawRect(rect, linePaint);
+        linePaint.setPathEffect(null);
+        if (!(dropTarget instanceof ItemFrameLayout) || dropGravity < 0) return;
+        RectF content = contentRectOf(dropTarget);
+        if (content == null) return;
+        float w = content.width() / 3f;
+        float h = content.height() / 3f;
+        linePaint.setColor(0x661E88E5);
+        linePaint.setStrokeWidth(screenDp(1f));
+        for (int i = 1; i < 3; i++) {
+            canvas.drawLine(content.left + w * i, content.top, content.left + w * i, content.bottom, linePaint);
+            canvas.drawLine(content.left, content.top + h * i, content.right, content.top + h * i, linePaint);
+        }
+        int gravity = dropGravity == 0 ? Gravity.LEFT | Gravity.TOP : dropGravity;
+        int horizontal = gravity & Gravity.HORIZONTAL_GRAVITY_MASK;
+        int vertical = gravity & Gravity.VERTICAL_GRAVITY_MASK;
+        int column = horizontal == Gravity.CENTER_HORIZONTAL ? 1 : horizontal == Gravity.RIGHT ? 2 : 0;
+        int row = vertical == Gravity.CENTER_VERTICAL ? 1 : vertical == Gravity.BOTTOM ? 2 : 0;
+        fillPaint.setStyle(Paint.Style.FILL);
+        fillPaint.setColor(0x221E88E5);
+        canvas.drawRect(content.left + w * column, content.top + h * row,
+                content.left + w * (column + 1), content.top + h * (row + 1), fillPaint);
+    }
+
+    private void drawGuides(Canvas canvas) {
+        if (guides.isEmpty()) return;
+        linePaint.setPathEffect(new DashPathEffect(new float[]{screenDp(4), screenDp(3)}, 0));
+        linePaint.setColor(GUIDE_COLOR);
+        linePaint.setStrokeWidth(screenDp(1f));
+        for (float[] line : guides) {
+            canvas.drawLine(line[0], line[1], line[2], line[3], linePaint);
+        }
+        linePaint.setPathEffect(null);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Alignment guides
+
+    /**
+     * Snaps a widget being moved by ({@code dx}, {@code dy}) pane pixels to the nearest edge or centre
+     * of its parent and siblings, records the guides to draw and returns the snapped offset. Guides
+     * only span the widget and what it aligns to.
+     */
+    @NonNull
+    public PointF snapMove(@NonNull View moving, float dx, float dy) {
+        guides.clear();
+        RectF rect = rectOf(moving);
+        RectF parent = moving.getParent() instanceof View parentView ? contentRectOf(parentView) : null;
+        if (rect == null || parent == null) {
+            invalidate();
+            return new PointF(dx, dy);
+        }
+        RectF moved = new RectF(rect);
+        moved.offset(dx, dy);
+        float threshold = screenDp(6f);
+        List<RectF> references = new ArrayList<>();
+        references.add(parent);
+        if (moving.getParent() instanceof ViewGroup group) {
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (child == moving || !(child instanceof ItemView)) continue;
+                RectF sibling = rectOf(child);
+                if (sibling != null) references.add(sibling);
+            }
+        }
+        // Horizontal: left, centre and right of the widget against those of every reference.
+        float bestX = threshold + 1;
+        float snapX = 0;
+        RectF guideX = null;
+        float lineX = 0;
+        float[] movingXs = {moved.left, moved.centerX(), moved.right};
+        for (RectF reference : references) {
+            for (float target : new float[]{reference.left, reference.centerX(), reference.right}) {
+                for (float edge : movingXs) {
+                    float distance = Math.abs(target - edge);
+                    if (distance < bestX) {
+                        bestX = distance;
+                        snapX = target - edge;
+                        guideX = reference;
+                        lineX = target;
+                    }
+                }
+            }
+        }
+        float bestY = threshold + 1;
+        float snapY = 0;
+        RectF guideY = null;
+        float lineY = 0;
+        float[] movingYs = {moved.top, moved.centerY(), moved.bottom};
+        for (RectF reference : references) {
+            for (float target : new float[]{reference.top, reference.centerY(), reference.bottom}) {
+                for (float edge : movingYs) {
+                    float distance = Math.abs(target - edge);
+                    if (distance < bestY) {
+                        bestY = distance;
+                        snapY = target - edge;
+                        guideY = reference;
+                        lineY = target;
+                    }
+                }
+            }
+        }
+        if (guideX != null) {
+            moved.offset(snapX, 0);
+            dx += snapX;
+        }
+        if (guideY != null) {
+            moved.offset(0, snapY);
+            dy += snapY;
+        }
+        if (guideX != null) {
+            guides.add(new float[]{lineX, Math.min(moved.top, guideX.top), lineX, Math.max(moved.bottom, guideX.bottom)});
+        }
+        if (guideY != null) {
+            guides.add(new float[]{Math.min(moved.left, guideY.left), lineY, Math.max(moved.right, guideY.right), lineY});
+        }
+        if (guides.isEmpty()) {
+            // Keep the overlay in "moving" state so the anchors stay hidden while the finger moves.
+            guides.add(new float[]{0, 0, 0, 0});
+        }
+        invalidate();
+        return new PointF(dx, dy);
     }
 
     // ---------------------------------------------------------------------------------------------
     // Touch: dragging anchors
 
+    /**
+     * The anchor under the finger. Inside the widget the touch must be right on the anchor so the
+     * widget itself can still be selected and moved; outside, a larger margin makes anchors easy to grab.
+     */
     @Nullable
     private LayoutRelations.Side hitHandle(float x, float y) {
-        if (selectedBean() == null) return null;
+        if (selectedBean() == null || dropTarget != null) return null;
         RectF rect = rectOf((View) selected);
         if (rect == null) return null;
-        float tolerance = screenDp(16f);
+        boolean inside = rect.contains(x, y);
+        float tolerance = inside ? handleRadius() + screenDp(3f) : screenDp(14f);
         LayoutRelations.Side best = null;
         float bestDistance = Float.MAX_VALUE;
         for (LayoutRelations.Side side : LayoutRelations.Side.values()) {
@@ -478,6 +750,7 @@ public class LayoutRelationsOverlay extends View {
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN -> {
                 LayoutRelations.Side side = hitHandle(event.getX(), event.getY());
+                // Not on an anchor: let the widgets below get the touch.
                 if (side == null) return false;
                 dragSide = side;
                 dragMoved = false;
@@ -509,7 +782,7 @@ public class LayoutRelationsOverlay extends View {
                 if (!moved) {
                     // Tapping an anchor removes what it's attached to, as in Android Studio.
                     if (LayoutRelations.hasSide(bean, side)) {
-                        callback.applyRelationChange(bean, b -> LayoutRelations.clearSide(b, side));
+                        callback.applyRelationChange(bean, b -> LayoutRelations.disconnect(b, side));
                     }
                 } else if (target != null) {
                     if (target.side == null) {
@@ -518,7 +791,14 @@ public class LayoutRelationsOverlay extends View {
                     } else {
                         LayoutRelations.Side targetSide = target.side;
                         String id = target.id;
-                        callback.applyRelationChange(bean, b -> LayoutRelations.connect(b, side, id, targetSide));
+                        int distance = distanceDp(side, target);
+                        boolean replaces = LayoutRelations.replacesOppositeAnchor(bean, side, id, targetSide);
+                        if (callback.applyRelationChange(bean, b -> LayoutRelations.connect(b, side, id, targetSide, distance))
+                                && replaces) {
+                            // Android would stretch the widget between the two anchors; say why one was released.
+                            android.widget.Toast.makeText(getContext(), pro.sketchware.R.string.design_relations_relative_one_anchor,
+                                    android.widget.Toast.LENGTH_LONG).show();
+                        }
                     }
                 }
                 invalidate();
@@ -532,6 +812,29 @@ public class LayoutRelationsOverlay extends View {
             }
         }
         return dragSide != null;
+    }
+
+    /**
+     * Current distance (dp) between the dragged side of the selected widget and the target edge, so
+     * the connection keeps the widget where it is, as Android Studio does. Overlaps become 0.
+     */
+    private int distanceDp(LayoutRelations.Side side, Target target) {
+        RectF rect = rectOf((View) selected);
+        if (rect == null || target.side == null) return 0;
+        RectF t = target.rect;
+        float edge = switch (target.side) {
+            case TOP -> t.top;
+            case BOTTOM -> t.bottom;
+            case START -> t.left;
+            case END -> t.right;
+        };
+        float distance = switch (side) {
+            case TOP -> rect.top - edge;
+            case BOTTOM -> edge - rect.bottom;
+            case START -> rect.left - edge;
+            case END -> edge - rect.right;
+        };
+        return Math.max(0, Math.round(distance / density));
     }
 
     private void resetDrag() {

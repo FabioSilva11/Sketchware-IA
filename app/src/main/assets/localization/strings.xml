@@ -1300,7 +1300,7 @@ You must enter the API key to operate the map normally."</string>
     <string name="design_cancel_build_btn_continue">Continue building</string>
     <string name="design_tab_title_component">Component</string>
     <string name="design_tab_title_event">Event</string>
-    <string name="design_tab_title_view">View</string>
+    <string name="design_tab_title_view">Design</string>
     <string name="design_tab_title_strings">Strings</string>
     <string name="developer_tools_component_add_var">Additional Variables</string>
     <string name="developer_tools_component_build_class">Build Class</string>
@@ -2342,8 +2342,6 @@ Please try again later"</string>
     <string name="ai_layout_generator_error_apply">Failed to apply layout: %s</string>
     <string name="ai_layout_generator_error_unusable_xml">The AI response did not return usable XML.</string>
     <string name="ai_layout_generator_reading_context">Reading current layout to maintain context...</string>
-    <string name="ai_layout_generator_m3_loading_title">Modernizing to Material 3</string>
-    <string name="ai_layout_generator_m3_loading_subtitle">Upgrading components and styles while preserving your original layout structure...</string>
     <string name="common_word_generate">Generate</string>
 
     <string name="used_custom_blocks">Used Custom Blocks</string>

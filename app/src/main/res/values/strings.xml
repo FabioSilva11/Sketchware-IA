@@ -1373,7 +1373,11 @@ You must enter the API key to operate the map normally."</string>
     <string name="design_include_choose_layout">Layout to include</string>
     <string name="design_include_no_layouts">Create another layout first to include it here.</string>
     <string name="design_relations_circular">That rule would make widgets depend on each other in a circle, which RelativeLayout doesn\'t allow.</string>
+    <string name="design_relations_relative_one_anchor">In a RelativeLayout two anchors on the same axis stretch the widget between them, so the opposite anchor was released. To center a widget between two others, use a ConstraintLayout.</string>
     <string name="design_relations_blueprint">Blueprint</string>
+    <string name="design_canvas_tools">Canvas tools</string>
+    <string name="design_canvas_mode_design">Design</string>
+    <string name="design_canvas_show_all_relations">Show all relations</string>
     <string name="design_relations_center_horizontal">Center horizontally in parent</string>
     <string name="design_relations_center_vertical">Center vertically in parent</string>
     <string name="design_relations_clear">Remove position rules</string>
@@ -1470,7 +1474,7 @@ You must enter the API key to operate the map normally."</string>
     <string name="design_cancel_build_btn_continue">Continue building</string>
     <string name="design_tab_title_component">Component</string>
     <string name="design_tab_title_event">Event</string>
-    <string name="design_tab_title_view">View</string>
+    <string name="design_tab_title_view">Design</string>
     <string name="design_tab_title_strings">Strings</string>
     <string name="developer_tools_component_add_var">Additional Variables</string>
     <string name="developer_tools_component_build_class">Build Class</string>
@@ -2600,8 +2604,6 @@ Please try again later"</string>
     <string name="ai_layout_generator_error_dialog_title">AI layout error</string>
     <string name="ai_layout_generator_error_unusable_xml">The AI response did not contain a usable layout.</string>
     <string name="ai_layout_generator_reading_context">Reading current layout to maintain context...</string>
-    <string name="ai_layout_generator_m3_loading_title">Modernizing to Material 3</string>
-    <string name="ai_layout_generator_m3_loading_subtitle">Upgrading components and styles while preserving your original layout structure...</string>
     <string name="common_word_generate">Generate</string>
 
     <string name="ai_explain_title">AI Explanation</string>

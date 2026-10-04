@@ -110,11 +110,14 @@ public final class LayoutRelations {
         }
     }
 
+    /** Removes every position rule and the margins that went with them. */
     public static void clearAll(@NonNull ViewBean bean) {
         for (Side side : Side.values()) {
-            clearSide(bean, side);
+            disconnect(bean, side);
         }
         bean.parentAttributes.remove(R + "centerInParent");
+        bean.parentAttributes.remove(R + "centerHorizontal");
+        bean.parentAttributes.remove(R + "centerVertical");
     }
 
     /**
@@ -161,8 +164,80 @@ public final class LayoutRelations {
             value = target;
         }
         clearSide(bean, side);
+        if (!constraint) {
+            // In a RelativeLayout two anchors on one axis (e.g. alignParentTop and alignParentBottom)
+            // stretch the view between them. A connection made on the canvas must not resize the
+            // widget, so it replaces the anchor of the opposite side.
+            clearSide(bean, opposite(side));
+        }
         bean.parentAttributes.put(attribute, value);
         return true;
+    }
+
+    /**
+     * Connects a side as the canvas does, like Android Studio: the widget stays where it is because
+     * the margin of the connected side becomes its current distance to the target edge. In a
+     * RelativeLayout the anchor of the opposite side is replaced, and its margin goes with it.
+     */
+    public static boolean connect(@NonNull ViewBean bean, @NonNull Side side, @NonNull String target,
+                                  @NonNull Side targetSide, int distanceDp) {
+        boolean constraint = isConstraint(bean.parentType);
+        if (!constraint && PARENT.equals(target) && side == targetSide && isParentAnchored(bean, opposite(side))) {
+            // Both edges of the parent on one axis, as in Android Studio: the widget is centred
+            // between them and keeps its size (centerHorizontal/centerVertical in a RelativeLayout).
+            center(bean, isHorizontal(side));
+            return true;
+        }
+        if (!connect(bean, side, target, targetSide)) return false;
+        setMargin(bean, side, distanceDp);
+        if (!constraint) setMargin(bean, opposite(side), 0);
+        return true;
+    }
+
+    /** Whether {@code side} is held by an align-to-parent rule (alignParentTop, alignParentEnd, ...). */
+    public static boolean isParentAnchored(@NonNull ViewBean bean, @NonNull Side side) {
+        String[] attributes = switch (side) {
+            case TOP -> new String[]{R + "alignParentTop"};
+            case BOTTOM -> new String[]{R + "alignParentBottom"};
+            case START -> new String[]{R + "alignParentStart", R + "alignParentLeft"};
+            case END -> new String[]{R + "alignParentEnd", R + "alignParentRight"};
+        };
+        for (String attribute : attributes) {
+            if ("true".equals(bean.parentAttributes.get(attribute))) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Whether connecting {@code side} of a RelativeLayout child to {@code target} would have to
+     * release the anchor of the opposite side: two anchors on one axis stretch the widget in a
+     * RelativeLayout, unless both are parent edges (then it's centred instead).
+     */
+    public static boolean replacesOppositeAnchor(@NonNull ViewBean bean, @NonNull Side side, @NonNull String target,
+                                                 @NonNull Side targetSide) {
+        if (isConstraint(bean.parentType)) return false;
+        Side other = opposite(side);
+        if (!hasSide(bean, other)) return false;
+        String centre = isHorizontal(side) ? R + "centerHorizontal" : R + "centerVertical";
+        if ("true".equals(bean.parentAttributes.get(centre)) || "true".equals(bean.parentAttributes.get(R + "centerInParent"))) {
+            return false;
+        }
+        return !(PARENT.equals(target) && side == targetSide && isParentAnchored(bean, other));
+    }
+
+    /** Removes what a side is attached to, with the margin that belonged to that attachment. */
+    public static void disconnect(@NonNull ViewBean bean, @NonNull Side side) {
+        clearSide(bean, side);
+        setMargin(bean, side, 0);
+    }
+
+    public static Side opposite(Side side) {
+        return switch (side) {
+            case TOP -> Side.BOTTOM;
+            case BOTTOM -> Side.TOP;
+            case START -> Side.END;
+            case END -> Side.START;
+        };
     }
 
     /** Centres the view in its parent on one axis. */
@@ -184,6 +259,14 @@ public final class LayoutRelations {
             clearSide(bean, horizontal ? Side.START : Side.TOP);
             clearSide(bean, horizontal ? Side.END : Side.BOTTOM);
             bean.parentAttributes.put(horizontal ? R + "centerHorizontal" : R + "centerVertical", "true");
+            // RelativeLayout ignores margins when centring; leftovers would only clutter the XML.
+            if (horizontal) {
+                bean.layout.marginLeft = 0;
+                bean.layout.marginRight = 0;
+            } else {
+                bean.layout.marginTop = 0;
+                bean.layout.marginBottom = 0;
+            }
         }
     }
 
@@ -244,6 +327,11 @@ public final class LayoutRelations {
             setMargin(bean, first, getMargin(bean, first) + delta);
         } else {
             setMargin(bean, second, getMargin(bean, second) - delta);
+        }
+        if (!constraint && hasFirst != hasSecond) {
+            // RelativeLayout still subtracts the margin of the free side when it measures the child:
+            // a leftover there squeezes the widget as it moves towards that side.
+            setMargin(bean, hasFirst ? second : first, 0);
         }
     }
 
@@ -376,6 +464,71 @@ public final class LayoutRelations {
         }
         state.put(id, 2);
         return false;
+    }
+
+    /** "@id/name", "@+id/name" or "name" → "name"; "parent" stays as it is. */
+    @NonNull
+    public static String referenceId(@NonNull String value) {
+        String trimmed = value.trim();
+        return trimmed.startsWith("@") && trimmed.contains("/") ? trimmed.substring(trimmed.indexOf('/') + 1) : trimmed;
+    }
+
+    /**
+     * The RelativeLayout rules that point at a sibling and lie on a circular dependency, as
+     * {@code "<id> <attribute>"}. {@code rulesById} maps every sibling id to its rules
+     * ("android:layout_below" → "other_id"). RelativeLayout throws "Circular dependencies cannot exist
+     * in RelativeLayout" for these, so the editor lays the widgets out without them.
+     */
+    @NonNull
+    public static java.util.Set<String> cyclicRules(@NonNull Map<String, Map<String, String>> rulesById) {
+        java.util.Set<String> result = new java.util.HashSet<>();
+        for (List<String> references : java.util.Arrays.asList(HORIZONTAL_REFERENCES, VERTICAL_REFERENCES)) {
+            Map<String, List<String>> edges = new HashMap<>();
+            for (Map.Entry<String, Map<String, String>> sibling : rulesById.entrySet()) {
+                List<String> targets = new ArrayList<>();
+                for (String attribute : references) {
+                    String target = sibling.getValue().get(attribute);
+                    if (target != null) {
+                        target = referenceId(target);
+                        if (rulesById.containsKey(target)) targets.add(target);
+                    }
+                }
+                edges.put(sibling.getKey(), targets);
+            }
+            for (Map.Entry<String, Map<String, String>> sibling : rulesById.entrySet()) {
+                String id = sibling.getKey();
+                for (String attribute : references) {
+                    String target = sibling.getValue().get(attribute);
+                    if (target == null) continue;
+                    target = referenceId(target);
+                    if (rulesById.containsKey(target) && reaches(target, id, edges, new java.util.HashSet<>())) {
+                        result.add(id + " " + attribute);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private static boolean reaches(String from, String to, Map<String, List<String>> edges, java.util.Set<String> seen) {
+        if (from.equals(to)) return true;
+        if (!seen.add(from)) return false;
+        List<String> targets = edges.get(from);
+        if (targets == null) return false;
+        for (String next : targets) {
+            if (reaches(next, to, edges, seen)) return true;
+        }
+        return false;
+    }
+
+    /** {@link #cyclicRules} for beans, using their {@link ViewBean#parentAttributes}. */
+    @NonNull
+    public static java.util.Set<String> cyclicRules(@NonNull List<ViewBean> siblings) {
+        Map<String, Map<String, String>> rules = new HashMap<>();
+        for (ViewBean sibling : siblings) {
+            rules.put(sibling.id, sibling.parentAttributes);
+        }
+        return cyclicRules(rules);
     }
 
     /** Copy of the rules, used to restore them when a change is rejected. */

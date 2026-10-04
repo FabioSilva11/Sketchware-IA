@@ -12,6 +12,7 @@ import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 
 import com.besome.sketch.beans.ViewBean;
+import com.besome.sketch.editor.view.EditorChildren;
 import com.besome.sketch.editor.view.ItemView;
 import com.besome.sketch.editor.view.ScrollContainer;
 
@@ -82,20 +83,7 @@ public class ItemVerticalScrollView extends FrameLayout implements ItemView, Scr
 
     @Override
     public void reindexChildren() {
-        int var1 = 0;
-
-        int var4;
-        for (int var2 = 0; var1 < getChildCount(); var2 = var4) {
-            View var3 = getChildAt(var1);
-            var4 = var2;
-            if (var3 instanceof ItemView) {
-                ((ItemView) var3).getBean().index = var2;
-                var4 = var2 + 1;
-            }
-
-            ++var1;
-        }
-
+        EditorChildren.reindex(this);
     }
 
     private void a(int position) {
@@ -119,35 +107,9 @@ public class ItemVerticalScrollView extends FrameLayout implements ItemView, Scr
     }
 
     @Override
-    public void addView(View view, int index) {
-        int childCount = getChildCount();
-        if (index > childCount) {
-            super.addView(view);
-        } else {
-            byte var4 = -1;
-            int var5 = 0;
-
-            int var6;
-            while (true) {
-                var6 = var4;
-                if (var5 >= childCount) {
-                    break;
-                }
-
-                if (getChildAt(var5).getVisibility() == View.GONE) {
-                    var6 = var5;
-                    break;
-                }
-
-                ++var5;
-            }
-
-            if (var6 >= 0 && index >= var6) {
-                super.addView(view, index + 1);
-            } else {
-                super.addView(view, index);
-            }
-        }
+    public void addView(View child, int index) {
+        // index counts editor widgets, not raw children (see EditorChildren).
+        super.addView(child, EditorChildren.insertionIndex(this, index));
     }
 
     @Override

@@ -9,6 +9,7 @@ import android.widget.FrameLayout;
 import androidx.annotation.NonNull;
 
 import com.besome.sketch.beans.ViewBean;
+import com.besome.sketch.editor.view.EditorChildren;
 import com.besome.sketch.editor.view.ItemView;
 import com.besome.sketch.editor.view.ScrollContainer;
 
@@ -32,21 +33,13 @@ public class ItemFrameLayout extends FrameLayout implements ItemView, ScrollCont
 
     @Override
     public void reindexChildren() {
-        for (int i = 0; i < getChildCount(); i++) {
-            View child = getChildAt(i);
-            if (child instanceof ItemView editorItem) {
-                editorItem.getBean().index = i;
-            }
-        }
+        EditorChildren.reindex(this);
     }
 
     @Override
     public void addView(View child, int index) {
-        if (index > getChildCount() || index < 0) {
-            super.addView(child);
-        } else {
-            super.addView(child, index);
-        }
+        // index counts editor widgets, not raw children (see EditorChildren).
+        super.addView(child, EditorChildren.insertionIndex(this, index));
     }
 
     @Override

@@ -146,6 +146,16 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_canvas_tools"
+                    style="?attr/materialIconButtonFilledTonalStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="4dp"
+                    android:contentDescription="@string/design_canvas_tools"
+                    android:tooltipText="@string/design_canvas_tools"
+                    app:icon="@drawable/ic_mtrl_blueprint" />
+
                 <com.google.android.material.button.MaterialSplitButton
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

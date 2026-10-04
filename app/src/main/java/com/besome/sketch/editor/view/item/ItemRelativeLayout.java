@@ -10,6 +10,7 @@ import android.widget.RelativeLayout;
 import androidx.annotation.NonNull;
 
 import com.besome.sketch.beans.ViewBean;
+import com.besome.sketch.editor.view.EditorChildren;
 import com.besome.sketch.editor.view.ItemView;
 import com.besome.sketch.editor.view.ScrollContainer;
 
@@ -31,12 +32,7 @@ public class ItemRelativeLayout extends RelativeLayout implements ItemView, Scro
 
     @Override
     public void reindexChildren() {
-        for (int i = 0; i < getChildCount(); i++) {
-            View child = getChildAt(i);
-            if (child instanceof ItemView editorItem) {
-                editorItem.getBean().index = i;
-            }
-        }
+        EditorChildren.reindex(this);
     }
 
     private void initialize(Context context) {
@@ -50,16 +46,8 @@ public class ItemRelativeLayout extends RelativeLayout implements ItemView, Scro
 
     @Override
     public void addView(View child, int index) {
-        int childCount = getChildCount();
-        if (index > childCount) {
-            super.addView(child);
-            return;
-        }
-        int i = 0;
-        while (i < childCount && getChildAt(i).getVisibility() != View.GONE) {
-            i++;
-        }
-        super.addView(child, index);
+        // index counts editor widgets, not raw children (see EditorChildren).
+        super.addView(child, EditorChildren.insertionIndex(this, index));
     }
 
     @Override

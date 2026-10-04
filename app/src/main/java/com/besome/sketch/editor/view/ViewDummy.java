@@ -68,9 +68,19 @@ public class ViewDummy extends RelativeLayout {
         layout_dummy.setVisibility(visibility);
     }
 
+    /**
+     * Picture of the dragged view. A view can measure 0 (an empty View or a collapsed layout), which
+     * Bitmap.createBitmap rejects, and a very large one is scaled down to keep the drag light.
+     */
     public final Bitmap createBitmapOfView(View view) {
-        Bitmap bitmap = Bitmap.createBitmap(view.getMeasuredWidth(), view.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
-        view.draw(new Canvas(bitmap));
+        int width = Math.max(1, view.getMeasuredWidth());
+        int height = Math.max(1, view.getMeasuredHeight());
+        float scale = Math.min(1f, 2048f / Math.max(width, height));
+        Bitmap bitmap = Bitmap.createBitmap(Math.max(1, Math.round(width * scale)),
+                Math.max(1, Math.round(height * scale)), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.scale(scale, scale);
+        view.draw(canvas);
         return bitmap;
     }
 

@@ -63,6 +63,7 @@ import com.besome.sketch.editor.manage.lottie.ManageLottieActivity;
 import com.besome.sketch.editor.manage.library.ManageLibraryActivity;
 import com.besome.sketch.editor.manage.sound.ManageSoundActivity;
 import com.besome.sketch.editor.manage.view.ManageViewActivity;
+import com.besome.sketch.editor.view.ViewEditor;
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.besome.sketch.lib.ui.CustomViewPager;
 import com.besome.sketch.tools.CompileLogActivity;
@@ -169,6 +170,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
     private PopupMenu bottomPopupMenu;
     private MaterialButton btnRun;
     private MaterialButton btnOptions;
+    private MaterialButton btnCanvasTools;
     private ProjectFileBean projectFile;
     private TextView fileName;
     private String currentJavaFileName;
@@ -532,6 +534,10 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         btnOptions = findViewById(R.id.btn_options);
         btnOptions.setOnClickListener(v -> bottomPopupMenu.show());
 
+        btnCanvasTools = findViewById(R.id.btn_canvas_tools);
+        btnCanvasTools.setCheckable(true);
+        btnCanvasTools.setOnClickListener(this::showCanvasTools);
+
         bottomPopupMenu = new PopupMenu(this, btnOptions);
         bottomMenu = bottomPopupMenu.getMenu();
         bottomMenu.add(Menu.NONE, 1, Menu.NONE, "Build Settings").setOnMenuItemClickListener(item -> {
@@ -574,10 +580,6 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             resetRootLayout();
             return true;
         });
-        bottomMenu.add(Menu.NONE, 9, Menu.NONE, "Transcribe to Material 3").setOnMenuItemClickListener(item -> {
-            transcribeToMaterial3();
-            return true;
-        });
         bottomPopupMenu.setOnDismissListener(menu -> btnOptions.setChecked(false));
 
         xmlLayoutOrientation = findViewById(R.id.img_orientation);
@@ -603,6 +605,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                 } else if (currentTabNumber == 2 && componentTabAdapter != null) {
                     componentTabAdapter.unselectAll();
                 }
+                btnCanvasTools.setVisibility(position == 0 ? View.VISIBLE : View.GONE);
                 if (position == 0) {
                     bottomMenu.findItem(7).setVisible(true);
                     if (viewTabAdapter != null) {
@@ -867,17 +870,44 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         });
     }
 
-    private void transcribeToMaterial3() {
-        showAiLayoutLoadingDialog(
-                R.string.ai_layout_generator_m3_loading_title,
-                getString(R.string.ai_layout_generator_m3_loading_subtitle)
-        );
-        generateAndApplyLayoutAsync("Refactor this layout into a modern Material 3 design. " +
-                "CRITICAL: You must preserve the original hierarchy and architecture of the user's layout. " +
-                "DO NOT add Toolbars, ActionBars, or any outer components. " +
-                "Only swap individual widgets for their modern Material 3 equivalents (e.g., Button to MaterialButton, Switch to MaterialSwitch, EditText to TextInputEditText/TextInputLayout) " +
-                "while maintaining all properties. Ensure every MaterialButton has centered text (android:gravity=\"center\"). " +
-                "Refine the design to look premium and responsive.", true, "", "", new ArrayList<>());
+    /**
+     * Canvas tools of the layout editor (Design/Blueprint, relation helpers). They live in this small
+     * menu so nothing covers the canvas.
+     */
+    private void showCanvasTools(View anchor) {
+        if (viewTabAdapter == null || viewTabAdapter.viewEditor == null) return;
+        ViewEditor editor = viewTabAdapter.viewEditor;
+        PopupMenu popup = new PopupMenu(this, anchor);
+        Menu menu = popup.getMenu();
+        menu.add(1, 1, 0, R.string.design_canvas_mode_design).setIcon(R.drawable.ic_mtrl_screen);
+        menu.add(1, 2, 1, R.string.design_relations_blueprint).setIcon(R.drawable.ic_mtrl_blueprint);
+        menu.setGroupCheckable(1, true, true);
+        menu.findItem(editor.isBlueprint() ? 2 : 1).setChecked(true);
+        menu.add(2, 3, 2, R.string.design_canvas_show_all_relations).setIcon(R.drawable.ic_mtrl_visibility)
+                .setCheckable(true).setChecked(editor.isShowingAllRelations()).setEnabled(!editor.isBlueprint());
+        boolean relations = editor.canEditSelectionRelations();
+        menu.add(3, 4, 3, R.string.design_relations_center_horizontal).setIcon(R.drawable.ic_mtrl_align_horizontal_center).setEnabled(relations);
+        menu.add(3, 5, 4, R.string.design_relations_center_vertical).setIcon(R.drawable.ic_mtrl_align_vertical_center).setEnabled(relations);
+        menu.add(3, 6, 5, R.string.design_relations_clear).setIcon(R.drawable.ic_mtrl_link_off).setEnabled(relations);
+        popup.setForceShowIcon(true);
+        // The button stays highlighted while the canvas is in Blueprint mode.
+        popup.setOnDismissListener(m -> btnCanvasTools.setChecked(editor.isBlueprint()));
+        popup.setOnMenuItemClickListener(item -> {
+            switch (item.getItemId()) {
+                case 1 -> editor.setBlueprint(false);
+                case 2 -> editor.setBlueprint(true);
+                case 3 -> editor.setShowAllRelations(!editor.isShowingAllRelations());
+                case 4 -> editor.centerSelection(true);
+                case 5 -> editor.centerSelection(false);
+                case 6 -> editor.clearSelectionRelations();
+                default -> {
+                    return false;
+                }
+            }
+            btnCanvasTools.setChecked(editor.isBlueprint());
+            return true;
+        });
+        popup.show();
     }
 
     private void resetRootLayout() {
@@ -1387,7 +1417,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             var viewBeans = projectDataManager.d(filename);
             var viewFab = projectDataManager.h(filename);
             xmlGenerator.setExcludeAppCompat(true);
-            xmlGenerator.a(eC.a(viewBeans), viewFab);
+            xmlGenerator.a(pro.sketchware.utility.ViewHierarchy.sorted(viewBeans), viewFab);
             String content = xmlGenerator.b();
             runOnUiThread(() -> {
                 if (isFinishing()) return;

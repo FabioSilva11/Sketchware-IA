@@ -119,7 +119,7 @@ public class Fw extends qA {
         }
 
         ArrayList<ViewBean> var6 = a(var1.presetName);
-        for (ViewBean viewBean : eC.a(var6)) {
+        for (ViewBean viewBean : pro.sketchware.utility.ViewHierarchy.sorted(var6)) {
             viewBean.id = a(viewBean.type, projectFileBean.getXmlName());
             jC.a(sc_id).a(projectFileBean.getXmlName(), viewBean);
             if (viewBean.type == 3 && projectFileBean.fileType == 0) {

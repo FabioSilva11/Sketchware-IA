@@ -43,6 +43,11 @@ class KotlinCompiler(
             add("-cp")
             add(builder.getClasspath())
 
+            // Libraries such as play-services-ads 25.x are built with a newer Kotlin (metadata 2.3)
+            // than this kotlinc (2.1). Their .kotlin_module/metadata files are still readable, so the
+            // version check must not fail the build.
+            add("-Xskip-metadata-version-check")
+
             // Sources (.java & .kt)
             addAll(filesToCompile.map { it.absolutePath })
         }
