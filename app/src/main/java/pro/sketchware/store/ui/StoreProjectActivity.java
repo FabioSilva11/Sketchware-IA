@@ -7,6 +7,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -80,6 +81,9 @@ public class StoreProjectActivity extends BaseAppCompatActivity {
         binding = ActivityP2pProjectBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         binding.toolbar.setNavigationOnClickListener(v -> finish());
+        binding.toolbar.setOnMenuItemClickListener(this::onMenuItemClick);
+        binding.toolbar.getMenu().findItem(R.id.project_new_version).setVisible(false);
+        binding.toolbar.getMenu().findItem(R.id.project_unpublish).setVisible(false);
         author = getIntent().getStringExtra(EXTRA_AUTHOR);
         projectId = getIntent().getStringExtra(EXTRA_PROJECT);
         binding.screenshots.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
@@ -146,8 +150,12 @@ public class StoreProjectActivity extends BaseAppCompatActivity {
 
         Catalog.Version latest = listing.latest();
         binding.download.setEnabled(latest != null && downloadingInfohash == null);
-        String imported = importedProject(latest);
-        binding.download.setText(imported != null ? R.string.p2p_store_open : R.string.p2p_store_download_open);
+        // One icon: download (and import) the latest version, or open it once imported
+        boolean imported = importedProject(latest) != null;
+        binding.download.setIconResource(imported ? R.drawable.ic_p2p_open : R.drawable.ic_mtrl_download);
+        CharSequence downloadLabel = getString(imported ? R.string.p2p_store_open : R.string.p2p_store_download_open);
+        binding.download.setContentDescription(downloadLabel);
+        binding.download.setTooltipText(downloadLabel);
         binding.download.setOnClickListener(v -> {
             String existing = importedProject(listing.latest());
             if (existing != null) {
@@ -156,23 +164,36 @@ public class StoreProjectActivity extends BaseAppCompatActivity {
                 download(listing.latest());
             }
         });
-        binding.manage.setVisibility(isOwn() ? View.VISIBLE : View.GONE);
-        binding.unpublish.setVisibility(isOwn() ? View.VISIBLE : View.GONE);
-        binding.manage.setOnClickListener(v -> startActivity(new Intent(this, StorePublishActivity.class)
-                .putExtra(StorePublishActivity.EXTRA_PROJECT_ID, projectId)));
-        binding.unpublish.setOnClickListener(v -> new MaterialAlertDialogBuilder(this)
-                .setMessage(getString(R.string.p2p_store_unpublish_confirm, listing.title))
-                .setPositiveButton(R.string.p2p_store_unpublish, (dialog, which) -> io.execute(() -> {
-                    try {
-                        engine.unpublish(projectId);
-                        engine.syncSoon();
-                        runOnUiThread(this::finish);
-                    } catch (Exception e) {
-                        runOnUiThread(() -> Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show());
-                    }
-                }))
-                .setNegativeButton(android.R.string.cancel, null)
-                .show());
+        binding.toolbar.getMenu().findItem(R.id.project_new_version).setVisible(isOwn());
+        binding.toolbar.getMenu().findItem(R.id.project_unpublish).setVisible(isOwn());
+    }
+
+    private boolean onMenuItemClick(MenuItem item) {
+        if (listing == null) {
+            return false;
+        }
+        if (item.getItemId() == R.id.project_new_version) {
+            startActivity(new Intent(this, StorePublishActivity.class)
+                    .putExtra(StorePublishActivity.EXTRA_PROJECT_ID, projectId));
+            return true;
+        }
+        if (item.getItemId() == R.id.project_unpublish) {
+            new MaterialAlertDialogBuilder(this)
+                    .setMessage(getString(R.string.p2p_store_unpublish_confirm, listing.title))
+                    .setPositiveButton(R.string.p2p_store_unpublish, (dialog, which) -> io.execute(() -> {
+                        try {
+                            engine.unpublish(projectId);
+                            engine.syncSoon();
+                            runOnUiThread(this::finish);
+                        } catch (Exception e) {
+                            runOnUiThread(() -> Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show());
+                        }
+                    }))
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show();
+            return true;
+        }
+        return false;
     }
 
     private void bindMetrics() {
@@ -200,10 +221,14 @@ public class StoreProjectActivity extends BaseAppCompatActivity {
         boolean liked = likedOverride != null ? likedOverride : engine.catalog().hasLiked(me, author, projectId, false);
         boolean favorite = favoriteOverride != null ? favoriteOverride
                 : engine.catalog().hasLiked(me, author, projectId, true);
-        binding.like.setText(liked ? R.string.p2p_store_liked : R.string.p2p_store_like);
         binding.like.setIconResource(liked ? R.drawable.ic_p2p_heart_filled : R.drawable.ic_p2p_heart);
-        binding.favorite.setText(favorite ? R.string.p2p_store_favorited : R.string.p2p_store_favorite);
+        CharSequence likeLabel = getString(liked ? R.string.p2p_store_liked : R.string.p2p_store_like);
+        binding.like.setContentDescription(likeLabel);
+        binding.like.setTooltipText(likeLabel);
         binding.favorite.setIconResource(favorite ? R.drawable.ic_p2p_star : R.drawable.ic_p2p_star_outline);
+        CharSequence favoriteLabel = getString(favorite ? R.string.p2p_store_favorited : R.string.p2p_store_favorite);
+        binding.favorite.setContentDescription(favoriteLabel);
+        binding.favorite.setTooltipText(favoriteLabel);
         binding.like.setEnabled(!isOwn());
         binding.favorite.setEnabled(!isOwn());
         binding.like.setOnClickListener(v -> {

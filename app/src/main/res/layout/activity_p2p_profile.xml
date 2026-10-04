@@ -10,8 +10,10 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/chat_surface"
+        android:background="@drawable/bg_chat_toolbar"
         app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/chat_text_primary"
+        app:title="@string/p2p_store_my_store"
         app:titleTextColor="@color/chat_text_primary" />
 
     <androidx.core.widget.NestedScrollView
@@ -97,33 +99,6 @@
                     android:layout_marginTop="8dp"
                     android:textAppearance="?attr/textAppearanceBodyMedium"
                     android:textColor="@color/chat_text_primary" />
-
-                <LinearLayout
-                    android:id="@+id/own_actions"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:orientation="horizontal"
-                    android:visibility="gone">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/edit_profile"
-                        style="@style/Widget.Material3.Button.TonalButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/p2p_store_edit_profile"
-                        app:icon="@drawable/ic_mtrl_edit" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/publish"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:layout_weight="1"
-                        android:text="@string/p2p_store_publish"
-                        app:icon="@drawable/ic_mtrl_upload" />
-                </LinearLayout>
 
                 <TextView
                     android:id="@+id/projects_title"

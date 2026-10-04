@@ -44,7 +44,14 @@ public class StoreEditProfileActivity extends BaseAppCompatActivity {
         binding = ActivityP2pEditProfileBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         binding.toolbar.setNavigationOnClickListener(v -> finish());
-        binding.save.setEnabled(false);
+        binding.toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.save) {
+                save();
+                return true;
+            }
+            return false;
+        });
+        setSaveEnabled(false);
         StoreRuntime.get(this).start(ready -> {
             engine = ready;
             JsonObject profile = engine.myProfile();
@@ -58,27 +65,31 @@ public class StoreEditProfileActivity extends BaseAppCompatActivity {
                 show(binding.banner, banner, 0);
                 show(binding.logo, logo, 0);
             }
-            binding.save.setEnabled(true);
+            setSaveEnabled(true);
         });
-        binding.pickAvatar.setOnClickListener(v -> pick(512, true, file -> {
+        // Each image is its own button
+        binding.avatarFrame.setOnClickListener(v -> pick(512, true, file -> {
             avatar = file;
             show(binding.avatar, file, R.drawable.ic_p2p_person);
         }));
-        binding.pickLogo.setOnClickListener(v -> pick(512, true, file -> {
+        binding.logoFrame.setOnClickListener(v -> pick(512, true, file -> {
             logo = file;
             show(binding.logo, file, 0);
         }));
-        binding.pickBanner.setOnClickListener(v -> pick(1280, false, file -> {
+        binding.bannerFrame.setOnClickListener(v -> pick(1280, false, file -> {
             banner = file;
             show(binding.banner, file, 0);
         }));
-        binding.save.setOnClickListener(v -> save());
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         io.shutdown();
+    }
+
+    private void setSaveEnabled(boolean enabled) {
+        binding.toolbar.getMenu().findItem(R.id.save).setEnabled(enabled);
     }
 
     private void pick(int maxSize, boolean png, Consumer<File> target) {
@@ -117,8 +128,8 @@ public class StoreEditProfileActivity extends BaseAppCompatActivity {
             return;
         }
         binding.nameLayout.setError(null);
-        binding.save.setEnabled(false);
-        binding.save.setText(R.string.p2p_store_saving);
+        setSaveEnabled(false);
+        binding.saving.setVisibility(android.view.View.VISIBLE);
         io.execute(() -> {
             try {
                 engine.updateProfile(name, bio, avatar, banner, logo);
@@ -126,8 +137,8 @@ public class StoreEditProfileActivity extends BaseAppCompatActivity {
                 runOnUiThread(this::finish);
             } catch (Exception e) {
                 runOnUiThread(() -> {
-                    binding.save.setEnabled(true);
-                    binding.save.setText(R.string.p2p_store_save_profile);
+                    setSaveEnabled(true);
+                    binding.saving.setVisibility(android.view.View.GONE);
                     Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }

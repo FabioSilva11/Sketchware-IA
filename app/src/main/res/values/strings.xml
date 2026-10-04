@@ -10,6 +10,8 @@
     <string name="project_type_native">Native</string>
     <string name="project_type_android_studio">Android Studio</string>
     <string name="main_search_projects_hint">Search projects...</string>
+    <string name="main_search_web_services_hint">Search web services...</string>
+    <string name="main_search_chat_hint">Search projects to chat about...</string>
     <string name="main_restore_projects_description">Restore saved backups and imported projects.</string>
     <string name="main_drawer_subtitle">Project tools and app links</string>
     <string name="store_search_hint">Search apps, projects, tags...</string>
@@ -3045,8 +3047,8 @@ Publisher id: %4$s</string>
     <string name="p2p_store_logo">Logo</string>
     <string name="p2p_store_icon">Icon</string>
     <string name="p2p_store_choose_banner">Choose banner</string>
-    <string name="p2p_store_choose_avatar">Avatar</string>
-    <string name="p2p_store_choose_logo">Logo</string>
+    <string name="p2p_store_choose_avatar">Choose avatar</string>
+    <string name="p2p_store_choose_logo">Choose logo</string>
     <string name="p2p_store_choose_icon">Choose icon</string>
     <string name="p2p_store_name">Name</string>
     <string name="p2p_store_bio">Description</string>
@@ -3061,7 +3063,7 @@ Publisher id: %4$s</string>
     <string name="p2p_store_tags">Tags</string>
     <string name="p2p_store_tags_helper">Separated by commas</string>
     <string name="p2p_store_screenshots">Screenshots</string>
-    <string name="p2p_store_choose_screenshots">Add</string>
+    <string name="p2p_store_choose_screenshots">Add screenshots</string>
     <string name="p2p_store_version_name">Version name</string>
     <string name="p2p_store_version_code">Version code</string>
     <string name="p2p_store_version_notes">What\'s new</string>

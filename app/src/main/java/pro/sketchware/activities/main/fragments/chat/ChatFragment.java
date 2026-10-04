@@ -34,7 +34,7 @@ import pro.sketchware.activities.main.activities.MainActivity;
 import pro.sketchware.databinding.MyprojectsBinding;
 import pro.sketchware.utility.UI;
 
-public class ChatFragment extends DA {
+public class ChatFragment extends DA implements pro.sketchware.activities.main.MainSearchable {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final List<HashMap<String, Object>> projectsList = new ArrayList<>();
     private MyprojectsBinding binding;
@@ -130,6 +130,16 @@ public class ChatFragment extends DA {
     }
 
 
+    private String searchQuery = "";
+
+    @Override
+    public void onMainSearch(String query) {
+        searchQuery = query == null ? "" : query;
+        if (projectsAdapter != null) {
+            projectsAdapter.filterData(searchQuery);
+        }
+    }
+
     public void refreshProjectsList() {
         // Check if the fragment is still attached to the activity
         if (!isAdded()) return;
@@ -159,6 +169,9 @@ public class ChatFragment extends DA {
                 // Atualizar o adapter com os novos projetos
                 projectsAdapter.setAllProjects(loadedProjects);
                 diffResult.dispatchUpdatesTo(projectsAdapter);
+                if (!searchQuery.isEmpty()) {
+                    projectsAdapter.filterData(searchQuery);
+                }
                 scrollToBottom();
             });
         });

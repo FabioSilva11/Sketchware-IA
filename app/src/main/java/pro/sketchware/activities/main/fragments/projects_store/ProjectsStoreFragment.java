@@ -1,18 +1,23 @@
 package pro.sketchware.activities.main.fragments.projects_store;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
 import androidx.recyclerview.widget.GridLayoutManager;
 
 import java.util.List;
 
 import pro.sketchware.R;
+import pro.sketchware.activities.main.MainSearchable;
 import pro.sketchware.databinding.FragmentP2pStoreBinding;
 import pro.sketchware.store.StoreRuntime;
 import pro.sketchware.store.core.Catalog;
@@ -21,13 +26,12 @@ import pro.sketchware.store.core.StoreEngine;
 import pro.sketchware.store.ui.ListingAdapter;
 import pro.sketchware.store.ui.StoreProfileActivity;
 import pro.sketchware.store.ui.StoreProjectActivity;
-import pro.sketchware.store.ui.StorePublishActivity;
 import pro.sketchware.store.ui.StoreSettingsDialog;
 
 /**
  * The Store tab: projects shared on the P2P network, as far as this device has learned about them.
  */
-public class ProjectsStoreFragment extends Fragment {
+public class ProjectsStoreFragment extends Fragment implements MainSearchable {
 
     private FragmentP2pStoreBinding binding;
     private StoreRuntime runtime;
@@ -59,13 +63,25 @@ public class ProjectsStoreFragment extends Fragment {
             binding.storeRefresh.setRefreshing(false);
         });
         binding.storeSettings.setOnClickListener(v -> StoreSettingsDialog.show(requireActivity()));
-        binding.myStore.setOnClickListener(v -> {
-            StoreEngine engine = runtime.engine();
-            if (engine != null) {
-                startActivity(StoreProfileActivity.intent(requireContext(), engine.identity().id()));
+        // The user's own store page, next to the search bar while this tab is shown
+        requireActivity().addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+                menuInflater.inflate(R.menu.p2p_store_menu, menu);
             }
-        });
-        binding.publish.setOnClickListener(v -> startActivity(new Intent(requireContext(), StorePublishActivity.class)));
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (menuItem.getItemId() != R.id.store_profile) {
+                    return false;
+                }
+                StoreEngine engine = runtime.engine();
+                if (engine != null) {
+                    startActivity(StoreProfileActivity.intent(requireContext(), engine.identity().id()));
+                }
+                return true;
+            }
+        }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
         runtime.start(engine -> refresh());
         refresh();
     }
@@ -93,8 +109,8 @@ public class ProjectsStoreFragment extends Fragment {
         binding = null;
     }
 
-    /** Called from the main toolbar's search field. */
-    public void setSearchQuery(String query) {
+    @Override
+    public void onMainSearch(String query) {
         this.query = query == null ? "" : query;
         refresh();
     }
@@ -104,8 +120,6 @@ public class ProjectsStoreFragment extends Fragment {
             return;
         }
         StoreEngine engine = runtime.engine();
-        binding.myStore.setEnabled(engine != null);
-        binding.publish.setEnabled(engine != null);
         if (engine == null) {
             String error = runtime.startError();
             binding.networkStatus.setText(error == null ? getString(R.string.p2p_store_starting)

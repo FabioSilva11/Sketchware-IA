@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/project_new_version"
+        android:icon="@drawable/ic_mtrl_upload"
+        android:title="@string/p2p_store_publish_new_version"
+        app:iconTint="@color/chat_text_primary"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/project_unpublish"
+        android:icon="@drawable/ic_mtrl_delete"
+        android:title="@string/p2p_store_unpublish"
+        app:iconTint="@color/chat_text_primary"
+        app:showAsAction="always" />
+</menu>

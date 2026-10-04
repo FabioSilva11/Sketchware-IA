@@ -51,7 +51,7 @@ import pro.sketchware.databinding.SortProjectDialogBinding;
 import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.UI;
 
-public class ProjectsFragment extends DA {
+public class ProjectsFragment extends DA implements pro.sketchware.activities.main.MainSearchable {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final List<HashMap<String, Object>> projectsList = new ArrayList<>();
     private MyprojectsBinding binding;
@@ -189,10 +189,12 @@ public class ProjectsFragment extends DA {
                     projectsSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
                         @Override
                         public boolean onQueryTextChange(String s) {
-                            if (getActivity() instanceof MainActivity && ((MainActivity) getActivity()).handleMainSearchQuery(s)) {
-                                return true;
+                            // The search bar is shared by every tab; the activity passes it to the one shown
+                            if (getActivity() instanceof MainActivity mainActivity) {
+                                mainActivity.handleMainSearchQuery(s);
+                            } else {
+                                onMainSearch(s);
                             }
-                            projectsAdapter.filterData(s);
                             return true;
                         }
 
@@ -246,6 +248,16 @@ public class ProjectsFragment extends DA {
         }
     }
 
+    private String searchQuery = "";
+
+    @Override
+    public void onMainSearch(String query) {
+        searchQuery = query == null ? "" : query;
+        if (projectsAdapter != null) {
+            projectsAdapter.filterData(searchQuery);
+        }
+    }
+
     public void refreshProjectsList() {
         // Check if the fragment is still attached to the activity
         if (!isAdded()) return;
@@ -272,8 +284,7 @@ public class ProjectsFragment extends DA {
                 projectsList.clear();
                 projectsList.addAll(loadedProjects);
                 diffResult.dispatchUpdatesTo(projectsAdapter);
-                if (projectsSearchView != null && !(getActivity() instanceof MainActivity && ((MainActivity) getActivity()).isStorePageActive()))
-                    projectsAdapter.filterData(projectsSearchView.getQuery().toString());
+                projectsAdapter.filterData(searchQuery);
             });
         });
     }

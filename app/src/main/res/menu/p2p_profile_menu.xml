@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/profile_publish"
+        android:icon="@drawable/ic_mtrl_upload"
+        android:title="@string/p2p_store_publish"
+        app:iconTint="@color/chat_text_primary"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/profile_edit"
+        android:icon="@drawable/ic_mtrl_edit"
+        android:title="@string/p2p_store_edit_profile"
+        app:iconTint="@color/chat_text_primary"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/profile_settings"
+        android:icon="@drawable/ic_mtrl_settings"
+        android:title="@string/p2p_store_settings"
+        app:iconTint="@color/chat_text_primary"
+        app:showAsAction="always" />
+</menu>

@@ -42,8 +42,23 @@ public class WebServiceAdapter extends RecyclerView.Adapter<WebServiceAdapter.Vi
         new WebService("GitHub API", "docs.github.com", "https://docs.github.com/en/rest", R.drawable.ic_github)
     };
 
+    private final java.util.List<WebService> shown = new java.util.ArrayList<>(java.util.Arrays.asList(WEB_SERVICES));
+
     public WebServiceAdapter(FragmentActivity context) {
         this.context = context;
+    }
+
+    /** Shows the services whose name or address contains {@code query}. */
+    public void filter(String query) {
+        String needle = query == null ? "" : query.trim().toLowerCase(java.util.Locale.ROOT);
+        shown.clear();
+        for (WebService service : WEB_SERVICES) {
+            if (needle.isEmpty() || service.title.toLowerCase(java.util.Locale.ROOT).contains(needle)
+                    || service.subtitle.toLowerCase(java.util.Locale.ROOT).contains(needle)) {
+                shown.add(service);
+            }
+        }
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -56,7 +71,7 @@ public class WebServiceAdapter extends RecyclerView.Adapter<WebServiceAdapter.Vi
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        WebService webService = WEB_SERVICES[position];
+        WebService webService = shown.get(position);
         
         holder.binding.webServiceTitle.setText(webService.title);
         holder.binding.webServiceUrl.setText(webService.subtitle);
@@ -67,7 +82,7 @@ public class WebServiceAdapter extends RecyclerView.Adapter<WebServiceAdapter.Vi
 
     @Override
     public int getItemCount() {
-        return WEB_SERVICES.length;
+        return shown.size();
     }
 
     private void openUrl(String url) {

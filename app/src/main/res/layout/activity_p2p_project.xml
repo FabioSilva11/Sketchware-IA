@@ -10,8 +10,10 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/chat_surface"
+        android:background="@drawable/bg_chat_toolbar"
+        app:menu="@menu/p2p_project_menu"
         app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/chat_text_primary"
         app:titleTextColor="@color/chat_text_primary" />
 
     <androidx.core.widget.NestedScrollView
@@ -86,75 +88,81 @@
                     android:orientation="horizontal" />
             </HorizontalScrollView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/download"
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="@string/p2p_store_download_open"
-                app:icon="@drawable/ic_mtrl_download" />
-
-            <LinearLayout
-                android:id="@+id/progress_group"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/progress"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:indeterminate="true" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/progress_text"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:textAppearance="?attr/textAppearanceBodySmall"
-                        android:textColor="@color/chat_text_secondary" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/cancel"
-                        style="@style/Widget.Material3.Button.TextButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@android:string/cancel" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
+                    android:id="@+id/download"
+                    style="@style/Widget.Material3.Button.IconButton.Filled"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:contentDescription="@string/p2p_store_download_open"
+                    android:tooltipText="@string/p2p_store_download_open"
+                    app:icon="@drawable/ic_mtrl_download" />
+
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/like"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/p2p_store_like"
+                    style="@style/Widget.Material3.Button.IconButton.Outlined"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="12dp"
+                    android:contentDescription="@string/p2p_store_like"
+                    android:tooltipText="@string/p2p_store_like"
                     app:icon="@drawable/ic_p2p_heart" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/favorite"
-                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    style="@style/Widget.Material3.Button.IconButton.Outlined"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="12dp"
+                    android:contentDescription="@string/p2p_store_favorite"
+                    android:tooltipText="@string/p2p_store_favorite"
+                    app:icon="@drawable/ic_p2p_star_outline" />
+
+                <LinearLayout
+                    android:id="@+id/progress_group"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="12dp"
                     android:layout_weight="1"
-                    android:text="@string/p2p_store_favorite"
-                    app:icon="@drawable/ic_p2p_star_outline" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <com.google.android.material.progressindicator.LinearProgressIndicator
+                            android:id="@+id/progress"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:indeterminate="true" />
+
+                        <TextView
+                            android:id="@+id/progress_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:textAppearance="?attr/textAppearanceBodySmall"
+                            android:textColor="@color/chat_text_secondary" />
+                    </LinearLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/cancel"
+                        style="@style/Widget.Material3.Button.IconButton"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:contentDescription="@android:string/cancel"
+                        app:icon="@drawable/ic_mtrl_close" />
+                </LinearLayout>
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
@@ -206,23 +214,6 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/manage"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:text="@string/p2p_store_publish_new_version"
-                android:visibility="gone" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/unpublish"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/p2p_store_unpublish"
-                android:textColor="?attr/colorError"
-                android:visibility="gone" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

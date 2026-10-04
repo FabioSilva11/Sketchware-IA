@@ -10,8 +10,10 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/chat_surface"
+        android:background="@drawable/bg_chat_toolbar"
+        app:menu="@menu/p2p_publish_menu"
         app:navigationIcon="?attr/homeAsUpIndicator"
+        app:navigationIconTint="@color/chat_text_primary"
         app:title="@string/p2p_store_publish"
         app:titleTextColor="@color/chat_text_primary" />
 
@@ -40,30 +42,34 @@
                     android:inputType="none" />
             </com.google.android.material.textfield.TextInputLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+            <FrameLayout
+                android:id="@+id/icon_frame"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
                 android:layout_marginTop="12dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:contentDescription="@string/p2p_store_choose_icon"
+                android:foreground="?attr/selectableItemBackground">
 
                 <com.google.android.material.imageview.ShapeableImageView
                     android:id="@+id/icon"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
                     android:background="@color/chat_surface_soft"
-                    android:contentDescription="@string/p2p_store_icon"
+                    android:contentDescription="@null"
                     android:scaleType="centerCrop"
+                    android:src="@drawable/ic_mtrl_image"
                     app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Medium" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/pick_icon"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/p2p_store_choose_icon"
-                    app:icon="@drawable/ic_mtrl_image" />
-            </LinearLayout>
+                <ImageView
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:layout_gravity="end|bottom"
+                    android:background="@drawable/bg_store_icon_card"
+                    android:contentDescription="@null"
+                    android:padding="5dp"
+                    android:src="@drawable/ic_mtrl_edit"
+                    app:tint="@color/chat_text_primary" />
+            </FrameLayout>
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/title_layout"
@@ -149,10 +155,10 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/pick_screenshots"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/p2p_store_choose_screenshots"
+                    style="@style/Widget.Material3.Button.IconButton.Filled.Tonal"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="@string/p2p_store_choose_screenshots"
                     app:icon="@drawable/ic_mtrl_add" />
             </LinearLayout>
 
@@ -226,13 +232,13 @@
                 android:textAppearance="?attr/textAppearanceBodySmall"
                 android:textColor="@color/chat_text_secondary" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/publish"
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/publishing"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="@string/p2p_store_publish"
-                app:icon="@drawable/ic_mtrl_upload" />
+                android:indeterminate="true"
+                android:visibility="gone" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

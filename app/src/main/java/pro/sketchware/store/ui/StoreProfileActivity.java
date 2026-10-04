@@ -39,12 +39,24 @@ public class StoreProfileActivity extends BaseAppCompatActivity {
         binding = ActivityP2pProfileBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
         binding.toolbar.setNavigationOnClickListener(v -> finish());
+        binding.toolbar.inflateMenu(R.menu.p2p_profile_menu);
+        binding.toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.profile_publish) {
+                startActivity(new Intent(this, StorePublishActivity.class));
+            } else if (item.getItemId() == R.id.profile_edit) {
+                startActivity(new Intent(this, StoreEditProfileActivity.class));
+            } else if (item.getItemId() == R.id.profile_settings) {
+                StoreSettingsDialog.show(this);
+            } else {
+                return false;
+            }
+            return true;
+        });
+        showOwnActions(false);
         user = getIntent().getStringExtra(EXTRA_USER);
         adapter = new ListingAdapter(listing -> startActivity(StoreProjectActivity.intent(this, listing.author, listing.id)));
         binding.projects.setLayoutManager(new GridLayoutManager(this, 2));
         binding.projects.setAdapter(adapter);
-        binding.editProfile.setOnClickListener(v -> startActivity(new Intent(this, StoreEditProfileActivity.class)));
-        binding.publish.setOnClickListener(v -> startActivity(new Intent(this, StorePublishActivity.class)));
         runtime = StoreRuntime.get(this);
         runtime.start(ready -> {
             engine = ready;
@@ -70,14 +82,16 @@ public class StoreProfileActivity extends BaseAppCompatActivity {
             return;
         }
         boolean own = engine.identity().id().equals(user);
-        binding.ownActions.setVisibility(own ? View.VISIBLE : View.GONE);
+        showOwnActions(own);
         binding.userId.setText(user);
         Catalog.Profile profile = engine.catalog().profile(user);
         if (profile == null && own) {
             // Not shared yet, or no profile: show what's saved locally
-            binding.name.setText(engine.hasProfile()
+            String name = engine.hasProfile()
                     ? pro.sketchware.store.core.Codec.string(engine.myProfile(), "name", "")
-                    : getString(R.string.p2p_store_my_store));
+                    : getString(R.string.p2p_store_my_store);
+            binding.toolbar.setTitle(name);
+            binding.name.setText(name);
             binding.bio.setText(engine.hasProfile() ? pro.sketchware.store.core.Codec.string(engine.myProfile(), "bio", "")
                     : getString(R.string.p2p_store_create_profile_first));
             loadOwnImages();
@@ -91,9 +105,19 @@ public class StoreProfileActivity extends BaseAppCompatActivity {
             binding.logo.setVisibility(profile.logo != null && profile.logo.isFile() ? View.VISIBLE : View.GONE);
             StoreUi.load(binding.logo, profile.logo, 0);
         }
+        if (profile == null && !own) {
+            binding.toolbar.setTitle(StoreUi.shortId(user));
+        }
         List<Catalog.Listing> listings = engine.catalog().listings(null, null, Catalog.SORT_NEWEST, user);
         adapter.submit(listings);
         binding.projectsEmpty.setVisibility(listings.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    private void showOwnActions(boolean own) {
+        android.view.Menu menu = binding.toolbar.getMenu();
+        menu.findItem(R.id.profile_publish).setVisible(own);
+        menu.findItem(R.id.profile_edit).setVisible(own);
+        menu.findItem(R.id.profile_settings).setVisible(own);
     }
 
     private void loadOwnImages() {

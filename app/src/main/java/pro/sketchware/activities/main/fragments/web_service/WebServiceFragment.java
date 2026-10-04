@@ -16,7 +16,18 @@ import pro.sketchware.activities.main.fragments.web_service.adapters.WebServiceA
 import pro.sketchware.databinding.FragmentWebServiceBinding;
 import pro.sketchware.utility.UI;
 
-public class WebServiceFragment extends Fragment {
+public class WebServiceFragment extends Fragment implements pro.sketchware.activities.main.MainSearchable {
+
+    private WebServiceAdapter adapter;
+    private String searchQuery = "";
+
+    @Override
+    public void onMainSearch(String query) {
+        searchQuery = query == null ? "" : query;
+        if (adapter != null) {
+            adapter.filter(searchQuery);
+        }
+    }
     private FragmentWebServiceBinding binding;
 
     @Override
@@ -54,7 +65,8 @@ public class WebServiceFragment extends Fragment {
         LinearLayoutManager layoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         binding.webServiceRecyclerView.setLayoutManager(layoutManager);
         
-        WebServiceAdapter adapter = new WebServiceAdapter(getActivity());
+        adapter = new WebServiceAdapter(getActivity());
+        adapter.filter(searchQuery);
         binding.webServiceRecyclerView.setAdapter(adapter);
     }
 }

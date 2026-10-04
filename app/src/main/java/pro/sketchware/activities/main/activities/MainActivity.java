@@ -53,6 +53,7 @@ import mod.tyron.backup.SingleCopyTask;
 import pro.sketchware.R;
 import pro.sketchware.activities.about.AboutActivity;
 import pro.sketchware.activities.main.fragments.projects.ProjectsFragment;
+import pro.sketchware.activities.main.MainSearchable;
 import pro.sketchware.activities.main.fragments.projects_store.ProjectsStoreFragment;
 import pro.sketchware.store.StoreRuntime;
 import pro.sketchware.activities.main.fragments.web_service.WebServiceFragment;
@@ -92,6 +93,8 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     private WebServiceFragment webServiceFragment;
     private ChatFragment chatFragment;
     private Fragment activeFragment;
+    /** What the shared search bar holds; every tab is filtered by it when shown. */
+    private String mainSearchQuery = "";
     @IdRes
     private int currentNavItemId = R.id.item_projects;
     private static final String PREFS_ADS_NOTICE = "main_prefs";
@@ -455,7 +458,15 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         }
         activeFragment = fragment;
         currentNavItemId = pageToNavId(page);
-        binding.searchHint.setText(page == PAGE_STORE ? R.string.store_search_hint : R.string.main_search_projects_hint);
+        binding.searchHint.setText(switch (page) {
+            case PAGE_STORE -> R.string.store_search_hint;
+            case PAGE_WEB_SERVICE -> R.string.main_search_web_services_hint;
+            case PAGE_CHAT -> R.string.main_search_chat_hint;
+            default -> R.string.main_search_projects_hint;
+        });
+        if (fragment instanceof MainSearchable searchable) {
+            searchable.onMainSearch(mainSearchQuery);
+        }
         if (page == PAGE_PROJECTS) {
             binding.createNewProject.show();
         } else {
@@ -463,16 +474,12 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         }
     }
 
-    public boolean isStorePageActive() {
-        return activeFragment instanceof ProjectsStoreFragment;
-    }
-
-    public boolean handleMainSearchQuery(String query) {
-        if (activeFragment instanceof ProjectsStoreFragment && projectsStoreFragment != null) {
-            projectsStoreFragment.setSearchQuery(query);
-            return true;
+    /** Filters the shown tab by the shared search bar's text. */
+    public void handleMainSearchQuery(String query) {
+        mainSearchQuery = query == null ? "" : query;
+        if (activeFragment instanceof MainSearchable searchable) {
+            searchable.onMainSearch(mainSearchQuery);
         }
-        return false;
     }
 
     private Fragment findPagerFragment(int page) {

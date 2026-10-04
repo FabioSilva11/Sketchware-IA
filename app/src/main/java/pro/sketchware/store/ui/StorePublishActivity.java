@@ -61,10 +61,16 @@ public class StorePublishActivity extends BaseAppCompatActivity {
         binding.toolbar.setNavigationOnClickListener(v -> finish());
         projectId = getIntent().getStringExtra(EXTRA_PROJECT_ID);
         binding.screenshots.setLayoutManager(new LinearLayoutManager(this, RecyclerView.HORIZONTAL, false));
-        binding.pickIcon.setOnClickListener(v -> pickIcon.launch("image/*"));
+        binding.iconFrame.setOnClickListener(v -> pickIcon.launch("image/*"));
         binding.pickScreenshots.setOnClickListener(v -> pickScreenshots.launch("image/*"));
-        binding.publish.setOnClickListener(v -> publish());
-        binding.publish.setEnabled(false);
+        binding.toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.publish) {
+                publish();
+                return true;
+            }
+            return false;
+        });
+        setPublishEnabled(false);
         io.execute(() -> {
             List<ProjectPackager.LocalProject> local = ProjectPackager.localProjects();
             runOnUiThread(() -> {
@@ -79,7 +85,7 @@ public class StorePublishActivity extends BaseAppCompatActivity {
         });
         StoreRuntime.get(this).start(ready -> {
             engine = ready;
-            binding.publish.setEnabled(true);
+            setPublishEnabled(true);
             prefillFromListing();
         });
     }
@@ -88,6 +94,10 @@ public class StorePublishActivity extends BaseAppCompatActivity {
     public void onDestroy() {
         super.onDestroy();
         io.shutdown();
+    }
+
+    private void setPublishEnabled(boolean enabled) {
+        binding.toolbar.getMenu().findItem(R.id.publish).setEnabled(enabled);
     }
 
     private void prefillFromListing() {
@@ -229,8 +239,9 @@ public class StorePublishActivity extends BaseAppCompatActivity {
         ProjectPackager.LocalProject project = selected;
         long code = versionCode;
 
-        binding.publish.setEnabled(false);
-        binding.publish.setText(R.string.p2p_store_publishing);
+        setPublishEnabled(false);
+        binding.publishing.setVisibility(View.VISIBLE);
+        Toast.makeText(this, R.string.p2p_store_publishing, Toast.LENGTH_SHORT).show();
         io.execute(() -> {
             try {
                 File staging = new File(getCacheDir(), "store_publish");
@@ -243,8 +254,8 @@ public class StorePublishActivity extends BaseAppCompatActivity {
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
-                    binding.publish.setEnabled(true);
-                    binding.publish.setText(R.string.p2p_store_publish);
+                    setPublishEnabled(true);
+                    binding.publishing.setVisibility(View.GONE);
                     Toast.makeText(this, getString(R.string.p2p_store_publish_failed, e.getMessage()),
                             Toast.LENGTH_LONG).show();
                 });
