@@ -110,6 +110,7 @@ import pro.sketchware.utility.FilePathUtil;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.InjectAttributeHandler;
 import pro.sketchware.utility.InvokeUtil;
+import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.PropertiesUtil;
 import pro.sketchware.utility.ResourceUtil;
 import pro.sketchware.utility.SvgUtils;
@@ -132,6 +133,8 @@ public class ViewPane extends RelativeLayout {
     private int defaultTextColor = 0; // need to save the original color before changes, cause using getDefaultColor() returns the current text color
     private int defaultHintColor = 0;
     private Material3LibraryManager material3LibraryManager;
+    private HashMap<String, String> cachedStrings;
+    private long cachedStringsStamp;
 
     public ViewPane(Context context) {
         super(context);
@@ -1306,25 +1309,32 @@ public class ViewPane extends RelativeLayout {
         if (sc_id == null) {
             return key;
         }
-        String filePath = wq.b(sc_id) + "/files/resource/values/strings.xml";
-
-        ArrayList<HashMap<String, Object>> stringsListMap = new ArrayList<>();
-
-        StringsEditorManager stringsEditorManager = new StringsEditorManager();
-        stringsEditorManager.convertXmlStringsToListMap(FileUtil.readFileIfExist(filePath), stringsListMap);
-
-        if (key.equals("@string/app_name") && !stringsEditorManager.isXmlStringsExist(stringsListMap, "app_name")) {
+        HashMap<String, String> strings = getProjectStrings();
+        String value = strings.get(key.substring(stringsStart.length()).trim());
+        if (value != null) {
+            return value;
+        }
+        if (key.equals("@string/app_name")) {
             return yB.c(lC.b(sc_id), "my_app_name");
         }
-
-        for (HashMap<String, Object> map : stringsListMap) {
-            String keyValue = stringsStart + map.get("key").toString().trim();
-            if (key.equals(keyValue)) {
-                return map.get("text").toString();
-            }
-        }
-
         return key;
+    }
+
+    /** strings.xml parsed once per change instead of once per widget. */
+    private HashMap<String, String> getProjectStrings() {
+        File file = new File(wq.b(sc_id) + "/files/resource/values/strings.xml");
+        long stamp = (file.exists() ? file.lastModified() * 31 + file.length() : 0) * 31 + ProjectStrings.version;
+        if (cachedStrings == null || stamp != cachedStringsStamp) {
+            ArrayList<HashMap<String, Object>> stringsListMap = new ArrayList<>();
+            new StringsEditorManager().convertXmlStringsToListMap(FileUtil.readFileIfExist(file.getAbsolutePath()), stringsListMap);
+            HashMap<String, String> strings = new HashMap<>();
+            for (HashMap<String, Object> map : stringsListMap) {
+                strings.put(String.valueOf(map.get("key")).trim(), String.valueOf(map.get("text")));
+            }
+            cachedStrings = strings;
+            cachedStringsStamp = stamp;
+        }
+        return cachedStrings;
     }
 
     private void updateEditText(EditText editText, ViewBean viewBean) {

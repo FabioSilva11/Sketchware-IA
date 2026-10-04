@@ -35,6 +35,7 @@ import mod.agus.jcoderz.beans.ViewBeans;
 import mod.jbk.util.LogUtil;
 import pro.sketchware.managers.inject.InjectRootLayoutManager;
 import pro.sketchware.utility.InjectAttributeHandler;
+import pro.sketchware.utility.InjectAttributes;
 import pro.sketchware.xml.XmlBuilder;
 import pro.sketchware.utility.TranslationFunction;
 
@@ -439,7 +440,7 @@ public class Ox {
             }
         }
         if (!viewBean.inject.isEmpty()) {
-            widgetTag.addAttributeValue(viewBean.inject.replaceAll(" ", ""));
+            widgetTag.addAttributeValue(InjectAttributes.normalize(viewBean.inject));
         }
 
         if (!viewBean.parentAttributes.isEmpty()) {
@@ -1006,7 +1007,7 @@ public class Ox {
             XmlPullParser parser = factory.newPullParser();
             parser.setInput(new StringReader("<tag xmlns:android=\"http://schemas.android.com/apk/res/android\" " +
                     "xmlns:app=\"http://schemas.android.com/apk/res-auto\" " +
-                    "xmlns:tools=\"http://schemas.android.com/tools\"" +
+                    "xmlns:tools=\"http://schemas.android.com/tools\" " +
                     viewBean.inject + "></tag>"));
 
             int eventType = parser.getEventType();

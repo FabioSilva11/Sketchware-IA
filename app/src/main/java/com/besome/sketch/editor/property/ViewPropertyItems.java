@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Locale;
 
 import a.a.a.Cx;
 import a.a.a.Gx;
@@ -33,13 +32,10 @@ import a.a.a.cC;
 import a.a.a.jC;
 import a.a.a.mB;
 import a.a.a.oq;
-import a.a.a.wq;
 import mod.hey.studios.project.ProjectSettings;
 import mod.pranav.viewbinding.ViewBindingBuilder;
 import pro.sketchware.R;
-import pro.sketchware.activities.resourceseditor.components.utils.StringsEditorManager;
-import pro.sketchware.utility.FileUtil;
-import pro.sketchware.utility.XmlUtil;
+import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.TranslationFunction;
 
 public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickListener {
@@ -709,8 +705,14 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                     }
                     case "property_convert" -> bean.convert = inputItem.getValue();
                     case "property_inject" -> bean.inject = inputItem.getValue();
-                    case "property_text" -> bean.text.text = autoCreateOrReferenceString(inputItem.getValue());
-                    case "property_hint" -> bean.text.hint = autoCreateOrReferenceString(inputItem.getValue());
+                    case "property_text" -> {
+                        bean.text.text = ProjectStrings.assign(sc_id, bean.id, ProjectStrings.FIELD_TEXT, bean.text.text, inputItem.getValue());
+                        inputItem.setValue(bean.text.text);
+                    }
+                    case "property_hint" -> {
+                        bean.text.hint = ProjectStrings.assign(sc_id, bean.id, ProjectStrings.FIELD_HINT, bean.text.hint, inputItem.getValue());
+                        inputItem.setValue(bean.text.hint);
+                    }
                     case "property_text_size" -> bean.text.textSize = Integer.parseInt(inputItem.getValue());
                     case "property_weight" ->
                             bean.layout.weight = Integer.parseInt(inputItem.getValue());
@@ -1007,47 +1009,5 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
         }
     }
 
-    private String autoCreateOrReferenceString(String input) {
-        if (input == null) return null;
-        String value = input.trim();
-        if (value.isEmpty()) return input;
-        if (value.startsWith("@string/")) return value;
 
-        String stringsPath = wq.b(sc_id) + "/files/resource/values/strings.xml";
-        StringsEditorManager sem = new StringsEditorManager();
-        sem.sc_id = sc_id;
-        ArrayList<HashMap<String, Object>> listMap = new ArrayList<>();
-        String xml = FileUtil.readFileIfExist(stringsPath);
-        sem.convertXmlStringsToListMap(xml, listMap);
-
-        for (HashMap<String, Object> map : listMap) {
-            Object textObj = map.get("text");
-            if (textObj != null && value.equals(String.valueOf(textObj))) {
-                Object keyObj = map.get("key");
-                if (keyObj != null) {
-                    return "@string/" + String.valueOf(keyObj);
-                }
-            }
-        }
-
-        String base = value.toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9]+", "_")
-                .replaceAll("^_+|_+$", "");
-        if (base.isEmpty()) base = "string_value";
-        if (Character.isDigit(base.charAt(0))) base = "s_" + base;
-
-        String key = base;
-        int suffix = 1;
-        while (sem.isXmlStringsExist(listMap, key)) {
-            key = base + "_" + suffix++;
-        }
-
-        HashMap<String, Object> newMap = new HashMap<>();
-        newMap.put("key", key);
-        newMap.put("text", value);
-        listMap.add(newMap);
-
-        XmlUtil.saveXml(stringsPath, sem.convertListMapToXmlStrings(listMap, sem.notesMap));
-        return "@string/" + key;
-    }
 }

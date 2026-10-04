@@ -15,9 +15,12 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.ProgressBar;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.content.ClipboardManager;
 import android.content.ClipData;
 
+import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
@@ -30,7 +33,6 @@ import mod.hey.studios.util.CompileLogHelper;
 import mod.hey.studios.util.Helper;
 
 import mod.jbk.diagnostic.CompileErrorSaver;
-import mod.jbk.util.AddMarginOnApplyWindowInsetsListener;
 import pro.sketchware.R;
 import pro.sketchware.databinding.CompileLogBinding;
 import pro.sketchware.utility.SketchwareUtil;
@@ -63,18 +65,18 @@ public class CompileLogActivity extends BaseAppCompatActivity {
         binding = CompileLogBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.optionsLayout,
-            new AddMarginOnApplyWindowInsetsListener(WindowInsetsCompat.Type.navigationBars(), WindowInsetsCompat.CONSUMED));
+        ViewCompat.setOnApplyWindowInsetsListener(binding.getRoot(), (view, insets) -> {
+            Insets bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         logViewerPreferences = getPreferences(Context.MODE_PRIVATE);
 
         binding.topAppBar.setNavigationOnClickListener(Helper.getBackPressedClickListener(this));
-
-        if (getIntent().getBooleanExtra("showingLastError", false)) {
-            binding.topAppBar.setTitle(R.string.compile_log_title_last);
-        } else {
-            binding.topAppBar.setTitle(R.string.compile_log_title);
-        }
+        binding.topAppBar.setTitle(getIntent().getBooleanExtra("showingLastError", false)
+                ? R.string.compile_log_title_last
+                : R.string.compile_log_title);
 
         // Resolve sc_id automaticamente (Intent -> ProjectTracker -> scan de diretórios)
         String scIdFromIntent = getIntent().getStringExtra("sc_id");
@@ -82,34 +84,63 @@ public class CompileLogActivity extends BaseAppCompatActivity {
         if (scIdFromIntent == null && this.scId != null) {
             SketchwareUtil.toast(getString(R.string.compile_log_project_detected, this.scId));
         }
-
         if (this.scId != null) {
             compileErrorSaver = new CompileErrorSaver(this.scId);
+            binding.topAppBar.setSubtitle(getString(R.string.compile_log_project_subtitle, this.scId));
         }
 
+        binding.topAppBar.setOnMenuItemClickListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.action_ai_explain) {
+                explainLogWithAI();
+            } else if (id == R.id.action_copy_log) {
+                copyLog();
+            } else if (id == R.id.action_format) {
+                showFormatOptions();
+            } else if (id == R.id.action_clear_log) {
+                clearLog();
+            } else {
+                return false;
+            }
+            return true;
+        });
+
+        applyLogViewerPreferences();
+        setErrorText();
+
+        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/2525937709");
+    }
+
+    private void clearLog() {
         if (compileErrorSaver != null && compileErrorSaver.logFileExists()) {
-            binding.clearButton.setOnClickListener(v -> {
-                if (compileErrorSaver.logFileExists()) {
-                    compileErrorSaver.deleteSavedLogs();
-                    getIntent().removeExtra("error");
-                    SketchwareUtil.toast(getString(R.string.compile_log_cleared));
-                } else {
-                    SketchwareUtil.toast(getString(R.string.compile_log_not_found));
-                }
-
-                setErrorText();
-            });
+            compileErrorSaver.deleteSavedLogs();
+            SketchwareUtil.toast(getString(R.string.compile_log_cleared));
+        } else {
+            SketchwareUtil.toast(getString(R.string.compile_log_not_found));
         }
+        getIntent().removeExtra("error");
+        setErrorText();
+    }
 
-        PopupMenu options = new PopupMenu(this, binding.formatButton);
+    private void copyLog() {
+        CharSequence log = binding.tvCompileLog.getText();
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        if (clipboard != null && log != null) {
+            clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.compile_log_title), log.toString()));
+            SketchwareUtil.toast(getString(R.string.compile_log_copied));
+        }
+    }
+
+    private void showFormatOptions() {
+        View anchor = binding.topAppBar.findViewById(R.id.action_format);
+        PopupMenu options = new PopupMenu(this, anchor != null ? anchor : binding.topAppBar);
         options.getMenu().add(0, 1, 0, R.string.compile_log_option_wrap_text)
-            .setCheckable(true)
-            .setChecked(getWrappedTextPreference());
+                .setCheckable(true)
+                .setChecked(getWrappedTextPreference());
         options.getMenu().add(0, 2, 1, R.string.compile_log_option_monospaced_font)
-            .setCheckable(true)
-            .setChecked(getMonospacedFontPreference());
+                .setCheckable(true)
+                .setChecked(getMonospacedFontPreference());
         options.getMenu().add(0, 3, 2, R.string.compile_log_option_font_size);
-
         options.setOnMenuItemClickListener(menuItem -> {
             switch (menuItem.getItemId()) {
                 case 1 -> {
@@ -125,23 +156,9 @@ public class CompileLogActivity extends BaseAppCompatActivity {
                     return false;
                 }
             }
-
             return true;
         });
-
-        binding.formatButton.setOnClickListener(v -> options.show());
-
-        applyLogViewerPreferences();
-
-        setErrorText();
-
-        // AI Explain button: analisa o log via Groq e mostra em diálogo com scroll
-        if (binding.aiExplainButton != null) {
-            binding.aiExplainButton.setOnClickListener(v -> explainLogWithAI());
-        }
-
-        AdManager.loadBanner(this, findViewById(R.id.ad_container), "ca-app-pub-6598765502914364/2525937709");
-
+        options.show();
     }
 
     private void setErrorText() {
@@ -151,15 +168,18 @@ public class CompileLogActivity extends BaseAppCompatActivity {
         } else if (error != null) {
             error = CompileErrorSaver.createDisplayPreview(error, "Intent extra");
         }
-        if (error == null) {
-            binding.noContentLayout.setVisibility(View.VISIBLE);
-            binding.optionsLayout.setVisibility(View.GONE);
+        boolean hasLog = error != null;
+        binding.noContentLayout.setVisibility(hasLog ? View.GONE : View.VISIBLE);
+        binding.logCard.setVisibility(hasLog ? View.VISIBLE : View.GONE);
+        Menu menu = binding.topAppBar.getMenu();
+        for (int id : new int[]{R.id.action_ai_explain, R.id.action_copy_log, R.id.action_format, R.id.action_clear_log}) {
+            MenuItem item = menu.findItem(id);
+            if (item != null) item.setVisible(hasLog);
+        }
+        if (!hasLog) {
+            binding.tvCompileLog.setText(null);
             return;
         }
-
-
-        binding.optionsLayout.setVisibility(View.VISIBLE);
-        binding.noContentLayout.setVisibility(View.GONE);
 
         binding.tvCompileLog.setText(CompileLogHelper.getColoredLogs(this, error));
         binding.tvCompileLog.setTextIsSelectable(true);
@@ -279,7 +299,7 @@ public class CompileLogActivity extends BaseAppCompatActivity {
                         progressDialog.dismiss();
                     } catch (Exception ignored) {
                     }
-                    showScrollableDialog(getString(R.string.ai_explain_title), limitAiText(response, 300));
+                    showScrollableDialog(getString(R.string.ai_explain_title), limitAiText(response, 8000));
                 });
             } catch (IOException e) {
                 runOnUiThread(() -> {
@@ -345,17 +365,12 @@ public class CompileLogActivity extends BaseAppCompatActivity {
         if (content == null) {
             return "";
         }
-
-        String normalized = content.replaceAll("\\s+", " ").trim();
+        // Keep line breaks: the answer is Markdown, and collapsing whitespace breaks lists and code blocks.
+        String normalized = content.trim();
         if (normalized.length() <= maxChars) {
             return normalized;
         }
-
-        if (maxChars <= 3) {
-            return normalized.substring(0, Math.max(0, maxChars));
-        }
-
-        return normalized.substring(0, maxChars - 3).trim() + "...";
+        return normalized.substring(0, Math.max(0, maxChars - 3)).trim() + "...";
     }
 
     // Resolve automaticamente o sc_id atual:

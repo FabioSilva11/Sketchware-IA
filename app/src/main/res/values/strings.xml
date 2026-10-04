@@ -1587,11 +1587,6 @@ Do you want to continue?"</string>
     <string name="logic_block_favorites_save_title">Save Block to My Collection</string>
     <string name="logic_button_explore_shared_more_block">Shared More Block</string>
     <string name="logic_button_import_more_block">Import From Collection</string>
-    <string name="logic_search_events">Search events…</string>
-    <string name="logic_sort_menu">Sort options</string>
-    <string name="logic_sort_default">Default</string>
-    <string name="logic_sort_alphabetical">A-Z</string>
-    <string name="logic_sort_type">By Widget</string>
     <string name="logic_editor_component_firebaseauth_title_select_firebase_auth">Select Firebase Auth component</string>
     <string name="logic_editor_hint_enter_variable_name">Enter variable name (Case-sensitive)</string>
     <string name="logic_editor_message_currently_used_block">"Selected block is currently used
@@ -2489,6 +2484,7 @@ Please try again later"</string>
 
     <!--  about the team screen  -->
     <string name="about_title">About Sketchware IA</string>
+    <string name="about_version_subtitle">Sketchware IA %1$s</string>
     <string name="about_team_title">The team</string>
     <string name="about_specialthanks_title">Special Thanks</string>
     <string name="about_changelog_title">Changelog</string>
@@ -2949,6 +2945,7 @@ Please try again later"</string>
     <string name="ai_explain_error_processing_response">Failed to process AI response.</string>
     <string name="compile_log_title">Compile log</string>
     <string name="compile_log_title_last">Last compile log</string>
+    <string name="compile_log_project_subtitle">Project %1$s</string>
     <string name="compile_log_project_detected">Detected project ID: %1$s</string>
     <string name="compile_log_cleared">Compile logs have been cleared.</string>
     <string name="compile_log_not_found">No compile logs found.</string>
@@ -2964,6 +2961,49 @@ Please try again later"</string>
     <string name="compile_log_action_format">Format options</string>
     <string name="compile_log_action_clear">Clear compile log</string>
     <string name="compile_log_action_ai_explain">Explain with AI</string>
+    <string name="compile_log_action_copy">Copy log</string>
+    <string name="compile_log_copied">Compile log copied</string>
+    <string name="manifest_manager_title">AndroidManifest</string>
+    <string name="manifest_manager_subtitle">Opened from %1$s</string>
+    <string name="manifest_manager_source_title">Manifest source</string>
+    <string name="manifest_manager_source_description">Generated: Sketchware builds AndroidManifest.xml from the project, the permissions it detects and the options below. Custom: your own XML replaces it completely.</string>
+    <string name="manifest_manager_mode_generated">Generated</string>
+    <string name="manifest_manager_mode_custom">Custom XML</string>
+    <string name="manifest_manager_status_generated">Built automatically on every compilation.</string>
+    <string name="manifest_manager_status_custom_valid">Custom manifest in use · %1$d lines · valid XML</string>
+    <string name="manifest_manager_status_custom_invalid">The custom manifest can\'t be compiled: %1$s</string>
+    <string name="manifest_manager_generating">Generating the current manifest…</string>
+    <string name="manifest_manager_generated_loaded">Generated manifest loaded into the custom XML</string>
+    <string name="manifest_manager_generate_failed">Couldn\'t generate the manifest. %1$s</string>
+    <string name="manifest_manager_action_edit">Edit XML</string>
+    <string name="manifest_manager_action_load_generated">Replace with generated manifest</string>
+    <string name="manifest_manager_load_generated_message">Your custom XML will be replaced by the manifest Sketchware generates right now.</string>
+    <string name="manifest_manager_action_validate">Validate XML</string>
+    <string name="manifest_manager_valid">The custom manifest is valid</string>
+    <string name="manifest_manager_invalid_title">Invalid manifest</string>
+    <string name="manifest_manager_action_discard">Discard custom manifest</string>
+    <string name="manifest_manager_discard_message">The custom XML will be deleted and the generated manifest will be used again.</string>
+    <string name="manifest_manager_action_view_source">View final manifest</string>
+    <string name="manifest_manager_source_failed">Failed to generate source.</string>
+    <string name="manifest_manager_generated_header">Generated manifest options</string>
+    <string name="manifest_manager_generated_ignored">These options are ignored while the custom XML is in use.</string>
+    <string name="manifest_manager_option_application">Application</string>
+    <string name="manifest_manager_option_application_summary">Attributes of the &lt;application&gt; tag</string>
+    <string name="manifest_manager_option_permissions">Permissions</string>
+    <string name="manifest_manager_option_permissions_summary">Extra &lt;uses-permission&gt; entries</string>
+    <string name="manifest_manager_option_launcher">Launcher activity</string>
+    <string name="manifest_manager_option_launcher_summary">Activity opened by the app icon</string>
+    <string name="manifest_manager_option_all_activities">All activities</string>
+    <string name="manifest_manager_option_all_activities_summary">Attributes added to every &lt;activity&gt;</string>
+    <string name="manifest_manager_option_components">App components</string>
+    <string name="manifest_manager_option_components_summary">Services, receivers, providers and other XML inside &lt;application&gt;</string>
+    <string name="manifest_manager_activities_header">Activities with custom attributes</string>
+    <string name="manifest_manager_activities_empty">No activity has custom attributes yet. Tap + to add one.</string>
+    <string name="manifest_manager_activity_summary">Attributes and components</string>
+    <string name="manifest_manager_invalid_activity_name">Enter a valid class name, e.g. MainActivity</string>
+    <string name="manifest_manager_activity_exists">This activity is already in the list</string>
+    <string name="manifest_manager_activity_added">Activity added</string>
+    <string name="manifest_manager_activity_removed">Activity removed</string>
     <string name="common_word_apply">Apply</string>
     <string name="common_word_copied">Copied</string>
 

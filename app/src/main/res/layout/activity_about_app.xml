@@ -18,6 +18,7 @@
             android:background="@drawable/bg_chat_toolbar"
             app:navigationIcon="?attr/homeAsUpIndicator"
             app:navigationIconTint="@color/chat_text_primary"
+            app:subtitleTextColor="@color/chat_text_secondary"
             app:title="@string/about_title"
             app:titleTextColor="@color/chat_text_primary" />
 

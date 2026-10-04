@@ -29,6 +29,7 @@ import java.util.ArrayList;
 
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
+import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.widgets.WidgetsCreatorManager;
 import pro.sketchware.utility.TranslationFunction;
@@ -46,6 +47,12 @@ public class ViewEditorFragment extends qA {
     private String sc_id;
 
     private WidgetsCreatorManager widgetsCreatorManager;
+    // Widgets that show @string/ texts are redrawn when strings.xml changes (Strings tab, property edits).
+    private final ProjectStrings.Listener stringsListener = changedScId -> {
+        if (viewEditor != null && projectFileBean != null && changedScId.equals(sc_id)) {
+            viewEditor.refreshStringTexts();
+        }
+    };
 
     public ViewEditorFragment() {
     }
@@ -495,8 +502,15 @@ public class ViewEditorFragment extends qA {
         } else {
             sc_id = requireActivity().getIntent().getStringExtra("sc_id");
         }
+        ProjectStrings.addListener(stringsListener);
 
         return viewGroup;
+    }
+
+    @Override
+    public void onDestroyView() {
+        ProjectStrings.removeListener(stringsListener);
+        super.onDestroyView();
     }
 
     @Override

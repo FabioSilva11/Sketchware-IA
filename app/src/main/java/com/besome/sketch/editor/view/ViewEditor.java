@@ -63,6 +63,7 @@ import mod.agus.jcoderz.beans.ViewBeans;
 import mod.hey.studios.util.ProjectFile;
 import mod.jbk.util.LogUtil;
 import pro.sketchware.R;
+import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.ThemeUtils;
 import pro.sketchware.widgets.IconCustomWidget;
 import pro.sketchware.widgets.WidgetsCreatorManager;
@@ -211,6 +212,19 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     public void removeFab() {
         viewPane.removeFabView();
+    }
+
+    /** Redraws widgets whose text or hint comes from strings.xml. */
+    public void refreshStringTexts() {
+        if (a == null || b == null) return;
+        for (ViewBean bean : jC.a(a).d(b)) {
+            if (bean.text == null) continue;
+            if (ProjectStrings.isReference(bean.text.text) || ProjectStrings.isReference(bean.text.hint)) {
+                if (viewPane.findItemViewByTag(bean.id) != null) {
+                    viewPane.g(bean);
+                }
+            }
+        }
     }
 
     public void l() {
@@ -414,6 +428,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                             if (arrayList.indexOf(next) != 0 && (str = next.parent) != null && !str.isEmpty()) {
                                 next.parent = idMappings.get(next.parent);
                             }
+                            ProjectStrings.externalize(a, next);
                             jC.a(a).a(b, next);
                         }
                         a(a(arrayList, true), true);
@@ -422,6 +437,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                     ViewBean bean = icon.getBean();
                     bean.id = generateWidgetId(bean);
                     viewPane.updateViewBeanProperties(bean, (int) motionEvent.getRawX(), (int) motionEvent.getRawY());
+                    ProjectStrings.externalize(a, bean);
                     jC.a(a).a(b, bean);
                     if (bean.type == 3 && projectFileBean.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY) {
                         jC.a(a).a(projectFileBean.getJavaName(), 1, bean.type, bean.id, "onClick");

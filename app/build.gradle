@@ -32,8 +32,8 @@ android {
         namespace = "pro.sketchware"
         targetSdk = 36
         minSdk = 26
-        versionCode = 150
-        versionName = "8.1 preview"
+        versionCode = 160
+        versionName = "9.0 Update"
 
         buildConfigField("String", "GIT_HASH", "\"${gitCommitHash}\"")
     }

@@ -680,10 +680,6 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.design_menu, menu);
-        MenuItem searchItem = menu.findItem(R.id.design_option_menu_search);
-        if (searchItem != null) {
-            searchItem.setVisible(currentTabNumber == 1);
-        }
         return true;
     }
 
@@ -1762,7 +1758,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                     if (isMissingDirectory) {
                         dialog.setTitle("Missing directory detected");
                         dialog.setMessage("A directory important for building is missing. " +
-                                "Sketchware Pro can try creating " + e.getMissingFile().getAbsolutePath() +
+                                "Sketchware IA can try creating " + e.getMissingFile().getAbsolutePath() +
                                 " if you'd like to.");
                         dialog.setNeutralButton("Create", (v, which) -> {
                             v.dismiss();

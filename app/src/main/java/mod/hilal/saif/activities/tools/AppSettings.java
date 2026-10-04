@@ -110,7 +110,7 @@ public class AppSettings extends BaseAppCompatActivity {
         generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_palette, Helper.getResString(R.string.settings_appearance), Helper.getResString(R.string.settings_appearance_description), openSettingsActivity(SettingsActivity.SETTINGS_APPEARANCE_FRAGMENT)), true);
         generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_settings, Helper.getResString(R.string.ia_settings_title), Helper.getResString(R.string.ia_settings_subtitle), new ActivityLauncher(new Intent(getApplicationContext(), IaSettingsActivity.class))), true);
         generalCategory.addLibraryItem(createPreference(R.drawable.ic_github, "GitHub Settings", "Manage GitHub API token for the AI agent", new ActivityLauncher(new Intent(getApplicationContext(), GithubSettingsActivity.class))), true);
-        generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_folder, "Open working directory", "Open Sketchware Pro's directory and edit files in it", v -> openWorkingDirectory()), true);
+        generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_folder, "Open working directory", "Open Sketchware IA's directory and edit files in it", v -> openWorkingDirectory()), true);
         generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_apk_document, "Sign an APK file with testkey", "Sign an already existing APK file with testkey and signature schemes up to V4", v -> signApkFileDialog()), true);
         generalCategory.addLibraryItem(createPreference(R.drawable.ic_mtrl_settings, Helper.getResString(R.string.main_drawer_title_system_settings), "Auto-save and vibrations", new ActivityLauncher(new Intent(getApplicationContext(), SystemSettingActivity.class))), false);
 

@@ -67,6 +67,7 @@ public class AboutActivity extends BaseAppCompatActivity {
 
     private void initViews() {
         binding.toolbar.setNavigationOnClickListener(Helper.getBackPressedClickListener(this));
+        binding.toolbar.setSubtitle(getString(R.string.about_version_subtitle, pro.sketchware.BuildConfig.VERSION_NAME));
         binding.discordButton.setOnClickListener(v -> openCommunityLink());
 
         AboutAdapter adapter = new AboutAdapter(this);

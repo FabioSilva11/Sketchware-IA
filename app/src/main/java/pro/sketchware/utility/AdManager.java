@@ -64,6 +64,8 @@ public final class AdManager {
             Collections.synchronizedMap(new IdentityHashMap<>());
     private static final Map<ViewGroup, PendingBannerLoad> pendingBannerLoads =
             Collections.synchronizedMap(new WeakHashMap<>());
+    /** Per ad unit back-off after failed loads, so low fill doesn't turn every screen visit into a wasted request. */
+    private static final Map<String, Backoff> bannerBackoff = Collections.synchronizedMap(new java.util.HashMap<>());
     private static volatile Context appContext;
     private static volatile ConsentInformation consentInformation;
     @Nullable private static NativeAd cachedNativeAd;
@@ -76,8 +78,8 @@ public final class AdManager {
         application.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
             @Override public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle state) { }
             @Override public void onActivityStarted(@NonNull Activity activity) { }
-            @Override public void onActivityResumed(@NonNull Activity activity) { requestConsent(activity); }
-            @Override public void onActivityPaused(@NonNull Activity activity) { }
+            @Override public void onActivityResumed(@NonNull Activity activity) { requestConsent(activity); setBannersPaused(activity, false); }
+            @Override public void onActivityPaused(@NonNull Activity activity) { setBannersPaused(activity, true); }
             @Override public void onActivityStopped(@NonNull Activity activity) { }
             @Override public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle state) { }
             @Override public void onActivityDestroyed(@NonNull Activity activity) { destroyBannersFor(activity); }
@@ -155,7 +157,10 @@ public final class AdManager {
             if (!isActivityUsable(activity)) {
                 log("ad_activity_destroyed", "banner", requestedAdUnitId, 0, null, 0, 0, null); return;
             }
-            if (!container.isAttachedToWindow()) {
+            // Request only for a container that is on screen and measured: an adaptive banner sized before
+            // layout used the full display width and was cut by the container's padding, and hidden
+            // containers produced requests whose ads were never visible.
+            if (!isContainerReady(container)) {
                 waitForBannerContainer(activity, container, requestedAdUnitId, fixedSize);
                 return;
             }
@@ -163,7 +168,12 @@ public final class AdManager {
             if (old != null && (old.loading || old.loaded)) {
                 log("ad_duplicate_request", "banner", requestedAdUnitId, 0, null, 0, 0, null); return;
             }
+            Backoff backoff = bannerBackoff.get(requestedAdUnitId);
+            if (backoff != null && SystemClock.elapsedRealtime() < backoff.nextAllowedAt) {
+                log("ad_request_skipped", "banner", requestedAdUnitId, 0, "backoff", 0, 0, null); return;
+            }
             if (old != null) old.destroy();
+            purgeDetachedSlots(activity);
             AdView adView = new AdView(activity);
             adView.setAdUnitId(resolveAdUnitId("banner", requestedAdUnitId));
             adView.setAdSize(fixedSize ? AdSize.BANNER : getAdaptiveBannerAdSize(activity, container));
@@ -175,24 +185,69 @@ public final class AdManager {
         });
     }
 
+    private static boolean isContainerReady(@NonNull ViewGroup container) {
+        return container.isAttachedToWindow() && container.isShown() && container.getWidth() > 0;
+    }
+
     private static void waitForBannerContainer(@NonNull Activity activity, @NonNull ViewGroup container,
                                                @NonNull String adUnitId, boolean fixedSize) {
         synchronized (pendingBannerLoads) {
-            if (pendingBannerLoads.containsKey(container)) {
-                log("ad_duplicate_request", "banner", adUnitId, 0, "waiting_for_container", 0, 0, null);
-                return;
-            }
+            if (pendingBannerLoads.containsKey(container)) return;
             PendingBannerLoad pending = new PendingBannerLoad(activity, container, adUnitId, fixedSize);
             pendingBannerLoads.put(container, pending);
-            container.addOnAttachStateChangeListener(pending);
+            pending.start();
         }
-        log("ad_view_not_visible", "banner", adUnitId, 0, "waiting_for_container", 0, 0, null);
     }
 
     @NonNull private static AdSize getAdaptiveBannerAdSize(@NonNull Activity activity, @NonNull ViewGroup container) {
-        int pixels = container.getWidth() > 0 ? container.getWidth() : activity.getResources().getDisplayMetrics().widthPixels;
-        int widthDp = Math.max(1, Math.round(pixels / activity.getResources().getDisplayMetrics().density));
+        int pixels = container.getWidth() - container.getPaddingLeft() - container.getPaddingRight();
+        if (pixels <= 0) pixels = activity.getResources().getDisplayMetrics().widthPixels;
+        int widthDp = Math.max(1, (int) (pixels / activity.getResources().getDisplayMetrics().density));
         return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activity, widthDp);
+    }
+
+    private static void setBannersPaused(@NonNull Activity activity, boolean paused) {
+        synchronized (bannerSlots) {
+            for (BannerSlot slot : bannerSlots.values()) {
+                if (slot.activity.get() == activity) slot.setPaused(paused);
+            }
+        }
+    }
+
+    /** Destroys banners whose container left the window, e.g. a fragment view that was recreated. */
+    private static void purgeDetachedSlots(@NonNull Activity activity) {
+        synchronized (bannerSlots) {
+            bannerSlots.entrySet().removeIf(entry -> {
+                BannerSlot slot = entry.getValue();
+                if (slot.activity.get() == activity && !entry.getKey().isAttachedToWindow()) {
+                    slot.destroy();
+                    return true;
+                }
+                return false;
+            });
+        }
+    }
+
+    private static final class Backoff {
+        int failures;
+        long nextAllowedAt;
+    }
+
+    private static void onBannerResult(@NonNull String adUnitId, boolean success) {
+        synchronized (bannerBackoff) {
+            if (success) {
+                bannerBackoff.remove(adUnitId);
+                return;
+            }
+            Backoff backoff = bannerBackoff.get(adUnitId);
+            if (backoff == null) {
+                backoff = new Backoff();
+                bannerBackoff.put(adUnitId, backoff);
+            }
+            backoff.failures++;
+            long delay = Math.min(RETRY_MAX_MS, RETRY_BASE_MS << Math.min(backoff.failures - 1, 5));
+            backoff.nextAllowedAt = SystemClock.elapsedRealtime() + delay;
+        }
     }
 
     public interface NativeAdLoadCallback {
@@ -298,26 +353,34 @@ public final class AdManager {
 
     private static final class BannerSlot {
         final WeakReference<Activity> activity; final WeakReference<ViewGroup> container; final AdView adView; final String placement; final long started = SystemClock.elapsedRealtime();
-        boolean loading = true, loaded, destroyed;
+        boolean loading = true, loaded, destroyed, paused;
         BannerSlot(Activity activity, ViewGroup container, AdView adView, String placement) { this.activity = new WeakReference<>(activity); this.container = new WeakReference<>(container); this.adView = adView; this.placement = placement; }
         void load() {
             log("ad_request", "banner", placement, 0, null, 0, 0, null);
             adView.setAdListener(new AdListener() {
-                @Override public void onAdLoaded() { loading = false; loaded = true; log("ad_loaded", "banner", placement, 0, null, SystemClock.elapsedRealtime() - started, 0, adView.getResponseInfo()); adView.post(() -> inspectBanner(BannerSlot.this)); }
-                @Override public void onAdFailedToLoad(@NonNull LoadAdError error) { loading = false; logLoadError("banner", placement, error, started); }
+                @Override public void onAdLoaded() { loading = false; loaded = true; onBannerResult(placement, true); log("ad_loaded", "banner", placement, 0, null, SystemClock.elapsedRealtime() - started, 0, adView.getResponseInfo()); adView.post(() -> inspectBanner(BannerSlot.this)); }
+                @Override public void onAdFailedToLoad(@NonNull LoadAdError error) { loading = false; onBannerResult(placement, false); logLoadError("banner", placement, error, started); }
                 @Override public void onAdImpression() { log("ad_impression", "banner", placement, 0, null, SystemClock.elapsedRealtime() - started, 0, adView.getResponseInfo()); }
                 @Override public void onAdClicked() { log("ad_clicked", "banner", placement, 0, null, 0, 0, adView.getResponseInfo()); }
             });
             adView.loadAd(new AdRequest.Builder().build());
         }
+        /** Paused banners stop their automatic refresh, so screens in the background don't keep requesting ads. */
+        void setPaused(boolean pause) {
+            if (destroyed || paused == pause) return;
+            paused = pause;
+            if (pause) adView.pause(); else adView.resume();
+        }
         void destroy() { if (!destroyed) { destroyed = true; adView.destroy(); } }
     }
 
-    private static final class PendingBannerLoad implements View.OnAttachStateChangeListener {
+    /** Waits until a banner container is attached, visible and measured, then loads the banner once. */
+    private static final class PendingBannerLoad implements View.OnAttachStateChangeListener, android.view.ViewTreeObserver.OnGlobalLayoutListener {
         final WeakReference<Activity> activity;
         final WeakReference<ViewGroup> container;
         final String adUnitId;
         final boolean fixedSize;
+        private boolean done;
 
         PendingBannerLoad(@NonNull Activity activity, @NonNull ViewGroup container,
                           @NonNull String adUnitId, boolean fixedSize) {
@@ -327,16 +390,39 @@ public final class AdManager {
             this.fixedSize = fixedSize;
         }
 
-        @Override public void onViewAttachedToWindow(@NonNull View view) {
+        void start() {
             ViewGroup target = container.get();
             if (target == null) return;
-            target.removeOnAttachStateChangeListener(this);
-            synchronized (pendingBannerLoads) { pendingBannerLoads.remove(target); }
-            Activity owner = activity.get();
-            if (isActivityUsable(owner)) loadBannerInternal(owner, target, adUnitId, fixedSize);
+            target.addOnAttachStateChangeListener(this);
+            if (target.isAttachedToWindow()) target.getViewTreeObserver().addOnGlobalLayoutListener(this);
         }
 
-        @Override public void onViewDetachedFromWindow(@NonNull View view) { }
+        @Override public void onViewAttachedToWindow(@NonNull View view) {
+            view.getViewTreeObserver().addOnGlobalLayoutListener(this);
+            onGlobalLayout();
+        }
+
+        @Override public void onViewDetachedFromWindow(@NonNull View view) {
+            view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+        }
+
+        @Override public void onGlobalLayout() {
+            ViewGroup target = container.get();
+            Activity owner = activity.get();
+            if (done || target == null) return;
+            if (!isActivityUsable(owner)) { finish(target); return; }
+            if (!isContainerReady(target)) return;
+            finish(target);
+            // Post so the request doesn't run inside a layout pass.
+            target.post(() -> { if (isActivityUsable(owner)) loadBannerInternal(owner, target, adUnitId, fixedSize); });
+        }
+
+        private void finish(@NonNull ViewGroup target) {
+            done = true;
+            target.removeOnAttachStateChangeListener(this);
+            target.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+            synchronized (pendingBannerLoads) { pendingBannerLoads.remove(target); }
+        }
     }
 
     private static void inspectBanner(@NonNull BannerSlot slot) {

@@ -23,6 +23,7 @@ import pro.sketchware.databinding.PalletCustomviewBinding;
 import pro.sketchware.databinding.ResourcesEditorFragmentBinding;
 import pro.sketchware.databinding.ViewStringEditorAddBinding;
 import pro.sketchware.utility.FileUtil;
+import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.XmlUtil;
 import pro.sketchware.utility.TranslationFunction;
@@ -47,6 +48,16 @@ public class StringsTabFragment extends Fragment {
 
     private StringsListAdapter adapter;
 
+    // The app name is managed in Project Settings: it's kept out of the list but written back untouched.
+    private static final String APP_NAME_KEY = "app_name";
+    private HashMap<String, Object> appNameEntry;
+    private String appNameNote;
+    private final ProjectStrings.Listener stringsListener = scId -> {
+        if (binding != null && scId.equals(DesignActivity.sc_id)) {
+            refreshList();
+        }
+    };
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -68,13 +79,25 @@ public class StringsTabFragment extends Fragment {
         updateStringsList(filePath, 0, false);
 
         binding.fabAddString.setOnClickListener(v -> showAddStringDialog());
+        ProjectStrings.addListener(stringsListener);
         return binding.getRoot();
     }
 
+    @Override
+    public void onDestroyView() {
+        ProjectStrings.removeListener(stringsListener);
+        binding = null;
+        super.onDestroyView();
+    }
+
     /**
-     * Backwards-compatible refresh
+     * Reloads strings.xml, e.g. after a widget created or changed one of its strings.
      */
     public void refreshList() {
+        if (binding == null) return;
+        if (hasUnsavedChanges) {
+            saveStringsFile();
+        }
         updateStringsList(filePath, 0, false);
     }
 
@@ -99,6 +122,13 @@ public class StringsTabFragment extends Fragment {
             String key = Objects.toString(item.get("key"), "");
             if (!key.isEmpty() && notesIndexMap.containsKey(i)) {
                 importedNotesByKey.put(key, notesIndexMap.get(i));
+            }
+        }
+        for (int i = 0; i < imported.size(); i++) {
+            if (APP_NAME_KEY.equals(imported.get(i).get("key"))) {
+                appNameEntry = imported.remove(i);
+                appNameNote = importedNotesByKey.remove(APP_NAME_KEY);
+                break;
             }
         }
 
@@ -170,6 +200,7 @@ public class StringsTabFragment extends Fragment {
     }
 
     private void updateNoContentLayout() {
+        if (binding == null) return;
         if (stringsList.isEmpty()) {
             binding.noContentLayout.setVisibility(View.VISIBLE);
             binding.noContentTitle.setText(getString(R.string.resource_manager_no_list_title, "Strings"));
@@ -234,10 +265,6 @@ public class StringsTabFragment extends Fragment {
         dialogBinding.stringValueInput.setText(Objects.toString(currentItem.get("text"), ""));
         dialogBinding.stringHeaderInput.setText(notesByKey.getOrDefault(oldKey, ""));
 
-        if ("app_name".equals(oldKey)) {
-            dialogBinding.stringKeyInput.setEnabled(false);
-        }
-
         dialog.setTitle("Edit string");
         dialog.setPositiveButton("Save", (d, which) -> {
             String keyInput = Objects.requireNonNull(dialogBinding.stringKeyInput.getText()).toString().trim();
@@ -289,19 +316,17 @@ public class StringsTabFragment extends Fragment {
             saveStringsFile();
         });
 
-        if (!Objects.equals(currentItem.get("key"), "app_name")) {
-            dialog.setNeutralButton(getString(R.string.common_word_delete), (d, which) -> {
-                // delete item and its note
-                stringsList.remove(position);
-                notesByKey.remove(oldKey);
-                adapter.notifyItemRemoved(position);
-                updateNoContentLayout();
-                hasUnsavedChanges = true;
+        dialog.setNeutralButton(getString(R.string.common_word_delete), (d, which) -> {
+            // delete item and its note
+            stringsList.remove(position);
+            notesByKey.remove(oldKey);
+            adapter.notifyItemRemoved(position);
+            updateNoContentLayout();
+            hasUnsavedChanges = true;
 
-                // immediate save after delete
-                saveStringsFile();
-            });
-        }
+            // immediate save after delete
+            saveStringsFile();
+        });
         dialog.setNegativeButton(getString(R.string.cancel), null);
         dialog.setView(dialogBinding.getRoot());
         dialog.show();
@@ -314,16 +339,23 @@ public class StringsTabFragment extends Fragment {
     public void saveStringsFile() {
         if (!hasUnsavedChanges) return;
 
+        ArrayList<HashMap<String, Object>> allStrings = new ArrayList<>();
+        if (appNameEntry != null) {
+            allStrings.add(appNameEntry);
+        }
+        allStrings.addAll(stringsList);
         HashMap<Integer, String> indexNotesMap = new HashMap<>();
-        for (int i = 0; i < stringsList.size(); i++) {
-            String key = Objects.toString(stringsList.get(i).get("key"), "");
-            if (notesByKey.containsKey(key)) {
-                indexNotesMap.put(i, notesByKey.get(key));
+        for (int i = 0; i < allStrings.size(); i++) {
+            String key = Objects.toString(allStrings.get(i).get("key"), "");
+            String note = APP_NAME_KEY.equals(key) && allStrings.get(i) == appNameEntry ? appNameNote : notesByKey.get(key);
+            if (note != null) {
+                indexNotesMap.put(i, note);
             }
         }
 
-        XmlUtil.saveXml(filePath, stringsEditorManager.convertListMapToXmlStrings(stringsList, indexNotesMap));
+        XmlUtil.saveXml(filePath, stringsEditorManager.convertListMapToXmlStrings(allStrings, indexNotesMap));
         hasUnsavedChanges = false;
+        ProjectStrings.notifyChanged(DesignActivity.sc_id);
     }
 
     @Override
@@ -336,6 +368,7 @@ public class StringsTabFragment extends Fragment {
      * Utility: check duplicate key excluding optional index
      */
     private boolean isDuplicateKey(String key, Integer exceptPosition) {
+        if (APP_NAME_KEY.equals(key)) return true;
         for (int i = 0; i < stringsList.size(); i++) {
             if (exceptPosition != null && i == exceptPosition) continue;
             String k = Objects.toString(stringsList.get(i).get("key"), "");

@@ -54,6 +54,49 @@ public class AndroidManifestInjector {
                         "Injection" + File.separator + "androidmanifest" + File.separator + "custom_manifest.xml");
     }
 
+    /**
+     * Checks that a custom manifest can be used for a build.
+     *
+     * @return null when it's valid, otherwise a message describing the first problem
+     */
+    public static String validateManifest(String xml) {
+        if (xml == null || xml.trim().isEmpty()) {
+            return "The custom manifest is empty.";
+        }
+        try {
+            org.xmlpull.v1.XmlPullParser parser = org.xmlpull.v1.XmlPullParserFactory.newInstance().newPullParser();
+            parser.setFeature(org.xmlpull.v1.XmlPullParser.FEATURE_PROCESS_NAMESPACES, false);
+            parser.setInput(new java.io.StringReader(xml));
+            boolean rootSeen = false;
+            boolean hasApplication = false;
+            int event = parser.getEventType();
+            while (event != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                if (event == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                    if (!rootSeen) {
+                        rootSeen = true;
+                        if (!"manifest".equals(parser.getName())) {
+                            return "The root element must be <manifest>, found <" + parser.getName() + ">.";
+                        }
+                        if (parser.getAttributeValue(null, "xmlns:android") == null) {
+                            return "<manifest> must declare xmlns:android=\"http://schemas.android.com/apk/res/android\".";
+                        }
+                    } else if (parser.getDepth() == 2 && "application".equals(parser.getName())) {
+                        hasApplication = true;
+                    }
+                }
+                event = parser.next();
+            }
+            if (!hasApplication) {
+                return "The manifest has no <application> element.";
+            }
+            return null;
+        } catch (org.xmlpull.v1.XmlPullParserException e) {
+            return "Invalid XML at line " + e.getLineNumber() + ": " + e.getMessage();
+        } catch (Exception e) {
+            return "Invalid XML: " + e.getMessage();
+        }
+    }
+
     public static String applyCustomManifest(String generatedManifest, String sc_id) {
         File manifestMode = getPathAndroidManifestMode(sc_id);
         if (!manifestMode.exists()) {

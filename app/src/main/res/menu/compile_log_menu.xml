@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_ai_explain"
+        android:icon="@drawable/ic_mtrl_auto_awesome"
+        android:title="@string/compile_log_action_ai_explain"
+        app:iconTint="@color/chat_text_primary"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_copy_log"
+        android:icon="@drawable/ic_mtrl_content_copy"
+        android:title="@string/compile_log_action_copy"
+        app:iconTint="@color/chat_text_primary"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_format"
+        android:icon="@drawable/ic_mtrl_formattext"
+        android:title="@string/compile_log_action_format"
+        app:iconTint="@color/chat_text_primary"
+        app:showAsAction="always" />
+
+    <item
+        android:id="@+id/action_clear_log"
+        android:icon="@drawable/ic_p2p_delete"
+        android:title="@string/compile_log_action_clear"
+        app:iconTint="@color/chat_text_primary"
+        app:showAsAction="always" />
+</menu>

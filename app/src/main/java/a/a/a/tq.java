@@ -62,7 +62,7 @@ public class tq {
         a.add(new QuizBean("A deleted Collection item can be recovered.", QuizBean.QUIZ_FALSE));
         a.add(new QuizBean("A variable created in \"Activity A\" can be accessed from \"Activity B.\"", QuizBean.QUIZ_FALSE));
         a.add(new QuizBean("A component created in \"Activity A\" can be accessed from \"Activity B.\"", QuizBean.QUIZ_FALSE));
-        a.add(new QuizBean("You can use custom Blocks created with Sketchware Pro in Sketchware from Google Play.", QuizBean.QUIZ_FALSE));
+        a.add(new QuizBean("You can use custom Blocks created with Sketchware IA in Sketchware from Google Play.", QuizBean.QUIZ_FALSE));
         a.add(new QuizBean("File blocks work on Android 11 and newer when target SDK version is set to 30 and higher.", QuizBean.QUIZ_FALSE));
         a.add(new QuizBean("You can choose a file using \"FilePicker\" component.", QuizBean.QUIZ_TRUE));
         a.add(new QuizBean("The \"finishAffinity\" block is used to close the application.", QuizBean.QUIZ_TRUE));

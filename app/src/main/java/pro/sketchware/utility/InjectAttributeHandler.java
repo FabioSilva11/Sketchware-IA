@@ -55,7 +55,7 @@ public class InjectAttributeHandler {
             parser.setInput(new StringReader(
                     "<tag xmlns:android=\"http://schemas.android.com/apk/res/android\" " +
                             "xmlns:app=\"http://schemas.android.com/apk/res-auto\" " +
-                            "xmlns:tools=\"http://schemas.android.com/tools\"" +
+                            "xmlns:tools=\"http://schemas.android.com/tools\" " +
                             viewBean.inject + "></tag>"));
 
             int eventType = parser.getEventType();

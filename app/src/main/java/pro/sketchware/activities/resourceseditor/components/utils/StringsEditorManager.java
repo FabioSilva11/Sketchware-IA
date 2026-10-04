@@ -110,6 +110,11 @@ public class StringsEditorManager {
             String key = (String) map.get("key");
             String text = (String) map.getOrDefault("text", "");
             String escapedText = ResourcesEditorActivity.escapeXml(text);
+            // Text starting with @ or ? would be read by aapt2 as a reference; real references stay as they are.
+            if ((escapedText.startsWith("@") || escapedText.startsWith("?"))
+                    && !escapedText.matches("[@?]([A-Za-z_.]+:)?[a-z]+/[A-Za-z0-9_.]+")) {
+                escapedText = "\\" + escapedText;
+            }
             xmlString.append("    <string name=\"").append(key).append("\"");
             for (String mapKey : map.keySet()) {
                 if (mapKey.equals("text") || mapKey.equals("key")) continue;
