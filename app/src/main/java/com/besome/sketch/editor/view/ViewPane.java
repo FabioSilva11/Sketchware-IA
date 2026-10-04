@@ -140,14 +140,49 @@ public class ViewPane extends RelativeLayout {
     private int defaultHintColor = 0;
     private Material3LibraryManager material3LibraryManager;
     private HashMap<String, String> cachedStrings;
+    private LayoutRelationsOverlay relationsOverlay;
+    /** Drop position (dp from the content edge) of a widget dragged over a RelativeLayout/ConstraintLayout. */
+    private android.graphics.Point dropPoint;
+    private ViewGroup dropGroup;
     private long cachedStringsStamp;
 
     public ViewPane(Context context) {
         super(context);
+        addRelationsOverlay();
     }
 
     public ViewPane(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
+        addRelationsOverlay();
+    }
+
+    private void addRelationsOverlay() {
+        relationsOverlay = new LayoutRelationsOverlay(getContext(), this);
+        addView(relationsOverlay, new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        getViewTreeObserver().addOnScrollChangedListener(relationsOverlay::invalidate);
+    }
+
+    public LayoutRelationsOverlay getRelationsOverlay() {
+        return relationsOverlay;
+    }
+
+    public ViewGroup getRootLayout() {
+        return rootLayout;
+    }
+
+    @Override
+    public void onViewAdded(View child) {
+        super.onViewAdded(child);
+        // The overlay draws over the layout and the FAB, and gets touches on anchors first.
+        if (relationsOverlay != null && child != relationsOverlay) {
+            relationsOverlay.bringToFront();
+        }
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        super.onLayout(changed, l, t, r, b);
+        if (relationsOverlay != null) relationsOverlay.invalidate();
     }
 
     public void clearViews() {
@@ -645,6 +680,7 @@ public class ViewPane extends RelativeLayout {
         }
         applyInjectedAttributes(view, viewBean);
         view.setVisibility(VISIBLE);
+        if (relationsOverlay != null) relationsOverlay.invalidate();
         if (view instanceof EditorListItem listItem) {
             String listitem = injectHandler.getAttributeValueOf("listitem");
             String itemCount = injectHandler.getAttributeValueOf("itemCount");
@@ -848,6 +884,8 @@ public class ViewPane extends RelativeLayout {
                 viewBean.parent = view.getTag().toString();
                 viewBean.preParentType = viewBean.parentType;
                 viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_RELATIVE;
+                prepareRelationsForDrop(viewBean);
+                placeDroppedBean(viewBean, view);
             } else if (view instanceof ItemConstraintLayout) {
                 viewBean.preIndex = viewBean.index;
                 viewBean.index = viewInfo.index();
@@ -855,6 +893,8 @@ public class ViewPane extends RelativeLayout {
                 viewBean.parent = view.getTag().toString();
                 viewBean.preParentType = viewBean.parentType;
                 viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT;
+                prepareRelationsForDrop(viewBean);
+                placeDroppedBean(viewBean, view);
             } else if (view instanceof ItemFrameLayout) {
                 viewBean.preIndex = viewBean.index;
                 viewBean.index = viewInfo.index();
@@ -863,10 +903,7 @@ public class ViewPane extends RelativeLayout {
                 viewBean.preParentType = viewBean.parentType;
                 viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_FRAMELAYOUT;
             }
-            if (viewBean.preParent != null && !viewBean.preParent.isEmpty() && !viewBean.preParent.equals(viewBean.parent)) {
-                // Rules like layout_below or constraints point at the old siblings; they don't apply any more.
-                viewBean.parentAttributes = new HashMap<>();
-            }
+            prepareRelationsForDrop(viewBean);
         } else {
             viewBean.preIndex = viewBean.index;
             viewBean.preParent = viewBean.parent;
@@ -925,6 +962,9 @@ public class ViewPane extends RelativeLayout {
         ViewInfo viewInfo = getViewInfo(x, y);
         if (viewInfo == null) {
             resetView(true);
+            dropPoint = null;
+        } else if (this.viewInfo == viewInfo) {
+            positionHighlight((ViewGroup) viewInfo.view(), x, y, width, height);
         } else if (this.viewInfo != viewInfo) {
             resetView(true);
             ViewGroup viewGroup = (ViewGroup) viewInfo.view();
@@ -938,7 +978,64 @@ public class ViewPane extends RelativeLayout {
             }
             highlightedTextView.setVisibility(View.VISIBLE);
             this.viewInfo = viewInfo;
+            positionHighlight(viewGroup, x, y, width, height);
         }
+    }
+
+    /**
+     * In RelativeLayout and ConstraintLayout a widget lands where the finger is, so the drop preview
+     * follows the finger and the position is kept for {@link #updateViewBeanProperties}.
+     */
+    private void positionHighlight(ViewGroup group, int x, int y, int width, int height) {
+        if (!(group instanceof ItemRelativeLayout) && !(group instanceof ItemConstraintLayout)) {
+            dropPoint = null;
+            return;
+        }
+        int[] location = new int[2];
+        group.getLocationOnScreen(location);
+        float scale = getScaleX() <= 0 ? 1f : getScaleX();
+        float localX = (x - location[0]) / scale;
+        float localY = (y - location[1]) / scale;
+        int contentWidth = group.getWidth() - group.getPaddingLeft() - group.getPaddingRight();
+        int contentHeight = group.getHeight() - group.getPaddingTop() - group.getPaddingBottom();
+        int left = width > 0 ? Math.round(localX - width / 2f) - group.getPaddingLeft() : 0;
+        int top = height > 0 ? Math.round(localY - height / 2f) - group.getPaddingTop() : 0;
+        left = Math.max(0, Math.min(left, Math.max(0, contentWidth - Math.max(width, 0))));
+        top = Math.max(0, Math.min(top, Math.max(0, contentHeight - Math.max(height, 0))));
+        ViewGroup.MarginLayoutParams params;
+        if (group instanceof ItemConstraintLayout) {
+            ConstraintLayout.LayoutParams constraintParams = new ConstraintLayout.LayoutParams(width, height);
+            constraintParams.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+            constraintParams.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+            params = constraintParams;
+        } else {
+            params = new LayoutParams(width, height);
+        }
+        params.leftMargin = left;
+        params.topMargin = top;
+        highlightedTextView.setLayoutParams(params);
+        float density = getResources().getDisplayMetrics().density;
+        dropPoint = new android.graphics.Point(Math.round(left / density), Math.round(top / density));
+        dropGroup = group;
+    }
+
+    /** Positions a widget dropped into a RelativeLayout/ConstraintLayout at the drop point. */
+    private void placeDroppedBean(ViewBean viewBean, View group) {
+        if (dropPoint == null || dropGroup != group || !(group instanceof ViewGroup viewGroup)) return;
+        boolean sameParent = viewBean.preParent != null && viewBean.preParent.equals(viewBean.parent);
+        View existing = sameParent ? viewGroup.findViewWithTag(viewBean.id) : null;
+        if (existing != null) {
+            // Moved inside the same parent: keep its relations, change margins or bias.
+            float density = getResources().getDisplayMetrics().density;
+            int currentLeft = Math.round((existing.getLeft() - viewGroup.getPaddingLeft()) / density);
+            int currentTop = Math.round((existing.getTop() - viewGroup.getPaddingTop()) / density);
+            int freeX = Math.round((viewGroup.getWidth() - viewGroup.getPaddingLeft() - viewGroup.getPaddingRight() - existing.getWidth()) / density);
+            int freeY = Math.round((viewGroup.getHeight() - viewGroup.getPaddingTop() - viewGroup.getPaddingBottom() - existing.getHeight()) / density);
+            LayoutRelations.moveBy(viewBean, dropPoint.x - currentLeft, dropPoint.y - currentTop, currentLeft, currentTop, freeX, freeY);
+        } else {
+            LayoutRelations.placeAt(viewBean, dropPoint.x, dropPoint.y);
+        }
+        dropPoint = null;
     }
 
     private ViewInfo getViewInfo(int x, int y) {
@@ -1258,6 +1355,13 @@ public class ViewPane extends RelativeLayout {
                 layoutParams3.gravity = layoutGravity;
             }
             view.setLayoutParams(layoutParams3);
+        }
+    }
+
+    /** Rules like layout_below or constraints point at the old siblings; after a move they don't apply. */
+    private void prepareRelationsForDrop(ViewBean viewBean) {
+        if (viewBean.preParent != null && !viewBean.preParent.isEmpty() && !viewBean.preParent.equals(viewBean.parent)) {
+            viewBean.parentAttributes = new HashMap<>();
         }
     }
 

@@ -129,6 +129,13 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     private int colorError;
     private final Runnable longPressRunnable = this::e;
     private int colorErrorContainer;
+    private boolean freeMoving;
+    private float freeMoveBaseX;
+    private float freeMoveBaseY;
+    private android.widget.ImageButton blueprintButton;
+    private android.widget.ImageButton centerHorizontalButton;
+    private android.widget.ImageButton centerVerticalButton;
+    private android.widget.ImageButton clearRelationsButton;
 
     public ViewEditor(Context context) {
         this(context, null);
@@ -205,6 +212,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
             selectedItem.setSelection(false);
             selectedItem = null;
         }
+        onSelectionChanged();
         if (widgetSelectedListener != null) widgetSelectedListener.a(false, "");
     }
 
@@ -217,6 +225,127 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     public void removeFab() {
         viewPane.removeFabView();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Visual editing of RelativeLayout / ConstraintLayout relations
+
+    /**
+     * Changes the position rules of a widget from the canvas, with undo history. RelativeLayout
+     * changes that would create a circular dependency are refused.
+     */
+    private boolean applyRelationChange(ViewBean bean, java.util.function.Consumer<ViewBean> change) {
+        ViewBean before = bean.clone();
+        change.accept(bean);
+        if (LayoutRelations.isRelative(bean.parentType)) {
+            ArrayList<ViewBean> siblings = new ArrayList<>();
+            for (ViewBean view : jC.a(a).d(b)) {
+                if (java.util.Objects.equals(view.parent, bean.parent)) siblings.add(view);
+            }
+            if (LayoutRelations.hasRelativeCycle(siblings)) {
+                bean.copy(before);
+                bB.b(getContext(), getString(R.string.design_relations_circular), bB.TOAST_NORMAL).show();
+                viewPane.getRelationsOverlay().invalidate();
+                return false;
+            }
+        }
+        cC.c(a).a(b, before, bean.clone());
+        if (historyChangeListener != null) historyChangeListener.a();
+        e(bean);
+        onSelectionChanged();
+        return true;
+    }
+
+    private boolean canFreeMove(View view) {
+        return view instanceof ItemView item && item == selectedItem && !item.getFixed()
+                && LayoutRelations.supports(item.getBean()) && view.getParent() instanceof ViewGroup;
+    }
+
+    private void updateFreeMove(View view, MotionEvent event) {
+        float scale = viewPane.getScaleX() <= 0 ? 1f : viewPane.getScaleX();
+        view.setTranslationX(freeMoveBaseX + (event.getRawX() - posInitX) / scale);
+        view.setTranslationY(freeMoveBaseY + (event.getRawY() - posInitY) / scale);
+        viewPane.getRelationsOverlay().invalidate();
+    }
+
+    private void finishFreeMove(View view, MotionEvent event) {
+        freeMoving = false;
+        view.setTranslationX(freeMoveBaseX);
+        view.setTranslationY(freeMoveBaseY);
+        if (!(view instanceof ItemView item) || !(view.getParent() instanceof ViewGroup parent)) return;
+        float scale = viewPane.getScaleX() <= 0 ? 1f : viewPane.getScaleX();
+        float density = getResources().getDisplayMetrics().density;
+        int dx = Math.round((event.getRawX() - posInitX) / scale / density);
+        int dy = Math.round((event.getRawY() - posInitY) / scale / density);
+        if (dx == 0 && dy == 0) return;
+        int left = Math.round((view.getLeft() - parent.getPaddingLeft()) / density);
+        int top = Math.round((view.getTop() - parent.getPaddingTop()) / density);
+        int freeX = Math.round((parent.getWidth() - parent.getPaddingLeft() - parent.getPaddingRight() - view.getWidth()) / density);
+        int freeY = Math.round((parent.getHeight() - parent.getPaddingTop() - parent.getPaddingBottom() - view.getHeight()) / density);
+        applyRelationChange(item.getBean(), bean -> LayoutRelations.moveBy(bean, dx, dy, left, top, freeX, freeY));
+    }
+
+    private void onSelectionChanged() {
+        viewPane.getRelationsOverlay().setSelected(selectedItem);
+        boolean editable = selectedItem != null && LayoutRelations.supports(selectedItem.getBean());
+        for (View button : new View[]{centerHorizontalButton, centerVerticalButton, clearRelationsButton}) {
+            if (button == null) continue;
+            button.setEnabled(editable);
+            button.setAlpha(editable ? 1f : 0.35f);
+        }
+    }
+
+    private void addRelationsToolbar(Context context, FrameLayout shape) {
+        MaterialCardView card = new MaterialCardView(context);
+        card.setCardElevation(dip * 2);
+        card.setRadius(dip * 18);
+        card.setCardBackgroundColor(ThemeUtils.getColor(this, R.attr.colorSurfaceContainerHigh));
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding((int) (dip * 2), (int) (dip * 2), (int) (dip * 2), (int) (dip * 2));
+        card.addView(row);
+        blueprintButton = toolbarButton(context, row, R.drawable.ic_mtrl_blueprint, R.string.design_relations_blueprint, v -> {
+            LayoutRelationsOverlay overlay = viewPane.getRelationsOverlay();
+            overlay.setBlueprint(!overlay.isBlueprint());
+            v.setSelected(overlay.isBlueprint());
+            v.setBackgroundColor(overlay.isBlueprint() ? 0x331E88E5 : 0);
+        });
+        centerHorizontalButton = toolbarButton(context, row, R.drawable.ic_mtrl_align_horizontal_center, R.string.design_relations_center_horizontal,
+                v -> applyToSelection(bean -> LayoutRelations.center(bean, true)));
+        centerVerticalButton = toolbarButton(context, row, R.drawable.ic_mtrl_align_vertical_center, R.string.design_relations_center_vertical,
+                v -> applyToSelection(bean -> LayoutRelations.center(bean, false)));
+        clearRelationsButton = toolbarButton(context, row, R.drawable.ic_mtrl_link_off, R.string.design_relations_clear,
+                v -> applyToSelection(LayoutRelations::clearAll));
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.gravity = Gravity.TOP | Gravity.END;
+        params.topMargin = (int) (dip * 2);
+        params.rightMargin = (int) (dip * 4);
+        shape.addView(card, params);
+        onSelectionChanged();
+    }
+
+    private android.widget.ImageButton toolbarButton(Context context, LinearLayout row, int icon, @StringRes int description, View.OnClickListener listener) {
+        android.widget.ImageButton button = new android.widget.ImageButton(context);
+        button.setImageResource(icon);
+        button.setColorFilter(ThemeUtils.getColor(this, R.attr.colorOnSurface));
+        button.setContentDescription(getString(description));
+        button.setTooltipText(getString(description));
+        button.setBackgroundColor(0);
+        int size = (int) (dip * 34);
+        int padding = (int) (dip * 7);
+        button.setPadding(padding, padding, padding, padding);
+        button.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        button.setOnClickListener(listener);
+        row.addView(button, new LinearLayout.LayoutParams(size, size));
+        return button;
+    }
+
+    private void applyToSelection(java.util.function.Consumer<ViewBean> change) {
+        if (selectedItem == null || !LayoutRelations.supports(selectedItem.getBean())) {
+            bB.b(getContext(), getString(R.string.design_relations_select_child), bB.TOAST_NORMAL).show();
+            return;
+        }
+        applyRelationChange(selectedItem.getBean(), change);
     }
 
     /** Redraws widgets whose text or hint comes from strings.xml. */
@@ -303,9 +432,12 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
             return true;
         } else if (actionMasked == MotionEvent.ACTION_DOWN) {
             isDragged = false;
+            freeMoving = false;
             posInitX = motionEvent.getRawX();
             posInitY = motionEvent.getRawY();
             currentTouchedView = view;
+            freeMoveBaseX = view.getTranslationX();
+            freeMoveBaseY = view.getTranslationY();
             if (view instanceof ItemView bean && bean.getFixed()) {
                 return true;
             }
@@ -317,6 +449,11 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         } else if (actionMasked != MotionEvent.ACTION_UP) {
             if (actionMasked != MotionEvent.ACTION_MOVE) {
                 if (actionMasked == MotionEvent.ACTION_CANCEL || actionMasked == MotionEvent.ACTION_SCROLL) {
+                    if (freeMoving) {
+                        freeMoving = false;
+                        view.setTranslationX(freeMoveBaseX);
+                        view.setTranslationY(freeMoveBaseY);
+                    }
                     paletteWidget.setScrollEnabled(true);
                     paletteFavorite.setScrollEnabled(true);
                     if (draggingListener != null) {
@@ -331,9 +468,20 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                 }
                 return true;
             } else if (!isDragged) {
+                if (freeMoving) {
+                    updateFreeMove(view, motionEvent);
+                    return true;
+                }
                 if (Math.abs(posInitX - motionEvent.getRawX()) >= minDist || Math.abs(posInitY - motionEvent.getRawY()) >= minDist) {
-                    currentTouchedView = null;
                     handler.removeCallbacks(longPressRunnable);
+                    if (canFreeMove(view)) {
+                        // Dragging the selected widget of a RelativeLayout/ConstraintLayout moves it in place.
+                        freeMoving = true;
+                        if (view.getParent() != null) view.getParent().requestDisallowInterceptTouchEvent(true);
+                        updateFreeMove(view, motionEvent);
+                        return true;
+                    }
+                    currentTouchedView = null;
                     return true;
                 }
                 return true;
@@ -361,6 +509,13 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                 return true;
             }
         } else if (!isDragged) {
+            if (freeMoving) {
+                finishFreeMove(view, motionEvent);
+                currentTouchedView = null;
+                handler.removeCallbacks(longPressRunnable);
+                if (draggingListener != null) draggingListener.d();
+                return true;
+            }
             if (currentTouchedView instanceof ItemView sy) {
                 a(sy, true);
             }
@@ -599,6 +754,8 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         viewPane.setLayoutParams(new FrameLayout.LayoutParams(displayWidth, displayHeight));
         viewPane.setOnTouchListener(this);
         shape.addView(viewPane);
+        viewPane.getRelationsOverlay().setCallback(this::applyRelationChange);
+        addRelationsToolbar(context, shape);
 
         vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
         useVibrate = new DB(context, "P12").a("P12I0", true);
@@ -895,6 +1052,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         }
         itemView.setSelection(true);
         selectedItem = itemView;
+        onSelectionChanged();
     }
 
     private void a() {
@@ -1132,6 +1290,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         }
         selectedItem = syVar;
         selectedItem.setSelection(true);
+        onSelectionChanged();
         if (widgetSelectedListener != null) {
             widgetSelectedListener.a(z, selectedItem.getBean().id);
         }

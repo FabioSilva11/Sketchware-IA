@@ -1372,6 +1372,12 @@ You must enter the API key to operate the map normally."</string>
     <string name="design_preset_needs_material3">Enable Material 3 in the project\'s library settings to use this component.</string>
     <string name="design_include_choose_layout">Layout to include</string>
     <string name="design_include_no_layouts">Create another layout first to include it here.</string>
+    <string name="design_relations_circular">That rule would make widgets depend on each other in a circle, which RelativeLayout doesn\'t allow.</string>
+    <string name="design_relations_blueprint">Blueprint</string>
+    <string name="design_relations_center_horizontal">Center horizontally in parent</string>
+    <string name="design_relations_center_vertical">Center vertically in parent</string>
+    <string name="design_relations_clear">Remove position rules</string>
+    <string name="design_relations_select_child">Select a widget inside a RelativeLayout or ConstraintLayout first.</string>
     <string name="design_library_message_confirm_uncheck_appcompat_and_design">The existing Drawer Layout and FAB will be deleted. Would you like to continue?</string>
     <string name="design_library_message_confirm_uncheck_google_map">The existing MapView will be deleted. Would you like to continue?</string>
     <string name="design_library_message_slow_down_compilation_time">Including the library may slow down the compilation time on certain devices.</string>
