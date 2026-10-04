@@ -142,11 +142,13 @@ import pro.sketchware.activities.editor.view.ViewCodeEditorActivity;
 import pro.sketchware.activities.resourceseditor.ResourcesEditorActivity;
 import pro.sketchware.dialogs.BuildSettingsBottomSheet;
 import pro.sketchware.utility.FileUtil;
+import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.ThemeUtils;
 import pro.sketchware.utility.apk.ApkSignatures;
 import com.besome.sketch.beans.HistoryViewBean;
 import pro.sketchware.managers.inject.InjectRootLayoutManager;
+import com.besome.sketch.editor.manage.library.material3.Material3LibraryManager;
 import pro.sketchware.tools.ViewBeanParser;
 import pro.sketchware.utility.TranslationFunction;
 
@@ -705,50 +707,97 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             TextInputEditText promptInput = dialogView.findViewById(R.id.input_text);
             TextInputLayout promptContainer = dialogView.findViewById(R.id.input_layout_container);
             TextInputEditText referenceNotesInput = dialogView.findViewById(R.id.reference_image_notes);
+            com.google.android.material.button.MaterialButtonToggleGroup modeGroup = dialogView.findViewById(R.id.mode_group);
+            TextView modeHint = dialogView.findViewById(R.id.mode_hint);
+            com.google.android.material.textfield.MaterialAutoCompleteTextView rootInput = dialogView.findViewById(R.id.root_container);
+            com.google.android.material.chip.ChipGroup examples = dialogView.findViewById(R.id.example_chips);
+            TextView capabilities = dialogView.findViewById(R.id.capabilities);
             aiLayoutReferenceImageLabel = dialogView.findViewById(R.id.reference_image_label);
             aiLayoutReferenceImagePreviewList = dialogView.findViewById(R.id.reference_image_preview_list);
             MaterialButton selectReferenceImageButton = dialogView.findViewById(R.id.button_select_reference_image);
             aiLayoutReferenceImageUris.clear();
             updateAiLayoutReferenceImagePreview();
-            if (selectReferenceImageButton != null) {
-                selectReferenceImageButton.setOnClickListener(v -> selectAiLayoutReferenceImages.launch("image/*"));
+            selectReferenceImageButton.setOnClickListener(v -> selectAiLayoutReferenceImages.launch("image/*"));
+
+            String xmlName = projectFile != null ? projectFile.getXmlName() : "layout";
+            boolean hasViews = projectFile != null && !jC.a(sc_id).d(xmlName).isEmpty();
+            modeGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (!isChecked) return;
+                modeHint.setText(getString(checkedId == R.id.mode_edit
+                        ? R.string.ai_layout_generator_mode_edit_hint
+                        : R.string.ai_layout_generator_mode_create_hint, xmlName));
+            });
+            modeGroup.check(hasViews ? R.id.mode_edit : R.id.mode_create);
+            modeHint.setText(getString(hasViews ? R.string.ai_layout_generator_mode_edit_hint
+                    : R.string.ai_layout_generator_mode_create_hint, xmlName));
+
+            boolean appCompat = jC.c(sc_id).c().isEnabled();
+            boolean material3 = appCompat && new Material3LibraryManager(sc_id).isMaterial3Enabled();
+            List<String> roots = new ArrayList<>();
+            roots.add(getString(R.string.ai_layout_generator_root_auto));
+            roots.add("LinearLayout");
+            if (appCompat) roots.add("ConstraintLayout");
+            roots.add("RelativeLayout");
+            roots.add("FrameLayout");
+            roots.add("ScrollView");
+            rootInput.setSimpleItems(roots.toArray(new String[0]));
+            rootInput.setText(roots.get(0), false);
+
+            int[][] exampleTexts = {
+                    {R.string.ai_layout_generator_example_login, R.string.ai_layout_generator_example_login_prompt},
+                    {R.string.ai_layout_generator_example_profile, R.string.ai_layout_generator_example_profile_prompt},
+                    {R.string.ai_layout_generator_example_settings, R.string.ai_layout_generator_example_settings_prompt},
+                    {R.string.ai_layout_generator_example_card, R.string.ai_layout_generator_example_card_prompt},
+                    {R.string.ai_layout_generator_example_form, R.string.ai_layout_generator_example_form_prompt}};
+            for (int[] example : exampleTexts) {
+                com.google.android.material.chip.Chip chip = new com.google.android.material.chip.Chip(this);
+                chip.setText(example[0]);
+                chip.setOnClickListener(v -> {
+                    promptInput.setText(example[1]);
+                    promptInput.setSelection(promptInput.length());
+                });
+                examples.addView(chip);
             }
+
+            pro.sketchware.ia.layout.LayoutComponentRegistry registry = new pro.sketchware.ia.layout.LayoutComponentRegistry(appCompat, material3);
+            List<String> componentNames = new ArrayList<>();
+            for (pro.sketchware.ia.layout.LayoutComponentRegistry.Component component : registry.all()) {
+                componentNames.add(component.name);
+            }
+            int images = jC.d(sc_id).b == null ? 0 : jC.d(sc_id).b.size();
+            int layouts = jC.b(sc_id).b().size() + jC.b(sc_id).c().size() - 1;
+            int colors = countColors();
+            capabilities.setText(getString(R.string.ai_layout_generator_capabilities_body,
+                    String.join(", ", componentNames), images, colors, Math.max(0, layouts)));
 
             var dialog = new MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.ai_layout_generator_title)
+                    .setIcon(R.drawable.ic_mtrl_auto_awesome)
                     .setView(dialogView)
                     .setPositiveButton(R.string.common_word_generate, null)
                     .setNegativeButton(R.string.common_word_cancel, null)
                     .create();
 
             dialog.setOnShowListener(unused -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                String prompt = promptInput != null && promptInput.getText() != null
-                        ? promptInput.getText().toString().trim()
-                        : "";
-
+                String prompt = promptInput.getText() != null ? promptInput.getText().toString().trim() : "";
                 if (prompt.isEmpty()) {
-                    if (promptContainer != null) {
-                        promptContainer.setError(getString(R.string.ai_layout_generator_empty_prompt));
-                    }
-                    if (promptInput != null) {
-                        promptInput.requestFocus();
-                    }
+                    promptContainer.setError(getString(R.string.ai_layout_generator_empty_prompt));
+                    promptInput.requestFocus();
                     return;
                 }
-
-                if (promptContainer != null) {
-                    promptContainer.setError(null);
-                }
-
+                promptContainer.setError(null);
+                boolean editing = modeGroup.getCheckedButtonId() == R.id.mode_edit;
+                String root = rootInput.getText() == null ? "" : rootInput.getText().toString();
+                if (root.equals(roots.get(0))) root = "";
                 dialog.dismiss();
                 showAiLayoutLoadingDialog(
                         R.string.ai_layout_generator_loading_title,
                         getString(R.string.ai_layout_generator_loading_subtitle)
                 );
-                String referenceNotes = referenceNotesInput != null && referenceNotesInput.getText() != null
+                String referenceNotes = referenceNotesInput.getText() != null
                         ? referenceNotesInput.getText().toString().trim()
                         : "";
-                generateAndApplyLayoutAsync(prompt, isIncludeCurrentLayoutEnabled(dialogView), referenceNotes, new ArrayList<>(aiLayoutReferenceImageUris));
+                generateAndApplyLayoutAsync(prompt, editing, root, referenceNotes, new ArrayList<>(aiLayoutReferenceImageUris));
             }));
 
             dialog.show();
@@ -761,9 +810,15 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         }
     }
 
-    private boolean isIncludeCurrentLayoutEnabled(View dialogView) {
-        View checkboxView = dialogView.findViewById(R.id.checkbox_include_current);
-        return checkboxView instanceof CheckBox checkBox && checkBox.isChecked();
+    private int countColors() {
+        String colors = FileUtil.readFileIfExist(wq.b(sc_id) + "/files/resource/values/colors.xml");
+        int count = 0;
+        int index = 0;
+        while ((index = colors.indexOf("<color ", index)) >= 0) {
+            count++;
+            index++;
+        }
+        return count;
     }
 
     private void showAiLayoutLoadingDialog(int titleResId, String subtitle) {
@@ -822,7 +877,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                 "DO NOT add Toolbars, ActionBars, or any outer components. " +
                 "Only swap individual widgets for their modern Material 3 equivalents (e.g., Button to MaterialButton, Switch to MaterialSwitch, EditText to TextInputEditText/TextInputLayout) " +
                 "while maintaining all properties. Ensure every MaterialButton has centered text (android:gravity=\"center\"). " +
-                "Refine the design to look premium and responsive.", true, "", new ArrayList<>());
+                "Refine the design to look premium and responsive.", true, "", "", new ArrayList<>());
     }
 
     private void resetRootLayout() {
@@ -842,50 +897,45 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         }
     }
 
-    private void generateAndApplyLayoutAsync(String prompt, boolean includeCurrentLayout, String referenceNotes, List<Uri> referenceImageUris) {
+    private void generateAndApplyLayoutAsync(String prompt, boolean editing, String rootPreference, String referenceNotes, List<Uri> referenceImageUris) {
         if (projectFile == null) {
             dismissAiLayoutLoadingDialog();
             showAiLayoutErrorDialog(getString(R.string.ai_layout_generator_error_no_file));
             return;
         }
         List<Uri> referenceImageUrisSnapshot = referenceImageUris == null ? new ArrayList<>() : new ArrayList<>(referenceImageUris);
+        String xmlName = projectFile.getXmlName();
+        // Snapshot of the editor state, taken on the main thread.
+        ArrayList<ViewBean> currentViews = new ArrayList<>();
+        for (ViewBean bean : jC.a(sc_id).d(xmlName)) currentViews.add(bean.clone());
+        InjectRootLayoutManager.Root currentRoot = new InjectRootLayoutManager(sc_id).getLayoutByFileName(xmlName);
         new Thread(() -> {
             try {
-                String currentLayoutXml = null;
-                
-                String xmlName = projectFile.getXmlName();
-                
-                // Obter histórico de conversas anteriores
                 pro.sketchware.ia.LayoutHistoryManager historyManager =
                         new pro.sketchware.ia.LayoutHistoryManager(getApplicationContext());
                 List<pro.sketchware.ia.LayoutHistoryManager.HistoryEntry> history =
                         historyManager.getHistory(sc_id, xmlName);
-                
-                // Se solicitado, obter o layout atual
-                if (includeCurrentLayout) {
-                    updateAiLayoutLoadingDialog(getString(R.string.ai_layout_generator_reading_context));
-                    try {
-                        // Usar q.N que é o jq necessário para Ox (mesmo padrão usado na linha 1021)
-                        Ox ox = new Ox(q.N, projectFile);
-                        ox.a(jC.a(sc_id).d(xmlName), jC.a(sc_id).h(xmlName));
-                        currentLayoutXml = ox.b();
-                    } catch (Exception e) {
-                        Log.e("DesignActivity", "Erro ao obter layout atual", e);
-                        // Continua sem o layout atual se houver erro
-                    }
-                }
-                
-                // Criar gerador com histórico
-                String referenceContext = buildReferenceContext(referenceNotes, referenceImageUrisSnapshot);
-                List<String> availableDrawables = getAvailableProjectDrawables();
+
+                updateAiLayoutLoadingDialog(getString(R.string.ai_layout_generator_reading_context));
                 List<String> referenceImageDataUrls = buildReferenceImageDataUrls(referenceImageUrisSnapshot);
+                pro.sketchware.ia.layout.LayoutProjectContext baseContext = pro.sketchware.ia.layout.LayoutProjectContext.read(
+                        sc_id, xmlName, "", referenceNotes, referenceImageDataUrls);
+                pro.sketchware.ia.layout.LayoutComponentRegistry registry =
+                        new pro.sketchware.ia.layout.LayoutComponentRegistry(baseContext.appCompat, baseContext.material3);
+                String currentSpec = "";
+                if (editing && !currentViews.isEmpty()) {
+                    currentSpec = new pro.sketchware.ia.layout.LayoutSpecExporter(sc_id, registry)
+                            .export(currentRoot.getClassName(), currentRoot.getAttributes(), currentViews);
+                }
+                pro.sketchware.ia.layout.LayoutProjectContext projectContext = pro.sketchware.ia.layout.LayoutProjectContext.read(
+                        sc_id, xmlName, currentSpec, referenceNotes, referenceImageDataUrls);
 
                 updateAiLayoutLoadingDialog(getString(R.string.ai_layout_generator_loading_subtitle));
-                pro.sketchware.ia.GeradorDeLayout gerador = new pro.sketchware.ia.GeradorDeLayout(
-                        prompt, currentLayoutXml, history, referenceContext,
-                        availableDrawables, referenceImageDataUrls);
-                final String cleanXml = gerador.gerarLayout();
-                ParsedGeneratedLayout generatedLayout = prepareGeneratedLayout(cleanXml);
+                pro.sketchware.ia.GeradorDeLayout.Result generated = new pro.sketchware.ia.GeradorDeLayout(
+                        prompt, editing, rootPreference, projectContext, registry, history).generate();
+                ParsedGeneratedLayout generatedLayout = prepareGeneratedLayout(generated.xml);
+                // Generated texts become string resources owned by each widget, exactly like dropped widgets.
+                ProjectStrings.externalize(sc_id, generatedLayout.parsedLayout, true);
 
                 updateAiLayoutLoadingDialog(getString(R.string.ai_layout_generator_loading_applying));
 
@@ -911,13 +961,10 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                         }
 
                         SketchwareUtil.toast(getString(R.string.ai_layout_generator_success, xmlName));
-                        
-                        // Salvar no histórico após sucesso
                         try {
-                            historyManager.saveHistoryEntry(sc_id, xmlName, prompt, cleanXml);
+                            historyManager.saveHistoryEntry(sc_id, xmlName, prompt, generated.spec);
                         } catch (Exception e) {
-                            Log.e("DesignActivity", "Erro ao salvar histórico", e);
-                            // Não interrompe o fluxo se falhar ao salvar histórico
+                            Log.e("DesignActivity", "Failed to save the AI layout history", e);
                         }
                     } catch (Exception parseExp) {
                         showAiLayoutErrorDialog(getString(
@@ -1033,30 +1080,6 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    private String buildReferenceContext(String referenceNotes, List<Uri> referenceImageUris) {
-        StringBuilder context = new StringBuilder();
-        if (referenceImageUris != null && !referenceImageUris.isEmpty()) {
-            context.append("Selected reference image URIs:\n");
-            for (int i = 0; i < referenceImageUris.size(); i++) {
-                Uri uri = referenceImageUris.get(i);
-                context.append(i + 1)
-                        .append(". ")
-                        .append(uri)
-                        .append(" (display name: ")
-                        .append(getReferenceImageDisplayName(uri))
-                        .append(")\n");
-            }
-            context.append("The provider receives this as text context, so prioritize the user's written notes when visual details are needed.");
-        }
-        if (referenceNotes != null && !referenceNotes.trim().isEmpty()) {
-            if (context.length() > 0) {
-                context.append('\n');
-            }
-            context.append("User reference notes: ").append(referenceNotes.trim());
-        }
-        return context.toString();
-    }
-
     private List<String> buildReferenceImageDataUrls(List<Uri> uris) {
         List<String> images = new ArrayList<>();
         if (uris == null) return images;
@@ -1085,57 +1108,21 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         return images;
     }
 
-    private List<String> getAvailableProjectDrawables() {
-        Set<String> drawables = new HashSet<>();
-        try {
-            ArrayList<ProjectResourceBean> resources = jC.d(sc_id).b;
-            if (resources != null) {
-                for (ProjectResourceBean resource : resources) {
-                    if (resource != null && resource.resName != null && !resource.resName.trim().isEmpty()) {
-                        drawables.add("@drawable/" + resource.resName.trim());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            Log.e("DesignActivity", "Failed to read project drawable resources", e);
-        }
-        ArrayList<String> sorted = new ArrayList<>(drawables);
-        java.util.Collections.sort(sorted);
-        if (sorted.size() > 80) {
-            return new ArrayList<>(sorted.subList(0, 80));
-        }
-        return sorted;
-    }
-
     private android.util.Pair<String, java.util.Map<String, String>> sanitizeGeneratedRoot(android.util.Pair<String, java.util.Map<String, String>> rootAttributes) {
         if (rootAttributes == null || rootAttributes.first == null || rootAttributes.first.trim().isEmpty()) {
             InjectRootLayoutManager.Root defaultRoot = InjectRootLayoutManager.getDefaultRootLayout();
             return android.util.Pair.create("LinearLayout", new LinkedHashMap<>(defaultRoot.getAttributes()));
         }
-
         Map<String, String> sanitized = new LinkedHashMap<>();
-        Map<String, String> attrs = rootAttributes.second != null ? rootAttributes.second : new LinkedHashMap<>();
-        for (Map.Entry<String, String> entry : attrs.entrySet()) {
-            String key = entry.getKey();
-            if (key == null) {
-                continue;
+        if (rootAttributes.second != null) {
+            for (Map.Entry<String, String> entry : rootAttributes.second.entrySet()) {
+                if (entry.getKey() != null && !entry.getKey().startsWith("xmlns")) {
+                    sanitized.put(entry.getKey().trim(), entry.getValue());
+                }
             }
-            String normalized = key.trim();
-            if (normalized.startsWith("android:padding")
-                    || normalized.startsWith("android:layout_margin")
-                    || normalized.equals("android:background")
-                    || normalized.equals("app:cardBackgroundColor")
-                    || normalized.equals("app:strokeColor")
-                    || normalized.equals("app:strokeWidth")) {
-                continue;
-            }
-            sanitized.put(normalized, entry.getValue());
         }
         sanitized.put("android:layout_width", "match_parent");
         sanitized.put("android:layout_height", "match_parent");
-        if (!sanitized.containsKey("android:orientation") && "LinearLayout".equals(ViewBeanParser.getNameFromTag(rootAttributes.first))) {
-            sanitized.put("android:orientation", "vertical");
-        }
         return android.util.Pair.create(rootAttributes.first, sanitized);
     }
 

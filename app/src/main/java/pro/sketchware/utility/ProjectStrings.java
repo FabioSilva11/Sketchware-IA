@@ -125,8 +125,18 @@ public final class ProjectStrings {
         }
     }
 
-    /** Moves the literal texts of new widgets (dropped, pasted or generated) into string resources. */
+    /** Moves the literal texts of new widgets (dropped or pasted) into string resources. */
     public static void externalize(@NonNull String scId, @NonNull List<ViewBean> beans) {
+        externalize(scId, beans, false);
+    }
+
+    /**
+     * Moves literal texts into string resources.
+     *
+     * @param replaceOwned whether a widget's own string ({@code <id>_text}) is updated in place, as when
+     *                     a generated layout keeps a widget id but changes its text
+     */
+    public static void externalize(@NonNull String scId, @NonNull List<ViewBean> beans, boolean replaceOwned) {
         synchronized (ProjectStrings.class) {
             Strings strings = Strings.load(scId);
             if (strings.failed) return;
@@ -135,13 +145,13 @@ public final class ProjectStrings {
                 if (bean.text == null || bean.id == null || !bean.getClassInfo().a("TextView")) continue;
                 String text = bean.text.text;
                 if (text != null && !text.trim().isEmpty() && !isReference(text)) {
-                    String key = strings.keyFor(ownedKey(bean.id, FIELD_TEXT), text);
+                    String key = replaceOwned ? ownedKey(bean.id, FIELD_TEXT) : strings.keyFor(ownedKey(bean.id, FIELD_TEXT), text);
                     changed |= strings.put(key, text);
                     bean.text.text = REFERENCE_PREFIX + key;
                 }
                 String hint = bean.text.hint;
                 if (hint != null && !hint.trim().isEmpty() && !isReference(hint)) {
-                    String key = strings.keyFor(ownedKey(bean.id, FIELD_HINT), hint);
+                    String key = replaceOwned ? ownedKey(bean.id, FIELD_HINT) : strings.keyFor(ownedKey(bean.id, FIELD_HINT), hint);
                     changed |= strings.put(key, hint);
                     bean.text.hint = REFERENCE_PREFIX + key;
                 }
