@@ -72,6 +72,14 @@ public final class ProjectStrings {
         return value != null && value.trim().startsWith(REFERENCE_PREFIX);
     }
 
+    /** The text of {@code @string/key}, or the reference itself when the key doesn't exist. */
+    @NonNull
+    public static String resolve(@NonNull String scId, @NonNull String reference) {
+        if (!isReference(reference)) return reference;
+        String value = Strings.load(scId).get(reference.trim().substring(REFERENCE_PREFIX.length()));
+        return value == null ? reference : value;
+    }
+
     @NonNull
     public static String ownedKey(@NonNull String widgetId, @NonNull String field) {
         String base = (widgetId + "_" + field).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "_");

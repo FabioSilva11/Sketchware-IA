@@ -36,6 +36,8 @@ import com.besome.sketch.editor.view.palette.IconBase;
 import com.besome.sketch.editor.view.palette.IconLinearHorizontal;
 import com.besome.sketch.editor.view.palette.IconLinearVertical;
 import com.besome.sketch.editor.view.palette.IconMapView;
+import com.besome.sketch.editor.view.palette.IconPreset;
+import com.besome.sketch.editor.manage.library.material3.Material3LibraryManager;
 import com.besome.sketch.editor.view.palette.PaletteFavorite;
 import com.besome.sketch.editor.view.palette.PaletteWidget;
 import com.google.android.material.card.MaterialCardView;
@@ -63,8 +65,10 @@ import mod.agus.jcoderz.beans.ViewBeans;
 import mod.hey.studios.util.ProjectFile;
 import mod.jbk.util.LogUtil;
 import pro.sketchware.R;
+import pro.sketchware.utility.InjectAttributes;
 import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.ThemeUtils;
+import pro.sketchware.widgets.BuiltInWidgets;
 import pro.sketchware.widgets.IconCustomWidget;
 import pro.sketchware.widgets.WidgetsCreatorManager;
 import pro.sketchware.utility.TranslationFunction;
@@ -97,7 +101,8 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     private String b;
     private int screenType;
     private boolean da = true;
-    private int[] countItems = new int[20];
+    private int[] countItems = new int[256];
+    private final HashMap<String, Integer> presetCounts = new HashMap<>();
     private float dip = 0;
     private int displayWidth;
     private int displayHeight;
@@ -228,7 +233,8 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     }
 
     public void l() {
-        countItems = new int[99];
+        countItems = new int[256];
+        presetCounts.clear();
     }
 
     private void showMoreProperties() {
@@ -435,7 +441,9 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                     }
                 } else if (currentTouchedView instanceof IconBase icon) {
                     ViewBean bean = icon.getBean();
-                    bean.id = generateWidgetId(bean);
+                    bean.id = icon instanceof IconPreset preset
+                            ? generateWidgetId(preset.getPreset().idPrefix)
+                            : generateWidgetId(bean);
                     viewPane.updateViewBeanProperties(bean, (int) motionEvent.getRawX(), (int) motionEvent.getRawY());
                     ProjectStrings.externalize(a, bean);
                     jC.a(a).a(b, bean);
@@ -443,6 +451,9 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                         jC.a(a).a(projectFileBean.getJavaName(), 1, bean.type, bean.id, "onClick");
                     }
                     a(a(bean, true), true);
+                    if (bean.type == ViewBeans.VIEW_TYPE_LAYOUT_INCLUDE) {
+                        showIncludeLayoutPicker(bean);
+                    }
                 } else if (currentTouchedView instanceof ItemView sy) {
                     ViewBean bean = sy.getBean();
                     viewPane.updateViewBeanProperties(bean, (int) motionEvent.getRawX(), (int) motionEvent.getRawY());
@@ -701,6 +712,15 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
             } else if (currentTouchedView instanceof AndroidxOrMaterialView && !isAppCompatEnabled) {
                 bB.b(getContext(), getString(R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
                 return;
+            } else if (currentTouchedView instanceof IconPreset presetIcon) {
+                BuiltInWidgets.Preset preset = presetIcon.getPreset();
+                boolean material3 = new Material3LibraryManager(a).isMaterial3Enabled();
+                if (!preset.isAvailable(isAppCompatEnabled, material3)) {
+                    bB.b(getContext(), getString(preset.requirement == BuiltInWidgets.Requirement.MATERIAL3
+                            ? R.string.design_preset_needs_material3
+                            : R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
+                    return;
+                }
             }
         }
         paletteWidget.setScrollEnabled(false);
@@ -965,6 +985,12 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         widget.setOnTouchListener(this);
     }
 
+    public void addPreset(BuiltInWidgets.Preset preset, boolean layout) {
+        View icon = paletteWidget.addPreset(preset, layout);
+        icon.setClickable(true);
+        icon.setOnTouchListener(this);
+    }
+
     public void extraWidget(String str, String str2, String str3) {
         View extraWidget = paletteWidget.extraWidget(str, str2, str3);
         extraWidget.setClickable(true);
@@ -979,6 +1005,54 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         View a2 = paletteFavorite.a(str, arrayList);
         a2.setClickable(true);
         a2.setOnTouchListener(this);
+    }
+
+    /** Next free id with a fixed prefix, e.g. imagebutton1, used by palette presets. */
+    private String generateWidgetId(String prefix) {
+        ArrayList<ViewBean> beans = jC.a(a).d(b);
+        int count = presetCounts.getOrDefault(prefix, 0);
+        while (true) {
+            count++;
+            String id = prefix + count;
+            boolean used = false;
+            for (ViewBean view : beans) {
+                if (id.equals(view.id)) {
+                    used = true;
+                    break;
+                }
+            }
+            if (!used) {
+                presetCounts.put(prefix, count);
+                return id;
+            }
+        }
+    }
+
+    /** Asks which layout a freshly dropped include should show. */
+    private void showIncludeLayoutPicker(ViewBean bean) {
+        ArrayList<String> layouts = new ArrayList<>();
+        for (ProjectFileBean file : jC.b(a).b()) {
+            if (!file.getXmlName().equals(b)) layouts.add(file.getXmlName().replace(".xml", ""));
+        }
+        for (ProjectFileBean file : jC.b(a).c()) {
+            if (!file.getXmlName().equals(b)) layouts.add(file.getXmlName().replace(".xml", ""));
+        }
+        if (layouts.isEmpty()) {
+            bB.b(getContext(), getString(R.string.design_include_no_layouts), bB.TOAST_NORMAL).show();
+            return;
+        }
+        String[] items = layouts.toArray(new String[0]);
+        new MaterialAlertDialogBuilder(getContext())
+                .setTitle(R.string.design_include_choose_layout)
+                .setItems(items, (dialog, which) -> {
+                    ViewBean before = bean.clone();
+                    InjectAttributes.set(bean, "layout", "@layout/" + items[which]);
+                    cC.c(a).a(b, before, bean.clone());
+                    if (historyChangeListener != null) historyChangeListener.a();
+                    e(bean);
+                })
+                .setNegativeButton(R.string.common_word_cancel, null)
+                .show();
     }
 
     private String generateWidgetId(ViewBean bean) {

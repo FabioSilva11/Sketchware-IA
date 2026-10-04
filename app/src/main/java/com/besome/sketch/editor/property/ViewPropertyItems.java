@@ -135,7 +135,39 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
             case "property_indeterminate" -> d(property, bean.indeterminate);
             case "property_inject" -> b(property, bean.inject);
             case "property_convert" -> b(property, bean.convert, String.valueOf(bean.type));
+            case "property_clickable" -> e(property, bean.clickable);
+            default -> {
+                if (property.startsWith(WidgetAttributes.KEY_PREFIX)) {
+                    WidgetAttributes.Spec spec = WidgetAttributes.find(bean, property);
+                    if (spec != null) addAttributeItem(bean, spec);
+                }
+            }
         }
+    }
+
+    /** Attributes from {@link WidgetAttributes}, grouped under headers in the full property screen. */
+    public void j(ViewBean bean) {
+        String group = null;
+        for (WidgetAttributes.Spec spec : WidgetAttributes.forBean(bean)) {
+            if (getOrientation() == LinearLayout.VERTICAL && !spec.group.equals(group)) {
+                a(spec.group);
+                group = spec.group;
+            }
+            addAttributeItem(bean, spec);
+        }
+    }
+
+    private void addAttributeItem(ViewBean bean, WidgetAttributes.Spec spec) {
+        PropertyAttributeItem item = (PropertyAttributeItem) f.get(spec.key());
+        if (item == null) {
+            item = new PropertyAttributeItem(getContext());
+            item.setOrientationItem(getOrientation());
+            item.setSpec(spec, sc_id);
+            item.setOnPropertyValueChangeListener(this);
+            f.put(spec.key(), item);
+        }
+        item.setBean(bean);
+        addView(item);
     }
 
     private void a(String header) {
@@ -244,6 +276,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
             d(bean);
             g(bean);
             h(bean);
+            j(bean);
             if (getOrientation() == LinearLayout.HORIZONTAL) {
                 b("property_id", bean.id);
             }
@@ -415,7 +448,8 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
         Gx parentClassInfo = bean.getParentClassInfo();
         a(bean, "property_layout_width");
         a(bean, "property_layout_height");
-        if (bean.parentType == ViewBean.VIEW_TYPE_LAYOUT_RELATIVE) {
+        if (bean.parentType == ViewBean.VIEW_TYPE_LAYOUT_RELATIVE
+                || bean.parentType == mod.agus.jcoderz.beans.ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT) {
             a(bean, "property_parent_attr");
         }
         a(bean, "property_padding");
@@ -436,7 +470,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                 a(bean, "property_weight");
             }
 
-            if (parentClassInfo.a("ScrollView") || parentClassInfo.a("HorizontalScrollView")) {
+            if (parentClassInfo.a("FrameLayout") || parentClassInfo.a("ScrollView") || parentClassInfo.a("HorizontalScrollView")) {
                 a(bean, "property_layout_gravity");
             }
         }
@@ -679,6 +713,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                 && !classInfo.b("ListView")
                 && !classInfo.b("FloatingActionButton")) {
             a(bean, "property_enabled");
+            a(bean, "property_clickable");
         }
 
         a(bean, "property_rotate");
@@ -829,11 +864,34 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
             }
         }
 
+        // Attribute items write on top of the inject text, so they run after the inject item above.
+        for (int index = 0; index < childCount; ++index) {
+            if (getChildAt(index) instanceof PropertyAttributeItem attributeItem && attributeItem.isDirty()) {
+                attributeItem.applyTo(bean);
+            }
+        }
+        for (int index = 0; index < childCount; ++index) {
+            View view = getChildAt(index);
+            if (view instanceof PropertyAttributeItem attributeItem) {
+                attributeItem.setBean(bean);
+            } else if (view instanceof PropertyInputItem inputItem && "property_inject".equals(inputItem.getKey())) {
+                inputItem.setValue(bean.inject);
+            } else if (view instanceof PropertyAttributesItem item && "property_parent_attr".equals(item.getKey())) {
+                item.setValue(bean.parentAttributes);
+            }
+        }
+
         if (!bean.id.equals(bean.preId)) {
             boolean viewBinding = settings.getValue(ProjectSettings.SETTING_ENABLE_VIEWBINDING, "false").equals("true");
             for (ViewBean viewBean : jC.a(sc_id).d(e.getXmlName())) {
                 if (viewBean.parent.equals(bean.preId)) {
                     viewBean.parent = bean.id;
+                }
+                // RelativeLayout rules and constraints of the siblings follow the renamed widget.
+                for (java.util.Map.Entry<String, String> rule : viewBean.parentAttributes.entrySet()) {
+                    if (bean.preId.equals(rule.getValue())) {
+                        rule.setValue(bean.id);
+                    }
                 }
             }
 

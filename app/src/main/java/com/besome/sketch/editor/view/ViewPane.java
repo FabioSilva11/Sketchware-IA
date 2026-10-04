@@ -30,6 +30,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.content.res.AppCompatResources;
 import androidx.appcompat.widget.AppCompatImageView;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.besome.sketch.beans.ImageBean;
 import com.besome.sketch.beans.LayoutBean;
@@ -43,13 +44,17 @@ import com.besome.sketch.editor.view.item.ItemButton;
 import com.besome.sketch.editor.view.item.ItemCalendarView;
 import com.besome.sketch.editor.view.item.ItemCardView;
 import com.besome.sketch.editor.view.item.ItemCheckBox;
+import com.besome.sketch.editor.view.item.ItemConstraintLayout;
 import com.besome.sketch.editor.view.item.ItemEditText;
 import com.besome.sketch.editor.view.item.ItemFloatingActionButton;
+import com.besome.sketch.editor.view.item.ItemFrameLayout;
 import com.besome.sketch.editor.view.item.ItemHorizontalScrollView;
 import com.besome.sketch.editor.view.item.ItemImageView;
+import com.besome.sketch.editor.view.item.ItemInclude;
 import com.besome.sketch.editor.view.item.ItemLinearLayout;
 import com.besome.sketch.editor.view.item.ItemListView;
 import com.besome.sketch.editor.view.item.ItemMapView;
+import com.besome.sketch.editor.view.item.ItemPlainView;
 import com.besome.sketch.editor.view.item.ItemProgressBar;
 import com.besome.sketch.editor.view.item.ItemRecyclerView;
 import com.besome.sketch.editor.view.item.ItemRelativeLayout;
@@ -109,6 +114,7 @@ import pro.sketchware.managers.inject.InjectRootLayoutManager;
 import pro.sketchware.utility.FilePathUtil;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.InjectAttributeHandler;
+import pro.sketchware.utility.InjectAttributes;
 import pro.sketchware.utility.InvokeUtil;
 import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.PropertiesUtil;
@@ -251,6 +257,8 @@ public class ViewPane extends RelativeLayout {
         if (rootLayout != null) {
             if (rootLayout instanceof ItemLinearLayout linearLayout) {
                 a(viewBean, linearLayout);
+            } else if (rootLayout instanceof ItemHorizontalScrollView || rootLayout instanceof ItemVerticalScrollView) {
+                a(viewBean, rootLayout);
             } else {
                 addDroppableForViewGroup(viewBean, rootLayout);
             }
@@ -321,6 +329,10 @@ public class ViewPane extends RelativeLayout {
             case ViewBeans.VIEW_TYPE_WIDGET_OTPVIEW -> new ItemOTPView(context);
             case ViewBeans.VIEW_TYPE_WIDGET_CODEVIEW -> new ItemCodeView(context);
             case ViewBeans.VIEW_TYPE_WIDGET_RECYCLERVIEW -> new ItemRecyclerView(context);
+            case ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT -> new ItemConstraintLayout(context);
+            case ViewBeans.VIEW_TYPE_LAYOUT_FRAMELAYOUT -> new ItemFrameLayout(context);
+            case ViewBeans.VIEW_TYPE_LAYOUT_INCLUDE -> new ItemInclude(context);
+            case ViewBeans.VIEW_TYPE_WIDGET_VIEW -> new ItemPlainView(context);
             default -> getUnknownItemView(viewBean);
         };
         item.setId(++b);
@@ -497,6 +509,8 @@ public class ViewPane extends RelativeLayout {
         }
         if (viewBean.parentType == ViewBean.VIEW_TYPE_LAYOUT_RELATIVE) {
             updateRelative(view, injectHandler);
+        } else if (viewBean.parentType == ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT) {
+            updateConstraints(view, viewBean);
         }
         if (classInfo.a("TextView")) {
             TextView textView = (TextView) view;
@@ -629,6 +643,7 @@ public class ViewPane extends RelativeLayout {
         if (!elevation.isEmpty()) {
             view.setElevation(PropertiesUtil.resolveSize(elevation, 0));
         }
+        applyInjectedAttributes(view, viewBean);
         view.setVisibility(VISIBLE);
         if (view instanceof EditorListItem listItem) {
             String listitem = injectHandler.getAttributeValueOf("listitem");
@@ -647,6 +662,133 @@ public class ViewPane extends RelativeLayout {
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Shows in the editor the attributes edited from the property panel. Views marked invisible or gone
+     * are drawn faded instead of hidden, so they can still be selected.
+     */
+    private void applyInjectedAttributes(View view, ViewBean viewBean) {
+        java.util.Map<String, String> attrs = InjectAttributes.parse(viewBean.inject);
+        String visibility = attrs.get("android:visibility");
+        if ("gone".equals(visibility) || "invisible".equals(visibility)) {
+            view.setAlpha(viewBean.alpha * 0.35f);
+        }
+        view.setMinimumWidth(dimenToPx(attrs.get("android:minWidth"), 0));
+        view.setMinimumHeight(dimenToPx(attrs.get("android:minHeight"), 0));
+        Integer backgroundTint = resolveAttrColor(attrs.get("android:backgroundTint"));
+        androidx.core.view.ViewCompat.setBackgroundTintList(view, backgroundTint == null ? null : android.content.res.ColorStateList.valueOf(backgroundTint));
+
+        if (view instanceof TextView textView) {
+            String family = attrs.get("android:fontFamily");
+            if (family != null && !family.startsWith("@")) {
+                textView.setTypeface(Typeface.create(family, viewBean.text.textType));
+            }
+            String allCaps = attrs.get("android:textAllCaps");
+            if (allCaps != null) textView.setAllCaps(Boolean.parseBoolean(allCaps));
+            Integer maxLines = parseInt(attrs.get("android:maxLines"));
+            if (maxLines != null && maxLines > 0) textView.setMaxLines(maxLines);
+            Integer minLines = parseInt(attrs.get("android:minLines"));
+            if (minLines != null && minLines > 0) textView.setMinLines(minLines);
+            String ellipsize = attrs.get("android:ellipsize");
+            textView.setEllipsize(switch (ellipsize == null ? "" : ellipsize) {
+                case "start" -> TextUtils.TruncateAt.START;
+                case "middle" -> TextUtils.TruncateAt.MIDDLE;
+                case "end" -> TextUtils.TruncateAt.END;
+                case "marquee" -> TextUtils.TruncateAt.MARQUEE;
+                default -> null;
+            });
+            textView.setTextAlignment(switch (attrs.getOrDefault("android:textAlignment", "")) {
+                case "inherit" -> View.TEXT_ALIGNMENT_INHERIT;
+                case "textStart" -> View.TEXT_ALIGNMENT_TEXT_START;
+                case "textEnd" -> View.TEXT_ALIGNMENT_TEXT_END;
+                case "center" -> View.TEXT_ALIGNMENT_CENTER;
+                case "viewStart" -> View.TEXT_ALIGNMENT_VIEW_START;
+                case "viewEnd" -> View.TEXT_ALIGNMENT_VIEW_END;
+                default -> View.TEXT_ALIGNMENT_GRAVITY;
+            });
+            Float letterSpacing = parseFloat(attrs.get("android:letterSpacing"));
+            textView.setLetterSpacing(letterSpacing == null ? 0f : letterSpacing);
+            Float multiplier = parseFloat(attrs.get("android:lineSpacingMultiplier"));
+            textView.setLineSpacing(dimenToPx(attrs.get("android:lineSpacingExtra"), 0), multiplier == null ? 1f : multiplier);
+            String includeFontPadding = attrs.get("android:includeFontPadding");
+            textView.setIncludeFontPadding(includeFontPadding == null || Boolean.parseBoolean(includeFontPadding));
+            int maxWidth = dimenToPx(attrs.get("android:maxWidth"), -1);
+            textView.setMaxWidth(maxWidth < 0 ? Integer.MAX_VALUE : maxWidth);
+            int maxHeight = dimenToPx(attrs.get("android:maxHeight"), -1);
+            textView.setMaxHeight(maxHeight < 0 ? Integer.MAX_VALUE : maxHeight);
+            textView.setCompoundDrawablePadding(dimenToPx(attrs.get("android:drawablePadding"), 0));
+        }
+        if (view instanceof ImageView imageView) {
+            Integer tint = resolveAttrColor(attrs.get("android:tint"));
+            androidx.core.widget.ImageViewCompat.setImageTintList(imageView, tint == null ? null : android.content.res.ColorStateList.valueOf(tint));
+            imageView.setAdjustViewBounds(Boolean.parseBoolean(attrs.get("android:adjustViewBounds")));
+            int maxWidth = dimenToPx(attrs.get("android:maxWidth"), -1);
+            imageView.setMaxWidth(maxWidth < 0 ? Integer.MAX_VALUE : maxWidth);
+            int maxHeight = dimenToPx(attrs.get("android:maxHeight"), -1);
+            imageView.setMaxHeight(maxHeight < 0 ? Integer.MAX_VALUE : maxHeight);
+        }
+        if (view instanceof CompoundButton compoundButton) {
+            Integer tint = resolveAttrColor(attrs.get("android:buttonTint"));
+            androidx.core.widget.CompoundButtonCompat.setButtonTintList(compoundButton, tint == null ? null : android.content.res.ColorStateList.valueOf(tint));
+        }
+        if (view instanceof android.widget.Switch switchView) {
+            Integer thumb = resolveAttrColor(attrs.get("android:thumbTint"));
+            switchView.setThumbTintList(thumb == null ? null : android.content.res.ColorStateList.valueOf(thumb));
+            Integer track = resolveAttrColor(attrs.get("android:trackTint"));
+            switchView.setTrackTintList(track == null ? null : android.content.res.ColorStateList.valueOf(track));
+        }
+        if (view instanceof android.widget.ProgressBar progressBar) {
+            Integer progress = resolveAttrColor(attrs.get("android:progressTint"));
+            progressBar.setProgressTintList(progress == null ? null : android.content.res.ColorStateList.valueOf(progress));
+            Integer background = resolveAttrColor(attrs.get("android:progressBackgroundTint"));
+            progressBar.setProgressBackgroundTintList(background == null ? null : android.content.res.ColorStateList.valueOf(background));
+            Integer indeterminate = resolveAttrColor(attrs.get("android:indeterminateTint"));
+            progressBar.setIndeterminateTintList(indeterminate == null ? null : android.content.res.ColorStateList.valueOf(indeterminate));
+            if (view instanceof SeekBar seekBar) {
+                Integer thumb = resolveAttrColor(attrs.get("android:thumbTint"));
+                seekBar.setThumbTintList(thumb == null ? null : android.content.res.ColorStateList.valueOf(thumb));
+            }
+        }
+    }
+
+    private int dimenToPx(String value, int fallback) {
+        if (value == null || value.isEmpty()) return fallback;
+        Matcher matcher = Pattern.compile("(-?\\d+(?:\\.\\d+)?)(dp|dip|sp|px)?").matcher(value.trim());
+        if (!matcher.matches()) return fallback;
+        float number = Float.parseFloat(matcher.group(1));
+        String unit = matcher.group(2);
+        if ("px".equals(unit)) return Math.round(number);
+        if ("sp".equals(unit)) {
+            return Math.round(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, number, getResources().getDisplayMetrics()));
+        }
+        return Math.round(wB.a(getContext(), number));
+    }
+
+    private Integer resolveAttrColor(String value) {
+        if (value == null || value.isEmpty()) return null;
+        try {
+            if (value.startsWith("#")) return PropertiesUtil.parseColor(value);
+            return PropertiesUtil.parseColor(colorsEditorManager.getColorValue(context, value, 3, material3LibraryManager.canUseNightVariantColors()));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static Integer parseInt(String value) {
+        try {
+            return value == null ? null : Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    private static Float parseFloat(String value) {
+        try {
+            return value == null ? null : Float.parseFloat(value.trim());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -706,6 +848,24 @@ public class ViewPane extends RelativeLayout {
                 viewBean.parent = view.getTag().toString();
                 viewBean.preParentType = viewBean.parentType;
                 viewBean.parentType = ViewBean.VIEW_TYPE_LAYOUT_RELATIVE;
+            } else if (view instanceof ItemConstraintLayout) {
+                viewBean.preIndex = viewBean.index;
+                viewBean.index = viewInfo.index();
+                viewBean.preParent = viewBean.parent;
+                viewBean.parent = view.getTag().toString();
+                viewBean.preParentType = viewBean.parentType;
+                viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT;
+            } else if (view instanceof ItemFrameLayout) {
+                viewBean.preIndex = viewBean.index;
+                viewBean.index = viewInfo.index();
+                viewBean.preParent = viewBean.parent;
+                viewBean.parent = view.getTag().toString();
+                viewBean.preParentType = viewBean.parentType;
+                viewBean.parentType = ViewBeans.VIEW_TYPE_LAYOUT_FRAMELAYOUT;
+            }
+            if (viewBean.preParent != null && !viewBean.preParent.isEmpty() && !viewBean.preParent.equals(viewBean.parent)) {
+                // Rules like layout_below or constraints point at the old siblings; they don't apply any more.
+                viewBean.parentAttributes = new HashMap<>();
             }
         } else {
             viewBean.preIndex = viewBean.index;
@@ -924,6 +1084,8 @@ public class ViewPane extends RelativeLayout {
                     a(view, (ViewGroup) child);
                 } else if (child instanceof ItemRelativeLayout relativeLayout) {
                     addDroppableForViewGroup(view, relativeLayout);
+                } else if (child instanceof ItemConstraintLayout || child instanceof ItemFrameLayout) {
+                    addDroppableForViewGroup(view, (ViewGroup) child);
                 }
                 childIndex++;
             }
@@ -955,6 +1117,8 @@ public class ViewPane extends RelativeLayout {
                     a(viewBean, (ViewGroup) childAt);
                 } else if (childAt instanceof ItemRelativeLayout relativeLayout) {
                     addDroppableForViewGroup(viewBean, relativeLayout);
+                } else if (childAt instanceof ItemConstraintLayout || childAt instanceof ItemFrameLayout) {
+                    addDroppableForViewGroup(viewBean, (ViewGroup) childAt);
                 }
             }
         }
@@ -977,6 +1141,8 @@ public class ViewPane extends RelativeLayout {
                     a(viewBean, (ViewGroup) childAt);
                 } else if (childAt instanceof ItemRelativeLayout relativeLayout) {
                     addDroppableForViewGroup(viewBean, relativeLayout);
+                } else if (childAt instanceof ItemConstraintLayout || childAt instanceof ItemFrameLayout) {
+                    addDroppableForViewGroup(viewBean, (ViewGroup) childAt);
                 }
             }
         }
@@ -1004,6 +1170,8 @@ public class ViewPane extends RelativeLayout {
             viewGroup.addView(view, bean.index);
             if (bean.parentType == ViewBean.VIEW_TYPE_LAYOUT_RELATIVE) {
                 updateRelativeParentViews(view, new InjectAttributeHandler(bean));
+            } else if (bean.parentType == ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT) {
+                updateConstraintSiblings(viewGroup);
             }
             if (viewGroup instanceof ScrollContainer scrollContainer) {
                 scrollContainer.reindexChildren();
@@ -1018,6 +1186,10 @@ public class ViewPane extends RelativeLayout {
                 return ViewBean.VIEW_TYPE_LAYOUT_LINEAR;
             } else if (parent instanceof ItemRelativeLayout) {
                 return ViewBean.VIEW_TYPE_LAYOUT_RELATIVE;
+            } else if (parent instanceof ItemConstraintLayout) {
+                return ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT;
+            } else if (parent instanceof ItemFrameLayout) {
+                return ViewBeans.VIEW_TYPE_LAYOUT_FRAMELAYOUT;
             } else if (parent instanceof ItemCardView) {
                 return ViewBeans.VIEW_TYPE_LAYOUT_CARDVIEW;
             } else if (parent instanceof ItemHorizontalScrollView) {
@@ -1068,6 +1240,14 @@ public class ViewPane extends RelativeLayout {
             LayoutBean layoutBean3 = viewBean.layout;
             view.setPadding(layoutBean3.paddingLeft, layoutBean3.paddingTop, layoutBean3.paddingRight, layoutBean3.paddingBottom);
             view.setLayoutParams(layoutParams2);
+        } else if (viewBean.parentType == ViewBeans.VIEW_TYPE_LAYOUT_CONSTRAINTLAYOUT) {
+            // 0dp is "match constraint" in a ConstraintLayout.
+            ConstraintLayout.LayoutParams constraintParams = new ConstraintLayout.LayoutParams(
+                    viewBean.layout.width == 0 ? 0 : width, viewBean.layout.height == 0 ? 0 : height);
+            constraintParams.setMargins(leftMargin, topMargin, rightMargin, bottomMargin);
+            LayoutBean layoutBean3 = viewBean.layout;
+            view.setPadding(layoutBean3.paddingLeft, layoutBean3.paddingTop, layoutBean3.paddingRight, layoutBean3.paddingBottom);
+            view.setLayoutParams(constraintParams);
         } else {
             FrameLayout.LayoutParams layoutParams3 = new FrameLayout.LayoutParams(width, height);
             layoutParams3.setMargins(leftMargin, topMargin, rightMargin, bottomMargin);
@@ -1078,6 +1258,85 @@ public class ViewPane extends RelativeLayout {
                 layoutParams3.gravity = layoutGravity;
             }
             view.setLayoutParams(layoutParams3);
+        }
+    }
+
+    /** Re-applies the constraints of every child, e.g. after a sibling they point to was added. */
+    private void updateConstraintSiblings(ViewGroup parent) {
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            View child = parent.getChildAt(i);
+            if (child instanceof ItemView editorItem && editorItem.getBean() != null
+                    && child.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
+                updateConstraints(child, editorItem.getBean());
+            }
+        }
+    }
+
+    /** Applies app:layout_constraint* parent attributes to a child of a ConstraintLayout. */
+    private void updateConstraints(View view, ViewBean bean) {
+        if (!(view.getLayoutParams() instanceof ConstraintLayout.LayoutParams params)) return;
+        params.leftToLeft = params.leftToRight = params.rightToLeft = params.rightToRight = ConstraintLayout.LayoutParams.UNSET;
+        params.topToTop = params.topToBottom = params.bottomToTop = params.bottomToBottom = ConstraintLayout.LayoutParams.UNSET;
+        params.startToStart = params.startToEnd = params.endToStart = params.endToEnd = ConstraintLayout.LayoutParams.UNSET;
+        params.baselineToBaseline = ConstraintLayout.LayoutParams.UNSET;
+        params.horizontalBias = 0.5f;
+        params.verticalBias = 0.5f;
+        params.dimensionRatio = null;
+        params.matchConstraintDefaultWidth = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT_SPREAD;
+        params.matchConstraintDefaultHeight = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT_SPREAD;
+        for (java.util.Map.Entry<String, String> entry : bean.parentAttributes.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (key == null || value == null || !key.startsWith("app:layout_constraint")) continue;
+            String attr = key.substring("app:layout_constraint".length());
+            switch (attr) {
+                case "Horizontal_bias" -> params.horizontalBias = parseBias(value);
+                case "Vertical_bias" -> params.verticalBias = parseBias(value);
+                case "DimensionRatio" -> params.dimensionRatio = value;
+                case "Width_percent" -> {
+                    params.matchConstraintDefaultWidth = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT_PERCENT;
+                    params.matchConstraintPercentWidth = parseBias(value);
+                }
+                case "Height_percent" -> {
+                    params.matchConstraintDefaultHeight = ConstraintLayout.LayoutParams.MATCH_CONSTRAINT_PERCENT;
+                    params.matchConstraintPercentHeight = parseBias(value);
+                }
+                default -> {
+                    int target = resolveConstraintTarget(value);
+                    if (target == ConstraintLayout.LayoutParams.UNSET) continue;
+                    switch (attr) {
+                        case "Left_toLeftOf" -> params.leftToLeft = target;
+                        case "Left_toRightOf" -> params.leftToRight = target;
+                        case "Right_toLeftOf" -> params.rightToLeft = target;
+                        case "Right_toRightOf" -> params.rightToRight = target;
+                        case "Top_toTopOf" -> params.topToTop = target;
+                        case "Top_toBottomOf" -> params.topToBottom = target;
+                        case "Bottom_toTopOf" -> params.bottomToTop = target;
+                        case "Bottom_toBottomOf" -> params.bottomToBottom = target;
+                        case "Start_toStartOf" -> params.startToStart = target;
+                        case "Start_toEndOf" -> params.startToEnd = target;
+                        case "End_toStartOf" -> params.endToStart = target;
+                        case "End_toEndOf" -> params.endToEnd = target;
+                        case "Baseline_toBaselineOf" -> params.baselineToBaseline = target;
+                    }
+                }
+            }
+        }
+        view.setLayoutParams(params);
+    }
+
+    private int resolveConstraintTarget(String value) {
+        if ("parent".equals(value)) return ConstraintLayout.LayoutParams.PARENT_ID;
+        String id = value.startsWith("@") ? value.substring(value.indexOf('/') + 1) : value;
+        View target = rootLayout == null ? null : rootLayout.findViewWithTag(id);
+        return target == null ? ConstraintLayout.LayoutParams.UNSET : target.getId();
+    }
+
+    private static float parseBias(String value) {
+        try {
+            return Float.parseFloat(value);
+        } catch (NumberFormatException e) {
+            return 0.5f;
         }
     }
 

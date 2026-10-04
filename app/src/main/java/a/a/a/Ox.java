@@ -298,9 +298,23 @@ public class Ox {
         var injectHandler = new InjectAttributeHandler(viewBean);
         Set<String> toNotAdd = readAttributesToReplace(viewBean);
 
+        boolean modernInclude = viewBean.type == ViewBeans.VIEW_TYPE_LAYOUT_INCLUDE;
+        if (modernInclude && !injectHandler.contains("layout")) {
+            // An include whose layout wasn't chosen yet would point at a missing resource.
+            return;
+        }
         XmlBuilder widgetTag = convert.isEmpty() ? new XmlBuilder(viewBean.getClassInfo().getClassName()) :
                 new XmlBuilder(convert.replaceAll(" ", ""));
-        if (convert.equals("include")) {
+        if (modernInclude) {
+            // <include> accepts an id and layout_* parameters; width and height must both be set for
+            // the other layout parameters (margins, rules, constraints) to apply.
+            if (!toNotAdd.contains("android:id")) {
+                widgetTag.addAttribute("android", "id", "@+id/" + viewBean.id);
+            }
+            widgetTag.addAttribute("android", "layout_width", sizeValue(viewBean.layout.width));
+            widgetTag.addAttribute("android", "layout_height", sizeValue(viewBean.layout.height));
+            writeLayoutMargin(widgetTag, viewBean);
+        } else if (convert.equals("include")) {
             if (!toNotAdd.contains("layout") && !injectHandler.contains("layout")) {
                 widgetTag.addAttribute("", "layout", "@layout/" + viewBean.id);
             }
@@ -421,7 +435,7 @@ public class Ox {
         }
         k(widgetTag, viewBean);
         int parentViewType = viewBean.parentType;
-        if (!viewBean.convert.equals("include")) {
+        if (!viewBean.convert.equals("include") || modernInclude) {
             if (parentViewType == ViewBean.VIEW_TYPE_LAYOUT_LINEAR) {
                 writeLayoutGravity(widgetTag, viewBean);
                 int weight = viewBean.layout.weight;
@@ -429,6 +443,9 @@ public class Ox {
                     widgetTag.addAttribute("android", "layout_weight", String.valueOf(weight));
                 }
             } else if (parentViewType == ViewBean.VIEW_TYPE_LAYOUT_HSCROLLVIEW || parentViewType == ViewBean.VIEW_TYPE_LAYOUT_VSCROLLVIEW) {
+                writeLayoutGravity(widgetTag, viewBean);
+            } else if (viewBean.getParentClassInfo() != null && viewBean.getParentClassInfo().a("FrameLayout")) {
+                // CardView, FrameLayout and other FrameLayout subclasses position children with layout_gravity.
                 writeLayoutGravity(widgetTag, viewBean);
             }
         }
@@ -446,7 +463,18 @@ public class Ox {
         if (!viewBean.parentAttributes.isEmpty()) {
             viewBean.parentAttributes.forEach((key, value) -> {
                 String[] parts = key.split(":");
-                widgetTag.addAttribute(parts[0], parts[1], RELATIVE_IDS.contains(key) ? "@id/" + value : value);
+                if (parts.length != 2 || value == null) return;
+                if (RELATIVE_IDS.contains(key) || CONSTRAINT_REFERENCE.matcher(key).matches()) {
+                    String target = value.startsWith("@") ? value.substring(value.indexOf('/') + 1) : value;
+                    if ("parent".equals(target) && !RELATIVE_IDS.contains(key)) {
+                        widgetTag.addAttribute(parts[0], parts[1], "parent");
+                    } else if (hasView(target)) {
+                        widgetTag.addAttribute(parts[0], parts[1], "@id/" + target);
+                    }
+                    // A rule pointing at a deleted widget would make aapt2 fail; it's dropped instead.
+                } else {
+                    widgetTag.addAttribute(parts[0], parts[1], value);
+                }
             });
         }
 
@@ -474,6 +502,22 @@ public class Ox {
             }
         }
         nx.addChildNode(widgetTag);
+    }
+
+    private static final Pattern CONSTRAINT_REFERENCE =
+            Pattern.compile("app:layout_constraint(Left|Right|Top|Bottom|Start|End|Baseline)_to(Left|Right|Top|Bottom|Start|End|Baseline)Of");
+
+    private boolean hasView(String id) {
+        for (ViewBean bean : views) {
+            if (id.equals(bean.id)) return true;
+        }
+        return false;
+    }
+
+    private static String sizeValue(int size) {
+        if (size == ViewGroup.LayoutParams.MATCH_PARENT) return "match_parent";
+        if (size == ViewGroup.LayoutParams.WRAP_CONTENT) return "wrap_content";
+        return size + "dp";
     }
 
     private void writeFabView(XmlBuilder nx, ViewBean viewBean) {

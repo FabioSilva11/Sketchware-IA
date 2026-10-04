@@ -147,6 +147,13 @@ public class PaletteWidget extends LinearLayout {
         return iconBase;
     }
 
+    /** Adds a {@link pro.sketchware.widgets.BuiltInWidgets} entry to the layouts or widgets list. */
+    public View addPreset(pro.sketchware.widgets.BuiltInWidgets.Preset preset, boolean layout) {
+        IconPreset icon = new IconPreset(getContext(), preset);
+        (layout ? layoutContainer : widgetsContainer).addView(icon);
+        return icon;
+    }
+
     public void removeWidgetLayouts() {
         layoutContainer.removeAllViews();
     }

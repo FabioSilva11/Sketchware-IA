@@ -154,6 +154,18 @@ public class Gx {
                 classInfos = "View.Clickable.ViewGroup.RelativeLayout";
                 break;
 
+            case "ConstraintLayout":
+                classInfos = "View.Clickable.ViewGroup.ConstraintLayout";
+                break;
+
+            case "FrameLayout":
+                classInfos = "View.Clickable.ViewGroup.FrameLayout";
+                break;
+
+            case "Include":
+                classInfos = "Include";
+                break;
+
             case "ScrollView":
                 classInfos = "View.ViewGroup.FrameLayout.ScrollView";
                 break;

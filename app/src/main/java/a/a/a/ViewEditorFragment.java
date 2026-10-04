@@ -31,6 +31,7 @@ import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.SketchwareUtil;
+import pro.sketchware.widgets.BuiltInWidgets;
 import pro.sketchware.widgets.WidgetsCreatorManager;
 import pro.sketchware.utility.TranslationFunction;
 
@@ -238,6 +239,9 @@ public class ViewEditorFragment extends qA {
         viewEditor.addWidgetLayout(PaletteWidget.a.d, "");
         viewEditor.extraWidgetLayout("", "RadioGroup");
         viewEditor.extraWidgetLayout("", "RelativeLayout");
+        for (BuiltInWidgets.Preset preset : BuiltInWidgets.inSection(BuiltInWidgets.Section.LAYOUTS)) {
+            viewEditor.addPreset(preset, true);
+        }
         widgetsCreatorManager.addWidgetsByTitle("Layouts");
 
         viewEditor.paletteWidget.extraTitle("AndroidX", 0);
@@ -247,6 +251,9 @@ public class ViewEditorFragment extends qA {
         viewEditor.extraWidgetLayout("", "CardView");
         viewEditor.extraWidgetLayout("", "TextInputLayout");
         viewEditor.extraWidgetLayout("", "SwipeRefreshLayout");
+        for (BuiltInWidgets.Preset preset : BuiltInWidgets.inSection(BuiltInWidgets.Section.ANDROIDX_LAYOUTS)) {
+            viewEditor.addPreset(preset, true);
+        }
         widgetsCreatorManager.addWidgetsByTitle("AndroidX");
 
         viewEditor.addWidget(PaletteWidget.b.c, "", "EditText", "Edit Text");
@@ -265,7 +272,15 @@ public class ViewEditorFragment extends qA {
         viewEditor.extraWidget("", "SearchView", "SearchView");
         viewEditor.extraWidget("", "VideoView", "VideoView");
         viewEditor.addWidget(PaletteWidget.b.h, "", "WebView", "WebView");
+        for (BuiltInWidgets.Preset preset : BuiltInWidgets.inSection(BuiltInWidgets.Section.WIDGETS)) {
+            viewEditor.addPreset(preset, false);
+        }
         widgetsCreatorManager.addWidgetsByTitle("Widgets");
+
+        viewEditor.paletteWidget.extraTitle("Material", 1);
+        for (BuiltInWidgets.Preset preset : BuiltInWidgets.inSection(BuiltInWidgets.Section.MATERIAL_WIDGETS)) {
+            viewEditor.addPreset(preset, false);
+        }
 
         viewEditor.paletteWidget.extraTitle("List", 1);
         viewEditor.addWidget(PaletteWidget.b.e, "", "ListView", "ListView");

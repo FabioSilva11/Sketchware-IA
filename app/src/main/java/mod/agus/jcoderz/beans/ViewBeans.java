@@ -217,6 +217,12 @@ public class ViewBeans {
     public static final int VIEW_TYPE_WIDGET_EMOJIPICKERWIDGET = 189;
     public static final int VIEW_TYPE_WIDGET_AVATARVIEW = 190;
 
+    // ─── 9.0 EDITOR TYPES ────────────────────────────────────────────────────
+    /** {@code <include layout="@layout/...">}; the layout name is kept in ViewBean.customView. */
+    public static final int VIEW_TYPE_LAYOUT_INCLUDE = 191;
+    /** Plain android.view.View, Space or divider (the tag comes from ViewBean.convert). */
+    public static final int VIEW_TYPE_WIDGET_VIEW = 192;
+
     /**
      * Map that stores both a view's type and type name.
      */
@@ -412,6 +418,8 @@ public class ViewBeans {
             .put(VIEW_TYPE_WIDGET_ALPHABETINDEXVIEW, "AlphabetIndexView")
             .put(VIEW_TYPE_WIDGET_EMOJIPICKERWIDGET, "EmojiPickerWidget")
             .put(VIEW_TYPE_WIDGET_AVATARVIEW, "AvatarView")
+            .put(VIEW_TYPE_LAYOUT_INCLUDE, "Include")
+            .put(VIEW_TYPE_WIDGET_VIEW, "View")
             .build();
 
     public static String buildClassInfo(int id) {
@@ -570,6 +578,8 @@ public class ViewBeans {
                  VIEW_TYPE_WIDGET_INDEXSCROLLBAR, VIEW_TYPE_WIDGET_ALPHABETINDEXVIEW -> R.drawable.ic_mtrl_list;
             case VIEW_TYPE_WIDGET_EMOJIPICKERWIDGET -> R.drawable.ic_mtrl_star;
             case VIEW_TYPE_WIDGET_AVATARVIEW -> R.drawable.ic_mtrl_camera;
+            case VIEW_TYPE_LAYOUT_INCLUDE -> R.drawable.ic_mtrl_frame_source;
+            case VIEW_TYPE_WIDGET_VIEW -> R.drawable.ic_mtrl_rectangle;
             default -> id;
         };
     }

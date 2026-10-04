@@ -37,26 +37,8 @@ public class ViewBeanFactory {
 
     public void applyAttributes(Map<String, String> attributes) {
         Map<String, String> injectAttributes = new LinkedHashMap<>();
-        // Skip processing if the convert type is "include,"
-        // because a.a.a.Ox doesn't generate all the attributes below.
-        // Instead, the `inject` property will handle the attributes.
         if ("include".equals(bean.convert)) {
-            StringBuilder injectProperty = new StringBuilder();
-            for (Map.Entry<String, String> entry : attributes.entrySet()) {
-                var attrName = entry.getKey();
-                var attrValue = entry.getValue();
-                // Skip this because ViewBeanParser has already handled it as the ID of the include for ViewBean.
-                if (attrName.equals("layout")) {
-                    continue;
-                }
-                injectProperty
-                        .append(attrName)
-                        .append("=\"")
-                        .append(attrValue)
-                        .append("\"")
-                        .append("\n");
-            }
-            bean.inject = injectProperty.toString().trim();
+            applyIncludeAttributes(attributes);
             return;
         }
 
@@ -142,8 +124,8 @@ public class ViewBeanFactory {
                     // Skip this since only progressbar have this attribute in ViewBean
                     continue;
                 }
-                // Skip and handle relative parent attributes separately
-                if (isRelativeAttr(attrName)) {
+                // Skip and handle relative and constraint parent attributes separately
+                if (isRelativeAttr(attrName) || isConstraintAttr(attrName)) {
                     bean.parentAttributes.put(attrName, parseReferName(attrValue, "/"));
                     continue;
                 }
@@ -401,6 +383,24 @@ public class ViewBeanFactory {
             if (paddingBottom > -1) {
                 bean.paddingBottom = paddingBottom;
             }
+            int horizontal = getDimen("android:paddingHorizontal", attributes, injectAttributes);
+            if (horizontal > -1) {
+                bean.paddingLeft = horizontal;
+                bean.paddingRight = horizontal;
+            }
+            int vertical = getDimen("android:paddingVertical", attributes, injectAttributes);
+            if (vertical > -1) {
+                bean.paddingTop = vertical;
+                bean.paddingBottom = vertical;
+            }
+            int start = getDimen("android:paddingStart", attributes, injectAttributes);
+            if (start > -1 && paddingLeft < 0) {
+                bean.paddingLeft = start;
+            }
+            int end = getDimen("android:paddingEnd", attributes, injectAttributes);
+            if (end > -1 && paddingRight < 0) {
+                bean.paddingRight = end;
+            }
         }
 
         String contentPadding = attributes.getOrDefault("app:contentPadding", null);
@@ -467,6 +467,24 @@ public class ViewBeanFactory {
 
             if (marginBottom > -1) {
                 bean.marginBottom = marginBottom;
+            }
+            int horizontal = getDimen("android:layout_marginHorizontal", attributes, injectAttributes);
+            if (horizontal > -1) {
+                bean.marginLeft = horizontal;
+                bean.marginRight = horizontal;
+            }
+            int vertical = getDimen("android:layout_marginVertical", attributes, injectAttributes);
+            if (vertical > -1) {
+                bean.marginTop = vertical;
+                bean.marginBottom = vertical;
+            }
+            int start = getDimen("android:layout_marginStart", attributes, injectAttributes);
+            if (start > -1 && marginLeft < 0) {
+                bean.marginLeft = start;
+            }
+            int end = getDimen("android:layout_marginEnd", attributes, injectAttributes);
+            if (end > -1 && marginRight < 0) {
+                bean.marginRight = end;
             }
         }
     }
@@ -701,6 +719,49 @@ public class ViewBeanFactory {
             }
         }
         return -1;
+    }
+
+    /**
+     * {@code <include>} only takes an id, the layout and layout parameters. Size and margins go to the
+     * bean so the editor shows them, rules and constraints to the parent attributes, the rest (layout,
+     * visibility) to inject.
+     */
+    private void applyIncludeAttributes(Map<String, String> attributes) {
+        Map<String, String> injectAttributes = new LinkedHashMap<>();
+        var layoutBean = bean.layout;
+        for (String size : new String[]{"android:layout_width", "android:layout_height"}) {
+            String value = attributes.get(size);
+            if (value == null) continue;
+            String resolved = getEnum(size.substring("android:".length()), value, null);
+            if (resolved == null) resolved = resolveDimenSize(value);
+            if (resolved == null) {
+                injectAttributes.put(size, value);
+            } else if (size.endsWith("width")) {
+                layoutBean.width = Integer.parseInt(resolved);
+            } else {
+                layoutBean.height = Integer.parseInt(resolved);
+            }
+        }
+        applyMargin(attributes, injectAttributes);
+        for (Map.Entry<String, String> entry : attributes.entrySet()) {
+            String name = entry.getKey();
+            if (name.equals("android:id") || name.equals("android:layout_width") || name.equals("android:layout_height")
+                    || name.startsWith("android:layout_margin")) {
+                continue;
+            }
+            if (isRelativeAttr(name) || isConstraintAttr(name)) {
+                bean.parentAttributes.put(name, parseReferName(entry.getValue(), "/"));
+            } else {
+                injectAttributes.put(name, entry.getValue());
+            }
+        }
+        StringBuilder injectProperty = new StringBuilder();
+        injectAttributes.forEach((key, value) -> injectProperty.append(key).append("=\"").append(value).append("\"\n"));
+        bean.inject = injectProperty.toString().trim();
+    }
+
+    private boolean isConstraintAttr(String attr) {
+        return attr.startsWith("app:layout_constraint");
     }
 
     private boolean isRelativeAttr(String attr) {

@@ -1369,6 +1369,9 @@ ex)\"users/username\""</string>
     <string name="design_library_google_maps_description_operate_normally">"Google Map View can be operated.
 You must enter the API key to operate the map normally."</string>
     <string name="design_library_guide_setup_first">In order to use this component, you have to setup the settings in the Library Manager first.</string>
+    <string name="design_preset_needs_material3">Enable Material 3 in the project\'s library settings to use this component.</string>
+    <string name="design_include_choose_layout">Layout to include</string>
+    <string name="design_include_no_layouts">Create another layout first to include it here.</string>
     <string name="design_library_message_confirm_uncheck_appcompat_and_design">The existing Drawer Layout and FAB will be deleted. Would you like to continue?</string>
     <string name="design_library_message_confirm_uncheck_google_map">The existing MapView will be deleted. Would you like to continue?</string>
     <string name="design_library_message_slow_down_compilation_time">Including the library may slow down the compilation time on certain devices.</string>

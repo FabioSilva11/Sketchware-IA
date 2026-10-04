@@ -31,11 +31,12 @@ import java.util.Set;
 import java.util.Stack;
 
 import a.a.a.wq;
+import mod.agus.jcoderz.beans.ViewBeans;
 import pro.sketchware.utility.InvokeUtil;
 
 public class ViewBeanParser {
 
-    private static final int[] viewsCount = new int[49];
+    private static final int[] viewsCount = new int[256];
     private final XmlPullParser parser;
     private boolean skipRoot;
     private Pair<String, Map<String, String>> rootAttributes;
@@ -157,7 +158,8 @@ public class ViewBeanParser {
         ArrayList<ViewBean> beans = new ArrayList<>();
         Map<String, Map<String, String>> beansAttributes = new HashMap<>();
         Stack<ViewBean> viewStack = new Stack<>();
-        int index = 0;
+        // Position of each view inside its own parent; the editor adds children at these indexes.
+        Map<String, Integer> childCounts = new HashMap<>();
         boolean isRootSkipped = !skipRoot;
 
         while (parser.getEventType() != XmlPullParser.END_DOCUMENT) {
@@ -181,7 +183,9 @@ public class ViewBeanParser {
                         break;
                     }
                     var className = getNameFromTag(name);
-                    int type = getViewTypeByClassName(name);
+                    int type = className.equals("include")
+                            ? ViewBeans.VIEW_TYPE_LAYOUT_INCLUDE
+                            : getViewTypeByClassName(name);
 
                     // Get view ID, either from attributes or generate a unique ID
                     String attrId = parser.getAttributeValue(null, "android:id");
@@ -189,15 +193,6 @@ public class ViewBeanParser {
                             attrId != null && !ids.contains(parseReferName(attrId, "/"))
                                     ? parseReferName(attrId, "/")
                                     : generateUniqueId(ids, type, className);
-
-                    // Special case for 'include' tag with layout reference, treated as ID in
-                    // ViewBean
-                    if (className.equals("include")) {
-                        String layout = parser.getAttributeValue(null, "layout");
-                        if (layout != null) {
-                            id = parseReferName(layout, "/");
-                        }
-                    }
 
                     ViewBean bean = new ViewBean(id, type);
 
@@ -211,7 +206,9 @@ public class ViewBeanParser {
                             bean.parent.equals("root")
                                     ? parentType
                                     : parent.type;
-                    bean.index = index;
+                    int position = childCounts.getOrDefault(bean.parent, 0);
+                    childCounts.put(bean.parent, position + 1);
+                    bean.index = position;
                     Map<String, String> attributes = new LinkedHashMap<>();
                     for (int i = 0; i < parser.getAttributeCount(); i++) {
                         if (!parser.getAttributeName(i).startsWith("xmlns")) {
@@ -222,7 +219,6 @@ public class ViewBeanParser {
                     beans.add(bean);
                     ids.add(id);
                     viewStack.push(bean);
-                    index++;
                     break;
                 }
 
