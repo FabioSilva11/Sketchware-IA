@@ -3010,13 +3010,13 @@ Please try again later"</string>
     <string name="p2p_store_empty_none_message">Nobody the network knows has published a project that matches yet.</string>
     <string name="p2p_store_by">by %1$s</string>
     <string name="p2p_store_metrics_line">❤ %1$d · 📥 %2$d · 👁 %3$d</string>
-    <string name="p2p_store_metric_likes">❤️ Likes</string>
-    <string name="p2p_store_metric_downloads">📥 Downloads</string>
-    <string name="p2p_store_metric_views">👁️ Views</string>
-    <string name="p2p_store_metric_favorites">⭐ Favorites</string>
-    <string name="p2p_store_metric_versions">🔄 Versions</string>
-    <string name="p2p_store_metric_peers">👥 Peers</string>
-    <string name="p2p_store_metric_popularity">📊 Popularity</string>
+    <string name="p2p_store_metric_likes">Likes</string>
+    <string name="p2p_store_metric_downloads">Downloads</string>
+    <string name="p2p_store_metric_views">Views</string>
+    <string name="p2p_store_metric_favorites">Favorites</string>
+    <string name="p2p_store_metric_versions">Versions</string>
+    <string name="p2p_store_metric_peers">Peers</string>
+    <string name="p2p_store_metric_popularity">Popularity</string>
     <string name="p2p_store_download_open">Download and open</string>
     <string name="p2p_store_open">Open project</string>
     <string name="p2p_store_like">Like</string>
@@ -3025,10 +3025,7 @@ Please try again later"</string>
     <string name="p2p_store_favorited">Favorited</string>
     <string name="p2p_store_about">About</string>
     <string name="p2p_store_versions">Versions</string>
-    <string name="p2p_store_details">Package: %1$s
-Category: %2$s
-Tags: %3$s
-Publisher id: %4$s</string>
+    <string name="p2p_store_details">Package: %1$s\nCategory: %2$s\nTags: %3$s\nPublisher id: %4$s</string>
     <string name="p2p_store_version_info">Code %1$d · %2$s · %3$s</string>
     <string name="p2p_store_publish_new_version">Publish a new version</string>
     <string name="p2p_store_unpublish">Unpublish</string>

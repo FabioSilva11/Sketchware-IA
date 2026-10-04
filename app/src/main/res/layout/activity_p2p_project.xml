@@ -75,24 +75,19 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <HorizontalScrollView
+            <GridLayout
+                android:id="@+id/metrics"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:scrollbars="none">
-
-                <LinearLayout
-                    android:id="@+id/metrics"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal" />
-            </HorizontalScrollView>
+                android:columnCount="4"
+                android:useDefaultMargins="false" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:gravity="center_vertical"
+                android:gravity="center"
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
@@ -109,7 +104,7 @@
                     style="@style/Widget.Material3.Button.IconButton.Outlined"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="24dp"
                     android:contentDescription="@string/p2p_store_like"
                     android:tooltipText="@string/p2p_store_like"
                     app:icon="@drawable/ic_p2p_heart" />
@@ -119,50 +114,50 @@
                     style="@style/Widget.Material3.Button.IconButton.Outlined"
                     android:layout_width="56dp"
                     android:layout_height="56dp"
-                    android:layout_marginStart="12dp"
+                    android:layout_marginStart="24dp"
                     android:contentDescription="@string/p2p_store_favorite"
                     android:tooltipText="@string/p2p_store_favorite"
                     app:icon="@drawable/ic_p2p_star_outline" />
 
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/progress_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
                 <LinearLayout
-                    android:id="@+id/progress_group"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
                     android:layout_weight="1"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:visibility="gone">
+                    android:orientation="vertical">
 
-                    <LinearLayout
-                        android:layout_width="0dp"
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/progress"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
+                        android:indeterminate="true" />
 
-                        <com.google.android.material.progressindicator.LinearProgressIndicator
-                            android:id="@+id/progress"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:indeterminate="true" />
-
-                        <TextView
-                            android:id="@+id/progress_text"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="@color/chat_text_secondary" />
-                    </LinearLayout>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/cancel"
-                        style="@style/Widget.Material3.Button.IconButton"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:contentDescription="@android:string/cancel"
-                        app:icon="@drawable/ic_mtrl_close" />
+                    <TextView
+                        android:id="@+id/progress_text"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="@color/chat_text_secondary" />
                 </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/cancel"
+                    style="@style/Widget.Material3.Button.IconButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:contentDescription="@android:string/cancel"
+                    app:icon="@drawable/ic_mtrl_close" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView

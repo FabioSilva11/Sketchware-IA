@@ -78,6 +78,7 @@ public final class StoreEngine {
     private static final long DIRECTORY_INTERVAL_ALONE = 2 * MINUTE;
     private static final long USER_REFRESH_INTERVAL = 30 * MINUTE;
     private static final long UNKNOWN_USER_RETRY_INTERVAL = 3 * MINUTE;
+    private static final long MAX_RETRY_INTERVAL = 12 * 60 * MINUTE;
     private static final long MIN_DHT_NODES = 20;
     private static final long CACHE_MAX_AGE = 30 * DAY;
     private static final int LAN_PORT = 47318;
@@ -101,11 +102,27 @@ public final class StoreEngine {
         thread.setDaemon(true);
         return thread;
     });
-    private final Map<String, Long> lastLookup = new ConcurrentHashMap<>();
+    private final ExecutorService publisher = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r, "store-publish");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private final ExecutorService directoryReads = Executors.newFixedThreadPool(8, r -> {
+        Thread thread = new Thread(r, "store-directory");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private final Map<String, Long> nextLookup = new ConcurrentHashMap<>();
+    private final Map<String, Integer> failures = new ConcurrentHashMap<>();
+    private final Set<String> inFlight = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private final Set<String> directoryUsers = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    private volatile boolean readingDirectory;
+    private volatile String publishedBundle;
+    private volatile long publishedSequence;
+    private volatile long pointerPublishedWithNodes;
     private final Set<String> lanUsers = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private ScheduledFuture<?> syncTask;
     private volatile boolean dirty = true;
-    private volatile boolean syncing;
     private volatile long lastPublish;
     private volatile long lastDirectory;
     private volatile long lastRegister;
@@ -174,7 +191,7 @@ public final class StoreEngine {
             cacheBytes += item.size;
         }
         return new Status(node.isRunning(), node.isNetworkAllowed(), sharing, node.dhtNodes(), catalog.userCount(),
-                syncing, cacheBytes);
+                readingDirectory || !inFlight.isEmpty(), cacheBytes);
     }
 
     // Lifecycle
@@ -223,7 +240,7 @@ public final class StoreEngine {
 
     public void syncSoon() {
         if (node.isRunning()) {
-            lastLookup.clear();
+            nextLookup.clear();
             lastDirectory = 0;
             scheduler.execute(this::syncSafely);
         }
@@ -497,7 +514,6 @@ public final class StoreEngine {
                 events.add(event);
                 writeEvents(compact(events, now));
                 markDirty();
-                syncSafely();
             } catch (IOException | RuntimeException ignored) {
                 // An interaction that can't be recorded is just not counted
             }
@@ -577,99 +593,155 @@ public final class StoreEngine {
 
     // Sync
 
+    /** The user's own data changed: share a new bundle right away. */
     private void markDirty() {
         dirty = true;
+        publishSoon();
+    }
+
+    /**
+     * Rebuilds and shares the user's bundle on its own thread, so a change shows up at once (in this
+     * catalog, and for peers) instead of waiting behind lookups of other users.
+     */
+    private void publishSoon() {
+        publisher.execute(() -> {
+            if (!hasProfile()) {
+                return;
+            }
+            try {
+                publishBundle(System.currentTimeMillis());
+            } catch (IOException | RuntimeException e) {
+                log("Couldn't publish: " + e.getMessage());
+            }
+        });
     }
 
     private void syncSafely() {
         if (!node.isRunning() || !node.isNetworkAllowed()) {
             return;
         }
-        syncing = true;
-        notifyChanged();
         try {
             sync();
         } catch (RuntimeException ignored) {
             // Retried on the next round
-        } finally {
-            syncing = false;
-            notifyChanged();
         }
+        notifyChanged();
     }
 
+    /** One round: quick, everything slow (DHT lookups, downloads) runs in the background. */
     private void sync() {
         long now = System.currentTimeMillis();
         if (hasProfile() && (dirty || now - lastPublish > REPUBLISH_INTERVAL)) {
-            try {
-                publishBundle(now);
-            } catch (IOException ignored) {
-                // Retried on the next round
-            }
+            publishSoon();
         }
-        if (node.dhtNodes() < MIN_DHT_NODES) {
+        long nodes = node.dhtNodes();
+        if (nodes < MIN_DHT_NODES) {
             // Not bootstrapped yet (only the local network works meanwhile); look again shortly
-            log("DHT has " + node.dhtNodes() + " nodes, waiting");
+            log("DHT has " + nodes + " nodes, waiting");
             scheduler.schedule(this::syncSafely, 20, TimeUnit.SECONDS);
             return;
         }
-        Set<String> candidates = new LinkedHashSet<>(lanUsers);
+        String bundle = publishedBundle;
+        if (bundle != null && pointerPublishedWithNodes < MIN_DHT_NODES) {
+            // The pointer went out before the DHT was reachable, so few nodes (if any) store it
+            node.publishBundlePointer(identity, bundle, publishedSequence);
+            pointerPublishedWithNodes = nodes;
+            log("Republished the bundle pointer now that the DHT is reachable");
+        }
         if (hasProfile() && now - lastRegister > REGISTER_INTERVAL) {
             lastRegister = now;
-            node.registerInDirectory(identity.id(), now / DAY);
-            log("Registered in the directory");
+            lookups.execute(() -> {
+                node.registerInDirectory(identity.id(), System.currentTimeMillis() / DAY);
+                log("Registered in the directory");
+            });
         }
         boolean alone = catalog.userCount() <= (hasProfile() ? 1 : 0);
-        if (now - lastDirectory > (alone ? DIRECTORY_INTERVAL_ALONE : DIRECTORY_INTERVAL)) {
+        if (!readingDirectory && now - lastDirectory > (alone ? DIRECTORY_INTERVAL_ALONE : DIRECTORY_INTERVAL)) {
             lastDirectory = now;
+            readingDirectory = true;
+            lookups.execute(this::readDirectory);
+        }
+        lookUpUsers();
+        enforceCache();
+    }
+
+    private void readDirectory() {
+        try {
             List<java.util.concurrent.Future<Map<String, Long>>> buckets = new ArrayList<>();
             for (int bucket = 0; bucket < P2PNode.DIRECTORY_BUCKETS; bucket++) {
                 final int index = bucket;
-                buckets.add(lookups.submit(() -> node.readBucket(index, 20)));
+                buckets.add(directoryReads.submit(() -> node.readBucket(index, 20)));
             }
             int found = 0;
             for (java.util.concurrent.Future<Map<String, Long>> bucket : buckets) {
                 try {
                     Set<String> users = bucket.get(60, TimeUnit.SECONDS).keySet();
                     found += users.size();
-                    candidates.addAll(users);
+                    directoryUsers.addAll(users);
                 } catch (Exception ignored) {
                     // A bucket that doesn't answer is tried next time
                 }
             }
             log("Directory listed " + found + " users");
+        } finally {
+            readingDirectory = false;
         }
-        candidates.addAll(catalog.knownUsers());
-        candidates.remove(identity.id());
-        List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
-        for (String user : candidates) {
-            Long last = lastLookup.get(user);
-            // Users not fetched yet are retried sooner than known ones are refreshed
-            long interval = catalog.infohash(user) == null ? UNKNOWN_USER_RETRY_INTERVAL : USER_REFRESH_INTERVAL;
-            if (last != null && now - last < interval) {
-                continue;
-            }
-            lastLookup.put(user, now);
-            pending.add(lookups.submit(() -> refreshUser(user, null)));
-        }
-        for (java.util.concurrent.Future<?> future : pending) {
-            try {
-                future.get(5, TimeUnit.MINUTES);
-            } catch (Exception ignored) {
-                // Slow users are picked up on later rounds
-            }
-        }
-        enforceCache();
+        scheduler.execute(this::lookUpUsers);
     }
 
-    /** Fetches {@code user}'s latest bundle if it changed; {@code knownInfohash} skips the DHT lookup. */
-    private void refreshUser(String user, String knownInfohash) {
+    /**
+     * Starts fetching the bundles of every user worth asking now. Users that don't answer are
+     * asked again less and less often, so long-gone users don't keep the device busy.
+     */
+    private void lookUpUsers() {
+        long now = System.currentTimeMillis();
+        Set<String> candidates = new LinkedHashSet<>(lanUsers);
+        candidates.addAll(directoryUsers);
+        candidates.addAll(catalog.knownUsers());
+        candidates.remove(identity.id());
+        for (String user : candidates) {
+            Long next = nextLookup.get(user);
+            if ((next != null && now < next) || !inFlight.add(user)) {
+                continue;
+            }
+            lookups.execute(() -> {
+                boolean answered = false;
+                try {
+                    answered = refreshUser(user, null);
+                } finally {
+                    inFlight.remove(user);
+                    long delay;
+                    if (answered) {
+                        failures.remove(user);
+                        delay = USER_REFRESH_INTERVAL;
+                    } else {
+                        int count = failures.merge(user, 1, Integer::sum);
+                        delay = Math.min(UNKNOWN_USER_RETRY_INTERVAL << Math.min(count - 1, 8), MAX_RETRY_INTERVAL);
+                    }
+                    nextLookup.put(user, System.currentTimeMillis() + delay);
+                    notifyChanged();
+                }
+            });
+        }
+    }
+
+    /**
+     * Fetches {@code user}'s latest bundle if it changed; {@code knownInfohash} skips the DHT lookup.
+     *
+     * @return whether the user could be reached (their bundle is current or was fetched)
+     */
+    private boolean refreshUser(String user, String knownInfohash) {
         String infohash = knownInfohash != null ? knownInfohash : node.findBundlePointer(user, 25);
-        if (infohash == null || infohash.equals(catalog.infohash(user))) {
-            log("No new bundle for " + user.substring(0, 8) + (infohash == null ? " (no DHT answer)" : ""));
-            return;
+        if (infohash == null) {
+            log("No answer for " + user.substring(0, 8));
+            return false;
+        }
+        if (infohash.equals(catalog.infohash(user))) {
+            return true;
         }
         log("Fetching bundle " + infohash.substring(0, 8) + " of " + user.substring(0, 8));
         java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        boolean[] fetched = {false};
         node.download(infohash, P2PNode.KIND_BUNDLE, user, 0, new P2PNode.TransferListener() {
             @Override
             public void onProgress(P2PNode.Transfer transfer) {
@@ -689,6 +761,7 @@ public final class StoreEngine {
                             log("Got bundle of " + user.substring(0, 8) + " with " + bundle.projects.size() + " projects");
                             notifyChanged();
                         }
+                        fetched[0] = true;
                     }
                 } catch (IOException | RuntimeException e) {
                     log("Rejected bundle of " + user.substring(0, 8) + ": " + e.getMessage());
@@ -712,6 +785,7 @@ public final class StoreEngine {
         if (done.getCount() > 0) {
             node.cancel(infohash);
         }
+        return fetched[0];
     }
 
     private synchronized void publishBundle(long now) throws IOException {
@@ -745,6 +819,9 @@ public final class StoreEngine {
             node.remove(previous, true);
         }
         node.publishBundlePointer(identity, infohash, sequence);
+        publishedBundle = infohash;
+        publishedSequence = sequence;
+        pointerPublishedWithNodes = node.dhtNodes();
         log("Published bundle " + infohash.substring(0, 8) + " (sequence " + sequence + ")");
         lastPublish = now;
         dirty = false;
@@ -955,8 +1032,15 @@ public final class StoreEngine {
         if (lanUsers.add(user)) {
             log("Found " + user.substring(0, 8) + " on the local network");
         }
-        if (!parts[2].equals(catalog.infohash(user)) && node.transfer(parts[2]) == null && node.isNetworkAllowed()) {
-            lookups.execute(() -> refreshUser(user, parts[2]));
+        if (!parts[2].equals(catalog.infohash(user)) && node.transfer(parts[2]) == null && node.isNetworkAllowed()
+                && inFlight.add(user)) {
+            lookups.execute(() -> {
+                try {
+                    refreshUser(user, parts[2]);
+                } finally {
+                    inFlight.remove(user);
+                }
+            });
         }
     }
 

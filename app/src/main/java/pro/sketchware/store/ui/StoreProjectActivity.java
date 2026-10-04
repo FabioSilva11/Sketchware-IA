@@ -198,22 +198,29 @@ public class StoreProjectActivity extends BaseAppCompatActivity {
 
     private void bindMetrics() {
         Catalog.Metrics m = listing.metrics;
-        ViewGroup row = binding.metrics;
-        row.removeAllViews();
-        addMetric(row, StoreUi.count(m.likes), R.string.p2p_store_metric_likes);
-        addMetric(row, StoreUi.count(m.downloads), R.string.p2p_store_metric_downloads);
-        addMetric(row, StoreUi.count(m.views), R.string.p2p_store_metric_views);
-        addMetric(row, StoreUi.count(m.favorites), R.string.p2p_store_metric_favorites);
-        addMetric(row, StoreUi.count(m.versions), R.string.p2p_store_metric_versions);
-        addMetric(row, StoreUi.count(m.peers), R.string.p2p_store_metric_peers);
-        addMetric(row, String.valueOf(Math.round(m.score)), R.string.p2p_store_metric_popularity);
+        android.widget.GridLayout grid = binding.metrics;
+        grid.removeAllViews();
+        addMetric(grid, "❤️", StoreUi.count(m.likes), R.string.p2p_store_metric_likes);
+        addMetric(grid, "📥", StoreUi.count(m.downloads), R.string.p2p_store_metric_downloads);
+        addMetric(grid, "👁️", StoreUi.count(m.views), R.string.p2p_store_metric_views);
+        addMetric(grid, "⭐", StoreUi.count(m.favorites), R.string.p2p_store_metric_favorites);
+        addMetric(grid, "🔄", StoreUi.count(m.versions), R.string.p2p_store_metric_versions);
+        addMetric(grid, "👥", StoreUi.count(m.peers), R.string.p2p_store_metric_peers);
+        addMetric(grid, "📊", String.valueOf(Math.round(m.score)), R.string.p2p_store_metric_popularity);
     }
 
-    private void addMetric(ViewGroup row, String value, int label) {
-        ItemP2pMetricBinding metric = ItemP2pMetricBinding.inflate(LayoutInflater.from(this), row, false);
-        metric.value.setText(value);
+    /** Adds a metric to the grid; columns share the width equally, so nothing runs off the screen. */
+    private void addMetric(android.widget.GridLayout grid, String emoji, String value, int label) {
+        ItemP2pMetricBinding metric = ItemP2pMetricBinding.inflate(LayoutInflater.from(this), grid, false);
+        metric.value.setText(emoji + " " + value);
         metric.label.setText(label);
-        row.addView(metric.getRoot());
+        android.widget.GridLayout.LayoutParams params = new android.widget.GridLayout.LayoutParams(
+                android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED),
+                android.widget.GridLayout.spec(android.widget.GridLayout.UNDEFINED, 1f));
+        params.width = 0;
+        int margin = Math.round(3 * getResources().getDisplayMetrics().density);
+        params.setMargins(margin, margin, margin, margin);
+        grid.addView(metric.getRoot(), params);
     }
 
     private void bindInteractions() {

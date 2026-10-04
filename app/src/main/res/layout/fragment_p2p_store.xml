@@ -87,87 +87,75 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/kind_chips"
                 android:layout_marginTop="12dp"
-                android:scrollbars="none">
-
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/kind_chips"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:selectionRequired="true"
-                    app:singleLine="true"
-                    app:singleSelection="true">
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_all"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:text="@string/p2p_store_kind_all" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_sketchware"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/p2p_store_kind_sketchware" />
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_android_studio"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/p2p_store_kind_android_studio" />
-                </com.google.android.material.chip.ChipGroup>
-            </HorizontalScrollView>
-
-            <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:scrollbars="none">
+                app:selectionRequired="true"
+                app:singleLine="false"
+                app:singleSelection="true">
 
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/sort_chips"
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_all"
+                    style="@style/Widget.Material3.Chip.Filter"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    app:selectionRequired="true"
-                    app:singleLine="true"
-                    app:singleSelection="true">
+                    android:checked="true"
+                    android:text="@string/p2p_store_kind_all" />
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/sort_popular"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:text="@string/p2p_store_sort_popular" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_sketchware"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/p2p_store_kind_sketchware" />
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/sort_newest"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/p2p_store_sort_newest" />
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_android_studio"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/p2p_store_kind_android_studio" />
+            </com.google.android.material.chip.ChipGroup>
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/sort_likes"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/p2p_store_sort_likes" />
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/sort_chips"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleLine="false"
+                app:singleSelection="true">
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/sort_downloads"
-                        style="@style/Widget.Material3.Chip.Filter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/p2p_store_sort_downloads" />
-                </com.google.android.material.chip.ChipGroup>
-            </HorizontalScrollView>
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/sort_popular"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true"
+                    android:text="@string/p2p_store_sort_popular" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/sort_newest"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/p2p_store_sort_newest" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/sort_likes"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/p2p_store_sort_likes" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/sort_downloads"
+                    style="@style/Widget.Material3.Chip.Filter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/p2p_store_sort_downloads" />
+            </com.google.android.material.chip.ChipGroup>
 
             <TextView
                 android:id="@+id/result_summary"
