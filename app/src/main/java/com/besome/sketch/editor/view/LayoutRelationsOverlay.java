@@ -834,6 +834,21 @@ public class LayoutRelationsOverlay extends View {
             case START -> rect.left - edge;
             case END -> edge - rect.right;
         };
+        ViewBean bean = selectedBean();
+        if (bean != null && !LayoutRelations.isConstraint(bean.parentType) && !LayoutRelations.PARENT.equals(target.id)
+                && target.side != side) {
+            // RelativeLayout puts below/above/toEndOf/toStartOf after the anchor's own margin on that
+            // side too (mBottom = anchor.mTop - (anchor.topMargin + bottomMargin)), so leave it out.
+            View anchor = findSibling((View) selected, target.id);
+            if (anchor != null && anchor.getLayoutParams() instanceof ViewGroup.MarginLayoutParams margins) {
+                distance -= switch (target.side) {
+                    case TOP -> margins.topMargin;
+                    case BOTTOM -> margins.bottomMargin;
+                    case START -> margins.leftMargin;
+                    case END -> margins.rightMargin;
+                };
+            }
+        }
         return Math.max(0, Math.round(distance / density));
     }
 

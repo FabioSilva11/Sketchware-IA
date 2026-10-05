@@ -149,6 +149,19 @@ public class rs extends qA implements View.OnClickListener, MoreblockImporterDia
         currentActivity = projectFileBean;
     }
 
+    /** Whether the widget an event belongs to is still in the activity's layout (or drawer). */
+    private boolean targetExists(EventBean eventBean) {
+        if (currentActivity == null || "_fab".equals(eventBean.targetId)) return true;
+        String xml = eventBean.eventType == EventBean.EVENT_TYPE_DRAWER_VIEW
+                ? currentActivity.getDrawerXmlName() : currentActivity.getXmlName();
+        java.util.ArrayList<ViewBean> views = jC.a(sc_id).d(xml);
+        if (views == null) return false;
+        for (ViewBean view : views) {
+            if (eventBean.targetId.equals(view.id)) return true;
+        }
+        return false;
+    }
+
     public void refreshEvents() {
         if (currentActivity != null) {
             moreBlocks.clear();
@@ -410,10 +423,17 @@ public class rs extends qA implements View.OnClickListener, MoreblockImporterDia
                 holder.targetType.setVisibility(View.GONE);
             } else {
                 holder.icon.setImageResource(EventBean.getEventIconResource(eventBean.eventType, eventBean.targetType));
-                if (eventBean.eventType == EventBean.EVENT_TYPE_VIEW) {
+                holder.targetType.setTextColor(com.google.android.material.color.MaterialColors.getColor(holder.targetType,
+                        R.attr.colorOnSurfaceVariant));
+                if (eventBean.eventType == EventBean.EVENT_TYPE_VIEW || eventBean.eventType == EventBean.EVENT_TYPE_DRAWER_VIEW) {
                     holder.targetType.setText(ViewBean.getViewTypeName(eventBean.targetType));
-                } else if (eventBean.eventType == EventBean.EVENT_TYPE_DRAWER_VIEW) {
-                    holder.targetType.setText(ViewBean.getViewTypeName(eventBean.targetType));
+                    if (!targetExists(eventBean)) {
+                        // The widget was deleted or moved to another layout: no code is generated for
+                        // this event any more, so say it instead of leaving an orphan that looks valid.
+                        holder.targetType.setText(R.string.event_widget_missing);
+                        holder.targetType.setTextColor(com.google.android.material.color.MaterialColors.getColor(holder.targetType,
+                                R.attr.colorError));
+                    }
                 } else if (eventBean.eventType == EventBean.EVENT_TYPE_COMPONENT) {
                     holder.targetType.setText(ComponentBean.getComponentName(requireContext(), eventBean.targetType));
                 } else if (eventBean.eventType == EventBean.EVENT_TYPE_ETC) {

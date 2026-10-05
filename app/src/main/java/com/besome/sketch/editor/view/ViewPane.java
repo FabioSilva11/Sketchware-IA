@@ -147,6 +147,8 @@ public class ViewPane extends RelativeLayout {
     private int dropGravity = -1;
     private ViewGroup dropGroup;
     private long cachedStringsStamp;
+    /** Minimum size each editor item set for itself, before any android:minWidth/minHeight. */
+    private final java.util.Map<View, int[]> editorMinimums = new java.util.WeakHashMap<>();
 
     private static final String TAG = "ViewPane";
 
@@ -801,8 +803,11 @@ public class ViewPane extends RelativeLayout {
         if ("gone".equals(visibility) || "invisible".equals(visibility)) {
             view.setAlpha(viewBean.alpha * 0.35f);
         }
-        view.setMinimumWidth(dimenToPx(attrs.get("android:minWidth"), 0));
-        view.setMinimumHeight(dimenToPx(attrs.get("android:minHeight"), 0));
+        // Editor items have their own minimum size (an empty layout stays droppable, an include
+        // shows its placeholder); android:minWidth/minHeight replace it only when they are set.
+        int[] editorMinimum = editorMinimums.computeIfAbsent(view, v -> new int[]{v.getMinimumWidth(), v.getMinimumHeight()});
+        view.setMinimumWidth(dimenToPx(attrs.get("android:minWidth"), editorMinimum[0]));
+        view.setMinimumHeight(dimenToPx(attrs.get("android:minHeight"), editorMinimum[1]));
         Integer backgroundTint = resolveAttrColor(attrs.get("android:backgroundTint"));
         androidx.core.view.ViewCompat.setBackgroundTintList(view, backgroundTint == null ? null : android.content.res.ColorStateList.valueOf(backgroundTint));
 

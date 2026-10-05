@@ -1373,6 +1373,7 @@ You must enter the API key to operate the map normally."</string>
     <string name="design_include_choose_layout">Layout to include</string>
     <string name="design_include_no_layouts">Create another layout first to include it here.</string>
     <string name="design_relations_circular">That rule would make widgets depend on each other in a circle, which RelativeLayout doesn\'t allow.</string>
+    <string name="event_widget_missing">Widget not found in this layout</string>
     <string name="design_relations_relative_one_anchor">In a RelativeLayout two anchors on the same axis stretch the widget between them, so the opposite anchor was released. To center a widget between two others, use a ConstraintLayout.</string>
     <string name="design_relations_blueprint">Blueprint</string>
     <string name="design_canvas_tools">Canvas tools</string>
