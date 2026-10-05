@@ -95,4 +95,37 @@ public class LibraryManifestMergerTest {
         assertEquals(1, count(merged, "android.intent.action.VIEW"));
         assertTrue(merged.contains(".MainActivity"));
     }
+
+    @Test
+    public void handEditedManifestWithoutToolsDeclarationMerges() throws IOException {
+        // Reported as "Undefined Prefix: tools in com.android.org.kxml2.io.KXmlParser" after editing the manifest by hand
+        File app = write("AndroidManifest.xml", "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\""
+                + " package=\"com.example.app\">"
+                + "<application android:label=\"App\" tools:replace=\"android:label\">"
+                + "<activity android:name=\".MainActivity\" android:exported=\"true\" tools:ignore=\"LockedOrientationActivity\"/>"
+                + "</application></manifest>");
+        File library = write("library.xml", "<manifest xmlns:android=\"http://schemas.android.com/apk/res/android\""
+                + " package=\"com.example.library\">"
+                + "<application><service android:name=\"com.example.library.Sync\" tools:node=\"merge\"/></application>"
+                + "</manifest>");
+        File output = new File(folder.getRoot(), "merged/AndroidManifest.xml");
+
+        LibraryManifestMerger.merge(app, List.of(library), "com.example.app", output);
+        String merged = new String(Files.readAllBytes(output.toPath()), StandardCharsets.UTF_8);
+
+        assertTrue(merged.contains("xmlns:tools=\"http://schemas.android.com/tools\""));
+        assertTrue(merged.contains("tools:replace=\"android:label\""));
+        assertTrue(merged.contains("com.example.library.Sync"));
+    }
+
+    @Test
+    public void declaresOnlyMissingKnownPrefixes() {
+        String declared = ManifestNamespaces.declareUsedPrefixes("<?xml version=\"1.0\"?>\n<manifest xmlns:android=\"a\">"
+                + "<!-- tools:ignore in a comment --><application android:value=\"app:x\" tools:replace=\"android:theme\"/></manifest>");
+        assertTrue(declared.startsWith("<?xml version=\"1.0\"?>\n<manifest xmlns:tools=\"http://schemas.android.com/tools\" xmlns:android"));
+        assertFalse(declared.contains("xmlns:app"));
+        String unchanged = "<manifest xmlns:android=\"a\" xmlns:tools=\"t\"><application tools:node=\"merge\"/></manifest>";
+        assertEquals(unchanged, ManifestNamespaces.declareUsedPrefixes(unchanged));
+        assertEquals("foo", ManifestNamespaces.findUnknownUndeclaredPrefix("<manifest><application foo:bar=\"1\" tools:x=\"2\"/></manifest>"));
+    }
 }

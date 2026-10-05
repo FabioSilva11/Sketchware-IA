@@ -28,6 +28,7 @@ import mod.hey.studios.build.BuildSettings;
 import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.util.ProjectFile;
 import mod.hilal.saif.blocks.CommandBlock;
+import mod.jbk.build.compiler.manifest.ManifestNamespaces;
 import mod.pranav.viewbinding.ViewBindingBuilder;
 import pro.sketchware.SketchApplication;
 import pro.sketchware.util.library.BuiltInLibraryManager;
@@ -470,7 +471,8 @@ public class yq {
         if (fileName.endsWith("java")) {
             fileUtil.b(javaFilesPath + File.separator + packageNameAsFolders + File.separator + fileName, fileContent);
         } else if (fileName.equals("AndroidManifest.xml")) {
-            fileUtil.b(androidManifestPath, fileContent);
+            // Hand-edited manifests use tools:/app: without declaring them; AAPT2 and the merger reject that.
+            fileUtil.b(androidManifestPath, ManifestNamespaces.declareUsedPrefixes(fileContent));
         } else if (fileName.equals("colors.xml") || fileName.equals("styles.xml") || fileName.equals("strings.xml")) {
             fileUtil.b(resDirectoryPath + File.separator + "values" + File.separator + fileName, fileContent);
         } else if (fileName.equals("provider_paths.xml")) {
@@ -890,7 +892,8 @@ public class yq {
             }
         }
 
-        srcCodeBeans.add(new SrcCodeBean("AndroidManifest.xml", CommandBlock.applyCommands("AndroidManifest.xml", ix.a())));
+        srcCodeBeans.add(new SrcCodeBean("AndroidManifest.xml",
+                ManifestNamespaces.declareUsedPrefixes(CommandBlock.applyCommands("AndroidManifest.xml", ix.a()))));
         srcCodeBeans.add(new SrcCodeBean("styles.xml", getXMLStyle()));
         srcCodeBeans.add(new SrcCodeBean("colors.xml", getXMLColor()));
         srcCodeBeans.add(new SrcCodeBean("strings.xml", getXMLString()));
@@ -954,7 +957,7 @@ public class yq {
         if (isManifestFile) {
             Ix ix = new Ix(N, projectFileManager.b());
             ix.setYq(this);
-            return CommandBlock.applyCommands("AndroidManifest.xml", ix.a(applyCustomManifest));
+            return ManifestNamespaces.declareUsedPrefixes(CommandBlock.applyCommands("AndroidManifest.xml", ix.a(applyCustomManifest)));
         }
 
         for (ProjectFileBean file : files) {

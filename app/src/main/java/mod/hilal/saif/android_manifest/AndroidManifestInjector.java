@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 import mod.hey.studios.util.Helper;
+import mod.jbk.build.compiler.manifest.ManifestNamespaces;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.xml.XmlBuilder;
@@ -88,6 +89,12 @@ public class AndroidManifestInjector {
             }
             if (!hasApplication) {
                 return "The manifest has no <application> element.";
+            }
+            // tools:, app: and dist: are declared automatically at build time; any other prefix must be declared.
+            String unknownPrefix = ManifestNamespaces.findUnknownUndeclaredPrefix(xml);
+            if (unknownPrefix != null) {
+                return "The prefix \"" + unknownPrefix + ":\" is used but never declared. Add xmlns:" + unknownPrefix
+                        + "=\"...\" to <manifest>.";
             }
             return null;
         } catch (org.xmlpull.v1.XmlPullParserException e) {

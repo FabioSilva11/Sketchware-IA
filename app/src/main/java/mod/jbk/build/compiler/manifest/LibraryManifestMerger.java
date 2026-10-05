@@ -62,7 +62,10 @@ public final class LibraryManifestMerger {
             factory.setNamespaceAware(true);
             DocumentBuilder builder = factory.newDocumentBuilder();
 
-            Document app = builder.parse(appManifest);
+            // A hand-edited manifest may use tools:/app: without binding them ("Undefined Prefix: tools").
+            String appContent = ManifestNamespaces.declareUsedPrefixes(
+                    new String(Files.readAllBytes(appManifest.toPath()), StandardCharsets.UTF_8));
+            Document app = builder.parse(new InputSource(new StringReader(appContent)));
             Element appRoot = app.getDocumentElement();
 
             List<Document> libraries = new ArrayList<>();
@@ -70,6 +73,7 @@ public final class LibraryManifestMerger {
                 if (manifest.isFile()) {
                     String content = new String(Files.readAllBytes(manifest.toPath()), StandardCharsets.UTF_8)
                             .replace("${applicationId}", applicationId);
+                    content = ManifestNamespaces.declareUsedPrefixes(content);
                     libraries.add(builder.parse(new InputSource(new StringReader(content))));
                 }
             }
