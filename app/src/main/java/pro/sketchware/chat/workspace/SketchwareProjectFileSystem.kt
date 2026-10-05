@@ -201,22 +201,40 @@ class SketchwareProjectFileSystem(
 
     override fun move(sourceRelativePath: String, destinationRelativePath: String): Boolean {
         val (srcPath, src) = writableFile(sourceRelativePath)
-        val (_, dst) = writableFile(destinationRelativePath)
+        val (dstPath, dst) = writableFile(destinationRelativePath)
         if (isProtected(srcPath)) throw SecurityException("Sketchware needs this file, it can't be moved: $sourceRelativePath")
+        checkNotReplacingProjectFile(dstPath, destinationRelativePath)
         if (!src.exists()) return false
         dst.parentFile?.mkdirs()
         return src.renameTo(dst)
     }
 
+    /**
+     * Copies through readBytes/writeBytes, so an encrypted project file is decrypted on the way out and the
+     * destination is stored the way Sketchware expects (and refused while the editor has the project open).
+     */
     override fun copy(sourceRelativePath: String, destinationRelativePath: String): Boolean {
-        val (_, src) = readableFile(sourceRelativePath)
-        val (_, dst) = writableFile(destinationRelativePath)
+        val (srcPath, src) = readableFile(sourceRelativePath)
+        val (dstPath, _) = writableFile(destinationRelativePath)
         if (!src.exists()) return false
-        dst.parentFile?.mkdirs()
-        return try {
-            if (src.isDirectory) src.copyRecursively(dst, overwrite = true) else src.copyTo(dst, overwrite = true).exists()
-        } catch (_: Exception) {
-            false
+        if (src.isFile) {
+            writeBytes(dstPath, readBytes(srcPath))
+            return true
+        }
+        if (dstPath == srcPath || dstPath.startsWith("$srcPath/")) {
+            throw IllegalArgumentException("Can't copy $sourceRelativePath into itself")
+        }
+        src.walkTopDown().filter { it.isFile }.toList().forEach { file ->
+            val child = file.relativeTo(src).invariantSeparatorsPath
+            writeBytes("$dstPath/$child", readBytes("$srcPath/$child"))
+        }
+        return true
+    }
+
+    /** A move would drop a plain file where Sketchware expects one of its encrypted project files. */
+    private fun checkNotReplacingProjectFile(path: String, requested: String) {
+        if (isProtected(path)) {
+            throw SecurityException("$requested is a Sketchware project file; change it with edit_file or rewrite_file instead.")
         }
     }
 
