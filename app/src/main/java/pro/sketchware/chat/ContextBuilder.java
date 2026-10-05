@@ -440,9 +440,10 @@ public class ContextBuilder {
                 + "- data/" + id + "/library: `@firebaseDB`, `@compat`, `@admob`, `@googleMap` settings. data/" + id + "/resource: `@images`, `@sounds`, `@fonts` lists.\n"
                 + "- mysc/list/" + id + "/project: JSON with my_ws_name, my_app_name, my_sc_pkg_name, sc_ver_code, sc_ver_name.\n"
                 + "- data/" + id + "/files/: custom Java (files/java), resources (files/resource), assets, native libraries and AndroidManifest/AppCompat injections (Injection/).\n"
-                + "- mysc/" + id + "/app/: the Android project Sketchware GENERATES from the files above on every build. Read it to understand the code, but change the source files instead: edits there are overwritten.\n"
+                + "- resources/images|sounds|fonts/" + id + "/: the project's image, sound and font files (binary, added through Sketchware's managers and listed in data/" + id + "/resource). Read-only.\n"
+                + "- mysc/" + id + "/: READ-ONLY output Sketchware generates on every build: Java converted from view/logic (app/src/main/java), copies of the images/sounds/fonts (res/, raw/, assets/fonts/) and build files (bin/, gen/). Read it to understand the generated code or a build error, but never treat it as source: change data/" + id + " instead.\n"
                 + "- Keep every JSON line valid and keep ids and section names consistent between view and logic; a broken line makes the project fail to open. Prefer small edits with edit_file over rewriting whole files.\n"
-                + "- If the project is open in Sketchware's editor, it may overwrite your edits when it saves; say so when you change view or logic.";
+                + "- While the project is open in Sketchware's editor, its live state is in the editor (unsaved work in bak/" + id + ") and it writes data/" + id + " when it saves or closes, which can overwrite your edits: ask the user to close the project before changing view, logic, file or resource.";
     }
 
     /** Orientação de arquitetura e boas práticas para o Workspace genérico. */
