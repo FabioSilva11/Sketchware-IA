@@ -121,6 +121,23 @@ public class AddFontActivity extends BaseDialogActivity implements View.OnClickL
         }
     }
 
+    /**
+     * A resource name for a picked font file: "Fonte Teste.ttf" becomes "fonte_teste". Only lowercase letters,
+     * digits and '_' are allowed and the name must start with a letter.
+     */
+    static String fontNameFromFile(String fileName) {
+        String name = fileName == null ? "" : fileName.toLowerCase(java.util.Locale.ROOT);
+        int dot = name.lastIndexOf('.');
+        if (dot > 0) {
+            name = name.substring(0, dot);
+        }
+        name = name.replaceAll("[^a-z0-9_]", "_").replaceAll("_+", "_").replaceAll("^_|_$", "");
+        if (name.isEmpty() || !Character.isLetter(name.charAt(0))) {
+            name = "font_" + name;
+        }
+        return name;
+    }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -139,8 +156,8 @@ public class AddFontActivity extends BaseDialogActivity implements View.OnClickL
                         return;
                     }
                     validFontPicked = true;
-                    String extractedFontName = SketchwareUtil.getSafDocumentDisplayName(intentData).orElse("invalid.tff").toLowerCase();
-                    extractedFontName = extractedFontName.replaceAll("^[a-z0-9]", "").replace("ttf", "");
+                    String extractedFontName = fontNameFromFile(
+                            SketchwareUtil.getSafDocumentDisplayName(intentData).orElse("font.ttf"));
 
                     binding.edInput.requestFocus();
                     binding.fontPreviewView.setVisibility(View.VISIBLE);
