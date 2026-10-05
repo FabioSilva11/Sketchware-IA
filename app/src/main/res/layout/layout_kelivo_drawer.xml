@@ -124,6 +124,16 @@
         android:textSize="14sp" />
 
       <ImageView
+        android:id="@+id/btn_drawer_skills"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/skills_title"
+        android:padding="8dp"
+        android:src="@drawable/ic_kelivo_skill"
+        app:tint="@color/black" />
+
+      <ImageView
         android:id="@+id/btn_drawer_settings"
         android:layout_width="38dp"
         android:layout_height="38dp"

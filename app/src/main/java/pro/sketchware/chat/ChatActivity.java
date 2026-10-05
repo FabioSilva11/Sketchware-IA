@@ -621,6 +621,16 @@ public class ChatActivity extends BaseAppCompatActivity {
                 startActivity(new Intent(this, pro.sketchware.chat.provider.IaSettingsActivity.class));
             });
         }
+        // The runtime applies the saved skills on every run; this is where they are created and switched on/off
+        View drawerSkills = findViewById(R.id.btn_drawer_skills);
+        if (drawerSkills != null) {
+            drawerSkills.setOnClickListener(v -> {
+                if (drawerLayout != null) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                }
+                startActivity(new Intent(this, pro.sketchware.chat.skills.SkillsActivity.class));
+            });
+        }
 
         View drawerHistory = findViewById(R.id.btn_drawer_history);
         if (drawerHistory != null) {
