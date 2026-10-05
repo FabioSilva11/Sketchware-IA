@@ -217,7 +217,7 @@ public final class AgentRuntime {
                     turn = gateway.completeTurn(
                             resolveSystemPrompt(activeAgent, context, skillBlocks),
                             toolCatalogFor(),
-                            history,
+                            snapshot(history),
                             runContextIdentity);
                 } catch (Exception e) {
                     String reason = "LLM turn failed: " + e.getMessage();
@@ -526,7 +526,7 @@ public final class AgentRuntime {
     /** ~4 chars per token, same estimate used by AgentManager. */
     private static long estimatedInputTokens(List<ChatMessage> history) {
         long chars = 0;
-        for (ChatMessage message : history) {
+        for (ChatMessage message : snapshot(history)) {
             String content = message.getLlmContent();
             if (content != null) {
                 chars += content.length();
@@ -708,13 +708,25 @@ public final class AgentRuntime {
     }
 
     private static String latestUserText(List<ChatMessage> messages) {
-        for (int i = messages.size() - 1; i >= 0; i--) {
-            ChatMessage message = messages.get(i);
+        List<ChatMessage> copy = snapshot(messages);
+        for (int i = copy.size() - 1; i >= 0; i--) {
+            ChatMessage message = copy.get(i);
             if (message.getType() == ChatMessage.TYPE_USER) {
                 return message.getMessage();
             }
         }
         return "";
+    }
+
+    /**
+     * A stable copy of the shared history. The host adds and removes bubbles from its
+     * event thread while holding the list's lock (as {@link #appendToolResult} does), so
+     * iterating the live list here can throw ConcurrentModificationException mid-run.
+     */
+    static List<ChatMessage> snapshot(List<ChatMessage> history) {
+        synchronized (history) {
+            return new ArrayList<>(history);
+        }
     }
 
     /** Fluent builder for {@link AgentRuntime}. */
