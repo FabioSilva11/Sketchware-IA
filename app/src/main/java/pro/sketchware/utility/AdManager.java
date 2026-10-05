@@ -311,6 +311,15 @@ public final class AdManager {
         for (NativeAdLoadCallback callback : callbacks) callback.onNativeAdFailedToLoad(error);
     }
 
+    /**
+     * Keeps a floating bar (FAB, import/delete cards) above the banner below it, following the banner's real height:
+     * a floating control drawn over an ad invites accidental clicks, which AdMob policy forbids.
+     */
+    public static void keepAboveBanner(@NonNull View floating, @NonNull View adContainer) {
+        adContainer.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> floating.setTranslationY(-(b - t)));
+        floating.setTranslationY(-adContainer.getHeight());
+    }
+
     @Nullable public static synchronized NativeAd getCachedNativeAd() { return cachedNativeAd; }
 
     /** Removes the given ad from the shared cache so only its new owner shows (and destroys) it. */

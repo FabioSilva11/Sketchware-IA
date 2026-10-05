@@ -2,6 +2,7 @@ package com.besome.sketch.editor.manage.sound;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
@@ -80,6 +81,7 @@ public class ManageSoundActivity extends BaseAppCompatActivity implements ViewPa
         binding.viewPager.addOnPageChangeListener(this);
         binding.tabLayout.setupWithViewPager(binding.viewPager);
         AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/7586692691");
+        AdManager.keepAboveBanner((View) binding.fab.getParent(), binding.adContainer);
     }
 
     @Override
