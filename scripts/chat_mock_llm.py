@@ -85,6 +85,12 @@ SCENARIOS = {
     # images/sounds/fonts are added through Sketchware's managers only
     'recurso': [('ls_dir', lambda p: {'uri': 'resources/images/%s' % p}),
                 ('rewrite_file', lambda p: {'uri': 'resources/images/%s/teste.png' % p, 'new_content': 'x'})],
+    # a copy of an encrypted project file comes out as readable text
+    'copiar': [('copy_file', lambda p: {'source': 'data/%s/view' % p,
+                                        'destination': 'data/%s/files/chat_test/view_copia.txt' % p})],
+    # moving a plain file over a project file is refused (it would break the project)
+    'mover': [('move_file', lambda p: {'source': 'data/%s/files/chat_test/view_copia.txt' % p,
+                                       'destination': 'data/%s/view' % p})],
     # run with the project open in the editor (unsaved work in bak/<id>): the write must be refused
     'aberto': [('edit_file', lambda p: {'uri': 'data/%s/library' % p,
                                         'search_replace_blocks': '<<<<<<< ORIGINAL\n"theme":"DayNight"\n=======\n"theme":"DayNight.NoActionBar"\n>>>>>>> UPDATED'})],

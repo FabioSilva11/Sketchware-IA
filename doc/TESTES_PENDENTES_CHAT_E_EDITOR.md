@@ -31,6 +31,8 @@ Marque cada item ao testar. Se algo falhar, anote o passo e tire um print.
 - [ ] **A1 Ícones dos provedores.** Em *Choose a provider*, cada provedor mostra o ícone da marca. OpenAI-Compatible,
       LiteLLM e os personalizados mostram o ícone genérico (antes aparecia um quadrado roxo).
 - [ ] **A2 Engrenagem do drawer.** Ela abre as configurações de IA (antes não fazia nada).
+- [ ] **A2b Skills.** O novo ícone ao lado da engrenagem abre a tela de Skills. Antes ela existia, mas nada a
+      abria. Crie uma skill, volte ao chat e confira que ela é aplicada.
 - [ ] **A3 Aprovação.** Envie `editar`. Deve aparecer **um** balão por ferramenta. Quando o app pedir aprovação,
       os botões somem depois de Aprovar ou Negar, e o balão mostra o resultado. Role a lista, saia e
       volte ao chat: nada de balões duplicados nem de botão "Aprovar" sobrando.
@@ -40,6 +42,11 @@ Marque cada item ao testar. Se algo falhar, anote o passo e tire um print.
       o APK.
 - [ ] **A6 Sem shell.** Pergunte "rode um comando no terminal". O modelo não tem ferramenta de shell, e o app não
       mostra nenhuma opção de terminal.
+- [ ] **A7 Recusa aparece como erro.** Nos cenários recusados da seção B (`fora`, `apagar`, `gerado`, `recurso`,
+      `mover`, `aberto`), o balão da ferramenta fica com **erro**. Antes ele aparecia como "Concluído" mesmo sem
+      ter mudado nada.
+- [ ] **A8 Escrita sem espera.** `editar` responde na hora. Antes cada escrita esperava 2 s por uma checagem de
+      lint que não existia, e o modelo era informado de "No lint errors found".
 
 ## B. Arquivos do projeto nativo (criptografados)
 
@@ -56,8 +63,10 @@ Envie cada palavra-chave no chat de um projeto nativo.
 | `editar` e depois `desfazer` | O tema muda e depois volta. O projeto continua abrindo normalmente no Sketchware, ou seja, continua criptografado |
 | `apagar` | É recusado com "Sketchware needs this file" |
 | `plano` | A aba de plano mostra as duas etapas |
-| `gerado` (novo) | A listagem de `mysc/<id>` **não** mostra `bin/` nem `gen/`. A escrita em `mysc/<id>/...` é recusada e a mensagem aponta para `data/<id>/view`, `logic`, `file` ou `files/java` |
+| `gerado` (novo) | A listagem de `mysc/<id>` **não** mostra `bin/` nem `gen/`. A escrita em `mysc/<id>/...` é recusada, e a resposta final do mock mostra a mensagem apontando para `data/<id>/view`, `logic`, `file` ou `files/java` (antes o modelo recebia só "Cannot write to file") |
 | `recurso` (novo) | Lista `resources/images/<id>`, e a escrita ali é recusada (imagens só entram pelos gerenciadores) |
+| `copiar` (novo) | Cria `data/<id>/files/chat_test/view_copia.txt` com o **texto** do view, não com bytes criptografados |
+| `mover` (novo, depois de `copiar`) | É recusado: mover um arquivo comum por cima de `data/<id>/view` quebraria o projeto. O projeto continua abrindo |
 | `aberto` (novo) | Veja o roteiro abaixo |
 
 **Roteiro do `aberto`:**
@@ -66,7 +75,7 @@ Envie cada palavra-chave no chat de um projeto nativo.
 2. Feche o Sketchware pelos recentes, deslizando o app.
 3. Confira que a pasta `bak/<id>` existe: `adb shell ls /storage/emulated/0/.sketchware/bak`.
 4. Abra o Sketchware > aba Chat > o mesmo projeto e envie `aberto`.
-5. Esperado: a edição é recusada com o pedido de "Save & exit" primeiro.
+5. Esperado: a edição é recusada, e a resposta mostra o pedido de "Save & exit" primeiro.
 6. Depois, abra o projeto, recupere ou descarte e use **Salvar e sair**. Envie `editar`: agora funciona.
 
 ## C. Manifesto editado à mão (`Undefined Prefix: tools`)
