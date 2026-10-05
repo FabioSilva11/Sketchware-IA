@@ -26,11 +26,10 @@ public class ExtraBlocksTest {
 
         assertNotNull(fusedLocationStart);
         String code = String.valueOf(fusedLocationStart.get("code"));
-        assertTrue(code.contains("LocationRequest.create()"));
-        assertTrue(code.contains("LocationRequest.PRIORITY_HIGH_ACCURACY"));
-        assertTrue(code.contains(".setInterval("));
-        assertTrue(code.contains(".setFastestInterval("));
-        assertFalse(code.contains("new LocationRequest.Builder"));
-        assertFalse(code.contains("Priority.PRIORITY_HIGH_ACCURACY"));
+        // play-services-location 21 (the bundled library): Builder API, not the removed create()/setInterval()
+        assertTrue(code.contains("new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY"));
+        assertTrue(code.contains(".setMinUpdateIntervalMillis("));
+        assertFalse(code.contains("LocationRequest.create()"));
+        assertFalse(code.contains(".setFastestInterval("));
     }
 }
