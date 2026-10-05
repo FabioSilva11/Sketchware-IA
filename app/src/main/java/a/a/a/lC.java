@@ -174,6 +174,10 @@ public class lC {
         Set<String> reservedProjectIds = new HashSet<>();
         collectProjectDirectoryNames(reservedProjectIds, new File(wq.n()));
         collectProjectDirectoryNames(reservedProjectIds, new File(wq.getAndroidStudioProjectsRoot()));
+        // A project removed outside Sketchware can leave data/<id> or mysc/<id> behind; reusing that id would hand
+        // the new project the old project's generated code and build output.
+        collectProjectDirectoryNames(reservedProjectIds, new File(wq.getAbsolutePathOf(wq.d)));
+        collectProjectDirectoryNames(reservedProjectIds, new File(wq.getAbsolutePathOf(wq.b)));
         for (HashMap<String, Object> stringObjectHashMap : a()) {
             try {
                 String projectId = yB.c(stringObjectHashMap, "sc_id");
