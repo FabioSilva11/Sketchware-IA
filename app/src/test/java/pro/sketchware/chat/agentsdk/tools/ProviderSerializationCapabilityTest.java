@@ -132,7 +132,7 @@ public class ProviderSerializationCapabilityTest {
             JSONObject entry = nativePath.payload().getJSONObject(i);
             if ("namespace".equals(entry.getString("type"))
                     && "clock".equals(entry.getString("name"))) {
-                assertEquals(2, entry.getJSONArray("tools").length());
+                assertEquals(1, entry.getJSONArray("tools").length());
                 return;
             }
         }
@@ -147,8 +147,7 @@ public class ProviderSerializationCapabilityTest {
         String wire = flattened.payload().toString();
         assertTrue("clock.curr_time present after flattening",
                 wire.contains("clock.curr_time"));
-        assertTrue("clock.sleep present after flattening",
-                wire.contains("clock.sleep"));
+        assertFalse("clock.sleep is not offered", wire.contains("clock.sleep"));
     }
 
     @Test

@@ -34,9 +34,10 @@ public class ProviderToolSerializationTest {
         assertTrue(registry.contains("update_plan"));
         assertTrue(registry.contains("request_user_input"));
         assertTrue(registry.contains("get_context_remaining"));
-        assertTrue(registry.contains("new_context"));
+        // new_context did nothing and clock.sleep had nothing to wait for: neither is offered
+        assertFalse(registry.contains("new_context"));
         assertTrue(registry.contains("clock.curr_time"));
-        assertTrue(registry.contains("clock.sleep"));
+        assertFalse(registry.contains("clock.sleep"));
         assertTrue(registry.contains("tool_search"));
     }
 
@@ -95,7 +96,7 @@ public class ProviderToolSerializationTest {
     }
 
     @Test
-    public void clockNamespaceGroupsBothTimeTools() throws Exception {
+    public void clockNamespaceGroupsTheTimeTool() throws Exception {
         AxionToolRegistry registry = coreRegistry();
         JSONArray catalog = ToolSpecSerializer.toCatalog(registry.modelVisibleTools());
         for (int i = 0; i < catalog.length(); i++) {
@@ -103,7 +104,8 @@ public class ProviderToolSerializationTest {
             if ("namespace".equals(entry.getString("type"))
                     && "clock".equals(entry.getString("name"))) {
                 JSONArray tools = entry.getJSONArray("tools");
-                assertEquals(2, tools.length());
+                // clock.sleep isn't offered: the chat has nothing to wait for
+                assertEquals(1, tools.length());
                 return;
             }
         }

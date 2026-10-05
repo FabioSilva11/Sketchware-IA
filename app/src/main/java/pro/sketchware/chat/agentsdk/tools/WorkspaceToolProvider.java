@@ -22,9 +22,11 @@ import java.util.Map;
  *
  * <p>Registered families:</p>
  * <ul>
- *   <li><b>Codex core</b> — {@code apply_patch} (FREEFORM), {@code update_plan}, {@code request_user_input},
- *       {@code get_context_remaining}, {@code new_context}, the {@code clock}
- *       namespace, and synthetic {@code tool_search} when deferred tools exist;</li>
+ *   <li><b>Chat tools</b> ({@link #registerChatTools}) — what the Sketchware chat really serves:
+ *       {@code apply_patch} (FREEFORM), {@code update_plan}, {@code get_context_remaining} and
+ *       {@code clock.curr_time};</li>
+ *   <li><b>Codex core</b> ({@link #registerCoreTools}) — the chat tools plus {@code request_user_input} and
+ *       {@code tool_search}, for a host with a question UI and deferred tools;</li>
  *   <li><b>Internal executors</b> — registered as HIDDEN (never model-visible)
  *       when the host wants the legacy write machinery available internally.</li>
  * </ul>
@@ -53,6 +55,18 @@ public final class WorkspaceToolProvider {
     }
 
     /**
+     * The tools the Sketchware chat serves besides the workspace file tools. Left out on purpose, because the chat
+     * has nothing behind them: {@code request_user_input} (no question UI, so an answer never reaches the model) and
+     * {@code tool_search} (no tool is deferred, so there is nothing to find).
+     */
+    public static void registerChatTools(AxionToolRegistry registry) {
+        registerApplyPatch(registry, runFilesystemPatchFactory());
+        registerUpdatePlan(registry);
+        registerContextTools(registry);
+        registerClock(registry);
+    }
+
+    /**
      * Registers the Codex-parity core toolset into the registry.
      *
      * @param patchToolFactory binds an {@code ApplyPatchTool} to a run context
@@ -62,15 +76,20 @@ public final class WorkspaceToolProvider {
                                          ApplyPatchExecutor.PatchToolFactory patchToolFactory,
                                          ApprovalHandler approvalHandler) {
         registerApplyPatch(registry, patchToolFactory);
-        registerPlanTools(registry, approvalHandler);
+        registerUpdatePlan(registry);
+        registerRequestUserInput(registry, approvalHandler);
         registerContextTools(registry);
-        registerClockAndWindowTools(registry);
+        registerClock(registry);
         registerToolSearch(registry);
     }
 
     /** Convenience: apply_patch wired to resolve the run's filesystem fail-closed. */
     public static void registerCoreTools(AxionToolRegistry registry, ApprovalHandler approvalHandler) {
-        registerCoreTools(registry, new ApplyPatchExecutor.PatchToolFactory() {
+        registerCoreTools(registry, runFilesystemPatchFactory(), approvalHandler);
+    }
+
+    private static ApplyPatchExecutor.PatchToolFactory runFilesystemPatchFactory() {
+        return new ApplyPatchExecutor.PatchToolFactory() {
             @Override
             public pro.sketchware.chat.agentsdk.ApplyPatchTool create(
                     RunContext context, pro.sketchware.chat.agentsdk.EventStream events, String scId) {
@@ -79,7 +98,7 @@ public final class WorkspaceToolProvider {
                         events,
                         context.filesystem());
             }
-        }, approvalHandler);
+        };
     }
 
     // ------------------------------------------------------------------
@@ -190,9 +209,10 @@ public final class WorkspaceToolProvider {
 
         @Override
         public AgentToolResult execute(ToolExecutionContext context) {
-            String result = pro.sketchware.chat.port.VoidPortToolsService.executeTool(
-                    context.scId(), toolName, context.functionArguments());
-            return AgentToolResult.success(result);
+            pro.sketchware.chat.port.VoidPortToolsService.ToolOutcome outcome =
+                    pro.sketchware.chat.port.VoidPortToolsService.runTool(
+                            context.scId(), toolName, context.functionArguments());
+            return outcome.failed ? AgentToolResult.error(outcome.text) : AgentToolResult.success(outcome.text);
         }
     }
 
@@ -218,7 +238,7 @@ public final class WorkspaceToolProvider {
     // update_plan / request_user_input (FUNCTION)
     // ------------------------------------------------------------------
 
-    private static void registerPlanTools(AxionToolRegistry registry, ApprovalHandler handler) {
+    private static void registerUpdatePlan(AxionToolRegistry registry) {
         Map<String, ToolJsonSchema> planItemProps = ToolJsonSchema.properties()
                 .put("step", ToolJsonSchema.string("Task step text."))
                 .put("status", ToolJsonSchema.stringEnum(
@@ -240,7 +260,9 @@ public final class WorkspaceToolProvider {
                 .capability(ToolCapability.READ)
                 .build();
         registry.register(updatePlan);
+    }
 
+    private static void registerRequestUserInput(AxionToolRegistry registry, ApprovalHandler handler) {
         Map<String, ToolJsonSchema> optionProps = ToolJsonSchema.properties()
                 .put("label", ToolJsonSchema.string("User-facing label (1-5 words)."))
                 .put("description", ToolJsonSchema.string("One short sentence explaining impact/tradeoff if selected."))
@@ -333,16 +355,16 @@ public final class WorkspaceToolProvider {
     }
 
     // ------------------------------------------------------------------
-    // clock namespace + new_context
+    // clock namespace
     // ------------------------------------------------------------------
 
-    private static void registerClockAndWindowTools(AxionToolRegistry registry) {
+    private static void registerClock(AxionToolRegistry registry) {
         Map<String, ToolJsonSchema> noProps = ToolJsonSchema.properties().build();
         // clock namespace declaration — namespaced tools are emitted in the
         // catalog only when a NAMESPACE container groups them (Codex parity).
         registry.register(ToolRegistration.builder(ToolSpec.namespace(
                         ToolName.plain(ClockTools.NAMESPACE),
-                        "Tools for reading and waiting on time.",
+                        "Tools for reading the time.",
                         Collections.emptyList()))
                 .source("core")
                 .build());
@@ -356,33 +378,6 @@ public final class WorkspaceToolProvider {
                 .capability(ToolCapability.READ)
                 .build();
         registry.register(currTime);
-
-        // clock.sleep
-        Map<String, ToolJsonSchema> sleepProps = ToolJsonSchema.properties()
-                .put("duration_ms", ToolJsonSchema.number(
-                        "How long to sleep in milliseconds. Must be between 1 and " + ClockTools.MAX_SLEEP_DURATION_MS + "."))
-                .build();
-        ToolRegistration sleep = ToolRegistration.builder(ToolSpec.function(
-                        ToolName.namespaced(ClockTools.NAMESPACE, ClockTools.SLEEP_TOOL),
-                        "Pause execution for a specified duration. The sleep ends early when new input arrives "
-                                + "for the active turn. Returns the elapsed wall-clock time.",
-                        ToolJsonSchema.object(sleepProps, Arrays.asList("duration_ms"), false).toJson()))
-                .executor(ClockTools.sleepExecutor())
-                .source("core")
-                .capability(ToolCapability.READ)
-                .build();
-        registry.register(sleep);
-
-        // new_context
-        ToolRegistration newContext = ToolRegistration.builder(ToolSpec.function(
-                        ToolName.plain("new_context"),
-                        "Start a new context window. Does not clear, reset, or otherwise affect environment state.",
-                        ToolJsonSchema.object(noProps, Arrays.asList(), false).toJson()))
-                .executor(ctx -> AgentToolResult.success("{\"started\":true}"))
-                .source("core")
-                .capability(ToolCapability.READ)
-                .build();
-        registry.register(newContext);
     }
 
     // ------------------------------------------------------------------

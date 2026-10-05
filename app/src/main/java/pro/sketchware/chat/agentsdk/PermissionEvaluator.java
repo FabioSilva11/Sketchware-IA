@@ -43,7 +43,7 @@ public final class PermissionEvaluator {
             ToolCapability.EXTERNAL_ACCESS));
 
     private static final Set<String> KNOWN_READ_NAMES = new HashSet<>(Arrays.asList(
-            "get_context_remaining", "new_context", "tool_search",
+            "get_context_remaining", "tool_search",
             "update_plan", "request_user_input"));
 
     private static final Set<String> MUTATION_TOKENS =

@@ -30,8 +30,9 @@ final class WorkspaceMutationExecutor implements ToolExecutor {
 
     @Override
     public AgentToolResult execute(ToolExecutionContext context) {
-        String result = VoidPortToolsService.executeTool(
+        VoidPortToolsService.ToolOutcome outcome = VoidPortToolsService.runTool(
                 context.scId(), toolName, context.functionArguments());
-        return AgentToolResult.success(result);
+        // A refused write (generated folder, other project, editor open...) changed nothing: report it as one
+        return outcome.failed ? AgentToolResult.error(outcome.text) : AgentToolResult.success(outcome.text);
     }
 }

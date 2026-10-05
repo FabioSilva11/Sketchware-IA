@@ -901,7 +901,8 @@ public class AgentManager {
                         : R.string.chat_tool_error_message));
                 bubble.setExpanded(!success);
                 uiExecutor.execute(() -> listener.onMessageUpdated(bubble));
-                boolean mutation = isMutationTool(tool);
+                // A refused or failed write changed nothing
+                boolean mutation = success && isMutationTool(tool);
                 uiExecutor.execute(() -> listener.onToolExecuted(tool, mutation));
             } else if (event instanceof pro.sketchware.chat.agentsdk.AgentEvent.FileChanged) {
                 pro.sketchware.chat.agentsdk.AgentEvent.FileChanged changed =
@@ -1109,19 +1110,11 @@ public class AgentManager {
 
         private static String statusForTool(String toolName) {
             String name = toolName == null ? "" : toolName.trim();
-            if ("read_file".equals(name) || "search_files".equals(name)
-                    || "list_files".equals(name)) {
+            if (READ_TOOLS.contains(name)) {
                 return "Analisando os arquivos do projeto…";
             }
-            if ("rewrite_file".equals(name) || "edit_file".equals(name)
-                    || "create_file_or_folder".equals(name)
-                    || "delete_file_or_folder".equals(name)
-                    || "apply_patch".equals(name)) {
+            if (isMutationTool(name)) {
                 return "Aplicando alterações no projeto…";
-            }
-            if ("compile_project".equals(name)
-                    || "build_project".equals(name)) {
-                return "Verificando se existem erros…";
             }
             return name.isEmpty() ? "Executando ferramenta…" : "Executando " + name + "…";
         }
@@ -1493,24 +1486,6 @@ public class AgentManager {
                 + currentOperationContext.getRequestId() + " " + providerId + "/" + modelName);
     }
 
-    private String userStatusForTool(@Nullable String toolName) {
-        String name = toolName == null ? "" : toolName.trim();
-        if ("read_file".equals(name) || "search_files".equals(name)
-                || "list_files".equals(name)) {
-            return "Analisando os arquivos do projeto…";
-        }
-        if ("rewrite_file".equals(name) || "edit_file".equals(name)
-                || "create_file_or_folder".equals(name)
-                || "delete_file_or_folder".equals(name)) {
-            return "Aplicando alterações no projeto…";
-        }
-        if ("compile_project".equals(name)
-                || "build_project".equals(name)) {
-            return "Verificando se existem erros…";
-        }
-        return name.isEmpty() ? "Executando ferramenta…" : "Executando " + name + "…";
-    }
-
     private void initializeAgentExecution(String userText, String contextPayload,
                                           List<ChatReference> stagingSelections) {
         multiAgentOrchestrator.cancelActiveWorkflow();
@@ -1716,11 +1691,16 @@ public class AgentManager {
                 + "a partir desse conteúdo atual; não reutilize o patch anterior.";
     }
 
+    /** The chat's read and mutation tools, by the names they are registered under. */
+    private static final java.util.Set<String> READ_TOOLS = new java.util.HashSet<>(java.util.Arrays.asList(
+            "read_file", "ls_dir", "get_dir_tree", "search_pathnames_only", "search_for_files", "search_in_file",
+            "get_file_info"));
+    private static final java.util.Set<String> MUTATION_TOOLS = new java.util.HashSet<>(java.util.Arrays.asList(
+            "edit_file", "rewrite_file", "create_file_or_folder", "delete_file_or_folder", "move_file",
+            "rename_file", "copy_file", "apply_patch"));
+
     private static boolean isMutationTool(String toolName) {
-        return "edit_file".equals(toolName)
-                || "rewrite_file".equals(toolName)
-                || "create_file_or_folder".equals(toolName)
-                || "delete_file_or_folder".equals(toolName);
+        return MUTATION_TOOLS.contains(toolName);
     }
 
     static boolean isOutputTruncated(String finishReason) {

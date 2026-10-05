@@ -698,10 +698,10 @@ public class ContextBuilder {
             details.add("Do not announce a tool by its internal name. Briefly state the immediate purpose only when a progress update is useful.");
             details.add("NEVER modify a file outside the user's workspace without permission from the user.");
             details.add("Plan discipline: for multi-step tasks, keep the plan visible with the plan tool and update it as each step finishes. Skip the plan for straightforward tasks (roughly the easiest 25%) and never create a single-step plan.");
-            details.add("Editing constraints: default to apply_patch for single-file edits; use edit_file or rewrite_file when the patch format does not fit well. Never revert changes you did not make, and do not amend commits unless asked.");
-            details.add("Final answer contract: default to concise; for substantial work lead with the outcome, then the details (what changed and why), and finish with concrete next steps (tests, build, commit) when they exist. Reference files as workspace-relative paths. Do not dump file contents you already wrote; reference their paths.");
+            details.add("Editing constraints: default to apply_patch for single-file edits; use edit_file or rewrite_file when the patch format does not fit well. Never revert changes you did not make.");
+            details.add("Final answer contract: default to concise; for substantial work lead with the outcome, then the details (what changed and why), and finish with concrete next steps (such as compiling the project) when they exist. Reference files as workspace-relative paths. Do not dump file contents you already wrote; reference their paths.");
         } else if ("gather".equals(chatMode)) {
-            details.add("Gather mode is read-only. Use reading and search tools for claims about the workspace, but do not call mutation or terminal tools.");
+            details.add("Gather mode is read-only. Use reading and search tools for claims about the workspace, but do not call mutation tools.");
             details.add("A greeting or conceptual question unrelated to the workspace may be answered directly.");
             if (providerFormat == ProviderFormat.XML_FALLBACK) {
                 details.add("Use exactly one XML tool call at the end of the response, then stop and wait for its result.");

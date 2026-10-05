@@ -56,8 +56,11 @@ public final class McpToolSource {
                                 ToolName.plain(name),
                                 fn.optString("description", "MCP tool via " + name + "."),
                                 parameters))
-                        .executor(ctx -> AgentToolResult.success(
-                                VoidPortMcpChannel.callTool(prefs, name, ctx.functionArguments())))
+                        .executor(ctx -> {
+                            String out = VoidPortMcpChannel.callTool(prefs, name, ctx.functionArguments());
+                            return VoidPortMcpChannel.isFailure(out)
+                                    ? AgentToolResult.error(out) : AgentToolResult.success(out);
+                        })
                         .source(serverName == null ? "mcp" : "mcp:" + serverName)
                         .capability(ToolCapability.NETWORK)
                         .build();

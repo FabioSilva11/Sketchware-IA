@@ -109,7 +109,7 @@ public class AgentManagerProductionPathTest {
     /** The production registry wiring: core Codex tools + workspace read tools. */
     private AxionToolRegistry productionRegistry() {
         AxionToolRegistry registry = new AxionToolRegistry();
-        WorkspaceToolProvider.registerCoreTools(registry, null);
+        WorkspaceToolProvider.registerChatTools(registry);
         WorkspaceToolProvider.registerWorkspaceReadTools(registry);
         return registry;
     }
@@ -141,7 +141,11 @@ public class AgentManagerProductionPathTest {
         // Sketchware exposes no shell: a command would run as the app, outside the project's workspace
         assertFalse("exec_command must not be exposed in Sketchware", names.contains("exec_command"));
         assertTrue("core update_plan must be present", names.contains("update_plan"));
-        assertTrue("core request_user_input must be present", names.contains("request_user_input"));
+        // The chat has no question UI and no deferred tools: these would be declarations with nothing behind them
+        assertFalse("request_user_input must not be offered", names.contains("request_user_input"));
+        assertFalse("tool_search must not be offered", names.contains("tool_search"));
+        assertFalse("new_context must not be offered", names.contains("new_context"));
+        assertFalse("clock.sleep must not be offered", names.contains("clock.sleep"));
         assertTrue("core get_context_remaining must be present", names.contains("get_context_remaining"));
 
         // Model-compatible legacy tools survive via the registry.
@@ -197,14 +201,14 @@ public class AgentManagerProductionPathTest {
         assertNotNull("update_plan must resolve to a registration", plan.registration());
         assertFalse("update_plan must execute cleanly: " + plan.result().output(), plan.result().isError());
 
-        // request_user_input reaches its executor and fails closed without a channel.
+        // request_user_input isn't offered: the router refuses it as an unknown tool.
         AxionToolRouter.Routed input = router.route(new AxionToolRouter.Route(
                 "c_input", "request_user_input",
                 "{\"questions\":[{\"id\":\"q1\",\"header\":\"Pick\",\"question\":\"Which?\","
                         + "\"options\":[{\"label\":\"A\"}]}]}"),
                 "sc-exec", context, null);
-        assertNotNull("request_user_input must resolve to a registration", input.registration());
-        assertTrue("without a channel the executor must fail closed", input.result().isError());
+        assertNull("request_user_input must not resolve in the chat", input.registration());
+        assertTrue(input.result().isError());
 
         // apply_patch: FREEFORM raw-input executor bound to the run filesystem
         // (real mutations proven in ApplyPatchFreeformTest).

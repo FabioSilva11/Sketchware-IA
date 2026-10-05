@@ -22,7 +22,7 @@ import java.util.List;
  *       {@code output_schema};</li>
  *   <li><b>other tools intact</b> — removing the field from the wire
  *       representation does not break apply_patch, exec_command, write_stdin,
- *       update_plan, request_user_input, new_context, workspace read tools or
+ *       update_plan, request_user_input, workspace read tools or
  *       MCP tools.</li>
  * </ul>
  */
@@ -161,8 +161,8 @@ public class ToolOutputSchemaBoundaryTest {
     public void coreToolsetSerializesWithoutOutputSchema() {
         JSONArray payload = functionOnly(coreRegistry().modelVisibleTools());
         for (String tool : new String[]{"apply_patch",
-                "update_plan", "request_user_input", "get_context_remaining", "new_context",
-                "clock.curr_time", "clock.sleep"}) {
+                "update_plan", "request_user_input", "get_context_remaining",
+                "clock.curr_time"}) {
             JSONObject function = functionByName(payload, tool);
             assertNotNull("FUNCTION_ONLY payload must contain " + tool, function);
             assertNotNull("parameters must be present for " + tool,

@@ -1902,8 +1902,8 @@ But, components should be added manually for working correctly."</string>
     <string name="chat_tool_empty_command">No command was executed because the command text was empty.</string>
     <string name="chat_tool_working_directory_missing">Working directory not found: %1$s</string>
     <string name="chat_tool_command_failed">Command execution failed: %1$s</string>
-    <string name="chat_tool_get_file_alias_error">The get_file tool does not exist. Use read_file. Available tools: read_file, ls_dir, get_dir_tree, search_pathnames_only, search_for_files, search_in_file, read_lint_errors, create_file_or_folder, delete_file_or_folder, edit_file, rewrite_file, run_command</string>
-    <string name="chat_tool_unknown_error">Tool %1$s is unavailable or does not exist. Make sure the correct mode is active (agent or gather). Use read_file to read a file, rewrite_file to replace a whole file, or edit_file to modify part of a file. Common tools: read_file, ls_dir, get_dir_tree, search_pathnames_only, search_for_files, search_in_file, read_lint_errors, create_file_or_folder, delete_file_or_folder, edit_file, rewrite_file, run_command.</string>
+    <string name="chat_tool_get_file_alias_error">The get_file tool does not exist. Use read_file.</string>
+    <string name="chat_tool_unknown_error">Tool %1$s does not exist. Use only the tools listed in your tool definitions.</string>
     <string name="program_information_button_reset_system">Reset settings</string>
     <string name="program_information_reset_system_complete_initialize">All of the data was initialized</string>
     <string name="program_information_reset_system_confirm_description">"All projects will be reset.

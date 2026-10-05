@@ -501,33 +501,13 @@ public final class VoidPortToolsService {
                 oldContent = "";
             }
 
-            if (!writeFileDirect(scId, uriStr, newContent)) {
-                return new ToolCallResult("Cannot write to file: " + uriStr);
+            String refused = writeFileDirect(scId, uriStr, newContent);
+            if (refused != null) {
+                return new ToolCallResult("Cannot write to " + uriStr + ": " + refused);
             }
 
             FileChangeTracker.trackChange(scId, uriStr, oldContent, newContent, existedBefore);
-
-            // Get lint errors after write
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            
-            List<VoidPortMarkerCheckService.LintError> lintErrors = VoidPortMarkerCheckService.getLintErrors(scId, uriStr);
-            JSONArray lintErrorsArray = new JSONArray();
-            for (VoidPortMarkerCheckService.LintError error : lintErrors) {
-                JSONObject errorObj = new JSONObject();
-                errorObj.put("code", error.code);
-                errorObj.put("message", error.message);
-                errorObj.put("startLineNumber", error.startLineNumber);
-                errorObj.put("endLineNumber", error.endLineNumber);
-                lintErrorsArray.put(errorObj);
-            }
-
-            JSONObject resultObj = new JSONObject();
-            resultObj.put("lintErrors", lintErrorsArray);
-            return new ToolCallResult(resultObj.toString());
+            return new ToolCallResult("{}");
         } catch (Exception e) {
             return new ToolCallResult("Error rewriting file: " + e.getMessage());
         }
@@ -560,33 +540,13 @@ public final class VoidPortToolsService {
             }
             String newContent = replaceResult.content;
 
-            if (!writeFileDirect(scId, uriStr, newContent)) {
-                return new ToolCallResult("Cannot write to file: " + uriStr);
+            String refused = writeFileDirect(scId, uriStr, newContent);
+            if (refused != null) {
+                return new ToolCallResult("Cannot write to " + uriStr + ": " + refused);
             }
 
             FileChangeTracker.trackChange(scId, uriStr, content, newContent);
-
-            // Get lint errors after edit
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            
-            List<VoidPortMarkerCheckService.LintError> lintErrors = VoidPortMarkerCheckService.getLintErrors(scId, uriStr);
-            JSONArray lintErrorsArray = new JSONArray();
-            for (VoidPortMarkerCheckService.LintError error : lintErrors) {
-                JSONObject errorObj = new JSONObject();
-                errorObj.put("code", error.code);
-                errorObj.put("message", error.message);
-                errorObj.put("startLineNumber", error.startLineNumber);
-                errorObj.put("endLineNumber", error.endLineNumber);
-                lintErrorsArray.put(errorObj);
-            }
-
-            JSONObject resultObj = new JSONObject();
-            resultObj.put("lintErrors", lintErrorsArray);
-            return new ToolCallResult(resultObj.toString());
+            return new ToolCallResult("{}");
         } catch (Exception e) {
             return new ToolCallResult("Error editing file: " + e.getMessage());
         }
@@ -812,6 +772,11 @@ public final class VoidPortToolsService {
         }
     }
 
+    /** Success payload of move/rename/copy: the result text is built from it in getStringOfResult. */
+    private static ToolCallResult fromTo(String from, String to) throws org.json.JSONException {
+        return new ToolCallResult(new JSONObject().put("from", from).put("to", to).toString());
+    }
+
     public static ToolCallResult moveFile(String scId, String source, String destination) {
         try {
             if (source.isEmpty() || destination.isEmpty()) {
@@ -825,7 +790,7 @@ public final class VoidPortToolsService {
                     pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveFileSystem();
             if (fs != null) {
                 boolean ok = fs.move(source, destination);
-                return new ToolCallResult(ok ? "File moved successfully from " + source + " to " + destination : "Failed to move file");
+                return ok ? fromTo(source, destination) : new ToolCallResult("Error: could not move " + source + " to " + destination + " (does the source exist?)");
             }
             ProjectPathResolver.ResolvedPath src = ProjectPathResolver.resolveForRead(scId, source);
             ProjectPathResolver.ResolvedPath dst = ProjectPathResolver.resolveForWrite(scId, destination);
@@ -834,7 +799,7 @@ public final class VoidPortToolsService {
             }
             dst.getFile().getParentFile().mkdirs();
             boolean ok = src.getFile().renameTo(dst.getFile());
-            return new ToolCallResult(ok ? "File moved successfully" : "Failed to move file");
+            return ok ? fromTo(source, destination) : new ToolCallResult("Error: could not move " + source + " to " + destination);
         } catch (Exception e) {
             return new ToolCallResult("Error moving file: " + e.getMessage());
         }
@@ -853,7 +818,7 @@ public final class VoidPortToolsService {
                     pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveFileSystem();
             if (fs != null) {
                 boolean ok = fs.rename(uri, newName);
-                return new ToolCallResult(ok ? "File renamed successfully to " + newName : "Failed to rename file");
+                return ok ? fromTo(uri, newName) : new ToolCallResult("Error: could not rename " + uri + " to " + newName + " (does it exist?)");
             }
             ProjectPathResolver.ResolvedPath src = ProjectPathResolver.resolveForRead(scId, uri);
             if (src == null || !src.getFile().exists()) {
@@ -861,7 +826,7 @@ public final class VoidPortToolsService {
             }
             File target = new File(src.getFile().getParentFile(), newName);
             boolean ok = src.getFile().renameTo(target);
-            return new ToolCallResult(ok ? "File renamed successfully" : "Failed to rename file");
+            return ok ? fromTo(uri, newName) : new ToolCallResult("Error: could not rename " + uri + " to " + newName);
         } catch (Exception e) {
             return new ToolCallResult("Error renaming file: " + e.getMessage());
         }
@@ -880,14 +845,15 @@ public final class VoidPortToolsService {
                     pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveFileSystem();
             if (fs != null) {
                 boolean ok = fs.copy(source, destination);
-                return new ToolCallResult(ok ? "File copied successfully from " + source + " to " + destination : "Failed to copy file");
+                return ok ? fromTo(source, destination) : new ToolCallResult("Error: could not copy " + source + " to " + destination + " (does the source exist?)");
             }
             String content = readFileDirect(scId, source);
             if (content == null) {
                 return new ToolCallResult("Source file not found: " + source);
             }
-            boolean ok = writeFileDirect(scId, destination, content);
-            return new ToolCallResult(ok ? "File copied successfully" : "Failed to copy file");
+            String refused = writeFileDirect(scId, destination, content);
+            return refused == null ? fromTo(source, destination)
+                    : new ToolCallResult("Cannot copy to " + destination + ": " + refused);
         } catch (Exception e) {
             return new ToolCallResult("Error copying file: " + e.getMessage());
         }
@@ -911,6 +877,8 @@ public final class VoidPortToolsService {
                     obj.put("lastModified", meta.getLastModified());
                     return new ToolCallResult(obj.toString());
                 }
+                // The run's workspace is the whole scope: no fallback that could reach another project
+                return new ToolCallResult("File not found or outside the project: " + uri);
             }
             ProjectPathResolver.ResolvedPath resolved = ProjectPathResolver.resolveForRead(scId, uri);
             if (resolved == null || !resolved.getFile().exists()) {
@@ -1055,43 +1023,6 @@ public final class VoidPortToolsService {
 
     public static JSONArray getAllToolsAsMCP() {
         JSONArray array = new JSONArray();
-        if (useVoidToolDescriptions()) {
-            array.put(createToolMCP("read_file",
-                    "Returns full contents of a given file.",
-                    new String[]{"uri"}, new String[]{"start_line", "end_line", "page_number"}));
-            array.put(createToolMCP("ls_dir",
-                    "Lists all files and folders in the given URI.",
-                    new String[]{}, new String[]{"uri", "page_number"}));
-            array.put(createToolMCP("get_dir_tree",
-                    "This is a very effective way to learn about the user's codebase. Returns a tree diagram of all the files and folders in the given folder.",
-                    new String[]{}, new String[]{"uri"}));
-            array.put(createToolMCP("search_pathnames_only",
-                    "Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.",
-                    new String[]{"query"}, new String[]{"include_pattern", "page_number"}));
-            array.put(createToolMCP("search_for_files",
-                    "Returns a list of file names whose content matches the given query. The query can be any substring or regex.",
-                    new String[]{"query"}, new String[]{"search_in_folder", "is_regex", "page_number"}));
-            array.put(createToolMCP("search_in_file",
-                    "Returns an array of all the start line numbers where the content appears in the file.",
-                    new String[]{"uri", "query"}, new String[]{"is_regex"}));
-            array.put(createToolMCP("create_file_or_folder",
-                    "Create a file or folder at the given path. To create a folder, the path MUST end with a trailing slash.",
-                    new String[]{"uri"}, null));
-            array.put(createToolMCP("delete_file_or_folder",
-                    "Delete a file or folder at the given path.",
-                    new String[]{"uri"}, new String[]{"is_recursive"}));
-            array.put(createToolMCP("edit_file",
-                    "Atomically edit a file using unique SEARCH/REPLACE blocks copied from a fresh read_file result. If an edit fails, read the file again before retrying.",
-                    new String[]{"uri", "search_replace_blocks"}, null));
-            array.put(createToolMCP("rewrite_file",
-                    "Edits a file, deleting all the old contents and replacing them with your new contents. Use this tool if you want to edit a file you just created.",
-                    new String[]{"uri", "new_content"}, null));
-            array.put(createToolMCP("update_plan",
-                    "Updates the model-maintained plan shown to the user. Send the full plan, one line per step: pending|running|done: title.",
-                    new String[]{"plan"}, null));
-            return array;
-        }
-
         // File tools
         array.put(createToolMCP("read_file",
             "Returns full contents of a given file.",
@@ -1151,10 +1082,6 @@ public final class VoidPortToolsService {
             "Returns metadata about a file or folder (size, type, last modified) without reading its full contents.",
             new String[]{"uri"}, null));
 
-        array.put(createToolMCP("update_plan",
-            "Updates the model-maintained plan shown to the user. Send the full plan, one line per step: pending|running|done: title.",
-            new String[]{"plan"}, null));
-
         return array;
     }
 
@@ -1204,10 +1131,6 @@ public final class VoidPortToolsService {
         }
     }
 
-    private static boolean useVoidToolDescriptions() {
-        return true;
-    }
-
     private static String toolParamDescription(String toolName, String paramName) {
         if ("uri".equals(paramName)) {
             if ("ls_dir".equals(toolName)) {
@@ -1230,12 +1153,6 @@ public final class VoidPortToolsService {
         if ("page_number".equals(paramName)) {
             return "Optional. The page number of the result. Default is 1.";
         }
-        if ("timeout_seconds".equals(paramName)) {
-            return "Optional. Max seconds to wait for the command (default 60, max 300). Use higher values for builds.";
-        }
-        if ("plan".equals(paramName)) {
-            return "The full plan, one step per line: 'pending|running|done: step title'.";
-        }
         if ("query".equals(paramName)) {
             return "Your query for the search.";
         }
@@ -1257,12 +1174,21 @@ public final class VoidPortToolsService {
         if ("new_content".equals(paramName)) {
             return "The new contents of the file. Must be a string.";
         }
+        if ("source".equals(paramName)) {
+            return "The FULL path of the file or folder to " + ("copy_file".equals(toolName) ? "copy." : "move.");
+        }
+        if ("destination".equals(paramName)) {
+            return "The FULL path it should end up at.";
+        }
+        if ("new_name".equals(paramName)) {
+            return "The new name only, without a folder.";
+        }
         return "";
     }
 
     private static String toolParamType(String paramName) {
         if ("start_line".equals(paramName) || "end_line".equals(paramName)
-                || "page_number".equals(paramName) || "timeout_seconds".equals(paramName)) {
+                || "page_number".equals(paramName)) {
             return "integer";
         }
         if ("is_regex".equals(paramName) || "is_recursive".equals(paramName)) {
@@ -1275,25 +1201,54 @@ public final class VoidPortToolsService {
     // MAIN TOOL EXECUTOR
     // ============================================
 
+    /** What a tool call gives the model, and whether it failed (the chat shows failed calls as errors). */
+    public static final class ToolOutcome {
+        public final String text;
+        public final boolean failed;
+
+        private ToolOutcome(String text, boolean failed) {
+            this.text = text == null ? "" : text;
+            this.failed = failed;
+        }
+
+        static ToolOutcome ok(String text) {
+            return new ToolOutcome(text, false);
+        }
+
+        static ToolOutcome failure(String text) {
+            return new ToolOutcome(text, true);
+        }
+    }
+
     public static String executeTool(String scId, String toolName, JSONObject args) {
+        return runTool(scId, toolName, args).text;
+    }
+
+    public static ToolOutcome runTool(String scId, String toolName, JSONObject args) {
         long startedAt = android.os.SystemClock.elapsedRealtime();
         ChatToolLog.d("tool", "▶ " + toolName + " sc=" + scId
                 + " args=" + ChatToolLog.preview(args == null ? "{}" : args.toString(), 300));
         try {
-            String out = executeToolInner(scId, toolName, args);
+            ToolOutcome outcome = executeToolInner(scId, toolName, args == null ? new JSONObject() : args);
             long ms = android.os.SystemClock.elapsedRealtime() - startedAt;
-            boolean looksError = out != null && (out.startsWith("Erro") || out.startsWith("Error")
-                    || out.startsWith("Cannot") || out.startsWith("File not found") || out.startsWith("Blocked"));
-            ChatToolLog.d("tool", (looksError ? "✖ " : "✔ ") + toolName
-                    + " (" + ms + "ms) -> " + ChatToolLog.preview(out, 200));
-            return out;
+            ChatToolLog.d("tool", (outcome.failed ? "✖ " : "✔ ") + toolName
+                    + " (" + ms + "ms) -> " + ChatToolLog.preview(outcome.text, 200));
+            return outcome;
         } catch (Exception e) {
             ChatToolLog.e("tool", "crash in " + toolName, e);
-            return "Erro ao executar ferramenta " + toolName + ": " + e.getMessage();
+            return ToolOutcome.failure("Erro ao executar ferramenta " + toolName + ": " + e.getMessage());
         }
     }
 
-    private static String executeToolInner(String scId, String toolName, JSONObject args) {
+    /**
+     * Every successful {@link ToolCallResult} carries a JSON payload; failures carry the message the model reads.
+     */
+    private static boolean isJsonPayload(String result) {
+        String trimmed = result == null ? "" : result.trim();
+        return trimmed.startsWith("{") || trimmed.startsWith("[");
+    }
+
+    private static ToolOutcome executeToolInner(String scId, String toolName, JSONObject args) {
         try {
             ToolCallResult result;
 
@@ -1404,27 +1359,25 @@ public final class VoidPortToolsService {
                     result = getFileInfo(scId, args.optString("uri", args.optString("path", "")));
                     break;
 
-                case "update_plan":
-                    return updatePlan(scId, args.opt("plan"));
-                    
+                case "update_plan": {
+                    String plan = updatePlan(scId, args.opt("plan"));
+                    return plan.startsWith("Erro") ? ToolOutcome.failure(plan) : ToolOutcome.ok(plan);
+                }
+
                 default:
                     if ("get_file".equals(toolName)) {
-                        return SketchApplication.getContext().getString(R.string.chat_tool_get_file_alias_error);
+                        return ToolOutcome.failure(SketchApplication.getContext().getString(R.string.chat_tool_get_file_alias_error));
                     }
-                    return SketchApplication.getContext().getString(R.string.chat_tool_unknown_error, toolName);
-            }
-            
-            String technicalResult = result.result;
-            
-            // If the result is an error message (doesn't look like JSON), return it as is
-            if (technicalResult.startsWith("Error") || technicalResult.startsWith("Erro") || technicalResult.startsWith("Cannot") || technicalResult.startsWith("File not found")) {
-                return technicalResult;
+                    return ToolOutcome.failure(SketchApplication.getContext().getString(R.string.chat_tool_unknown_error, toolName));
             }
 
-            return getStringOfResult(toolName, args, result);
-            
+            if (!isJsonPayload(result.result)) {
+                return ToolOutcome.failure(result.result);
+            }
+            return ToolOutcome.ok(getStringOfResult(toolName, args, result));
+
         } catch (Exception e) {
-            return "Erro ao executar ferramenta " + toolName + ": " + e.getMessage();
+            return ToolOutcome.failure("Erro ao executar ferramenta " + toolName + ": " + e.getMessage());
         }
     }
 
@@ -1467,7 +1420,8 @@ public final class VoidPortToolsService {
                     if (resObj.optBoolean("hasNextPage")) {
                         sb.append("\n(more on next page...)");
                     }
-                    return sb.toString().trim();
+                    String found = sb.toString().trim();
+                    return found.isEmpty() ? "No matching files found." : found;
                 }
 
                 case "search_in_file": {
@@ -1494,20 +1448,18 @@ public final class VoidPortToolsService {
                     return String.format("URI %s successfully deleted.", args.optString("uri"));
 
                 case "edit_file":
-                case "rewrite_file": {
-                    String uri = args.optString("uri");
-                    JSONArray errors = resObj.optJSONArray("lintErrors");
-                    String lintInfo = "";
-                    
-                    if (errors != null && errors.length() > 0) {
-                        lintInfo = "\n\nLint errors found after change:\n" + stringifyLintErrors(errors) + 
-                                 "\nIf this is related to a change made while calling this tool, you might want to fix the error.";
-                    } else {
-                        lintInfo = " No lint errors found.";
-                    }
-                    
-                    return String.format("Change successfully made to %s.%s", uri, lintInfo);
-                }
+                case "rewrite_file":
+                    // No linter runs on the phone: errors only show up when the project is compiled
+                    return String.format("Change successfully made to %s.", args.optString("uri"));
+
+                case "move_file":
+                    return String.format("Moved %s to %s.", resObj.optString("from"), resObj.optString("to"));
+
+                case "rename_file":
+                    return String.format("Renamed %s to %s.", resObj.optString("from"), resObj.optString("to"));
+
+                case "copy_file":
+                    return String.format("Copied %s to %s.", resObj.optString("from"), resObj.optString("to"));
 
                 default:
                     return result.result;
@@ -1537,21 +1489,6 @@ public final class VoidPortToolsService {
             sb.append("\n... and ").append(remaining).append(" more items (use page_number to see more)");
         }
         
-        return sb.toString().trim();
-    }
-
-    private static String stringifyLintErrors(JSONArray lintErrors) {
-        if (lintErrors == null || lintErrors.length() == 0) return "No lint errors found.";
-        
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < Math.min(lintErrors.length(), 100); i++) {
-            JSONObject err = lintErrors.optJSONObject(i);
-            sb.append(String.format("Error %d:\nLines Affected: %d-%d\nError message:%s\n\n", 
-                i + 1, 
-                err.optInt("startLineNumber"), 
-                err.optInt("endLineNumber"), 
-                err.optString("message")));
-        }
         return sb.toString().trim();
     }
 
@@ -1640,27 +1577,31 @@ public final class VoidPortToolsService {
         }
     }
 
-    private static boolean writeFileDirect(String scId, String uriStr, String content) {
+    /**
+     * Writes through the run's workspace. Returns null once written, otherwise why it wasn't: the workspace's own
+     * refusal (a generated Sketchware folder, a project open in the editor...) tells the model what to do instead.
+     */
+    private static String writeFileDirect(String scId, String uriStr, String content) {
         try {
             if (pro.sketchware.chat.workspace.WorkspacePath.hasParentTraversal(uriStr)) {
-                return false;
+                return "the path leaves the workspace";
             }
             String norm = pro.sketchware.chat.workspace.WorkspacePath.normalize(uriStr);
             pro.sketchware.chat.workspace.WorkspaceFileSystem fs =
                     pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveFileSystem();
             if (fs != null) {
                 fs.writeText(norm, content);
-                return true;
+                return null;
             }
             ProjectPathResolver.ResolvedPath resolved = ProjectPathResolver.resolveForWrite(scId, uriStr);
-            if (resolved == null || !resolved.isAuthorized()) return false;
+            if (resolved == null || !resolved.isAuthorized()) return "the path is outside the project";
             File file = resolved.getFile();
             File parent = file.getParentFile();
             if (parent != null && !parent.exists()) parent.mkdirs();
             java.nio.file.Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
-            return true;
+            return null;
         } catch (Exception e) {
-            return false;
+            return e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
         }
     }
 }

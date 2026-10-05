@@ -330,6 +330,22 @@ public final class VoidPortMcpChannel {
         return "";
     }
 
+    /**
+     * Whether {@link #callTool} returned a failure: its own error messages are plain text, a server's answer is the
+     * JSON-RPC result, which flags a failed tool run with {@code isError}.
+     */
+    public static boolean isFailure(String callResult) {
+        String trimmed = callResult == null ? "" : callResult.trim();
+        if (!trimmed.startsWith("{")) {
+            return true;
+        }
+        try {
+            return new JSONObject(trimmed).optBoolean("isError", false);
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     private static String callServerTool(String serverName, JSONObject server, String toolName, JSONObject args) {
         String url = server.optString("url", "").trim();
         if (url.isEmpty()) {

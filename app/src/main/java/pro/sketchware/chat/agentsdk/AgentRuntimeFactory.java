@@ -84,14 +84,14 @@ public final class AgentRuntimeFactory {
         ApprovalHandler.Resolver approvals = new ApprovalHandler.Resolver();
         EventStream events = new EventStream();
         // Item (registry-backed catalog): the SINGLE model-facing tool source.
-        // The Codex-parity core tools and the remaining workspace read tools
+        // The chat tools and the remaining workspace read tools
         // (read_file, ls_dir, search* ...) are registered once here; MCP
         // servers follow as registry citizens. Nothing is adapted at run time,
-        // so legacy names with a replacement never reach the model.
+        // so legacy names with a replacement never reach the model. Only tools
+        // the chat really serves are offered (see registerChatTools).
         pro.sketchware.chat.agentsdk.tools.AxionToolRegistry registry =
                 new pro.sketchware.chat.agentsdk.tools.AxionToolRegistry();
-        pro.sketchware.chat.agentsdk.tools.WorkspaceToolProvider.registerCoreTools(
-                registry, approvals);
+        pro.sketchware.chat.agentsdk.tools.WorkspaceToolProvider.registerChatTools(registry);
         pro.sketchware.chat.agentsdk.tools.WorkspaceToolProvider.registerWorkspaceReadTools(
                 registry);
         // Mutation tools (create/delete/edit/rewrite/move/rename/copy) are
