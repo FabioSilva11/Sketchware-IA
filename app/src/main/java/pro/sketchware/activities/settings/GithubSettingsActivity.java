@@ -30,8 +30,8 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import pro.sketchware.R;
-import pro.sketchware.activities.chat.port.GitHubMcpService;
-import pro.sketchware.activities.chat.port.VoidPortSettings;
+import pro.sketchware.chat.port.GitHubMcpService;
+import pro.sketchware.chat.port.VoidPortSettings;
 
 /**
  * Standalone settings screen for the GitHub MCP integration.

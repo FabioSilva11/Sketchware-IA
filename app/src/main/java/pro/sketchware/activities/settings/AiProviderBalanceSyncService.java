@@ -27,7 +27,7 @@ import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import pro.sketchware.activities.chat.port.VoidPortSettings;
+import pro.sketchware.chat.port.VoidPortSettings;
 
 final class AiProviderBalanceSyncService {
 

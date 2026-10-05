@@ -34,6 +34,7 @@ lottie = "6.7.1"
 material = "1.14.0"
 nbJavacAndroid = "17.0.0.3"
 okhttp = "5.5.0"
+paging = "3.5.0"
 okio = "3.18.2"
 playServicesAds = "25.5.0"
 preference = "1.2.1"
@@ -52,6 +53,7 @@ zipalignJava = "1.2.2"
 
 [libraries]
 androidx-activity = { module = "androidx.activity:activity", version.ref = "activity" }
+androidx-paging = { module = "androidx.paging:paging-runtime", version.ref = "paging" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-cardview = { module = "androidx.cardview:cardview", version.ref = "cardview" }
 androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }

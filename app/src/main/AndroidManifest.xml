@@ -16,6 +16,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- Package visibility (API 30+): launching the projects Sketchware just built and
          opening links in a browser. -->
@@ -104,7 +106,7 @@
             android:windowSoftInputMode="stateHidden"
             android:theme="@style/Theme.SketchwarePro.SmallToolbar" />
         <activity
-            android:name="pro.sketchware.activities.chat.ChatActivity"
+            android:name="pro.sketchware.chat.ChatActivity"
             android:configChanges="orientation|screenSize"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.SketchwarePro" />
@@ -337,8 +339,15 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity android:name="pro.sketchware.activities.settings.SettingsActivity" />
-        <activity android:name="pro.sketchware.activities.settings.IaSettingsActivity" />
-        <activity android:name="pro.sketchware.activities.settings.ProviderDetailActivity" />
+        <activity android:name="pro.sketchware.chat.provider.IaSettingsActivity" />
+        <activity
+            android:name="pro.sketchware.chat.provider.ProviderDetailActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity android:name="pro.sketchware.chat.skills.SkillsActivity" />
+        <service
+            android:name="pro.sketchware.chat.ChatRunForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
         <activity android:name="pro.sketchware.activities.settings.GithubSettingsActivity" />
 
         <activity android:name="pro.sketchware.activities.resourceseditor.ResourcesEditorActivity" />

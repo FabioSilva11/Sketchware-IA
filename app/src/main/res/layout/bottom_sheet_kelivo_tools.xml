@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_kelivo_bottom_sheet"
@@ -35,7 +36,7 @@
                 android:layout_height="24dp"
                 android:contentDescription="@null"
                 android:src="@drawable/kelivo_lucide_camera"
-                android:tint="@color/chat_text_primary" />
+                app:tint="@color/chat_text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -61,7 +62,7 @@
                 android:layout_height="24dp"
                 android:contentDescription="@null"
                 android:src="@drawable/kelivo_lucide_image"
-                android:tint="@color/chat_text_primary" />
+                app:tint="@color/chat_text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -87,7 +88,7 @@
                 android:layout_height="24dp"
                 android:contentDescription="@null"
                 android:src="@drawable/kelivo_lucide_paperclip"
-                android:tint="@color/chat_text_primary" />
+                app:tint="@color/chat_text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
@@ -99,79 +100,4 @@
         </LinearLayout>
     </LinearLayout>
 
-    <LinearLayout
-        android:id="@+id/tool_instruction"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="12dp"
-        android:layout_marginEnd="16dp"
-        android:background="?attr/selectableItemBackground"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:visibility="gone">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:contentDescription="@null"
-            android:src="@drawable/kelivo_lucide_layers"
-            android:tint="@color/chat_text_primary" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_weight="1"
-            android:text="@string/kelivo_tool_instruction"
-            android:textColor="@color/chat_text_primary"
-            android:textSize="15sp" />
-
-        <ImageView
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:contentDescription="@null"
-            android:src="@drawable/kelivo_lucide_chevron_right"
-            android:tint="@color/chat_text_hint" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/tool_context"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="16dp"
-        android:background="?attr/selectableItemBackground"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
-        android:visibility="gone">
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:contentDescription="@null"
-            android:src="@drawable/kelivo_lucide_workflow"
-            android:tint="@color/chat_text_primary" />
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_weight="1"
-            android:text="@string/kelivo_tool_context"
-            android:textColor="@color/chat_text_primary"
-            android:textSize="15sp" />
-
-        <ImageView
-            android:layout_width="18dp"
-            android:layout_height="18dp"
-            android:contentDescription="@null"
-            android:src="@drawable/kelivo_lucide_chevron_right"
-            android:tint="@color/chat_text_hint" />
-    </LinearLayout>
 </LinearLayout>

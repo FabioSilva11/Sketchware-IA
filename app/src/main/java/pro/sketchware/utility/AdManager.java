@@ -313,6 +313,11 @@ public final class AdManager {
 
     @Nullable public static synchronized NativeAd getCachedNativeAd() { return cachedNativeAd; }
 
+    /** Removes the given ad from the shared cache so only its new owner shows (and destroys) it. */
+    public static synchronized void releaseFromCache(@NonNull NativeAd ad) {
+        if (cachedNativeAd == ad) { cachedNativeAd = null; cachedNativeAdUnitId = null; }
+    }
+
     public static void consumeCachedNativeAd(@NonNull NativeAdContainerBinder binder, @Nullable NativeAdLoadCallback fallback) {
         NativeAd cached;
         synchronized (AdManager.class) { cached = cachedNativeAd; cachedNativeAd = null; cachedNativeAdUnitId = null; }

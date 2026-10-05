@@ -103,14 +103,14 @@
                                 android:layout_height="18dp"
                                 android:contentDescription="@null"
                                 android:src="@drawable/ic_mtrl_chevron_right_24"
-                                android:tint="@color/chat_text_secondary" />
+                                app:tint="@color/chat_text_secondary" />
                         </LinearLayout>
 
                         <View style="@style/ProviderDetailDivider" />
 
-                        <!-- Group row -->
+                        <!-- Provider group row -->
                         <LinearLayout
-                            android:id="@+id/row_group"
+                            android:id="@+id/row_provider_group"
                             android:layout_width="match_parent"
                             android:layout_height="50dp"
                             android:foreground="?attr/selectableItemBackground"
@@ -127,20 +127,20 @@
                                 android:textSize="14sp" />
 
                             <TextView
-                                android:id="@+id/tv_group_value"
+                                android:id="@+id/tv_provider_group_value"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginEnd="4dp"
+                                android:text="@string/ia_group_other"
                                 android:textColor="@color/chat_text_secondary"
-                                android:textSize="14sp"
-                                tools:text="Other" />
+                                android:textSize="14sp" />
 
                             <ImageView
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:contentDescription="@null"
                                 android:src="@drawable/ic_mtrl_chevron_right_24"
-                                android:tint="@color/chat_text_secondary" />
+                                app:tint="@color/chat_text_secondary" />
                         </LinearLayout>
 
                         <View style="@style/ProviderDetailDivider" />
@@ -193,47 +193,21 @@
 
                         <View style="@style/ProviderDetailDivider" />
 
-                        <!-- Response API row -->
                         <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="50dp"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal"
-                            android:paddingHorizontal="16dp">
-
-                            <TextView
-                                android:layout_width="0dp"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:text="@string/ia_response_api_label"
-                                android:textColor="@color/chat_text_primary"
-                                android:textSize="14sp" />
-
-                            <com.google.android.material.materialswitch.MaterialSwitch
-                                android:id="@+id/switch_response_api"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content" />
-                        </LinearLayout>
-
-                        <View
-                            android:id="@+id/divider_before_balance"
-                            style="@style/ProviderDetailDivider" />
-
-                        <!-- Get account balance row -->
-                        <LinearLayout
-                            android:id="@+id/row_account_balance"
+                            android:id="@+id/row_manage_keys"
                             android:layout_width="match_parent"
                             android:layout_height="50dp"
                             android:foreground="?attr/selectableItemBackground"
                             android:gravity="center_vertical"
                             android:orientation="horizontal"
-                            android:paddingHorizontal="16dp">
+                            android:paddingHorizontal="16dp"
+                            android:visibility="gone">
 
                             <TextView
                                 android:layout_width="0dp"
                                 android:layout_height="wrap_content"
                                 android:layout_weight="1"
-                                android:text="@string/ia_get_account_balance_label"
+                                android:text="@string/ia_manage_keys_label"
                                 android:textColor="@color/chat_text_primary"
                                 android:textSize="14sp" />
 
@@ -242,12 +216,42 @@
                                 android:layout_height="18dp"
                                 android:contentDescription="@null"
                                 android:src="@drawable/ic_mtrl_chevron_right_24"
-                                android:tint="@color/chat_text_secondary" />
+                                app:tint="@color/chat_text_secondary" />
                         </LinearLayout>
 
-                        <View style="@style/ProviderDetailDivider" />
+                        <View
+                            android:id="@+id/divider_manage_keys"
+                            style="@style/ProviderDetailDivider"
+                            android:visibility="gone" />
 
-                        <!-- Network row -->
+                        <LinearLayout
+                            android:id="@+id/row_vertex_ai"
+                            android:layout_width="match_parent"
+                            android:layout_height="50dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="16dp"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/ia_vertex_ai_label"
+                                android:textColor="@color/chat_text_primary"
+                                android:textSize="14sp" />
+
+                            <com.google.android.material.materialswitch.MaterialSwitch
+                                android:id="@+id/switch_vertex_ai"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" />
+                        </LinearLayout>
+
+                        <View
+                            android:id="@+id/divider_vertex_ai"
+                            style="@style/ProviderDetailDivider"
+                            android:visibility="gone" />
+
                         <LinearLayout
                             android:id="@+id/row_network"
                             android:layout_width="match_parent"
@@ -270,7 +274,34 @@
                                 android:layout_height="18dp"
                                 android:contentDescription="@null"
                                 android:src="@drawable/ic_mtrl_chevron_right_24"
-                                android:tint="@color/chat_text_secondary" />
+                                app:tint="@color/chat_text_secondary" />
+                        </LinearLayout>
+
+                        <View style="@style/ProviderDetailDivider" />
+
+                        <LinearLayout
+                            android:id="@+id/row_custom_request"
+                            android:layout_width="match_parent"
+                            android:layout_height="50dp"
+                            android:foreground="?attr/selectableItemBackground"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:paddingHorizontal="16dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/ia_custom_request_label"
+                                android:textColor="@color/chat_text_primary"
+                                android:textSize="14sp" />
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_mtrl_chevron_right_24"
+                                app:tint="@color/chat_text_secondary" />
                         </LinearLayout>
 
                     </LinearLayout>
@@ -307,6 +338,7 @@
 
                 <!-- API Key field -->
                 <TextView
+                    android:id="@+id/label_api_key"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="6dp"
@@ -340,6 +372,7 @@
 
                 <!-- API Base URL field -->
                 <TextView
+                    android:id="@+id/label_api_base_url"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="6dp"
@@ -348,6 +381,7 @@
                     android:textSize="13sp" />
 
                 <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_api_base_url"
                     style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -367,42 +401,59 @@
                         android:textSize="14sp" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <!-- API Path field -->
-                <TextView
+                <LinearLayout
+                    android:id="@+id/vertex_fields_container"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="6dp"
-                    android:text="@string/ia_api_path_label"
-                    android:textColor="@color/chat_text_secondary"
-                    android:textSize="13sp" />
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="20dp"
-                    app:boxCornerRadiusBottomEnd="14dp"
-                    app:boxCornerRadiusBottomStart="14dp"
-                    app:boxCornerRadiusTopEnd="14dp"
-                    app:boxCornerRadiusTopStart="14dp"
-                    app:boxStrokeColor="@color/chat_border"
-                    app:hintEnabled="false">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/et_api_path"
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/ia_api_path_default_hint"
-                        android:textColor="@color/chat_text_primary"
-                        android:textSize="14sp" />
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_marginBottom="12dp"
+                        android:hint="@string/ia_vertex_location_label">
 
-                <!-- Extra dynamic fields (provider-specific, e.g. Vertex project/region) -->
-                <LinearLayout
-                    android:id="@+id/extra_fields_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_vertex_location"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:singleLine="true"
+                            android:textColor="@color/chat_text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:hint="@string/ia_vertex_project_label">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_vertex_project"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:singleLine="true"
+                            android:textColor="@color/chat_text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="20dp"
+                        android:hint="@string/ia_vertex_service_account_label">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_vertex_service_account"
+                            android:layout_width="match_parent"
+                            android:layout_height="120dp"
+                            android:gravity="top|start"
+                            android:inputType="textMultiLine|textNoSuggestions"
+                            android:textColor="@color/chat_text_primary" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
 
             </LinearLayout>
 
@@ -535,7 +586,7 @@
                     android:layout_height="22dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_mtrl_settings"
-                    android:tint="@color/chat_accent" />
+                    app:tint="@color/chat_accent" />
 
                 <TextView
                     android:id="@+id/label_tab_config"
@@ -562,7 +613,7 @@
                     android:layout_height="22dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_mtrl_package"
-                    android:tint="@color/chat_text_secondary" />
+                    app:tint="@color/chat_text_secondary" />
 
                 <TextView
                     android:id="@+id/label_tab_models"

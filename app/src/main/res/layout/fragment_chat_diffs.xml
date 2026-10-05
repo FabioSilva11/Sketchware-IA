@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/chat_surface"
@@ -13,11 +14,12 @@
         android:id="@+id/text_diff_summary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/chat_text_secondary"
-        android:textSize="12sp" />
+        android:textColor="@color/chat_diff_line_text"
+        android:textSize="13sp"
+        android:textStyle="bold" />
 
     <LinearLayout
-        android:id="@+id/layout_diff_global_actions"
+        android:id="@+id/layout_diff_bulk_actions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
@@ -25,44 +27,57 @@
         android:orientation="horizontal"
         android:visibility="gone">
 
-        <TextView
-            android:id="@+id/button_accept_all_diffs"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_diff_accept_all"
+            style="@style/Widget.Material3.Button"
             android:layout_width="0dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="8dp"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_chat_option_row_soft"
-            android:gravity="center"
             android:text="@string/chat_diff_action_accept_all"
-            android:textColor="@color/chat_accent"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+            android:textAllCaps="false"
+            android:textColor="@android:color/white"
+            app:backgroundTint="@color/chat_accent"
+            app:cornerRadius="6dp"
+            app:icon="@drawable/kelivo_lucide_check"
+            app:iconGravity="textStart"
+            app:iconTint="@android:color/white" />
 
-        <TextView
-            android:id="@+id/button_reject_all_diffs"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_diff_discard_all"
+            style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="36dp"
+            android:layout_height="44dp"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_chat_option_row_soft"
-            android:gravity="center"
-            android:text="@string/chat_diff_action_reject_all"
+            android:text="@string/chat_diff_action_discard_all"
+            android:textAllCaps="false"
             android:textColor="@color/chat_error"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+            app:cornerRadius="6dp"
+            app:icon="@drawable/kelivo_lucide_x"
+            app:iconGravity="textStart"
+            app:iconTint="@color/chat_error"
+            app:strokeColor="@color/chat_error" />
     </LinearLayout>
 
-    <ScrollView
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_diff_files"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="10dp"
         android:layout_weight="1"
-        android:fillViewport="true">
+        android:clipToPadding="false"
+        android:overScrollMode="ifContentScrolls"
+        android:scrollbars="vertical" />
 
-        <LinearLayout
-            android:id="@+id/layout_diff_files"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
+    <TextView
+        android:id="@+id/text_diff_empty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:text="@string/chat_diff_empty"
+        android:textColor="@color/chat_diff_muted_text"
+        android:textSize="13sp"
+        android:visibility="gone" />
 </LinearLayout>

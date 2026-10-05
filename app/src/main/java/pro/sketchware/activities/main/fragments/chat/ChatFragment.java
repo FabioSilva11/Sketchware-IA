@@ -29,7 +29,7 @@ import a.a.a.DB;
 import a.a.a.lC;
 import dev.chrisbanes.insetter.Insetter;
 import pro.sketchware.R;
-import pro.sketchware.activities.chat.ChatActivity;
+import pro.sketchware.chat.ChatActivity;
 import pro.sketchware.activities.main.activities.MainActivity;
 import pro.sketchware.databinding.MyprojectsBinding;
 import pro.sketchware.utility.UI;

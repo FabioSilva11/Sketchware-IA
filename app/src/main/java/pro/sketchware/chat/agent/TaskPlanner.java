@@ -1,0 +1,660 @@
+package pro.sketchware.chat.agent;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Legacy deterministic planner retained only for UI/backwards compatibility.
+ *
+ * The main AgentManager no longer treats this plan as an authority. The model
+ * selects the next available tool and the host enforces safety invariants such
+ * as read-before-edit. New code should prefer model-maintained plans for truly
+ * multi-step work and must never require a tool absent from the effective registry.
+ */
+public class TaskPlanner {
+
+    /**
+     * Status of a plan step.
+     */
+    public enum StepStatus {
+        PENDING,
+        IN_PROGRESS,
+        COMPLETED,
+        FAILED,
+        SKIPPED
+    }
+
+    /**
+     * A single step in the execution plan.
+     */
+    public static class Step {
+        private final String id;
+        private final String description;
+        private final List<String> expectedTools;
+        private final List<String> dependsOn;
+        private final boolean isCritical;
+        private StepStatus status;
+
+        private Step(@NonNull Builder builder) {
+            this.id = builder.id;
+            this.description = builder.description;
+            this.expectedTools = Collections.unmodifiableList(new ArrayList<>(builder.expectedTools));
+            this.dependsOn = Collections.unmodifiableList(new ArrayList<>(builder.dependsOn));
+            this.isCritical = builder.isCritical;
+            this.status = StepStatus.PENDING;
+        }
+
+        @NonNull
+        public String getId() {
+            return id;
+        }
+
+        @NonNull
+        public String getDescription() {
+            return description;
+        }
+
+        @NonNull
+        public List<String> getExpectedTools() {
+            return expectedTools;
+        }
+
+        @NonNull
+        public List<String> getDependsOn() {
+            return dependsOn;
+        }
+
+        public boolean isCritical() {
+            return isCritical;
+        }
+
+        @NonNull
+        public StepStatus getStatus() {
+            return status;
+        }
+
+        public void setStatus(@NonNull StepStatus status) {
+            this.status = status;
+        }
+
+        public boolean isPending() {
+            return status == StepStatus.PENDING;
+        }
+
+        public boolean isInProgress() {
+            return status == StepStatus.IN_PROGRESS;
+        }
+
+        public boolean isCompleted() {
+            return status == StepStatus.COMPLETED;
+        }
+
+        public boolean isFailed() {
+            return status == StepStatus.FAILED;
+        }
+
+        public boolean isSkipped() {
+            return status == StepStatus.SKIPPED;
+        }
+
+        @NonNull
+        static Builder builder(@NonNull String id, @NonNull String description) {
+            return new Builder(id, description);
+        }
+
+        static class Builder {
+            private final String id;
+            private final String description;
+            private final List<String> expectedTools = new ArrayList<>();
+            private final List<String> dependsOn = new ArrayList<>();
+            private boolean isCritical = true;
+
+            private Builder(@NonNull String id, @NonNull String description) {
+                this.id = id;
+                this.description = description;
+            }
+
+            Builder addExpectedTool(String tool) {
+                if (tool != null && !tool.trim().isEmpty()) {
+                    expectedTools.add(tool);
+                }
+                return this;
+            }
+
+            Builder dependsOn(String stepId) {
+                if (stepId != null && !stepId.trim().isEmpty()) {
+                    dependsOn.add(stepId);
+                }
+                return this;
+            }
+
+            Builder critical(boolean critical) {
+                this.isCritical = critical;
+                return this;
+            }
+
+            Step build() {
+                return new Step(this);
+            }
+        }
+    }
+
+    /**
+     * A complete execution plan.
+     */
+    public static class Plan {
+        private final String objective;
+        private final List<Step> steps;
+        private final List<String> completionCriteria;
+        private final long timestamp;
+
+        private Plan(@NonNull Builder builder) {
+            this.objective = builder.objective;
+            this.steps = new ArrayList<>(builder.steps);  // Mutable for status updates
+            this.completionCriteria = Collections.unmodifiableList(new ArrayList<>(builder.completionCriteria));
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        @NonNull
+        public String getObjective() {
+            return objective;
+        }
+
+        @NonNull
+        public List<Step> getSteps() {
+            return Collections.unmodifiableList(steps);
+        }
+
+        @NonNull
+        public List<String> getCompletionCriteria() {
+            return completionCriteria;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public int getTotalSteps() {
+            return steps.size();
+        }
+
+        public int getCompletedSteps() {
+            int count = 0;
+            for (Step step : steps) {
+                if (step.isCompleted()) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        public int getCriticalSteps() {
+            int count = 0;
+            for (Step step : steps) {
+                if (step.isCritical()) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        public int getCompletedCriticalSteps() {
+            int count = 0;
+            for (Step step : steps) {
+                if (step.isCritical() && step.isCompleted()) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        public boolean isComplete() {
+            // All critical steps must be completed
+            for (Step step : steps) {
+                if (step.isCritical() && !step.isCompleted() && !step.isSkipped()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Nullable
+        public Step getStepById(@NonNull String id) {
+            for (Step step : steps) {
+                if (id.equals(step.getId())) {
+                    return step;
+                }
+            }
+            return null;
+        }
+
+        @Nullable
+        public Step getCurrentStep() {
+            for (Step step : steps) {
+                if (step.isInProgress()) {
+                    return step;
+                }
+            }
+            // Return first pending step
+            for (Step step : steps) {
+                if (step.isPending()) {
+                    return step;
+                }
+            }
+            return null;
+        }
+
+        /**
+         * Checks if a step's dependencies are satisfied.
+         */
+        public boolean areDependenciesSatisfied(@NonNull Step step) {
+            for (String depId : step.getDependsOn()) {
+                Step dep = getStepById(depId);
+                if (dep != null && !dep.isCompleted()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /**
+         * Updates step status by ID.
+         */
+        public void updateStepStatus(@NonNull String stepId, @NonNull StepStatus status) {
+            Step step = getStepById(stepId);
+            if (step != null) {
+                step.setStatus(status);
+            }
+        }
+
+        /** Marks the matching deterministic step as running before execution starts. */
+        public void markToolStarted(@NonNull String toolName) {
+            for (Step step : steps) {
+                if (!step.isCompleted()
+                        && !step.isSkipped()
+                        && areDependenciesSatisfied(step)
+                        && satisfiesExpectedTool(step.getExpectedTools(), toolName)) {
+                    step.setStatus(StepStatus.IN_PROGRESS);
+                    return;
+                }
+            }
+        }
+
+        /** Records a failed execution without allowing the UI to report completion. */
+        public void recordToolFailure(@NonNull String toolName) {
+            for (Step step : steps) {
+                if (!step.isCompleted()
+                        && !step.isSkipped()
+                        && areDependenciesSatisfied(step)
+                        && satisfiesExpectedTool(step.getExpectedTools(), toolName)) {
+                    step.setStatus(StepStatus.FAILED);
+                    return;
+                }
+            }
+        }
+
+        /**
+         * Marks a tool as used in the current step.
+         */
+        public void recordToolUsage(@NonNull String toolName) {
+            for (Step step : steps) {
+                if (!step.isCompleted()
+                        && !step.isSkipped()
+                        && areDependenciesSatisfied(step)
+                        && satisfiesExpectedTool(step.getExpectedTools(), toolName)) {
+                    step.setStatus(StepStatus.COMPLETED);
+                    return;
+                }
+            }
+        }
+
+        private boolean satisfiesExpectedTool(@NonNull List<String> expectedTools,
+                                              @NonNull String toolName) {
+            if (expectedTools.contains(toolName)) {
+                return true;
+            }
+            return expectedTools.contains(PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT)
+                    && PatternMatcher.isProjectDiscoveryTool(toolName);
+        }
+
+        /**
+         * Builds a human-readable plan summary.
+         */
+        @NonNull
+        public String buildPlanSummary() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("PLAN: ").append(objective).append("\n\n");
+
+            for (int i = 0; i < steps.size(); i++) {
+                Step step = steps.get(i);
+                String status;
+                switch (step.getStatus()) {
+                    case PENDING:
+                        status = "pending";
+                        break;
+                    case IN_PROGRESS:
+                        status = "running";
+                        break;
+                    case COMPLETED:
+                        status = "done";
+                        break;
+                    case FAILED:
+                        status = "failed";
+                        break;
+                    case SKIPPED:
+                        status = "skipped";
+                        break;
+                    default:
+                        status = "unknown";
+                }
+
+                builder.append(status).append(": ").append(step.getDescription());
+                if (step.isCritical()) {
+                    builder.append(" [critical]");
+                }
+                builder.append("\n");
+            }
+
+            return builder.toString().trim();
+        }
+
+        @NonNull
+        static Builder builder(@NonNull String objective) {
+            return new Builder(objective);
+        }
+
+        static class Builder {
+            private final String objective;
+            private final List<Step> steps = new ArrayList<>();
+            private final List<String> completionCriteria = new ArrayList<>();
+
+            private Builder(@NonNull String objective) {
+                this.objective = objective;
+            }
+
+            Builder addStep(Step step) {
+                if (step != null) {
+                    steps.add(step);
+                }
+                return this;
+            }
+
+            Builder addCompletionCriterion(String criterion) {
+                if (criterion != null && !criterion.trim().isEmpty()) {
+                    completionCriteria.add(criterion);
+                }
+                return this;
+            }
+
+            Plan build() {
+                return new Plan(this);
+            }
+        }
+    }
+
+    /**
+     * Creates a plan based on pattern analysis.
+     */
+    @NonNull
+    public static Plan createPlan(@NonNull PatternMatcher.Result patternResult,
+                                  @NonNull String objective) {
+        Plan.Builder planBuilder = Plan.builder(objective.trim().isEmpty()
+                ? patternResult.getPrimaryType().toString()
+                : objective.trim());
+
+        // Build plan based on detected pattern type
+        switch (patternResult.getPrimaryType()) {
+            case CHAT:
+                // No plan needed for simple chat
+                break;
+
+            case READ_FILE:
+                addReadFilePlan(planBuilder, patternResult);
+                break;
+
+            case SEARCH:
+                addSearchPlan(planBuilder, patternResult);
+                break;
+
+            case EDIT_FILE:
+                addEditFilePlan(planBuilder, patternResult);
+                break;
+
+            case CREATE_FILE:
+                addCreateFilePlan(planBuilder, patternResult);
+                break;
+
+            case DELETE_FILE:
+                addDeleteFilePlan(planBuilder, patternResult);
+                break;
+
+            case RUN_COMMAND:
+                addRunCommandPlan(planBuilder, patternResult);
+                break;
+
+            case FIX_BUG:
+                addFixBugPlan(planBuilder, patternResult);
+                break;
+
+            case REFACTOR:
+                addRefactorPlan(planBuilder, patternResult);
+                break;
+
+            case ANALYZE_CODE:
+                addAnalyzeCodePlan(planBuilder, patternResult);
+                break;
+
+            case GENERAL_CODING:
+            case UNKNOWN:
+            default:
+                addGeneralPlan(planBuilder, patternResult);
+                break;
+        }
+
+        return planBuilder.build();
+    }
+
+    private static void addReadFilePlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        if (!patternResult.getExtractedFilePaths().isEmpty()) {
+            // File path mentioned explicitly
+            planBuilder.addStep(Step.builder("read", "Read specified file")
+                    .addExpectedTool("read_file")
+                    .critical(true)
+                    .build());
+        } else {
+            // Need to search first
+            planBuilder.addStep(Step.builder("search", "Search for file")
+                    .addExpectedTool("search_pathnames_only")
+                    .critical(true)
+                    .build());
+            planBuilder.addStep(Step.builder("read", "Read found file")
+                    .addExpectedTool("read_file")
+                    .dependsOn("search")
+                    .critical(true)
+                    .build());
+        }
+        planBuilder.addCompletionCriterion("File content was read and displayed");
+    }
+
+    private static void addSearchPlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        planBuilder.addStep(Step.builder("search", "Search for files or content")
+                .addExpectedTool("search_for_files")
+                .addExpectedTool("search_pathnames_only")
+                .critical(true)
+                .build());
+        planBuilder.addCompletionCriterion("Search results provided");
+    }
+
+    private static void addEditFilePlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        if (!patternResult.getExtractedFilePaths().isEmpty()) {
+            planBuilder.addStep(Step.builder("read", "Read file before editing")
+                    .addExpectedTool("read_file")
+                    .critical(true)
+                    .build());
+            planBuilder.addStep(Step.builder("edit", "Edit file")
+                    .addExpectedTool("edit_file")
+                    .addExpectedTool("rewrite_file")
+                    .dependsOn("read")
+                    .critical(true)
+                    .build());
+        } else {
+            planBuilder.addStep(Step.builder("search", "Search for file to edit")
+                    .addExpectedTool("search_pathnames_only")
+                    .critical(true)
+                    .build());
+            planBuilder.addStep(Step.builder("read", "Read file before editing")
+                    .addExpectedTool("read_file")
+                    .dependsOn("search")
+                    .critical(true)
+                    .build());
+            planBuilder.addStep(Step.builder("edit", "Edit file")
+                    .addExpectedTool("edit_file")
+                    .addExpectedTool("rewrite_file")
+                    .dependsOn("read")
+                    .critical(true)
+                    .build());
+        }
+        planBuilder.addStep(Step.builder("verify", "Verify the modified file")
+                .addExpectedTool("read_file")
+                .dependsOn("edit")
+                .critical(true)
+                .build());
+        planBuilder.addCompletionCriterion("File was modified");
+    }
+
+    private static void addCreateFilePlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        planBuilder.addStep(Step.builder("check", "Check if file/directory exists")
+                .addExpectedTool("ls_dir")
+                .critical(false)
+                .build());
+        planBuilder.addStep(Step.builder("create", "Create file")
+                .addExpectedTool("create_file_or_folder")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("write", "Write content to file")
+                .addExpectedTool("rewrite_file")
+                .dependsOn("create")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("verify", "Verify the new file")
+                .addExpectedTool("read_file")
+                .dependsOn("write")
+                .critical(true)
+                .build());
+        planBuilder.addCompletionCriterion("New file was created with content");
+    }
+
+    private static void addDeleteFilePlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        planBuilder.addStep(Step.builder("search", "Find file to delete")
+                .addExpectedTool("search_pathnames_only")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("delete", "Delete file")
+                .addExpectedTool("delete_file_or_folder")
+                .dependsOn("search")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("verify", "Verify the file was deleted")
+                .addExpectedTool("search_pathnames_only")
+                .dependsOn("delete")
+                .critical(true)
+                .build());
+        planBuilder.addCompletionCriterion("File was deleted");
+    }
+
+    private static void addRunCommandPlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        // The Android registry intentionally exposes no generic shell tool. Keep this
+        // legacy planner branch non-authoritative and, crucially, never require a
+        // tool the model cannot actually call. The main agent loop lets the model
+        // choose any concrete build/diagnostic tool that is really available.
+        planBuilder.addStep(Step.builder("run", "Use an available execution or diagnostic capability")
+                .critical(false)
+                .build());
+        planBuilder.addCompletionCriterion("Execution request handled with available capabilities");
+    }
+
+    private static void addFixBugPlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        planBuilder.addStep(Step.builder("search", "Search for relevant files")
+                .addExpectedTool("search_for_files")
+                .addExpectedTool("search_pathnames_only")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("read", "Read file containing bug")
+                .addExpectedTool("read_file")
+                .dependsOn("search")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("analyze", "Analyze code to understand bug")
+                .critical(false)
+                .build());
+        planBuilder.addStep(Step.builder("fix", "Fix the bug")
+                .addExpectedTool("edit_file")
+                .addExpectedTool("rewrite_file")
+                .dependsOn("read")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("verify", "Verify the fix")
+                .addExpectedTool("read_file")
+                .dependsOn("fix")
+                .critical(true)
+                .build());
+        planBuilder.addCompletionCriterion("Bug was fixed in code");
+    }
+
+    private static void addRefactorPlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        planBuilder.addStep(Step.builder("read", "Read code to refactor")
+                .addExpectedTool("read_file")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("refactor", "Apply refactoring")
+                .addExpectedTool("edit_file")
+                .addExpectedTool("rewrite_file")
+                .dependsOn("read")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("verify", "Verify the refactoring")
+                .addExpectedTool("read_file")
+                .dependsOn("refactor")
+                .critical(true)
+                .build());
+        planBuilder.addCompletionCriterion("Code was refactored");
+    }
+
+    private static void addAnalyzeCodePlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        if (patternResult.requiresProjectExploration()) {
+            planBuilder.addStep(Step.builder("explore", "Explore project structure")
+                    .addExpectedTool(PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT)
+                    .critical(false)
+                    .build());
+        }
+        planBuilder.addStep(Step.builder("read", "Read code to analyze")
+                .addExpectedTool("read_file")
+                .critical(true)
+                .build());
+        planBuilder.addCompletionCriterion("Code analysis provided");
+    }
+
+    private static void addGeneralPlan(Plan.Builder planBuilder, PatternMatcher.Result patternResult) {
+        planBuilder.addStep(Step.builder("explore", "Explore the relevant project structure")
+                .addExpectedTool(PatternMatcher.PROJECT_DISCOVERY_REQUIREMENT)
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("execute", "Execute requested task")
+                .addExpectedTool("edit_file")
+                .addExpectedTool("rewrite_file")
+                .addExpectedTool("create_file_or_folder")
+                .dependsOn("explore")
+                .critical(true)
+                .build());
+        planBuilder.addStep(Step.builder("verify", "Verify the requested task")
+                .addExpectedTool("read_file")
+                .dependsOn("execute")
+                .critical(true)
+                .build());
+        planBuilder.addCompletionCriterion("Task completed");
+    }
+}

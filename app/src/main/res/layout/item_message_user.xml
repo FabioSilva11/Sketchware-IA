@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="end"
@@ -38,7 +39,20 @@
             android:background="@drawable/bg_kelivo_avatar"
             android:gravity="center"
             android:textColor="@color/kelivo_avatar_text"
-            android:textSize="11sp" />
+            android:textSize="11sp"
+            android:visibility="gone" />
+
+        <ImageView
+            android:id="@+id/text_avatar_icon"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_kelivo_avatar"
+            android:contentDescription="@string/kelivo_profile_avatar"
+            android:padding="5dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/kelivo_lucide_bot_message_square"
+            app:tint="@color/kelivo_avatar_text" />
     </LinearLayout>
 
     <LinearLayout
@@ -96,7 +110,7 @@
             android:contentDescription="@string/kelivo_action_copy"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_copy"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
 
         <ImageView
             android:id="@+id/action_refresh"
@@ -107,7 +121,7 @@
             android:contentDescription="@string/kelivo_action_refresh"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_refresh_cw"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
 
         <ImageView
             android:id="@+id/action_edit"
@@ -118,7 +132,7 @@
             android:contentDescription="@string/kelivo_action_edit"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_edit"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
 
         <ImageView
             android:id="@+id/action_more"
@@ -129,6 +143,6 @@
             android:contentDescription="@string/kelivo_action_more"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_more_horizontal"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
     </LinearLayout>
 </LinearLayout>

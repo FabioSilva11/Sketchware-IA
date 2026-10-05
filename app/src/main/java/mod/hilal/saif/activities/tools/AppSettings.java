@@ -44,7 +44,7 @@ import pro.sketchware.R;
 import pro.sketchware.activities.editor.component.ManageCustomComponentActivity;
 import pro.sketchware.activities.settings.SettingsActivity;
 import pro.sketchware.activities.settings.GithubSettingsActivity;
-import pro.sketchware.activities.settings.IaSettingsActivity;
+import pro.sketchware.chat.provider.IaSettingsActivity;
 import pro.sketchware.databinding.ActivityAppSettingsBinding;
 import pro.sketchware.databinding.DialogSelectApkToSignBinding;
 import pro.sketchware.utility.AdManager;

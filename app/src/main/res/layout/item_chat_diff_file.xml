@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_chat_diff_file_row"
+    android:foreground="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:orientation="vertical"
+    android:paddingStart="12dp"
+    android:paddingTop="9dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="9dp"
+    android:layout_marginBottom="6dp">
+
+    <!-- Compact collapsed line: badge | name+path | +/- stats | chevron -->
+    <LinearLayout
+        android:id="@+id/layout_file_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/text_file_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="20dp"
+            android:gravity="center"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            tools:text="M" />
+
+        <TextView
+            android:id="@+id/text_file_type_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_file_type_badge"
+            android:fontFamily="monospace"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:minWidth="30dp"
+            android:paddingStart="4dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="2dp"
+            android:textColor="@android:color/white"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            tools:text="JS" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/text_file_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="middle"
+                android:maxLines="1"
+                android:textColor="@color/chat_diff_line_text"
+                android:textSize="13sp"
+                tools:text="ChatDiffFragment.java" />
+
+            <TextView
+                android:id="@+id/text_file_path"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="start"
+                android:maxLines="1"
+                android:textColor="@color/chat_diff_muted_text"
+                android:textSize="11sp"
+                tools:text="app/src/main/java/com/…" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/text_file_stats"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            tools:text="+52 −14" />
+
+        <TextView
+            android:id="@+id/text_file_chevron"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:gravity="center"
+            android:text="▸"
+            android:textColor="@color/chat_diff_muted_text"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- Expanded content: actions row + full diff, hidden while collapsed. -->
+    <LinearLayout
+        android:id="@+id/layout_file_details"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <HorizontalScrollView
+            android:id="@+id/scroll_diff_code"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:fillViewport="true">
+
+            <LinearLayout
+                android:id="@+id/layout_diff_code_rows"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </HorizontalScrollView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/action_file_open"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_chat_diff_action"
+                android:paddingStart="10dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="5dp"
+                android:text="@string/chat_diff_action_open"
+                android:textColor="@color/chat_accent"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/action_file_accept"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_chat_diff_action"
+                android:paddingStart="10dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="5dp"
+                android:text="@string/chat_diff_action_accept"
+                android:textColor="@color/chat_accent"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/action_file_reject"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/bg_chat_diff_action"
+                android:paddingStart="10dp"
+                android:paddingTop="5dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="5dp"
+                android:text="@string/chat_diff_action_reject"
+                android:textColor="@color/chat_error"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

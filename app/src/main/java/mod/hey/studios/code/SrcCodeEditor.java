@@ -59,7 +59,7 @@ import mod.hey.studios.util.Helper;
 import mod.jbk.code.CodeEditorColorSchemes;
 import mod.jbk.code.CodeEditorLanguages;
 import pro.sketchware.R;
-import pro.sketchware.activities.chat.port.VoidPortAiAutocompleteLanguage;
+import pro.sketchware.chat.port.VoidPortAiAutocompleteLanguage;
 import pro.sketchware.activities.preview.LayoutPreviewActivity;
 import pro.sketchware.databinding.CodeEditorHsBinding;
 import pro.sketchware.utility.EditorUtils;

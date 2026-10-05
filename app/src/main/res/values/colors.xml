@@ -151,4 +151,9 @@
     <color name="studio_file_json">#E5C84F</color>
     <color name="studio_file_image">#63C7D8</color>
     <color name="studio_file_default">@color/studio_text_secondary</color>
+    <color name="chat_diff_added_text">#1F9D55</color>
+    <color name="chat_diff_modified_text">#B45309</color>
+    <color name="chat_diff_removed_text">#DC2626</color>
+    <color name="kelivo_send_disabled">#1F1C1C1E</color>
+    <color name="kelivo_send_icon_disabled">#611C1C1E</color>
 </resources>

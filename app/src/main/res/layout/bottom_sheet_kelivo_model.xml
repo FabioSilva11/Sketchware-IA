@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_kelivo_bottom_sheet"
@@ -13,11 +14,42 @@
         android:background="@drawable/bg_kelivo_sheet_handle" />
 
     <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="16dp">
+
+        <ImageView
+            android:id="@+id/model_back"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/axion_models_back_to_providers"
+            android:padding="10dp"
+            android:src="@drawable/selector_ic_chevron_left_grey_48"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/model_sheet_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/axion_choose_provider"
+            android:textColor="@color/chat_text_primary"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
         android:id="@+id/model_search_container"
         android:layout_width="match_parent"
         android:layout_height="44dp"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="4dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
         android:background="@drawable/bg_kelivo_search"
@@ -31,7 +63,7 @@
             android:layout_height="16dp"
             android:contentDescription="@null"
             android:src="@drawable/kelivo_lucide_search"
-            android:tint="@color/chat_text_hint" />
+            app:tint="@color/chat_text_hint" />
 
         <EditText
             android:id="@+id/model_search"
@@ -40,7 +72,7 @@
             android:layout_marginStart="10dp"
             android:layout_weight="1"
             android:background="@android:color/transparent"
-            android:hint="@string/kelivo_model_search_hint"
+            android:hint="@string/axion_search_providers"
             android:imeOptions="actionSearch"
             android:inputType="text"
             android:maxLines="1"
@@ -58,7 +90,8 @@
             android:contentDescription="@string/kelivo_model_favorites"
             android:padding="10dp"
             android:src="@drawable/kelivo_lucide_bookmark"
-            android:tint="@color/chat_text_primary" />
+            android:visibility="gone"
+            app:tint="@color/chat_text_primary" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -68,22 +101,13 @@
         android:layout_weight="1"
         android:clipToPadding="false"
         android:overScrollMode="never"
-        android:paddingBottom="8dp" />
+        android:paddingBottom="16dp" />
 
-    <HorizontalScrollView
+    <!-- Mantido para compatibilidade binária com versões antigas do controlador. -->
+    <LinearLayout
+        android:id="@+id/provider_chips"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:overScrollMode="never"
-        android:paddingStart="12dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="16dp"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:id="@+id/provider_chips"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal" />
-    </HorizontalScrollView>
+        android:layout_height="0dp"
+        android:orientation="horizontal"
+        android:visibility="gone" />
 </LinearLayout>

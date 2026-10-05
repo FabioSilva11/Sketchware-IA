@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Gemini star shape -->
+    <path
+        android:fillColor="#1C7BF0"
+        android:pathData="M12,2L14.09,8.26L20,9.27L15.55,13.97L16.91,20L12,16.9L7.09,20L8.45,13.97L4,9.27L9.91,8.26Z" />
+    <path
+        android:fillColor="#76E5FC"
+        android:pathData="M12,2L14.09,8.26L20,9.27L15.55,13.97L16.91,20L12,16.9L12,2Z"
+        android:fillAlpha="0.6" />
+</vector>

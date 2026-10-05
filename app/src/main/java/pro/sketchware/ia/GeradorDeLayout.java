@@ -15,7 +15,7 @@ import pro.sketchware.ia.layout.LayoutProjectContext;
 import pro.sketchware.ia.layout.LayoutPrompts;
 import pro.sketchware.ia.layout.LayoutSpecCompiler;
 import pro.sketchware.ia.layout.LayoutVisionSupport;
-import pro.sketchware.network.AiProviderService;
+import pro.sketchware.chat.AiProviderService;
 
 /**
  * Layout generation: the model answers with a JSON layout spec, {@link LayoutSpecCompiler} checks

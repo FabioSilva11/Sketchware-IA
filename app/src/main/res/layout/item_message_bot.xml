@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="start"
@@ -34,7 +35,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:text="AI"
+                android:text="@string/chat_avatar_ai"
                 android:textColor="@color/kelivo_avatar_text"
                 android:textSize="9sp"
                 android:textStyle="bold" />
@@ -81,9 +82,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:background="@drawable/bg_tool_json_box"
         android:orientation="vertical"
-        android:padding="10dp"
         android:visibility="gone">
 
         <LinearLayout
@@ -97,7 +96,7 @@
                 android:layout_height="16dp"
                 android:contentDescription="@string/chat_reasoning_label"
                 android:src="@drawable/kelivo_icon_idea_01_stroke_rounded"
-                android:tint="@color/chat_accent" />
+                app:tint="@color/chat_accent" />
 
             <TextView
                 android:layout_width="0dp"
@@ -106,31 +105,21 @@
                 android:layout_weight="1"
                 android:text="@string/chat_reasoning_label"
                 android:textColor="@color/chat_accent"
-                android:textSize="11sp"
+                android:textSize="12sp"
                 android:textStyle="bold" />
-
-            <ImageView
-                android:id="@+id/action_toggle_reasoning"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/show_reasoning"
-                android:padding="7dp"
-                android:src="@drawable/ic_mtrl_preview"
-                android:tint="@color/chat_accent" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/text_reasoning"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:lineSpacingExtra="2dp"
-            android:textColor="@color/chat_text_secondary"
-            android:textSize="13sp" />
+            android:layout_marginTop="6dp"
+            android:lineSpacingExtra="4dp"
+            android:textColor="@color/chat_text_primary"
+            android:textSize="15sp" />
     </LinearLayout>
 
-    <pro.sketchware.activities.chat.KelivoTypingDotsView
+    <pro.sketchware.chat.KelivoTypingDotsView
         android:id="@+id/kelivo_streaming_dots"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -163,7 +152,7 @@
             android:contentDescription="@string/kelivo_action_copy"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_copy"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
 
         <ImageView
             android:id="@+id/action_refresh"
@@ -174,7 +163,7 @@
             android:contentDescription="@string/kelivo_action_refresh"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_refresh_cw"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
 
         <ImageView
             android:id="@+id/action_edit"
@@ -185,7 +174,7 @@
             android:contentDescription="@string/kelivo_action_edit"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_edit"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
 
         <ImageView
             android:id="@+id/action_speak"
@@ -196,7 +185,7 @@
             android:contentDescription="@string/kelivo_action_speak"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_volume_2"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
 
         <ImageView
             android:id="@+id/action_translate"
@@ -207,7 +196,7 @@
             android:contentDescription="@string/kelivo_action_translate"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_languages"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
 
         <ImageView
             android:id="@+id/action_more"
@@ -218,7 +207,7 @@
             android:contentDescription="@string/kelivo_action_more"
             android:padding="5dp"
             android:src="@drawable/kelivo_lucide_more_horizontal"
-            android:tint="@color/chat_text_secondary" />
+            app:tint="@color/chat_text_secondary" />
 
         <View
             android:layout_width="0dp"

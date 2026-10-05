@@ -100,6 +100,11 @@ android {
         additionalParameters.addAll("--stable-ids", "${rootDir}/public-stable-ids.txt")
     }
 
+    testOptions {
+        // JVM unit tests (the chat engine logs through android.util.Log)
+        unitTests.returnDefaultValues = true
+    }
+
     buildFeatures {
         viewBinding = true
         buildConfig = true
@@ -144,6 +149,8 @@ dependencies {
     implementation libs.scpkix.jdk15on
 
     implementation libs.markwon
+    // Paged chat history (ported Axion chat)
+    implementation libs.androidx.paging
 
     implementation libs.bundles.networking
     // P2P project store: BitTorrent engine with the Mainline DHT (BEP 44 signed items)

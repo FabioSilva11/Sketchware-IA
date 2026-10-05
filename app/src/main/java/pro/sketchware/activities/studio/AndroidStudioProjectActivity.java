@@ -66,6 +66,7 @@ import java.util.regex.Pattern;
 
 import a.a.a.lC;
 import a.a.a.ProjectBuilder;
+import a.a.a.wq;
 import a.a.a.yq;
 import io.github.rosemoe.sora.lang.EmptyLanguage;
 import io.github.rosemoe.sora.lang.Language;
@@ -74,6 +75,7 @@ import io.github.rosemoe.sora.widget.CodeEditor;
 import io.github.rosemoe.sora.widget.EditorSearcher;
 import io.github.rosemoe.sora.widget.schemes.EditorColorScheme;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
+import mod.jbk.build.compiler.manifest.ManifestNamespaces;
 import mod.hey.studios.build.BuildSettings;
 import mod.jbk.build.BuiltInLibraries;
 import mod.jbk.build.BuildProgressReceiver;
@@ -85,13 +87,12 @@ import mod.pranav.dependency.resolver.DependencyResolver;
 import dev.aldi.sayuti.editor.manage.LibraryDownloaderDialogFragment;
 import dev.aldi.sayuti.editor.manage.LocalLibrariesUtil;
 import org.cosmic.ide.dependency.resolver.api.Artifact;
-import pro.sketchware.activities.chat.port.VoidPortAiAutocompleteLanguage;
-import pro.sketchware.activities.chat.port.GitHubProjectSyncService;
-import pro.sketchware.activities.chat.port.VoidPortSettings;
+import pro.sketchware.chat.port.VoidPortAiAutocompleteLanguage;
+import pro.sketchware.chat.port.GitHubProjectSyncService;
+import pro.sketchware.chat.port.VoidPortSettings;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ActivityAndroidStudioProjectBinding;
 import pro.sketchware.databinding.ItemStudioFileTreeBinding;
-import pro.sketchware.util.ProjectPathResolver;
 import pro.sketchware.utility.EditorUtils;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
@@ -1222,10 +1223,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             return;
         }
 
-        projectRoot = ProjectPathResolver.getAndroidStudioProjectRoot(scId);
+        projectRoot = new File(wq.getAndroidStudioProjectPath(scId));
         selectedNodeFile = projectRoot;
-        binding.studioToolbar.setSubtitle(ProjectPathResolver.toDisplayPath(scId, projectRoot));
-        binding.studioProjectPath.setText(ProjectPathResolver.toDisplayPath(scId, projectRoot));
+        binding.studioToolbar.setSubtitle(studioDisplayPath(scId, projectRoot));
+        binding.studioProjectPath.setText(studioDisplayPath(scId, projectRoot));
 
         if (projectRoot == null || !projectRoot.exists() || !projectRoot.isDirectory()) {
             showMissingProject();
@@ -1250,7 +1251,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         }
 
         binding.studioSelectedFile.setText(projectName);
-        binding.studioSelectedPath.setText(ProjectPathResolver.toDisplayPath(scId, projectRoot));
+        binding.studioSelectedPath.setText(studioDisplayPath(scId, projectRoot));
         setOutput(getString(R.string.studio_no_file_message), false);
         updateStage();
         updateStatus(getString(R.string.studio_no_file_title));
@@ -1265,7 +1266,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         discoveredFileCount = 0;
         fileTreeAdapter.submit(new ArrayList<>());
         binding.studioEmptyTitle.setText(R.string.studio_project_missing);
-        binding.studioEmptyMessage.setText(ProjectPathResolver.toDisplayPath(scId, projectRoot));
+        binding.studioEmptyMessage.setText(studioDisplayPath(scId, projectRoot));
         binding.studioSelectedFile.setText(R.string.studio_project_missing);
         binding.studioSelectedPath.setText("");
         setOutput(getString(R.string.studio_project_missing), false);
@@ -1890,7 +1891,8 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             return;
         }
         String manifest = new String(Files.readAllBytes(manifestFile.toPath()), StandardCharsets.UTF_8);
-        String updated = addExportedToLauncherActivity(manifest);
+        // A hand-edited manifest may use tools:/app: without declaring them ("Undefined Prefix: tools")
+        String updated = ManifestNamespaces.declareUsedPrefixes(addExportedToLauncherActivity(manifest));
         if (!manifest.equals(updated)) {
             Files.write(manifestFile.toPath(), updated.getBytes(StandardCharsets.UTF_8));
         }
@@ -2206,7 +2208,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         }
         boolean directory = file.isDirectory();
         binding.studioSelectedFile.setText(file.getName());
-        binding.studioSelectedPath.setText(ProjectPathResolver.toDisplayPath(scId, file));
+        binding.studioSelectedPath.setText(studioDisplayPath(scId, file));
         binding.studioSelectedIcon.clearColorFilter();
         binding.studioSelectedIcon.setImageTintList(null);
         binding.studioSelectedIcon.setImageResource(iconFor(file, directory));
@@ -3473,7 +3475,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         ));
 
         TextView path = new TextView(this);
-        path.setText(ProjectPathResolver.toDisplayPath(scId, target));
+        path.setText(studioDisplayPath(scId, target));
         path.setSingleLine(true);
         path.setTextSize(12);
         path.setTextColor(getResources().getColor(R.color.studio_text_secondary, getTheme()));
@@ -3772,6 +3774,21 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             this.file = file;
             this.depth = depth;
             this.directory = directory;
+        }
+    }
+
+    /** Path shown to the user: relative to the IDE projects folder, e.g. ".sketcware_ide/601/app/build.gradle". */
+    private static String studioDisplayPath(String scId, File file) {
+        if (file == null) {
+            return "";
+        }
+        try {
+            File root = new File(wq.getAndroidStudioProjectPath(scId));
+            String relative = root.toPath().relativize(file.toPath()).toString().replace(File.separator, "/");
+            return relative.isEmpty() ? wq.ANDROID_STUDIO_PROJECTS + "/" + scId
+                    : wq.ANDROID_STUDIO_PROJECTS + "/" + scId + "/" + relative;
+        } catch (Exception e) {
+            return file.getAbsolutePath();
         }
     }
 }

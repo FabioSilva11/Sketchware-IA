@@ -43,7 +43,7 @@
       android:layout_height="wrap_content"
       android:layout_marginHorizontal="16dp"
       android:layout_marginTop="12dp"
-      android:layout_marginBottom="18dp"
+      android:layout_marginBottom="8dp"
       app:boxBackgroundColor="@color/chat_surface_soft"
       app:boxCornerRadiusTopStart="16dp"
       app:boxCornerRadiusTopEnd="16dp"
@@ -72,64 +72,16 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <!-- Card Máximo de Tokens -->
-    <com.google.android.material.card.MaterialCardView
-      android:id="@+id/card_max_tokens"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content"
-      android:layout_marginHorizontal="16dp"
-      android:layout_marginBottom="14dp"
-      app:cardBackgroundColor="@color/chat_surface_soft"
-      app:cardCornerRadius="18dp"
-      app:cardElevation="0dp"
-      app:strokeColor="@color/chat_border"
-      app:strokeWidth="1dp">
-
-      <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="14dp">
-
-        <TextView
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:text="@string/ia_max_tokens_title"
-          android:textColor="@color/chat_text_primary"
-          android:textSize="14sp"
-          android:textStyle="bold" />
-
-        <TextView
-          android:id="@+id/tv_max_tokens_value"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="4dp"
-          android:text="@string/ia_max_tokens_default_value"
-          android:textColor="@color/chat_text_secondary"
-          android:textSize="12sp" />
-
-        <com.google.android.material.button.MaterialButton
-          android:id="@+id/btn_edit_max_tokens"
-          style="@style/Widget.Material3.Button.TextButton"
-          android:layout_width="wrap_content"
-          android:layout_height="wrap_content"
-          android:layout_marginTop="12dp"
-          android:minWidth="0dp"
-          android:paddingHorizontal="8dp"
-          android:text="@string/ia_max_tokens_edit" />
-
-      </LinearLayout>
-
-    </com.google.android.material.card.MaterialCardView>
-
     <!-- Lista -->
     <androidx.recyclerview.widget.RecyclerView
       android:id="@+id/rv_providers"
       android:layout_width="match_parent"
       android:layout_height="0dp"
       android:layout_weight="1"
+      android:layout_marginHorizontal="16dp"
+      android:background="@drawable/bg_provider_list_card"
       android:clipToPadding="false"
       android:overScrollMode="never"
-      android:paddingHorizontal="16dp"
       android:paddingBottom="16dp" />
 
   </LinearLayout>

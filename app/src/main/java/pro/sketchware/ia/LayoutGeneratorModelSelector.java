@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import pro.sketchware.activities.chat.port.VoidPortSettings;
+import pro.sketchware.chat.port.VoidPortSettings;
 
 /**
  * Selects a random configured provider and model for layout generation.

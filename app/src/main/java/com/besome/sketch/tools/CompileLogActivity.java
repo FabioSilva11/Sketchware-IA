@@ -37,7 +37,7 @@ import pro.sketchware.R;
 import pro.sketchware.databinding.CompileLogBinding;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.AdManager;
-import pro.sketchware.network.AiProviderService;
+import pro.sketchware.chat.AiProviderService;
 import io.noties.markwon.Markwon;
 import android.os.Environment;
 import java.io.File;

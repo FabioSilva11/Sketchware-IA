@@ -3,8 +3,8 @@
 
     <item
         android:id="@+id/action_check_providers"
-        android:icon="@drawable/ic_mtrl_progress_check"
-        android:title="@string/ia_action_check_providers"
+        android:icon="@drawable/ic_mtrl_checklist"
+        android:title="@string/ia_action_multi_select"
         app:showAsAction="always" />
 
     <item

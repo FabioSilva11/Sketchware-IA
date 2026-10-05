@@ -39,7 +39,7 @@ import mod.hey.studios.util.Helper;
 import mod.hey.studios.util.ProjectMapUtils;
 import pro.sketchware.R;
 import pro.sketchware.activities.studio.AndroidStudioProjectActivity;
-import pro.sketchware.activities.chat.ChatHistoryManager;
+import pro.sketchware.chat.ChatHistoryManager;
 import pro.sketchware.activities.main.fragments.projects.ProjectsFragment;
 import pro.sketchware.databinding.BottomSheetProjectOptionsBinding;
 import pro.sketchware.databinding.MyprojectsItemBinding;

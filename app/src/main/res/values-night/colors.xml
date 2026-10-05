@@ -46,4 +46,6 @@
     <color name="kelivo_avatar_text">#B8B3FF</color>
     <color name="kelivo_selected_row">#2C3150</color>
     <color name="kelivo_send_bg">#8B84FF</color>
+    <color name="kelivo_send_disabled">#1FFFFFFF</color>
+    <color name="kelivo_send_icon_disabled">#61FFFFFF</color>
 </resources>
