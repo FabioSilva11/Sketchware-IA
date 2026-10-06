@@ -87,7 +87,7 @@ public class ManageLottieActivity extends BaseAppCompatActivity implements ViewP
         }
 
         setSupportActionBar(binding.topAppBar);
-        binding.topAppBar.setTitle("Lottie Manage");
+        binding.topAppBar.setTitle(Helper.getResString(R.string.design_drawer_menu_title_lottie));
         binding.topAppBar.setNavigationOnClickListener(v -> {
             if (!mB.a()) {
                 onBackPressed();
