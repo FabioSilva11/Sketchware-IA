@@ -169,6 +169,10 @@ public class SketchwareProjectFileSystemTest {
 
     @Test
     public void projectFilesCannotChangeWhileTheEditorHasThemOpen() throws IOException {
+        // "Save & exit" empties bak/<id> but leaves the folder: that's a closed project
+        new File(root, "bak/601").mkdirs();
+        assertFalse(fs.isOpenInEditor());
+        fs.writeText("data/601/view", VIEW);
         // The editor keeps unsaved work in bak/<id> and writes data/<id> on "Save & exit"
         write("bak/601/view", "@main.xml\n".getBytes(StandardCharsets.UTF_8));
         assertTrue(fs.isOpenInEditor());

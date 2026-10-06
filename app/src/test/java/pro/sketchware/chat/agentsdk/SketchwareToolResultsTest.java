@@ -69,8 +69,11 @@ public class SketchwareToolResultsTest {
         Files.write(file.toPath(), content);
     }
 
+    private int calls;
+
     private AgentToolResult call(String tool, JSONObject args) {
-        return router.route(new AxionToolRouter.Route("c_" + tool, tool, args.toString()), "601",
+        // Each call gets its own id: the router answers a repeated id with the first call's outcome
+        return router.route(new AxionToolRouter.Route("c" + (++calls) + "_" + tool, tool, args.toString()), "601",
                 RunContext.bare("601", "coordinator", null), null).result();
     }
 
@@ -128,7 +131,12 @@ public class SketchwareToolResultsTest {
 
     @Test
     public void editsWaitForTheEditorToSave() throws Exception {
+        // An empty bak/<id> is what "Save & exit" leaves behind: edits go through
         new File(root, "bak/601").mkdirs();
+        assertFalse(call("rewrite_file", new JSONObject()
+                .put("uri", "data/601/library").put("new_content", LIBRARY)).isError());
+        // Unsaved work in it means the editor will write the project back
+        write("bak/601/view", VIEW.getBytes(StandardCharsets.UTF_8));
         AgentToolResult result = call("rewrite_file", new JSONObject()
                 .put("uri", "data/601/library").put("new_content", "@compat\n{}\n"));
         assertTrue(result.isError());

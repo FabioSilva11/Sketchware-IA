@@ -147,16 +147,18 @@ class SketchwareProjectFileSystem(
         writeBytes(relativePath, content.toByteArray(StandardCharsets.UTF_8))
 
     /**
-     * Sketchware's editor keeps an open project's work in bak/<id> and writes data/<id> only on "Save & exit", which
-     * would overwrite an edit made meanwhile to the project files.
+     * Sketchware's editor keeps an open project's unsaved work in bak/<id> and writes data/<id> on "Save & exit" (or
+     * offers to restore it after a crash), which would overwrite an edit made meanwhile to the project files. Once the
+     * project is saved and closed the folder stays behind, empty.
      */
-    fun isOpenInEditor(): Boolean = File(rootDir, "bak/$scId").isDirectory
+    fun isOpenInEditor(): Boolean = File(rootDir, "bak/$scId").walkTopDown().any { it.isFile }
 
     private fun checkNotOpenInEditor(path: String) {
-        if ((isProtected(path) || path == "$listDir/project") && isOpenInEditor()) {
+        if (isProtected(path) && isOpenInEditor()) {
             throw SecurityException(
-                "Project $scId is open in Sketchware's editor with unsaved work (bak/$scId). It writes $path when it " +
-                        "saves, which would overwrite this change: ask the user to Save & exit the project first."
+                "Project $scId has unsaved work in Sketchware's editor (bak/$scId). The editor writes $path when it " +
+                        "saves, which would overwrite this change: ask the user to open the project and Save & exit " +
+                        "first."
             )
         }
     }
