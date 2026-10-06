@@ -277,7 +277,14 @@ public class ChatActivity extends BaseAppCompatActivity {
                         scheduleStreamingMessageUpdate(message);
                         return;
                     }
+                    // A tool bubble grows when it asks for approval or shows its result: keep following the
+                    // conversation, and always bring an approval into view since the run waits on it
+                    boolean followLatest = chatMessagesFragment == null || chatMessagesFragment.isAtBottom()
+                            || (message != null && message.getRequiresApproval());
                     notifyMessageChanged(message);
+                    if (followLatest) {
+                        scrollToBottom();
+                    }
                     persistChatState(false);
                 });
             }
