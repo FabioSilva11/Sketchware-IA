@@ -17,14 +17,20 @@ Bugs achados no celular e já corrigidos:
 - cópias e movimentos não entravam em Diffs;
 - o título "Lottie Manage".
 
-Ainda falta ver no aparelho, com o APK de 07:24:
-- [ ] O balão de aprovação continua visível quando um anúncio nativo carrega logo antes dele. A correção de
-      rolagem com anúncio foi feita depois que o celular ficou ocupado.
-- [ ] A aba Diffs lista `data/<id>/files/chat_test/view_copia.txt` depois do `copiar`. O contador subiu de 2
-      para 3, mas não abri a aba.
-- [ ] O título "Lottie Manager" no menu e na tela.
-- [ ] D3 (ID de projeto reaproveitado), que não foi testado.
-- [ ] A6 (sem shell), com um provedor real.
+Verificado depois, com o APK de 07:24:
+- [x] O balão de aprovação continua visível quando um anúncio nativo carrega logo antes dele. Testado em 5
+      escritas seguidas, uma delas com anúncio, sem rolar a lista.
+- [x] A aba Diffs lista a cópia (`view_copia.txt`).
+- [x] "Lottie Manager" aparece no menu e no título da tela.
+- [x] D3: com sobras em `data/603` e `mysc/603`, o projeto novo recebeu o ID 604. O projeto de teste e as
+      sobras foram apagados depois.
+
+Falta:
+- [ ] A6 (sem shell) com um provedor real. Não testei para não gastar tokens da sua chave.
+
+Achado sem correção: existe `.sketchware/data/null/files/resource/values/strings.xml`, de 03/10, com
+`textviewbb`. `ProjectStrings` grava o `strings.xml` sem checar se há um projeto, e alguma tela passou o ID nulo.
+Não descobri qual.
 
 ## Preparação
 
