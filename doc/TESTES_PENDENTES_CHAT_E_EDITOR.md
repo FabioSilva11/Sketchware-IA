@@ -1,7 +1,30 @@
 # Testes pendentes no celular: chat Axion, manifesto e gerenciadores
 
-Correções enviadas sem teste no aparelho (o celular estava fora da rede). Os testes unitários passam no PC.
 Marque cada item ao testar. Se algo falhar, anote o passo e tire um print.
+
+## Resultado no Redmi em 2026-10-06
+
+Testado com o mock no projeto 601 (Demo App) e no projeto de teste 602, e aprovado:
+- A1, A2, A2b, A3, A4, A5, A7 e A8;
+- toda a seção B: `aberto` simulando trabalho não salvo na `bak/601`;
+- C1 e C3. O C1 foi até o AAPT2; a compilação parou depois, num `ffff` digitado no bloco `initializeLogic` do
+  projeto 602, que não tem relação com o manifesto;
+- D1 e D2.
+
+Bugs achados no celular e já corrigidos:
+- a trava de editor aberto recusava tudo porque a `bak/<id>` fica vazia depois de "Salvar e sair";
+- o pedido de aprovação ficava escondido embaixo da caixa de texto;
+- cópias e movimentos não entravam em Diffs;
+- o título "Lottie Manage".
+
+Ainda falta ver no aparelho, com o APK de 07:24:
+- [ ] O balão de aprovação continua visível quando um anúncio nativo carrega logo antes dele. A correção de
+      rolagem com anúncio foi feita depois que o celular ficou ocupado.
+- [ ] A aba Diffs lista `data/<id>/files/chat_test/view_copia.txt` depois do `copiar`. O contador subiu de 2
+      para 3, mas não abri a aba.
+- [ ] O título "Lottie Manager" no menu e na tela.
+- [ ] D3 (ID de projeto reaproveitado), que não foi testado.
+- [ ] A6 (sem shell), com um provedor real.
 
 ## Preparação
 
