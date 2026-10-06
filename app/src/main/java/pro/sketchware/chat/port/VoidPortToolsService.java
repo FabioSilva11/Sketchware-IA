@@ -772,6 +772,29 @@ public final class VoidPortToolsService {
         }
     }
 
+    /**
+     * A file's text before a move/copy/rename, so the change shows in the diff and can be undone like an edit. Null
+     * for folders, missing files and binary files (undoing those by writing text back would corrupt them).
+     */
+    private static String trackableText(pro.sketchware.chat.workspace.WorkspaceFileSystem fs, String path) {
+        try {
+            if (!fs.exists(path) || fs.isDirectory(path)) {
+                return null;
+            }
+            String text = fs.readText(path);
+            return text.indexOf('\u0000') >= 0 || text.indexOf('\uFFFD') >= 0 ? null : text;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Records a file moved from {@code from} to {@code to}: gone from one, created (or replaced) at the other. */
+    private static void trackMove(String scId, String from, String to, String movedText, String replacedText) {
+        FileChangeTracker.trackChange(scId, from, movedText, "", true);
+        FileChangeTracker.trackChange(scId, to, replacedText == null ? "" : replacedText, movedText,
+                replacedText != null);
+    }
+
     /** Success payload of move/rename/copy: the result text is built from it in getStringOfResult. */
     private static ToolCallResult fromTo(String from, String to) throws org.json.JSONException {
         return new ToolCallResult(new JSONObject().put("from", from).put("to", to).toString());
@@ -789,7 +812,12 @@ public final class VoidPortToolsService {
             pro.sketchware.chat.workspace.WorkspaceFileSystem fs =
                     pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveFileSystem();
             if (fs != null) {
+                String movedText = trackableText(fs, source);
+                String replacedText = trackableText(fs, destination);
                 boolean ok = fs.move(source, destination);
+                if (ok && movedText != null) {
+                    trackMove(scId, source, destination, movedText, replacedText);
+                }
                 return ok ? fromTo(source, destination) : new ToolCallResult("Error: could not move " + source + " to " + destination + " (does the source exist?)");
             }
             ProjectPathResolver.ResolvedPath src = ProjectPathResolver.resolveForRead(scId, source);
@@ -817,7 +845,15 @@ public final class VoidPortToolsService {
             pro.sketchware.chat.workspace.WorkspaceFileSystem fs =
                     pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveFileSystem();
             if (fs != null) {
+                String trimmed = uri.endsWith("/") ? uri.substring(0, uri.length() - 1) : uri;
+                String renamed = trimmed.contains("/")
+                        ? trimmed.substring(0, trimmed.lastIndexOf('/') + 1) + newName : newName;
+                String movedText = trackableText(fs, uri);
+                String replacedText = trackableText(fs, renamed);
                 boolean ok = fs.rename(uri, newName);
+                if (ok && movedText != null) {
+                    trackMove(scId, uri, renamed, movedText, replacedText);
+                }
                 return ok ? fromTo(uri, newName) : new ToolCallResult("Error: could not rename " + uri + " to " + newName + " (does it exist?)");
             }
             ProjectPathResolver.ResolvedPath src = ProjectPathResolver.resolveForRead(scId, uri);
@@ -844,7 +880,13 @@ public final class VoidPortToolsService {
             pro.sketchware.chat.workspace.WorkspaceFileSystem fs =
                     pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveFileSystem();
             if (fs != null) {
+                String replacedText = trackableText(fs, destination);
                 boolean ok = fs.copy(source, destination);
+                String copiedText = ok ? trackableText(fs, destination) : null;
+                if (copiedText != null) {
+                    FileChangeTracker.trackChange(scId, destination, replacedText == null ? "" : replacedText,
+                            copiedText, replacedText != null);
+                }
                 return ok ? fromTo(source, destination) : new ToolCallResult("Error: could not copy " + source + " to " + destination + " (does the source exist?)");
             }
             String content = readFileDirect(scId, source);
