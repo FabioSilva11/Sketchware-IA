@@ -17,6 +17,19 @@ public class ChatMessagesFragment extends Fragment {
     private RecyclerView recyclerView;
     private ChatMessageAdapter adapter;
     private boolean pendingScrollToBottom;
+    /** True while the user is on the latest message, i.e. hasn't scrolled up to read older ones. */
+    private boolean followingLatest = true;
+    /**
+     * Items can grow after they were laid out: a native ad fills in seconds later, a tool bubble turns into an
+     * approval card. Keep the latest message in view while the user is following it.
+     */
+    private final android.view.ViewTreeObserver.OnGlobalLayoutListener keepLatestInView = () -> {
+        RecyclerView list = recyclerView;
+        if (followingLatest && !pendingScrollToBottom && list != null
+                && list.getScrollState() == RecyclerView.SCROLL_STATE_IDLE && list.canScrollVertically(1)) {
+            scrollToBottom();
+        }
+    };
     private final RecyclerView.AdapterDataObserver pagingObserver =
             new RecyclerView.AdapterDataObserver() {
                 @Override
@@ -50,7 +63,10 @@ public class ChatMessagesFragment extends Fragment {
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(@NonNull RecyclerView view, int newState) {
-                if (newState != RecyclerView.SCROLL_STATE_IDLE || adapter == null) return;
+                if (newState != RecyclerView.SCROLL_STATE_IDLE) return;
+                // Where the user's own scroll came to rest decides whether the list keeps following
+                followingLatest = !view.canScrollVertically(1);
+                if (adapter == null) return;
                 ChatFlowLogger.event("list", "scroll_idle", "first="
                         + layoutManager.findFirstVisibleItemPosition() + ", last="
                         + layoutManager.findLastVisibleItemPosition() + ", total="
@@ -58,6 +74,7 @@ public class ChatMessagesFragment extends Fragment {
                         + ", canDown=" + view.canScrollVertically(1));
             }
         });
+        recyclerView.getViewTreeObserver().addOnGlobalLayoutListener(keepLatestInView);
         bindAdapterFromHost();
         if (adapter != null) {
             recyclerView.setAdapter(adapter);
@@ -67,6 +84,9 @@ public class ChatMessagesFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
+        if (recyclerView != null) {
+            recyclerView.getViewTreeObserver().removeOnGlobalLayoutListener(keepLatestInView);
+        }
         recyclerView = null;
         super.onDestroyView();
     }
@@ -113,6 +133,7 @@ public class ChatMessagesFragment extends Fragment {
         if (list == null || currentAdapter == null) {
             return;
         }
+        followingLatest = true;
         pendingScrollToBottom = true;
         if (currentAdapter.getItemCount() == 0) return;
 
@@ -138,7 +159,8 @@ public class ChatMessagesFragment extends Fragment {
     /** Mantém os deltas novos visíveis sem puxar a lista se o usuário rolou para cima. */
     public boolean isAtBottom() {
         RecyclerView list = recyclerView;
-        return list == null || !list.canScrollVertically(1);
+        // Content that grew under a user who was following (an ad filling in) doesn't count as scrolling away
+        return list == null || followingLatest || !list.canScrollVertically(1);
     }
 
     private void alignLastItemBottom(
