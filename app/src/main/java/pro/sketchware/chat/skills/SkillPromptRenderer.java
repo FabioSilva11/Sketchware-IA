@@ -27,7 +27,11 @@ public final class SkillPromptRenderer {
     }
 
     public static String renderAvailable(List<SkillMetadata> skills) {
-        StringBuilder builder = new StringBuilder("<available_skills>\n");
+        // The model has no tool to open a skill: the app picks them, so say how one gets in
+        StringBuilder builder = new StringBuilder("<available_skills>\n")
+                .append("The app adds a skill's full instructions to this prompt when the request matches it, or when ")
+                .append("the user calls it with $name. You can't open one yourself; if one fits but wasn't added, ")
+                .append("suggest that the user call it.\n");
         int shown = 0;
         for (SkillMetadata skill : skills) {
             if (shown >= MAX_AVAILABLE_ENTRIES) {
