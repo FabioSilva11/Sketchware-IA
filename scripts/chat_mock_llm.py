@@ -155,7 +155,7 @@ class Handler(BaseHTTPRequestHandler):
                      'tools': [t.get('function', {}).get('name') for t in body.get('tools') or []],
                      'last': [{'role': m.get('role'), 'content': text_of(m.get('content'))[:2000],
                                'tool_calls': m.get('tool_calls')} for m in msgs[-3:]],
-                     'system_head': text_of(msgs[0].get('content'))[:3000] if msgs else ''})
+                     'system': text_of(msgs[0].get('content')) if msgs else ''})
         reply = plan_reply(body)
         log('REPLY', reply)
         model = body.get('model', 'mock-agent')
