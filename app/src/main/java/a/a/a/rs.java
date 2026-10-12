@@ -47,6 +47,7 @@ import mod.hey.studios.moreblock.importer.MoreblockImporterDialog;
 import mod.hey.studios.util.Helper;
 import mod.jbk.editor.manage.MoreblockImporter;
 import pro.sketchware.R;
+import pro.sketchware.utility.IncludedViews;
 import pro.sketchware.utility.TranslationFunction;
 
 public class rs extends qA implements View.OnClickListener, MoreblockImporterDialog.CallBack {
@@ -149,20 +150,30 @@ public class rs extends qA implements View.OnClickListener, MoreblockImporterDia
         currentActivity = projectFileBean;
     }
 
-    /** Whether the widget an event belongs to is still in the activity's layout (or drawer). */
+    /**
+     * Whether the widget an event belongs to is still in the activity's layout (or drawer), or reached through one
+     * of its includes.
+     */
     private boolean targetExists(EventBean eventBean) {
         if (currentActivity == null || "_fab".equals(eventBean.targetId)) return true;
-        String xml = eventBean.eventType == EventBean.EVENT_TYPE_DRAWER_VIEW
-                ? currentActivity.getDrawerXmlName() : currentActivity.getXmlName();
+        boolean drawer = eventBean.eventType == EventBean.EVENT_TYPE_DRAWER_VIEW;
+        String xml = drawer ? currentActivity.getDrawerXmlName() : currentActivity.getXmlName();
         java.util.ArrayList<ViewBean> views = jC.a(sc_id).d(xml);
-        if (views == null) return false;
-        for (ViewBean view : views) {
-            if (eventBean.targetId.equals(view.id)) return true;
+        if (views != null) {
+            for (ViewBean view : views) {
+                if (eventBean.targetId.equals(view.id)) return true;
+            }
         }
-        return false;
+        if (drawer) return false;
+        if (includes == null) includes = IncludedViews.resolve(jC.a(sc_id), xml);
+        return includes.find(eventBean.targetId) != null;
     }
 
+    /** Widgets of the current activity's includes, worked out again on each refresh. */
+    private IncludedViews.Result includes;
+
     public void refreshEvents() {
+        includes = null;
         if (currentActivity != null) {
             moreBlocks.clear();
             viewEvents.clear();

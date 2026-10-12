@@ -177,11 +177,49 @@ public final class IncludedViews {
     /** The widgets the screen {@code screenXml} reaches through its includes, from the project's own layouts. */
     @NonNull
     public static Result resolve(@NonNull eC data, @NonNull String screenXml) {
+        Set<String> layouts = layouts(data.a);
+        return resolve(screenXml, data.d(screenXml), xml -> layouts.contains(xml) ? data.d(xml) : null);
+    }
+
+    /**
+     * Whether the custom view {@code fileName} is only used through includes, as part of a screen and never as the
+     * item of a list. Sketchware writes the widgets of an item layout with {@code android:focusable="false"} so that
+     * the list gets the item clicks; in an included layout that leaves text fields nobody can type in. Android
+     * Studio adds no such attribute: a layout's widgets keep their own focus.
+     */
+    public static boolean isIncludedOnly(@NonNull eC data, @NonNull String scId, @NonNull String fileName) {
+        hC files = jC.b(scId);
+        List<String> layouts = new ArrayList<>();
+        for (ProjectFileBean file : files.b()) {
+            layouts.add(file.getXmlName());
+            if (file.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_DRAWER)) layouts.add(file.getDrawerXmlName());
+        }
+        for (ProjectFileBean file : files.c()) layouts.add(file.getXmlName());
+        boolean included = false;
+        for (String xml : layouts) {
+            for (ViewBean list : data.f(xml)) {
+                if (fileName.equals(list.customView)) return false;
+            }
+            if (!included) {
+                for (ViewBean bean : data.d(xml)) {
+                    if (isInclude(bean) && fileName.equals(includedLayout(bean))) {
+                        included = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return included;
+    }
+
+    /** The layouts of the project an include can point to: of its screens and of its custom views. */
+    @NonNull
+    public static Set<String> layouts(@NonNull String scId) {
         Set<String> layouts = new HashSet<>();
-        hC files = jC.b(data.a);
+        hC files = jC.b(scId);
         for (ProjectFileBean file : files.b()) layouts.add(file.getXmlName());
         for (ProjectFileBean file : files.c()) layouts.add(file.getXmlName());
-        return resolve(screenXml, data.d(screenXml), xml -> layouts.contains(xml) ? data.d(xml) : null);
+        return layouts;
     }
 
     /**

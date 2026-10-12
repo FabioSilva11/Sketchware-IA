@@ -35,6 +35,7 @@ import mod.agus.jcoderz.beans.ViewBeans;
 import mod.jbk.util.LogUtil;
 import pro.sketchware.managers.inject.InjectRootLayoutManager;
 import pro.sketchware.utility.InjectAttributeHandler;
+import pro.sketchware.utility.IncludedViews;
 import pro.sketchware.utility.InjectAttributes;
 import pro.sketchware.xml.XmlBuilder;
 import pro.sketchware.utility.TranslationFunction;
@@ -43,6 +44,8 @@ import pro.sketchware.utility.TranslationFunction;
 public class Ox {
 
     private final jq buildConfig;
+    /** Whether this custom view is only used through includes, worked out once per file. */
+    private Boolean includedOnly;
     private final InjectRootLayoutManager rootManager;
     private final AppCompatInjection aci;
     private final ProjectFileBean projectFile;
@@ -292,6 +295,15 @@ public class Ox {
         return rootLayout.toCode();
     }
 
+    private boolean isIncludedOnly() {
+        if (includedOnly == null) {
+            String scId = buildConfig.sc_id;
+            includedOnly = scId != null && !scId.isEmpty()
+                    && IncludedViews.isIncludedOnly(jC.a(scId), scId, projectFile.fileName);
+        }
+        return includedOnly;
+    }
+
     private void writeWidget(XmlBuilder nx, ViewBean viewBean) {
         viewBean.getClassInfo().getClassName();
         String convert = viewBean.convert;
@@ -323,7 +335,9 @@ public class Ox {
                 widgetTag.addAttribute("android", "id", "@+id/" + viewBean.id);
             }
             int type = viewBean.type;
-            if (projectFile.fileType == ProjectFileBean.PROJECT_FILE_TYPE_CUSTOM_VIEW) {
+            // The widgets of a list item don't take the focus, so the list gets the item clicks; a layout that is only
+            // included in screens keeps the focus, or its text fields couldn't be typed in.
+            if (projectFile.fileType == ProjectFileBean.PROJECT_FILE_TYPE_CUSTOM_VIEW && !isIncludedOnly()) {
                 switch (type) {
                     case ViewBean.VIEW_TYPE_WIDGET_TEXTVIEW:
                     case ViewBean.VIEW_TYPE_WIDGET_EDITTEXT:

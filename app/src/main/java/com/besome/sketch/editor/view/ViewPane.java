@@ -78,6 +78,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import a.a.a.Gx;
+import a.a.a.jC;
 import a.a.a.kC;
 import a.a.a.lC;
 import a.a.a.wB;
@@ -147,6 +148,10 @@ public class ViewPane extends RelativeLayout {
     private int dropGravity = -1;
     private ViewGroup dropGroup;
     private long cachedStringsStamp;
+    /** The layout shown here, e.g. main.xml. */
+    private String screenXml;
+    /** Layouts that include this one, outermost first: an include of one of them would never end. */
+    private java.util.List<String> includeChain = java.util.Collections.emptyList();
     /** Minimum size each editor item set for itself, before any android:minWidth/minHeight. */
     private final java.util.Map<View, int[]> editorMinimums = new java.util.WeakHashMap<>();
 
@@ -467,12 +472,59 @@ public class ViewPane extends RelativeLayout {
         return item;
     }
 
+    /**
+     * Draws the widgets of the layout an include points to, as Android Studio's layout editor does. Built again only
+     * when the include points to another layout; the whole screen is built again when the editor comes back to it.
+     */
+    private void updateIncludePreview(ItemInclude include, ViewBean viewBean) {
+        String layout = pro.sketchware.utility.IncludedViews.includedLayout(viewBean);
+        if (layout.equals(include.getPreviewLayout())) return;
+        if (layout.isEmpty() || sc_id == null || resourcesManager == null) {
+            include.setPreview(null, layout, null);
+            return;
+        }
+        String xml = layout + ".xml";
+        if (xml.equals(screenXml) || includeChain.contains(xml)) {
+            include.setPreview(null, layout, "@layout/" + layout + " includes itself");
+        } else if (!pro.sketchware.utility.IncludedViews.layouts(sc_id).contains(xml)) {
+            include.setPreview(null, layout, "@layout/" + layout + " doesn't exist");
+        } else {
+            include.setPreview(buildIncludedLayout(xml), layout, null);
+        }
+    }
+
+    /**
+     * The included layout's widgets in a pane of their own that is never attached: they don't take touches or drops,
+     * and their ids can't be confused with the ids of this screen. Built from copies, so the included layout's data
+     * is never changed by the drawing.
+     */
+    private View buildIncludedLayout(String xml) {
+        ViewPane pane = new ViewPane(getContext());
+        pane.sc_id = sc_id;
+        pane.context = context;
+        pane.svgUtils = svgUtils;
+        pane.colorsEditorManager = colorsEditorManager;
+        pane.material3LibraryManager = material3LibraryManager;
+        pane.resourcesManager = resourcesManager;
+        java.util.List<String> chain = new ArrayList<>(includeChain);
+        if (screenXml != null) chain.add(screenXml);
+        pane.includeChain = chain;
+        pane.updateRootLayout(sc_id, xml);
+        for (ViewBean bean : pro.sketchware.utility.ViewHierarchy.sorted(jC.a(sc_id).d(xml))) {
+            pane.addViewAndUpdateIndex(pane.createItemView(bean.clone()));
+        }
+        View root = pane.getRootLayout();
+        pane.removeView(root);
+        return root;
+    }
+
     private View getUnknownItemView(ViewBean bean) {
         bean.type = ViewBean.VIEW_TYPE_LAYOUT_LINEAR;
         return new ItemLinearLayout(context);
     }
 
     public void updateRootLayout(String sc_id, String fileName) {
+        screenXml = fileName;
         InjectRootLayoutManager manager = new InjectRootLayoutManager(sc_id);
         var currentBean = manager.toBean(fileName);
         View rootView = createItemView(currentBean);
@@ -498,6 +550,7 @@ public class ViewPane extends RelativeLayout {
         // A view file written without an image name (by hand or by the AI chat) used to crash the whole editor.
         if (viewBean.image == null) viewBean.image = new ImageBean();
         if (viewBean.image.resName == null || viewBean.image.resName.isEmpty()) viewBean.image.resName = "default_image";
+        if (view instanceof ItemInclude include) updateIncludePreview(include, viewBean);
         var injectHandler = new InjectAttributeHandler(viewBean);
         if (viewBean.id.charAt(0) == '_') {
             LayoutParams layoutParams = new LayoutParams(
