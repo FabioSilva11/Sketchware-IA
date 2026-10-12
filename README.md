@@ -66,6 +66,27 @@ Este projeto busca manter viva a ideia do Sketchware original, mas com uma visã
 
 https://github.com/user-attachments/assets/651ff6f4-8d62-4327-a524-92030e795eb3
 
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <img src="assets/readme/include-editor.jpg" width="200" alt="Editor desenhando o conteúdo de dois includes do mesmo layout"><br>
+      <sub>O editor desenha o layout incluído, como o Android Studio</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="assets/readme/include-logica.jpg" width="200" alt="Seletor de widgets da lógica listando os widgets de cada include"><br>
+      <sub>Os widgets de cada include aparecem na lógica</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="assets/readme/include-eventos.jpg" width="200" alt="Eventos de clique, texto e switch dos widgets de um include"><br>
+      <sub>Clique, texto e switch com eventos próprios</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="assets/readme/include-app.jpg" width="200" alt="App compilado com duas instâncias do mesmo include, cada uma com seu texto"><br>
+      <sub>No app, cada instância tem seus próprios widgets</sub>
+    </td>
+  </tr>
+</table>
+
 Ideias para o GIF:
 
 - criando um novo projeto;
