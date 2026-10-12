@@ -29,6 +29,7 @@ import mod.hilal.saif.blocks.CommandBlock;
 import mod.hilal.saif.events.LogicHandler;
 import mod.pranav.viewbinding.ViewBindingBuilder;
 import pro.sketchware.control.logic.PermissionManager;
+import pro.sketchware.utility.IncludedViews;
 import pro.sketchware.utility.TranslationFunction;
 
 public class Jx {
@@ -55,6 +56,7 @@ public class Jx {
     private final ArrayList<String> fields = new ArrayList<>();
     private final ArrayList<String> lists = new ArrayList<>();
     private final ArrayList<String> views = new ArrayList<>();
+    private IncludedViews.Result includes;
     /**
      * Field declarations from components. Can include static initializer, but doesn't have to.
      */
@@ -105,12 +107,22 @@ public class Jx {
 
     public String activityResult() {
         ArrayList<BlockBean> blocks = jC.a(projectDataManager.a).a(projectFileBean.getJavaName(), "onActivityResult_onActivityResult");
-        return Lx.j(new Fx(projectFileBean.getActivityName(), buildConfig, blocks, isViewBindingEnabled).a(), false);
+        return Lx.j(fx(blocks).a(), false);
     }
 
     public String initializeLogic() {
         ArrayList<BlockBean> blocks = jC.a(projectDataManager.a).a(projectFileBean.getJavaName(), "initializeLogic_initializeLogic");
-        return Lx.j(new Fx(projectFileBean.getActivityName(), buildConfig, blocks, isViewBindingEnabled).a(), false);
+        return Lx.j(fx(blocks).a(), false);
+    }
+
+    private Fx fx(ArrayList<BlockBean> blocks) {
+        return new Fx(projectFileBean.getActivityName(), buildConfig, blocks, isViewBindingEnabled).withIncludes(includes());
+    }
+
+    /** The widgets this screen reaches through its includes: fields, initializers, events and blocks use them. */
+    private IncludedViews.Result includes() {
+        if (includes == null) includes = IncludedViews.resolve(projectDataManager, projectFileBean.getXmlName());
+        return includes;
     }
 
     private void extraVariables() {
@@ -546,7 +558,8 @@ public class Jx {
             eventManager.addLifecycleEvent("onBackPressed", "DrawerLayout", "_drawer");
         }
 
-        ArrayList<ViewBean> beans = projectDataManager.d(projectFileBean.getXmlName());
+        ArrayList<ViewBean> beans = new ArrayList<>(projectDataManager.d(projectFileBean.getXmlName()));
+        for (IncludedViews.Entry entry : includes().entries) beans.add(entry.view);
         for (ViewBean next : beans) {
             if (next.type == ViewBean.VIEW_TYPE_WIDGET_MAPVIEW) {
                 eventManager.addLifecycleEvent("onStart", "MapView", next.id);
@@ -965,7 +978,7 @@ public class Jx {
         addImport("java.util.regex.*");
         addImport("java.text.*");
         addImport("org.json.*");
-        onCreateEventCode = new Fx(projectFileBean.getActivityName(), buildConfig, projectDataManager.a(projectFileBean.getJavaName(), "onCreate_initializeLogic"), isViewBindingEnabled).a();
+        onCreateEventCode = fx(projectDataManager.a(projectFileBean.getJavaName(), "onCreate_initializeLogic")).a();
     }
 
     private String getDrawerViewInitializer(ViewBean viewBean) {
@@ -977,11 +990,18 @@ public class Jx {
     }
 
     private void addAdapterCode() {
-        for (ViewBean viewBean : projectDataManager.f(projectFileBean.getXmlName())) {
+        ArrayList<ViewBean> lists = new ArrayList<>(projectDataManager.f(projectFileBean.getXmlName()));
+        for (IncludedViews.Entry entry : includes().entries) {
+            // A list of an included layout with its own item layout gets its adapter here, under its name in this screen
+            if (projectDataManager.f(entry.layouts.get(entry.layouts.size() - 1)).contains(entry.source)) {
+                lists.add(entry.view);
+            }
+        }
+        for (ViewBean viewBean : lists) {
             String xmlName = ProjectFileBean.getXmlName(viewBean.customView);
             projectFileBean.getJavaName();
             String eventName = viewBean.id + "_onBindCustomView";
-            String adapterLogic = new Fx(projectFileBean.getActivityName(), buildConfig, projectDataManager.a(projectFileBean.getJavaName(), eventName), isViewBindingEnabled).a();
+            String adapterLogic = fx(projectDataManager.a(projectFileBean.getJavaName(), eventName)).a();
             String adapterCode;
             if (viewBean.type == ViewBeans.VIEW_TYPE_LAYOUT_VIEWPAGER) {
                 adapterCode = Lx.pagerAdapter(ox, viewBean.id, viewBean.customView, projectDataManager.d(xmlName), adapterLogic, isViewBindingEnabled);
@@ -1007,13 +1027,24 @@ public class Jx {
         return Lx.getViewInitializer(replaceAll, viewBean.id, false, isViewBindingEnabled);
     }
 
+    /** Finds the widget inside its own include instance, never by its id in the whole screen. */
+    private String getIncludedViewInitializer(IncludedViews.Entry entry) {
+        String type = WIDGET_NAME_PATTERN.matcher(entry.view.convert).replaceAll("");
+        if (type.isEmpty()) {
+            type = entry.view.getClassInfo().getClassName();
+        }
+        boolean isInFragment = projectFileBean.fileName.contains("_fragment");
+        String lookup = isViewBindingEnabled ? null : entry.lookupExpression(isInFragment ? "_view" : "");
+        return Lx.getViewInitializer(type, entry.id, includes().reference(entry.id, isViewBindingEnabled), lookup, isInFragment);
+    }
+
     private void addMoreBlockCodes() {
         String javaName = projectFileBean.getJavaName();
         ArrayList<Pair<String, String>> pairs = projectDataManager.i(javaName);
         for (int index = 0, pairsSize = pairs.size(); index < pairsSize; index++) {
             Pair<String, String> next = pairs.get(index);
             String name = next.first + "_moreBlock";
-            String code = Lx.getMoreBlockCode(next.first, next.second, new Fx(projectFileBean.getActivityName(), buildConfig, projectDataManager.a(javaName, name), isViewBindingEnabled).a());
+            String code = Lx.getMoreBlockCode(next.first, next.second, fx(projectDataManager.a(javaName, name)).a());
             if (index < (pairsSize - 1)) {
                 moreBlocks.add(code);
             } else {
@@ -1024,7 +1055,7 @@ public class Jx {
     }
 
     private void initializeEventsCodeGenerator() {
-        eventManager = new Hx(buildConfig, projectFileBean, projectDataManager);
+        eventManager = new Hx(buildConfig, projectFileBean, projectDataManager, includes(), isViewBindingEnabled);
         addImports(eventManager.getImports());
     }
 
@@ -1113,6 +1144,9 @@ public class Jx {
                 }
             }
         }
+        for (IncludedViews.Entry entry : includes().entries) {
+            initializeMethodCode.add(getIncludedViewInitializer(entry));
+        }
         if (!isViewBindingEnabled) {
             if (projectFileBean.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_DRAWER)) {
                 ArrayList<ViewBean> drawerBeans = projectDataManager.d(projectFileBean.getDrawerXmlName());
@@ -1175,6 +1209,12 @@ public class Jx {
                         views.add(viewDeclarations);
                     }
                 }
+            }
+        }
+        for (IncludedViews.Entry entry : includes().entries) {
+            String declaration = getViewDeclarationAndAddImports(entry.view);
+            if (!declaration.isEmpty()) {
+                views.add(declaration);
             }
         }
 

@@ -43,6 +43,7 @@ import a.a.a.wB;
 import dev.chrisbanes.insetter.Insetter;
 import pro.sketchware.R;
 import pro.sketchware.databinding.LogicPopupAddEventBinding;
+import pro.sketchware.utility.IncludedViews;
 import pro.sketchware.utility.TranslationFunction;
 
 public class AddEventActivity extends BaseAppCompatActivity implements View.OnClickListener {
@@ -126,6 +127,9 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
             for (ViewBean view : views) {
                 addableViewEvents.addAll(ViewEventCatalog.addable(sc_id, projectFile, view, EventBean.EVENT_TYPE_VIEW));
             }
+        }
+        for (IncludedViews.Entry entry : IncludedViews.resolve(jC.a(sc_id), projectFile.getXmlName()).entries) {
+            addableViewEvents.addAll(ViewEventCatalog.addable(sc_id, projectFile, entry.view, EventBean.EVENT_TYPE_VIEW));
         }
         if (components != null) {
             for (ComponentBean component : components) {

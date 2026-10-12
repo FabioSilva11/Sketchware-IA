@@ -34,6 +34,7 @@ import pro.sketchware.control.logic.LogicClickListener;
 import pro.sketchware.utility.CustomVariableUtil;
 import pro.sketchware.utility.FileResConfig;
 import pro.sketchware.utility.FileUtil;
+import pro.sketchware.utility.IncludedViews;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.TranslationFunction;
 
@@ -81,13 +82,8 @@ public class ExtraPaletteBlock {
             }
         }
         if (eventName.equals("onBindCustomView")) {
-            var eC = jC.a(sc_id);
-            var view = eC.c(xmlName, logicEditor.id);
-            if (view == null) {
-                // in case the View's in a Drawer
-                view = eC.c("_drawer_" + xmlName, logicEditor.id);
-            }
-            String customView = view.customView;
+            var view = IncludedViews.eventTarget(jC.a(sc_id), xmlName, logicEditor.id);
+            String customView = view == null ? null : view.customView;
             if (customView != null && !customView.isEmpty()) {
                 for (ViewBean viewBean : jC.a(sc_id).d(ProjectFileBean.getXmlName(customView))) {
                     if (viewBean.getClassInfo().a(str)) {
@@ -99,6 +95,13 @@ public class ExtraPaletteBlock {
         } else if (jC.a(sc_id).y(xmlName, str)) {
             mapSave.put(str, true);
             return true;
+        } else {
+            for (IncludedViews.Entry entry : IncludedViews.resolve(jC.a(sc_id), xmlName).entries) {
+                if (entry.view.getClassInfo().a(str)) {
+                    mapSave.put(str, true);
+                    return true;
+                }
+            }
         }
         mapSave.put(str, false);
         return false;
@@ -247,14 +250,8 @@ public class ExtraPaletteBlock {
 
     private void blockCustomViews() {
         if (eventName.equals("onBindCustomView")) {
-            String viewId = logicEditor.id;
-            var eC = jC.a(sc_id);
-            ViewBean viewBean = eC.c(xmlName, viewId);
-            if (viewBean == null) {
-                // Event is of a Drawer View
-                viewBean = eC.c("_drawer_" + xmlName, viewId);
-            }
-            // Additional null check to prevent NullPointerException
+            // The list can be the screen's own, of its drawer, or reached through an include
+            ViewBean viewBean = IncludedViews.eventTarget(jC.a(sc_id), xmlName, logicEditor.id);
             if (viewBean == null) {
                 return;
             }
@@ -297,6 +294,18 @@ public class ExtraPaletteBlock {
                     logicEditor.a(isViewBindingEnabled ? "binding." + ViewBindingBuilder.generateParameterFromId(view.id) : view.id, "v", typeName, "getVar").setTag(isViewBindingEnabled ? "binding." + ViewBindingBuilder.generateParameterFromId(view.id) : view.id);
                 }
             }
+        }
+        IncludedViews.Result includes = IncludedViews.resolve(jC.a(sc_id), xmlName);
+        for (int i = 0; i < includes.entries.size(); i++) {
+            IncludedViews.Entry entry = includes.entries.get(i);
+            if (i == 0) {
+                logicEditor.a("Included Views", getTitleBgColor());
+            }
+            ViewBean view = entry.view;
+            String typeName = view.convert.isEmpty() ? ViewBean.getViewTypeName(view.type) : IdGenerator.getLastPath(view.convert);
+            // Each include instance has its own widgets: include1_button1 and include2_button1
+            String reference = includes.reference(entry.id, isViewBindingEnabled);
+            logicEditor.a(reference, "v", typeName, "getVar").setTag(reference);
         }
     }
 

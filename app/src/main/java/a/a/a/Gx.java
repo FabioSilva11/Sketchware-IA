@@ -88,6 +88,8 @@ public class Gx {
                 break;
 
             case "View":
+                // Any View takes click listeners: View, Divider and Space widgets get onClick and onLongClick
+                classInfos = "View.Clickable";
                 break;
 
             case "TextView":

@@ -18,6 +18,7 @@ import mod.hey.studios.editor.manage.block.ExtraBlockInfo;
 import mod.hey.studios.editor.manage.block.v2.BlockLoader;
 import mod.hey.studios.moreblock.ReturnMoreblockManager;
 import mod.pranav.viewbinding.ViewBindingBuilder;
+import pro.sketchware.utility.IncludedViews;
 import pro.sketchware.utility.TranslationFunction;
 
 public class Fx {
@@ -39,6 +40,8 @@ public class Fx {
     public ArrayList<BlockBean> eventBlocks;
     public Map<String, BlockBean> blockMap;
     private final boolean isActivity;
+    /** Widgets the screen reaches through its includes, referred to through their instance. */
+    private IncludedViews.Result includes;
 
     public Fx(String activityName, jq buildConfig, ArrayList<BlockBean> eventBlocks, boolean isViewBindingEnabled) {
         this.activityName = activityName;
@@ -48,6 +51,11 @@ public class Fx {
         this.buildConfig = buildConfig;
         this.eventBlocks = eventBlocks;
         this.isViewBindingEnabled = isViewBindingEnabled;
+    }
+
+    public Fx withIncludes(IncludedViews.Result includes) {
+        this.includes = includes;
+        return this;
     }
 
     public String a() {
@@ -205,6 +213,8 @@ public class Fx {
         if (isWidgetParam) {
             String bindingStart = "binding.";
             if (isViewBindingEnabled && !param.isEmpty() && !param.startsWith("@") && !param.startsWith(bindingStart)) {
+                String included = includes == null ? null : includes.reference(param, true);
+                if (included != null) return included;
                 return bindingStart + ViewBindingBuilder.generateParameterFromId(param);
             }
         } else if (isColorParam) {
@@ -771,7 +781,11 @@ public class Fx {
                     break;
                 }
                 var paramAdapter = param;
-                if (isViewBindingEnabled && paramAdapter.startsWith("binding.")) {
+                IncludedViews.Entry includedList = includes == null ? null : includes.findByReference(param, isViewBindingEnabled);
+                if (includedList != null) {
+                    // Its adapter is named after the list's name in this screen, e.g. Include1_listview1Adapter
+                    paramAdapter = includedList.id;
+                } else if (isViewBindingEnabled && paramAdapter.startsWith("binding.")) {
                     paramAdapter = paramAdapter.substring("binding.".length());
                 }
                 opcode = String.format("%s.setAdapter(new %s(%s));", param, Lx.a(paramAdapter, isViewBindingEnabled), params.get(1));

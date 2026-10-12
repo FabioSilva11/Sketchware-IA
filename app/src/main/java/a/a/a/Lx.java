@@ -1224,29 +1224,36 @@ public class Lx {
      * @return Initializer of a View to be added to _initialize(Bundle)
      */
     public static String getViewInitializer(String type, String name, boolean isInFragment, boolean viewBinding) {
+        String lookup = viewBinding ? null : (isInFragment ? "_view.findViewById(R.id." : "findViewById(R.id.") + name + ")";
+        return getViewInitializer(type, name, getBindingOrViewName(name, viewBinding), lookup, isInFragment);
+    }
+
+    /**
+     * @param reference how the code refers to the view: its field, or its view binding expression
+     * @param lookup    expression finding the view for its field, or null when it has no field (view binding)
+     */
+    public static String getViewInitializer(String type, String name, String reference, String lookup, boolean isInFragment) {
         String initializer = "";
 
         if (!type.equals("include") && !type.equals("#")) {
-            if (!viewBinding) {
-                initializer = name + " = " +
-                        (isInFragment ? "_view.findViewById(R.id." : "findViewById(R.id.") +
-                        name + ");";
+            if (lookup != null) {
+                initializer = name + " = " + lookup + ";";
             }
         }
 
         return switch (type) {
             case "WebView" -> initializer + "\r\n" +
-                    getBindingOrViewName(name, viewBinding) + ".getSettings().setJavaScriptEnabled(true);\r\n" +
-                    getBindingOrViewName(name, viewBinding) + ".getSettings().setSupportZoom(true);";
+                    reference + ".getSettings().setJavaScriptEnabled(true);\r\n" +
+                    reference + ".getSettings().setSupportZoom(true);";
             case "MapView" -> initializer + "\r\n" +
-                    getBindingOrViewName(name, viewBinding) + ".onCreate(_savedInstanceState);\r\n";
+                    reference + ".onCreate(_savedInstanceState);\r\n";
             case "VideoView" -> {
                 String mediaControllerName = name + "_controller";
                 String context = isInFragment ? "requireContext()" : "this";
                 yield initializer + "\r\n" +
                         "MediaController " + mediaControllerName + " = new MediaController(" + context + ");\r\n" +
-                        getBindingOrViewName(name, viewBinding) + ".setMediaController(" + mediaControllerName + ");\r\n" +
-                        getBindingOrViewName(name, viewBinding) + ".requestFocus();";
+                        reference + ".setMediaController(" + mediaControllerName + ");\r\n" +
+                        reference + ".requestFocus();";
             }
             default -> initializer;
         };
