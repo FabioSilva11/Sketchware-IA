@@ -68,13 +68,16 @@ public class PropertyAttributeItem extends RelativeLayout implements View.OnClic
     }
 
     public void setSpec(@NonNull WidgetAttributes.Spec spec, @NonNull String scId) {
+        boolean sameLook = this.spec != null && this.spec.icon == spec.icon && this.spec.label.equals(spec.label);
         this.spec = spec;
         this.scId = scId;
+        setTag(spec.key());
+        // Items are reused across selections: decoding the vector icons again was most of the cost of showing them.
+        if (sameLook) return;
         tvName.setText(spec.label);
         imgLeftIcon.setImageResource(spec.icon);
         ((ImageView) findViewById(R.id.img_icon)).setImageResource(spec.icon);
         ((TextView) findViewById(R.id.tv_title)).setText(spec.label);
-        setTag(spec.key());
     }
 
     public WidgetAttributes.Spec getSpec() {

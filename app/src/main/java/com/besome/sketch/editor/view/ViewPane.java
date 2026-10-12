@@ -495,6 +495,9 @@ public class ViewPane extends RelativeLayout {
     private void updateItemView(View view, ViewBean viewBean) {
         ImageBean imageBean;
         String str;
+        // A view file written without an image name (by hand or by the AI chat) used to crash the whole editor.
+        if (viewBean.image == null) viewBean.image = new ImageBean();
+        if (viewBean.image.resName == null || viewBean.image.resName.isEmpty()) viewBean.image.resName = "default_image";
         var injectHandler = new InjectAttributeHandler(viewBean);
         if (viewBean.id.charAt(0) == '_') {
             LayoutParams layoutParams = new LayoutParams(

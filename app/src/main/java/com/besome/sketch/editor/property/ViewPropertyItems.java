@@ -41,6 +41,17 @@ import pro.sketchware.utility.TranslationFunction;
 public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickListener {
     private final boolean b = false;
     private final HashMap<String, View> f = new HashMap<>();
+
+    /**
+     * The cached item for {@code key} when it is of the wanted kind, otherwise null and the caller creates one.
+     * Items are kept across selections (inflating every item again for each selected widget was most of the time
+     * spent selecting one); a key whose kind of item changed gets a new item instead of a ClassCastException.
+     */
+    @androidx.annotation.Nullable
+    private <T extends View> T cached(String key, Class<T> type) {
+        View view = f.get(key);
+        return type.isInstance(view) ? type.cast(view) : null;
+    }
     private String sc_id;
     private ViewBean c;
     private Lw d;
@@ -158,13 +169,15 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void addAttributeItem(ViewBean bean, WidgetAttributes.Spec spec) {
-        PropertyAttributeItem item = (PropertyAttributeItem) f.get(spec.key());
+        PropertyAttributeItem item = cached(spec.key(), PropertyAttributeItem.class);
         if (item == null) {
             item = new PropertyAttributeItem(getContext());
             item.setOrientationItem(getOrientation());
             item.setSpec(spec, sc_id);
             item.setOnPropertyValueChangeListener(this);
             f.put(spec.key(), item);
+        } else {
+            item.setSpec(spec, sc_id);
         }
         item.setBean(bean);
         addView(item);
@@ -177,7 +190,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void a(String name, int value) {
-        PropertyColorItem colorItem = (PropertyColorItem) f.get(name);
+        PropertyColorItem colorItem = cached(name, PropertyColorItem.class);
         if (colorItem == null) {
             colorItem = new PropertyColorItem(getContext(), !b);
             colorItem.setOrientationItem(getOrientation());
@@ -194,7 +207,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void a(String key, int left, int top, int right, int bottom) {
-        PropertyIndentItem indentItem = (PropertyIndentItem) f.get(key);
+        PropertyIndentItem indentItem = cached(key, PropertyIndentItem.class);
         if (indentItem == null) {
             indentItem = new PropertyIndentItem(getContext(), !b);
             indentItem.setOrientationItem(getOrientation());
@@ -211,7 +224,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void r(String name, String value, int value2) {
-        PropertyColorItem colorItem = (PropertyColorItem) f.get(name);
+        PropertyColorItem colorItem = cached(name, PropertyColorItem.class);
         if (colorItem == null) {
             colorItem = new PropertyColorItem(getContext(), !b, sc_id);
             colorItem.setOrientationItem(getOrientation());
@@ -227,7 +240,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void a(String key, int value, boolean isEnable) {
-        PropertyMeasureItem measureItem = (PropertyMeasureItem) f.get(key);
+        PropertyMeasureItem measureItem = cached(key, PropertyMeasureItem.class);
         int isEnabled;
         if (isEnable) {
             isEnabled = 7;
@@ -263,23 +276,58 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
         sc_id = scId;
         c = bean;
         Cx.a().b(c.getClassInfo().getClassName());
-        removeAllViews();
-        f.clear();
-        if (bean.id.equals("_fab")) {
-            b(bean);
-        } else {
-            if (getOrientation() == LinearLayout.VERTICAL) {
-                b("property_id", bean.id);
-            }
+        pendingRows = new ArrayList<>();
+        ArrayList<View> rows;
+        try {
+            if (bean.id.equals("_fab")) {
+                b(bean);
+            } else {
+                if (getOrientation() == LinearLayout.VERTICAL) {
+                    b("property_id", bean.id);
+                }
 
-            f(bean);
-            d(bean);
-            g(bean);
-            h(bean);
-            j(bean);
-            if (getOrientation() == LinearLayout.HORIZONTAL) {
-                b("property_id", bean.id);
+                f(bean);
+                d(bean);
+                g(bean);
+                h(bean);
+                j(bean);
+                if (getOrientation() == LinearLayout.HORIZONTAL) {
+                    b("property_id", bean.id);
+                }
             }
+        } finally {
+            rows = pendingRows;
+            pendingRows = null;
+        }
+        showRows(rows);
+    }
+
+    /** Rows the builders add while {@link #a(String, ViewBean)} works out the rows of the selected widget. */
+    private ArrayList<View> pendingRows;
+
+    @Override
+    public void addView(View child) {
+        if (pendingRows != null) {
+            pendingRows.add(child);
+        } else {
+            super.addView(child);
+        }
+    }
+
+    /**
+     * Shows {@code rows}, leaving the panel as it is when it already shows exactly these rows: selecting another
+     * widget of the same kind only updates their values. Removing every row and adding it again (detaching and
+     * attaching each one) was most of the time spent selecting a widget.
+     */
+    private void showRows(ArrayList<View> rows) {
+        boolean same = rows.size() == getChildCount();
+        for (int i = 0; same && i < rows.size(); i++) {
+            same = getChildAt(i) == rows.get(i);
+        }
+        if (same) return;
+        removeAllViews();
+        for (View row : rows) {
+            super.addView(row);
         }
     }
 
@@ -297,7 +345,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void a(String key, String value) {
-        PropertyCustomViewItem propertyCustomViewItem = (PropertyCustomViewItem) f.get(key);
+        PropertyCustomViewItem propertyCustomViewItem = cached(key, PropertyCustomViewItem.class);
         if (propertyCustomViewItem == null) {
             propertyCustomViewItem = new PropertyCustomViewItem(getContext(), !b);
             propertyCustomViewItem.setOrientationItem(getOrientation());
@@ -313,7 +361,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void a(String key, String value, boolean z, String typeView) {
-        PropertyInputItem inputItem = (PropertyInputItem) f.get(key);
+        PropertyInputItem inputItem = cached(key, PropertyInputItem.class);
         if (inputItem == null) {
             inputItem = new PropertyInputItem(getContext(), !z);
             inputItem.setOrientationItem(getOrientation());
@@ -351,7 +399,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void b(String key, int value) {
-        PropertyGravityItem gravityItem = (PropertyGravityItem) f.get(key);
+        PropertyGravityItem gravityItem = cached(key, PropertyGravityItem.class);
         if (gravityItem == null) {
             gravityItem = new PropertyGravityItem(getContext(), !b);
             gravityItem.setOrientationItem(getOrientation());
@@ -376,7 +424,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void b(String key, String value, boolean z) {
-        PropertyResourceItem drawableItem = (PropertyResourceItem) f.get(key);
+        PropertyResourceItem drawableItem = cached(key, PropertyResourceItem.class);
         if (drawableItem == null) {
             drawableItem = new PropertyResourceItem(getContext(), !b, sc_id, z);
             drawableItem.setOrientationItem(getOrientation());
@@ -406,7 +454,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void c(String key, int value) {
-        PropertySelectorItem selectorItem = (PropertySelectorItem) f.get(key);
+        PropertySelectorItem selectorItem = cached(key, PropertySelectorItem.class);
         if (selectorItem == null) {
             selectorItem = new PropertySelectorItem(getContext(), !b);
             selectorItem.setOrientationItem(getOrientation());
@@ -423,7 +471,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void c(String key, String value) {
-        PropertyStringPairSelectorItem pairSelectorItem = (PropertyStringPairSelectorItem) f.get(key);
+        PropertyStringPairSelectorItem pairSelectorItem = cached(key, PropertyStringPairSelectorItem.class);
         if (pairSelectorItem == null) {
             pairSelectorItem = new PropertyStringPairSelectorItem(getContext(), !b);
             pairSelectorItem.setOrientationItem(getOrientation());
@@ -477,7 +525,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void d(String key, int value) {
-        PropertySizeItem propertySizeItem = (PropertySizeItem) f.get(key);
+        PropertySizeItem propertySizeItem = cached(key, PropertySizeItem.class);
         if (propertySizeItem == null) {
             propertySizeItem = new PropertySizeItem(getContext(), !b);
             propertySizeItem.setOrientationItem(getOrientation());
@@ -494,7 +542,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void d(String key, String value) {
-        PropertyStringSelectorItem stringSelectorItem = (PropertyStringSelectorItem) f.get(key);
+        PropertyStringSelectorItem stringSelectorItem = cached(key, PropertyStringSelectorItem.class);
         if (stringSelectorItem == null) {
             stringSelectorItem = new PropertyStringSelectorItem(getContext(), !b);
             stringSelectorItem.setOrientationItem(getOrientation());
@@ -513,7 +561,6 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     public void e(ViewBean bean) {
         c = bean;
         removeAllViews();
-        f.clear();
         LayoutParams params = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT);
         params.gravity = Gravity.LEFT;
@@ -530,7 +577,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void e(String key, int value) {
-        PropertySwitchSingleLineItem switchSingleLineItem = (PropertySwitchSingleLineItem) f.get(key);
+        PropertySwitchSingleLineItem switchSingleLineItem = cached(key, PropertySwitchSingleLineItem.class);
         boolean isEnabled = false;
         if (switchSingleLineItem == null) {
             switchSingleLineItem = new PropertySwitchSingleLineItem(getContext(), !b);
@@ -563,7 +610,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                 ids.add(bean.id);
             }
         }
-        PropertyAttributesItem item = (PropertyAttributesItem) f.get(key);
+        PropertyAttributesItem item = cached(key, PropertyAttributesItem.class);
         if (item == null) {
             item = new PropertyAttributesItem(getContext(), !b);
             item.setOrientationItem(getOrientation());
