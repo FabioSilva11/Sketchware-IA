@@ -186,6 +186,8 @@ public class jq {
     public boolean isWorkManagerUsed = false;
     public boolean isBiometricManagerUsed = false;
     public boolean isFusedLocationManagerUsed = false;
+    /** A Supabase component is used: the app gets SupabaseClient.java, OkHttp and Gson. */
+    public boolean isSupabaseUsed = false;
     public boolean isAlarmManagerUsed = false;
     /**
      * Whether the project posts notifications, which needs POST_NOTIFICATIONS on Android 13+.

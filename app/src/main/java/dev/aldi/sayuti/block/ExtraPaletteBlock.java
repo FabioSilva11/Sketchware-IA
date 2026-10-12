@@ -1185,6 +1185,31 @@ public class ExtraPaletteBlock {
                     logicEditor.a(" ", "fusedLocationStop");
                     logicEditor.a(" ", "fusedLocationGetLast");
                 }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE)) {
+                    logicEditor.a("Supabase Database", getTitleBgColor());
+                    logicEditor.a(" ", "supabaseDbSelect");
+                    logicEditor.a(" ", "supabaseDbInsert");
+                    logicEditor.a(" ", "supabaseDbUpsert");
+                    logicEditor.a(" ", "supabaseDbUpdate");
+                    logicEditor.a(" ", "supabaseDbDelete");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH)) {
+                    logicEditor.a("Supabase Auth", getTitleBgColor());
+                    logicEditor.a(" ", "supabaseAuthSignUp");
+                    logicEditor.a(" ", "supabaseAuthSignIn");
+                    logicEditor.a(" ", "supabaseAuthSignOut");
+                    logicEditor.a(" ", "supabaseAuthResetPassword");
+                    logicEditor.a("b", "supabaseAuthIsSignedIn");
+                    logicEditor.a("s", "supabaseAuthGetUserId");
+                    logicEditor.a("s", "supabaseAuthGetEmail");
+                }
+                if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE)) {
+                    logicEditor.a("Supabase Storage", getTitleBgColor());
+                    logicEditor.a(" ", "supabaseStorageUpload");
+                    logicEditor.a(" ", "supabaseStorageDownload");
+                    logicEditor.a(" ", "supabaseStorageDelete");
+                    logicEditor.a("s", "supabaseStorageGetPublicUrl");
+                }
                 if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD)) {
                     logicEditor.a("AdMob Interstitial", getTitleBgColor());
                     logicEditor.a(" ", "admobRequestConsent");

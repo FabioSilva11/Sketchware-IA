@@ -396,6 +396,9 @@ public class Hx {
                     case "StepCounter":
                     case "BiometricManager":
                     case "FusedLocationManager":
+                    case "SupabaseDatabase":
+                    case "SupabaseAuth":
+                    case "SupabaseStorage":
                     case "FragmentAdapter":
                     case "WebView":
                     case "MapView":

@@ -63,6 +63,9 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
     public static final int COMPONENT_TYPE_ALARM_MANAGER = 46;
     public static final int COMPONENT_TYPE_BIOMETRIC_MANAGER = 50;
     public static final int COMPONENT_TYPE_FUSED_LOCATION_MANAGER = 51;
+    public static final int COMPONENT_TYPE_SUPABASE_DATABASE = 52;
+    public static final int COMPONENT_TYPE_SUPABASE_AUTH = 53;
+    public static final int COMPONENT_TYPE_SUPABASE_STORAGE = 54;
 
     public Gx classInfo;
     @Expose
@@ -150,6 +153,9 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_ALARM_MANAGER -> "https://developer.android.com/develop/background-work/services/alarms";
             case COMPONENT_TYPE_BIOMETRIC_MANAGER -> "https://developer.android.com/identity/sign-in/biometric-auth";
             case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "https://developers.google.com/location-context/fused-location-provider";
+            case COMPONENT_TYPE_SUPABASE_DATABASE -> "https://supabase.com/docs/guides/api";
+            case COMPONENT_TYPE_SUPABASE_AUTH -> "https://supabase.com/docs/guides/auth/passwords";
+            case COMPONENT_TYPE_SUPABASE_STORAGE -> "https://supabase.com/docs/guides/storage";
             case COMPONENT_TYPE_FIREBASE_AUTH ->
                     "https://docs.sketchware.io/docs/component-firebase-auth.html";
             case COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE ->
@@ -193,6 +199,9 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_ALARM_MANAGER -> "Alarm Manager";
             case COMPONENT_TYPE_BIOMETRIC_MANAGER -> "Biometric Manager";
             case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "Fused Location Manager";
+            case COMPONENT_TYPE_SUPABASE_DATABASE -> "Supabase Database";
+            case COMPONENT_TYPE_SUPABASE_AUTH -> "Supabase Auth";
+            case COMPONENT_TYPE_SUPABASE_STORAGE -> "Supabase Storage";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "Firebase Auth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "Interstitial Ad";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "Firebase Storage";
@@ -238,6 +247,9 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case "AlarmManager" -> COMPONENT_TYPE_ALARM_MANAGER;
             case "BiometricManager" -> COMPONENT_TYPE_BIOMETRIC_MANAGER;
             case "FusedLocationManager" -> COMPONENT_TYPE_FUSED_LOCATION_MANAGER;
+            case "SupabaseDatabase" -> COMPONENT_TYPE_SUPABASE_DATABASE;
+            case "SupabaseAuth" -> COMPONENT_TYPE_SUPABASE_AUTH;
+            case "SupabaseStorage" -> COMPONENT_TYPE_SUPABASE_STORAGE;
             case "FirebaseAuth" -> COMPONENT_TYPE_FIREBASE_AUTH;
             case "InterstitialAd" -> COMPONENT_TYPE_INTERSTITIAL_AD;
             case "FirebaseStorage" -> COMPONENT_TYPE_FIREBASE_STORAGE;
@@ -283,6 +295,9 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_ALARM_MANAGER -> "AlarmManager";
             case COMPONENT_TYPE_BIOMETRIC_MANAGER -> "BiometricManager";
             case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "FusedLocationManager";
+            case COMPONENT_TYPE_SUPABASE_DATABASE -> "SupabaseDatabase";
+            case COMPONENT_TYPE_SUPABASE_AUTH -> "SupabaseAuth";
+            case COMPONENT_TYPE_SUPABASE_STORAGE -> "SupabaseStorage";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
@@ -333,6 +348,9 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_ALARM_MANAGER -> R.string.component_description_alarm_manager;
             case COMPONENT_TYPE_BIOMETRIC_MANAGER -> R.string.component_description_biometric_manager;
             case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> R.string.component_description_fused_location_manager;
+            case COMPONENT_TYPE_SUPABASE_DATABASE -> R.string.component_description_supabase_database;
+            case COMPONENT_TYPE_SUPABASE_AUTH -> R.string.component_description_supabase_auth;
+            case COMPONENT_TYPE_SUPABASE_STORAGE -> R.string.component_description_supabase_storage;
             case COMPONENT_TYPE_FIREBASE_AUTH -> R.string.component_description_firebase_auth;
             case COMPONENT_TYPE_INTERSTITIAL_AD -> R.string.component_description_interstitial_ad;
             case COMPONENT_TYPE_FIREBASE_STORAGE -> R.string.component_description_firebase_storage;
@@ -381,6 +399,8 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
                  COMPONENT_TYPE_ALARM_MANAGER,
                  COMPONENT_TYPE_BIOMETRIC_MANAGER, COMPONENT_TYPE_FUSED_LOCATION_MANAGER ->
                     R.drawable.ic_mtrl_sensors;
+            case COMPONENT_TYPE_SUPABASE_DATABASE, COMPONENT_TYPE_SUPABASE_AUTH,
+                 COMPONENT_TYPE_SUPABASE_STORAGE -> R.drawable.ic_mtrl_supabase;
             case COMPONENT_TYPE_INTERSTITIAL_AD -> R.drawable.ic_mtrl_admob;
             case COMPONENT_TYPE_CAMERA -> R.drawable.ic_mtrl_camera;
             case COMPONENT_TYPE_FILE_PICKER -> R.drawable.ic_mtrl_file;
@@ -426,6 +446,9 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_ALARM_MANAGER -> "AlarmManager";
             case COMPONENT_TYPE_BIOMETRIC_MANAGER -> "BiometricManager";
             case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "FusedLocationManager";
+            case COMPONENT_TYPE_SUPABASE_DATABASE -> "SupabaseDatabase";
+            case COMPONENT_TYPE_SUPABASE_AUTH -> "SupabaseAuth";
+            case COMPONENT_TYPE_SUPABASE_STORAGE -> "SupabaseStorage";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";

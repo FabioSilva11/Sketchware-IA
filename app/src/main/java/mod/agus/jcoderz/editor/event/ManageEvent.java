@@ -881,6 +881,11 @@ public class ManageEvent {
             case "onStepCountChanged" -> "%d.steps";
             case "onBiometricError" -> "%d.errorCode %s.errorMessage";
             case "onFusedLocationChanged" -> "%d.latitude %d.longitude %d.accuracy";
+            case "onSupabaseResponse" -> "%s.tag %s.response";
+            case "onSupabaseError" -> "%s.tag %s.message";
+            case "onSupabaseAuthSuccess" -> "%s.action %s.userId %s.email";
+            case "onSupabaseAuthError", "onSupabaseStorageError" -> "%s.action %s.message";
+            case "onSupabaseStorageSuccess" -> "%s.action %s.path %s.result";
             case "onBannerAdFailedToLoad", "onRewardAdFailedToLoad", "onInterstitialAdFailedToLoad",
                  "onAdFailedToShowFullScreenContent" -> "%d.errorCode %d.errorMessage";
             default -> EventsHandler.getBlocks(eventName);
@@ -986,6 +991,12 @@ public class ManageEvent {
             case "onBiometricSuccess", "onBiometricFailed" -> "When " + targetId + " " + eventName;
             case "onBiometricError" -> "When " + targetId + " biometric error %d.errorCode %s.errorMessage";
             case "onFusedLocationChanged" -> "When " + targetId + " location changed %d.latitude %d.longitude %d.accuracy";
+            case "onSupabaseResponse" -> "When " + targetId + " responds %s.tag %s.response";
+            case "onSupabaseError" -> "When " + targetId + " fails %s.tag %s.message";
+            case "onSupabaseAuthSuccess" -> "When " + targetId + " succeeds %s.action %s.userId %s.email";
+            case "onSupabaseAuthError" -> "When " + targetId + " fails %s.action %s.message";
+            case "onSupabaseStorageSuccess" -> "When " + targetId + " succeeds %s.action %s.path %s.result";
+            case "onSupabaseStorageError" -> "When " + targetId + " fails %s.action %s.message";
             case "onBannerAdFailedToLoad", "onInterstitialAdFailedToLoad", "onRewardAdFailedToLoad",
                  "onAdFailedToShowFullScreenContent" ->
                     targetId + ": " + eventName + " %d.errorCode %s.errorMessage";

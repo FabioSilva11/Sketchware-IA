@@ -604,6 +604,13 @@ public class yq {
                         N.isFusedLocationManagerUsed = true;
                         N.addPermission(activity.getActivityName(), jq.PERMISSION_ACCESS_FINE_LOCATION);
                     }
+                    case ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE, ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH,
+                         ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE -> {
+                        N.isSupabaseUsed = true;
+                        N.isGsonUsed = true;
+                        N.addPermission(activity.getActivityName(), jq.PERMISSION_INTERNET);
+                        N.addPermission(activity.getActivityName(), jq.PERMISSION_ACCESS_NETWORK_STATE);
+                    }
                     case ComponentBean.COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE ->
                             N.x.isFCMUsed = true;
                     case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN ->
@@ -873,6 +880,13 @@ public class yq {
         if (!FileUtil.isExistFile(javaDir + "RequestNetworkController.java") && N.isHttp3Used) {
             srcCodeBeans.add(new SrcCodeBean("RequestNetworkController.java",
                     Lx.j(Lx.g(packageName), false)));
+        }
+
+        if (!javaFiles.contains(new File(javaDir + "SupabaseClient.java")) && N.isSupabaseUsed) {
+            srcCodeBeans.add(new SrcCodeBean("SupabaseClient.java",
+                    pro.sketchware.supabase.SupabaseClientSource.generate(packageName,
+                            pro.sketchware.supabase.SupabaseSettings.getUrl(sc_id),
+                            pro.sketchware.supabase.SupabaseSettings.getAnonKey(sc_id))));
         }
 
         if (!javaFiles.contains(new File(javaDir + "BluetoothConnect.java")) && N.hasPermission(jq.PERMISSION_BLUETOOTH)) {

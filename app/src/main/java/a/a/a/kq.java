@@ -141,7 +141,8 @@ public class kq {
                  "intent", "locationmanager", "firebase", "speechtotext", "calendar", "file",
                  "firebaseauth", "timer", "gyroscope", "mediaplayer", "bluetoothconnect",
                  "vibrator", "firebasestorage", "phoneauth",
-                 "googlelogin", "cloudmessage" -> "p";
+                 "googlelogin", "cloudmessage", "supabasedatabase", "supabaseauth",
+                 "supabasestorage" -> "p";
             case "varMap" -> "a";
             case "listInt", "listMap", "listStr" -> "l";
             default -> "v";
@@ -208,6 +209,9 @@ public class kq {
             case "alarmmanager" -> "Alarm Manager";
             case "biometricmanager" -> "Biometric Manager";
             case "fusedlocationmanager" -> "Fused Location Manager";
+            case "supabasedatabase" -> "Supabase Database";
+            case "supabaseauth" -> "Supabase Auth";
+            case "supabasestorage" -> "Supabase Storage";
             case "ratingbar" -> "RatingBar";
             case "videoad" -> "VideoAd";
             case "mediaplayer" -> "MediaPlayer";

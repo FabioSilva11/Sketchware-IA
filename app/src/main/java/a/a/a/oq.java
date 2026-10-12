@@ -57,6 +57,10 @@ public class oq {
                  "onBiometricSuccess", "onBiometricError", "onBiometricFailed",
                  "onFusedLocationChanged",
                  "onResponse" -> R.drawable.ic_mtrl_sensor;
+            case "onSupabaseResponse", "onSupabaseAuthSuccess", "onSupabaseStorageSuccess" ->
+                    R.drawable.ic_mtrl_supabase_done;
+            case "onSupabaseError", "onSupabaseAuthError", "onSupabaseStorageError" ->
+                    R.drawable.ic_mtrl_supabase_error;
             case "onAccuracyChanged" -> R.drawable.ic_mtrl_center;
             case "onInterstitialAdLoaded", "onBannerAdLoaded", "onRewardAdLoaded" ->
                     R.drawable.ic_mtrl_loaded;
@@ -129,6 +133,12 @@ public class oq {
             case "onBiometricError" -> Helper.getResString(R.string.event_on_biometric_error);
             case "onBiometricFailed" -> Helper.getResString(R.string.event_on_biometric_failed);
             case "onFusedLocationChanged" -> Helper.getResString(R.string.event_on_fused_location_changed);
+            case "onSupabaseResponse" -> Helper.getResString(R.string.event_on_supabase_response);
+            case "onSupabaseError" -> Helper.getResString(R.string.event_on_supabase_error);
+            case "onSupabaseAuthSuccess" -> Helper.getResString(R.string.event_on_supabase_auth_success);
+            case "onSupabaseAuthError" -> Helper.getResString(R.string.event_on_supabase_auth_error);
+            case "onSupabaseStorageSuccess" -> Helper.getResString(R.string.event_on_supabase_storage_success);
+            case "onSupabaseStorageError" -> Helper.getResString(R.string.event_on_supabase_storage_error);
             case "onCreateUserComplete" -> Helper.getResString(R.string.event_oncreateusercomplete);
             case "onSignInUserComplete" -> Helper.getResString(R.string.event_onsigninusercomplete);
             case "onResetPasswordEmailSent" ->
@@ -204,6 +214,18 @@ public class oq {
             eventList.add("onBiometricFailed");
         }
         if (classInfo.a("FusedLocationManager")) eventList.add("onFusedLocationChanged");
+        if (classInfo.a("SupabaseDatabase")) {
+            eventList.add("onSupabaseResponse");
+            eventList.add("onSupabaseError");
+        }
+        if (classInfo.a("SupabaseAuth")) {
+            eventList.add("onSupabaseAuthSuccess");
+            eventList.add("onSupabaseAuthError");
+        }
+        if (classInfo.a("SupabaseStorage")) {
+            eventList.add("onSupabaseStorageSuccess");
+            eventList.add("onSupabaseStorageError");
+        }
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("onInterstitialAdLoaded");
@@ -323,6 +345,9 @@ public class oq {
         if (classInfo.a("StepCounter")) eventList.add("stepCounterSensorEventListener");
         if (classInfo.a("BiometricManager")) eventList.add("biometricAuthenticationCallback");
         if (classInfo.a("FusedLocationManager")) eventList.add("fusedLocationCallback");
+        if (classInfo.a("SupabaseDatabase")) eventList.add("supabaseDatabaseListener");
+        if (classInfo.a("SupabaseAuth")) eventList.add("supabaseAuthListener");
+        if (classInfo.a("SupabaseStorage")) eventList.add("supabaseStorageListener");
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("interstitialAdLoadCallback");
@@ -432,6 +457,18 @@ public class oq {
                 eventList.add("onBiometricFailed");
             }
             case "fusedLocationCallback" -> eventList.add("onFusedLocationChanged");
+            case "supabaseDatabaseListener" -> {
+                eventList.add("onSupabaseResponse");
+                eventList.add("onSupabaseError");
+            }
+            case "supabaseAuthListener" -> {
+                eventList.add("onSupabaseAuthSuccess");
+                eventList.add("onSupabaseAuthError");
+            }
+            case "supabaseStorageListener" -> {
+                eventList.add("onSupabaseStorageSuccess");
+                eventList.add("onSupabaseStorageError");
+            }
             case "authCreateUserComplete" -> eventList.add("onCreateUserComplete");
             case "authSignInUserComplete" -> eventList.add("onSignInUserComplete");
             case "authResetEmailSent" -> eventList.add("onResetPasswordEmailSent");

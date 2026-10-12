@@ -78,6 +78,9 @@ public class mq {
             case ComponentBean.COMPONENT_TYPE_ALARM_MANAGER -> "AlarmManager";
             case ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER -> "BiometricManager";
             case ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "FusedLocationManager";
+            case ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE -> "SupabaseDatabase";
+            case ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH -> "SupabaseAuth";
+            case ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE -> "SupabaseStorage";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
@@ -161,6 +164,9 @@ public class mq {
             case "alarmmanager", "AlarmManager" -> "AlarmManager";
             case "biometricmanager", "BiometricManager" -> "BiometricManager";
             case "fusedlocationmanager", "FusedLocationManager" -> "FusedLocationManager";
+            case "supabasedatabase", "SupabaseDatabase" -> "SupabaseDatabase";
+            case "supabaseauth", "SupabaseAuth" -> "SupabaseAuth";
+            case "supabasestorage", "SupabaseStorage" -> "SupabaseStorage";
             case "InterstitialAd" -> "InterstitialAd";
             case "varBool" -> "boolean.SelectBoolean";
             case "varInt" -> "double.SelectDouble";
@@ -831,6 +837,10 @@ public class mq {
             case "AlarmManager" -> "AlarmManager";
             case "BiometricManager" -> "BiometricPrompt";
             case "FusedLocationManager" -> "FusedLocationProviderClient";
+            // SupabaseClient.java is generated in the app's own package: no import needed.
+            case "SupabaseDatabase" -> "SupabaseClient.Database";
+            case "SupabaseAuth" -> "SupabaseClient.Auth";
+            case "SupabaseStorage" -> "SupabaseClient.Storage";
             case "Dialog" -> "AlertDialog.Builder";
             case "FirebaseDB" -> "DatabaseReference";
             case "FirebaseStorage" -> "StorageReference";

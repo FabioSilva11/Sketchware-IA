@@ -37,6 +37,8 @@ public class ProjectLibraryBean implements Parcelable {
     public static final int PROJECT_LIB_TYPE_NATIVE_LIB = 5;
     public static final int PROJECT_LIB_TYPE_EXCLUDE_BUILTIN_LIBRARIES = 6;
     public static final int PROJECT_LIB_TYPE_MATERIAL3 = 7;
+    /** Only a row of the library screen: Supabase's settings are kept in the project config, not in a bean. */
+    public static final int PROJECT_LIB_TYPE_SUPABASE = 8;
 
     @Expose
     public String appId;

@@ -436,6 +436,18 @@ public class Gx {
                 classInfos = "Component.Manager.FusedLocationManager";
                 break;
 
+            case "SupabaseDatabase":
+                classInfos = "Component.Supabase.SupabaseDatabase";
+                break;
+
+            case "SupabaseAuth":
+                classInfos = "Component.Supabase.SupabaseAuth";
+                break;
+
+            case "SupabaseStorage":
+                classInfos = "Component.Supabase.SupabaseStorage";
+                break;
+
             case "FirebaseStorage":
                 classInfos = "Component.FirebaseStorage";
                 break;

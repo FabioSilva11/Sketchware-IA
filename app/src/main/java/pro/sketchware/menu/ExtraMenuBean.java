@@ -481,6 +481,21 @@ public class ExtraMenuBean {
                         menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_FUSED_LOCATION_MANAGER);
                         break;
 
+                        case "supabasedatabase":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_supabase_database);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE);
+                        break;
+
+                        case "supabaseauth":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_supabase_auth);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH);
+                        break;
+
+                        case "supabasestorage":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_supabase_storage);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE);
+                        break;
+
                         case "interstitialad":
                         title = logicEditor.getString(R.string.logic_editor_title_select_component_interstitialad);
                         menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD);

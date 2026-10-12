@@ -147,7 +147,7 @@ public class Lx {
             appendDependency(content, "com.google.code.gson:gson", BuiltInLibraries.GSON);
         }
 
-        if (isLibraryNotExcluded(BuiltInLibraries.OKHTTP_ANDROID, excludedLibraries) && metadata.isHttp3Used) {
+        if (isLibraryNotExcluded(BuiltInLibraries.OKHTTP_ANDROID, excludedLibraries) && (metadata.isHttp3Used || metadata.isSupabaseUsed)) {
             appendDependency(content, "com.squareup.okhttp3:okhttp", BuiltInLibraries.OKHTTP_ANDROID);
         }
 
@@ -515,6 +515,44 @@ public class Lx {
                     "final double _accuracy = _location.getAccuracy();\r\n" +
                     eventLogic + "\r\n" +
                     "}";
+            case "onSupabaseResponse" -> "@Override\r\n" +
+                    "public void onResponse(String _param1, String _param2) {\r\n" +
+                    "final String _tag = _param1;\r\n" +
+                    "final String _response = _param2;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onSupabaseError" -> "@Override\r\n" +
+                    "public void onError(String _param1, String _param2) {\r\n" +
+                    "final String _tag = _param1;\r\n" +
+                    "final String _message = _param2;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onSupabaseAuthSuccess" -> "@Override\r\n" +
+                    "public void onSuccess(String _param1, String _param2, String _param3) {\r\n" +
+                    "final String _action = _param1;\r\n" +
+                    "final String _userId = _param2;\r\n" +
+                    "final String _email = _param3;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onSupabaseAuthError" -> "@Override\r\n" +
+                    "public void onError(String _param1, String _param2) {\r\n" +
+                    "final String _action = _param1;\r\n" +
+                    "final String _message = _param2;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onSupabaseStorageSuccess" -> "@Override\r\n" +
+                    "public void onSuccess(String _param1, String _param2, String _param3) {\r\n" +
+                    "final String _action = _param1;\r\n" +
+                    "final String _path = _param2;\r\n" +
+                    "final String _result = _param3;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onSupabaseStorageError" -> "@Override\r\n" +
+                    "public void onError(String _param1, String _param2) {\r\n" +
+                    "final String _action = _param1;\r\n" +
+                    "final String _message = _param2;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
             case "onAccuracyChanged" -> "@Override\r\n" +
                     "public void onAccuracyChanged(Sensor _param1, int _param2) {\r\n" +
                     eventLogic + "\r\n" +
@@ -723,6 +761,18 @@ public class Lx {
 
                 case "BiometricManager":
                     fieldDeclaration += "\r\nprivate BiometricManager _" + typeInstanceName + "_manager;";
+                    break;
+
+                case "SupabaseDatabase":
+                    fieldDeclaration += "\r\nprivate SupabaseClient.DatabaseListener _" + typeInstanceName + "_supabase_listener;";
+                    break;
+
+                case "SupabaseAuth":
+                    fieldDeclaration += "\r\nprivate SupabaseClient.AuthListener _" + typeInstanceName + "_supabase_listener;";
+                    break;
+
+                case "SupabaseStorage":
+                    fieldDeclaration += "\r\nprivate SupabaseClient.StorageListener _" + typeInstanceName + "_supabase_listener;";
                     break;
 
                 case "FusedLocationManager":
@@ -1311,6 +1361,18 @@ public class Lx {
             case "FusedLocationManager":
                 return componentName + " = LocationServices.getFusedLocationProviderClient(this);";
 
+            // The application context: the same code works in fragments, and nothing holds the activity.
+            case "SupabaseDatabase":
+                return componentName + " = new SupabaseClient.Database(getApplicationContext(), \""
+                        + pro.sketchware.supabase.SupabaseClientSource.javaString(parameters.length > 0 && parameters[0] != null ? parameters[0] : "") + "\");";
+
+            case "SupabaseAuth":
+                return componentName + " = new SupabaseClient.Auth(getApplicationContext());";
+
+            case "SupabaseStorage":
+                return componentName + " = new SupabaseClient.Storage(getApplicationContext(), \""
+                        + pro.sketchware.supabase.SupabaseClientSource.javaString(parameters.length > 0 && parameters[0] != null ? parameters[0] : "") + "\");";
+
             case "FirebaseAuth":
                 return componentName + " = FirebaseAuth.getInstance();";
 
@@ -1847,6 +1909,15 @@ public class Lx {
                             "new BiometricPrompt.AuthenticationCallback() {\r\n" + eventLogic + "\r\n});";
             case "fusedLocationCallback" ->
                     "_" + componentName + "_location_callback = new LocationCallback() {\r\n" +
+                            eventLogic + "\r\n};";
+            case "supabaseDatabaseListener" ->
+                    "_" + componentName + "_supabase_listener = new SupabaseClient.DatabaseListener() {\r\n" +
+                            eventLogic + "\r\n};";
+            case "supabaseAuthListener" ->
+                    "_" + componentName + "_supabase_listener = new SupabaseClient.AuthListener() {\r\n" +
+                            eventLogic + "\r\n};";
+            case "supabaseStorageListener" ->
+                    "_" + componentName + "_supabase_listener = new SupabaseClient.StorageListener() {\r\n" +
                             eventLogic + "\r\n};";
             case "onTextChangedListener" ->
                     componentName + ".addTextChangedListener(new TextWatcher() {\r\n"

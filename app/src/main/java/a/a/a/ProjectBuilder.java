@@ -820,7 +820,7 @@ public class ProjectBuilder {
         if (yq.N.isGlideUsed) {
             builtInLibraryManager.addLibrary(BuiltInLibraries.GLIDE);
         }
-        if (yq.N.isHttp3Used) {
+        if (yq.N.isHttp3Used || yq.N.isSupabaseUsed) {
             builtInLibraryManager.addLibrary(BuiltInLibraries.OKHTTP_ANDROID);
         }
         if (yq.N.isWorkManagerUsed) {

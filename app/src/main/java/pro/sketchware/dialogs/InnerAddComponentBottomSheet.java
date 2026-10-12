@@ -31,6 +31,7 @@ import a.a.a.uq;
 import mod.hey.studios.util.Helper;
 import mod.hilal.saif.components.ComponentsHandler;
 import pro.sketchware.R;
+import pro.sketchware.supabase.SupabaseSettings;
 import pro.sketchware.databinding.LogicAddComponentDialogBinding;
 import pro.sketchware.lib.DebouncedClickListener;
 import pro.sketchware.utility.TranslationFunction;
@@ -90,6 +91,12 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 binding.tiInputFirebasePath.setVisibility(View.VISIBLE);
                 break;
 
+            case ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE:
+            case ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE:
+                // The table or the bucket, in the field Firebase uses for its path
+                binding.tiInputFirebasePath.setVisibility(View.VISIBLE);
+                break;
+
             case ComponentBean.COMPONENT_TYPE_GYROSCOPE:
                 if (!GB.b(getContext(), Sensor.TYPE_GYROSCOPE)) {
                     binding.cardWarning.setVisibility(View.VISIBLE);
@@ -135,6 +142,13 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
         binding.tiInputFilePicker.setHint(Helper.getResString(R.string.component_file_picker_hint_mime_type));
 
         binding.tiInputFirebasePath.setHelperText(Helper.getResString(R.string.design_library_firebase_guide_path_example));
+        if (componentBean.type == ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE) {
+            binding.tiInputFirebasePath.setHint(Helper.getResString(R.string.supabase_component_table_hint));
+            binding.tiInputFirebasePath.setHelperText(Helper.getResString(R.string.supabase_component_table_helper));
+        } else if (componentBean.type == ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE) {
+            binding.tiInputFirebasePath.setHint(Helper.getResString(R.string.supabase_component_bucket_hint));
+            binding.tiInputFirebasePath.setHelperText(Helper.getResString(R.string.supabase_component_bucket_helper));
+        }
         binding.tiInputFilePicker.setHelperText(Helper.getResString(R.string.component_description_file_picker_guide_mime_type_example));
 
         binding.tiInputFilePicker.setEndIconOnClickListener(v -> showFilePickerMimeTypeSelectionDialog());
@@ -248,6 +262,26 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 } else {
                     jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, Helper.getText(binding.edInputFirebasePath));
                 }
+                break;
+
+            case ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE:
+            case ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH:
+            case ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE:
+                if (!SupabaseSettings.isConfigured(scId)) {
+                    bB.b(getContext(), Helper.getResString(R.string.supabase_component_setup_first), bB.TOAST_WARNING).show();
+                    return false;
+                }
+                if (componentType == ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH) {
+                    jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId);
+                    break;
+                }
+                String name = Helper.getText(binding.edInputFirebasePath).trim();
+                if (!name.matches("[A-Za-z0-9_.\\-]+")) {
+                    binding.tiInputFirebasePath.setError(Helper.getResString(R.string.supabase_component_name_invalid));
+                    return false;
+                }
+                binding.tiInputFirebasePath.setError(null);
+                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, name);
                 break;
 
             case ComponentBean.COMPONENT_TYPE_FRAGMENT_ADAPTER:
