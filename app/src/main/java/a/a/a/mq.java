@@ -83,7 +83,6 @@ public class mq {
             case ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE -> "SupabaseStorage";
             case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD -> "UnityInterstitialAd";
             case ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD -> "UnityRewardedAd";
-            case ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD -> "UnityBannerAd";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
@@ -172,7 +171,6 @@ public class mq {
             case "supabasestorage", "SupabaseStorage" -> "SupabaseStorage";
             case "unityinterstitialad", "UnityInterstitialAd" -> "UnityInterstitialAd";
             case "unityrewardedad", "UnityRewardedAd" -> "UnityRewardedAd";
-            case "unitybannerad", "UnityBannerAd" -> "UnityBannerAd";
             case "InterstitialAd" -> "InterstitialAd";
             case "varBool" -> "boolean.SelectBoolean";
             case "varInt" -> "double.SelectDouble";
@@ -851,7 +849,6 @@ public class mq {
             // UnityAdsClient.java too
             case "UnityInterstitialAd" -> "UnityAdsClient.Interstitial";
             case "UnityRewardedAd" -> "UnityAdsClient.Rewarded";
-            case "UnityBannerAd" -> "UnityAdsClient.Banner";
             case "Dialog" -> "AlertDialog.Builder";
             case "FirebaseDB" -> "DatabaseReference";
             case "FirebaseStorage" -> "StorageReference";

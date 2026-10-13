@@ -507,11 +507,6 @@ public class ExtraMenuBean {
                         menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD);
                         break;
 
-                        case "unitybannerad":
-                        title = logicEditor.getString(R.string.logic_editor_title_select_component_unity_banner_ad);
-                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD);
-                        break;
-
                         case "interstitialad":
                         title = logicEditor.getString(R.string.logic_editor_title_select_component_interstitialad);
                         menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD);

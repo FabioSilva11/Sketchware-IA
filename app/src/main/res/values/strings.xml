@@ -1712,7 +1712,6 @@ Please try again after removing the blocks with this variable"</string>
     <string name="supabase_component_name_invalid">Use letters, numbers, _, - and . only</string>
     <string name="component_description_unity_interstitial_ad">Shows a fullscreen Unity Ads ad that can be closed, e.g. between levels.</string>
     <string name="component_description_unity_rewarded_ad">Shows a Unity Ads video that rewards the user for watching it to the end.</string>
-    <string name="component_description_unity_banner_ad">Shows a 320x50 Unity Ads banner inside a layout of the screen.</string>
     <string name="event_on_unity_ad_loaded">onUnityAdLoaded</string>
     <string name="event_on_unity_ad_failed_to_load">onUnityAdFailedToLoad</string>
     <string name="event_on_unity_ad_show_started">onUnityAdShowStarted</string>
@@ -1724,7 +1723,6 @@ Please try again after removing the blocks with this variable"</string>
     <string name="event_on_unity_banner_shown">onUnityBannerShown</string>
     <string name="logic_editor_title_select_component_unity_interstitial_ad">Select Unity Interstitial component</string>
     <string name="logic_editor_title_select_component_unity_rewarded_ad">Select Unity Rewarded component</string>
-    <string name="logic_editor_title_select_component_unity_banner_ad">Select Unity Banner component</string>
     <string name="unity_ads_library_title">Unity Ads</string>
     <string name="unity_ads_library_item_description">Interstitial, rewarded and banner ads from Unity</string>
     <string name="unity_ads_library_item_game_id">Game ID %1$s</string>
@@ -1737,7 +1735,7 @@ Please try again after removing the blocks with this variable"</string>
     <string name="unity_ads_library_clear">Remove the Unity Ads settings</string>
     <string name="unity_ads_library_cleared">Cleared. Leave this screen to turn Unity Ads off.</string>
     <string name="unity_ads_library_no_browser">No browser to open the documentation</string>
-    <string name="unity_ads_library_components_hint">Then add the Unity Interstitial, Rewarded and Banner components to a screen; their blocks are in the Component palette of the logic editor. The first load starts the SDK, so set the privacy blocks before it.</string>
+    <string name="unity_ads_library_components_hint">Then add the Unity Interstitial and Rewarded components to a screen and the UnityBanner widget (Google, next to AdView) to a layout; their blocks are in the Component and View palettes of the logic editor. The first load starts the SDK, so set the privacy blocks before it.</string>
     <string name="unity_ads_error_game_id">The game ID is the number the dashboard shows</string>
     <string name="unity_ads_component_placement_hint">Placement ID</string>
     <string name="unity_ads_component_placement_helper">An ad unit of the Unity dashboard, e.g. Interstitial_Android</string>

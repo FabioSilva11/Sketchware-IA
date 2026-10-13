@@ -894,11 +894,15 @@ public class ExtraPaletteBlock {
                     logicEditor.a(" ", "unityBannerViewRemove");
                     logicEditor.a("b", "unityBannerViewIsLoaded");
                     logicEditor.a(" ", "unityBannerViewSetPlacement");
-                    // Privacy choices go before the first load, which starts the SDK
-                    logicEditor.a(" ", "unityAdsSetUserConsent");
-                    logicEditor.a(" ", "unityAdsSetUserOptOut");
-                    logicEditor.a(" ", "unityAdsSetNonBehavioral");
-                    logicEditor.a("b", "unityAdsIsInitialized");
+                    // Privacy choices go before the first load, which starts the SDK. With a Unity Interstitial or
+                    // Rewarded component they're in the Component palette instead, so they show up once.
+                    if (!extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD)
+                            && !extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD)) {
+                        logicEditor.a(" ", "unityAdsSetUserConsent");
+                        logicEditor.a(" ", "unityAdsSetUserOptOut");
+                        logicEditor.a(" ", "unityAdsSetNonBehavioral");
+                        logicEditor.a("b", "unityAdsIsInitialized");
+                    }
                 }
 
                 if (signInButtonUsed || youtubePlayerViewUsed || adMobUsed || mapViewUsed) {
@@ -1226,8 +1230,7 @@ public class ExtraPaletteBlock {
                 }
                 boolean unityInterstitial = extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD);
                 boolean unityRewarded = extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD);
-                boolean unityBanner = extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD);
-                if (unityInterstitial || unityRewarded || unityBanner) {
+                if (unityInterstitial || unityRewarded) {
                     // Privacy choices go before the first load, which starts the SDK
                     logicEditor.a("Unity Ads", getTitleBgColor());
                     logicEditor.a(" ", "unityAdsSetUserConsent");
@@ -1246,12 +1249,6 @@ public class ExtraPaletteBlock {
                     logicEditor.a(" ", "unityRewardedLoad");
                     logicEditor.a(" ", "unityRewardedShow");
                     logicEditor.a("b", "unityRewardedIsLoaded");
-                }
-                if (unityBanner) {
-                    logicEditor.a("Unity Banner", getTitleBgColor());
-                    logicEditor.a(" ", "unityBannerLoad");
-                    logicEditor.a(" ", "unityBannerRemove");
-                    logicEditor.a("b", "unityBannerIsLoaded");
                 }
                 if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD)) {
                     logicEditor.a("AdMob Interstitial", getTitleBgColor());

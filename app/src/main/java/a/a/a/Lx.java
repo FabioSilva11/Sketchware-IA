@@ -829,10 +829,6 @@ public class Lx {
                     fieldDeclaration += "\r\nprivate UnityAdsClient.RewardedListener _" + typeInstanceName + "_unity_listener;";
                     break;
 
-                case "UnityBannerAd":
-                    fieldDeclaration += "\r\nprivate UnityAdsClient.BannerListener _" + typeInstanceName + "_unity_listener;";
-                    break;
-
                 case "FusedLocationManager":
                     fieldDeclaration += "\r\nprivate LocationRequest _" + typeInstanceName + "_location_request = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)"
                             + ".setMinUpdateIntervalMillis(500L).build();";
@@ -1441,10 +1437,6 @@ public class Lx {
                 return componentName + " = new UnityAdsClient.Rewarded(this, \""
                         + pro.sketchware.supabase.SupabaseClientSource.javaString(parameters.length > 0 && parameters[0] != null ? parameters[0] : "") + "\");";
 
-            case "UnityBannerAd":
-                return componentName + " = new UnityAdsClient.Banner(\""
-                        + pro.sketchware.supabase.SupabaseClientSource.javaString(parameters.length > 0 && parameters[0] != null ? parameters[0] : "") + "\");";
-
             case "FirebaseAuth":
                 return componentName + " = FirebaseAuth.getInstance();";
 
@@ -1996,9 +1988,6 @@ public class Lx {
                             eventLogic + "\r\n};";
             case "unityRewardedListener" ->
                     "_" + componentName + "_unity_listener = new UnityAdsClient.RewardedListener() {\r\n" +
-                            eventLogic + "\r\n};";
-            case "unityBannerListener" ->
-                    "_" + componentName + "_unity_listener = new UnityAdsClient.BannerListener() {\r\n" +
                             eventLogic + "\r\n};";
             case "unityBannerViewListener" ->
                     componentName + ".setListener(new UnityAdsClient.BannerListener() {\r\n" +

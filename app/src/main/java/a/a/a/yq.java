@@ -616,8 +616,7 @@ public class yq {
                         N.addPermission(activity.getActivityName(), jq.PERMISSION_INTERNET);
                         N.addPermission(activity.getActivityName(), jq.PERMISSION_ACCESS_NETWORK_STATE);
                     }
-                    case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD, ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD,
-                         ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD -> {
+                    case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD, ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD -> {
                         // The SDK's own manifest declares its other permissions, merged with the library.
                         N.isUnityAdsUsed = true;
                         N.addPermission(activity.getActivityName(), jq.PERMISSION_INTERNET);

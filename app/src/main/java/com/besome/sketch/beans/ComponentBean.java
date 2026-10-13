@@ -68,7 +68,6 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
     public static final int COMPONENT_TYPE_SUPABASE_STORAGE = 54;
     public static final int COMPONENT_TYPE_UNITY_INTERSTITIAL_AD = 55;
     public static final int COMPONENT_TYPE_UNITY_REWARDED_AD = 56;
-    public static final int COMPONENT_TYPE_UNITY_BANNER_AD = 57;
 
     public Gx classInfo;
     @Expose
@@ -163,8 +162,6 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
                     "https://docs.unity.com/en-us/ads-android/latest/sdk-integration/interstitial-ads";
             case COMPONENT_TYPE_UNITY_REWARDED_AD ->
                     "https://docs.unity.com/en-us/ads-android/latest/sdk-integration/rewarded-ads";
-            case COMPONENT_TYPE_UNITY_BANNER_AD ->
-                    "https://docs.unity.com/en-us/ads-android/latest/sdk-integration/banner-ads";
             case COMPONENT_TYPE_FIREBASE_AUTH ->
                     "https://docs.sketchware.io/docs/component-firebase-auth.html";
             case COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE ->
@@ -213,7 +210,6 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_SUPABASE_STORAGE -> "Supabase Storage";
             case COMPONENT_TYPE_UNITY_INTERSTITIAL_AD -> "Unity Interstitial";
             case COMPONENT_TYPE_UNITY_REWARDED_AD -> "Unity Rewarded";
-            case COMPONENT_TYPE_UNITY_BANNER_AD -> "Unity Banner";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "Firebase Auth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "Interstitial Ad";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "Firebase Storage";
@@ -264,7 +260,6 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case "SupabaseStorage" -> COMPONENT_TYPE_SUPABASE_STORAGE;
             case "UnityInterstitialAd" -> COMPONENT_TYPE_UNITY_INTERSTITIAL_AD;
             case "UnityRewardedAd" -> COMPONENT_TYPE_UNITY_REWARDED_AD;
-            case "UnityBannerAd" -> COMPONENT_TYPE_UNITY_BANNER_AD;
             case "FirebaseAuth" -> COMPONENT_TYPE_FIREBASE_AUTH;
             case "InterstitialAd" -> COMPONENT_TYPE_INTERSTITIAL_AD;
             case "FirebaseStorage" -> COMPONENT_TYPE_FIREBASE_STORAGE;
@@ -315,7 +310,6 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_SUPABASE_STORAGE -> "SupabaseStorage";
             case COMPONENT_TYPE_UNITY_INTERSTITIAL_AD -> "UnityInterstitialAd";
             case COMPONENT_TYPE_UNITY_REWARDED_AD -> "UnityRewardedAd";
-            case COMPONENT_TYPE_UNITY_BANNER_AD -> "UnityBannerAd";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
@@ -371,7 +365,6 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_SUPABASE_STORAGE -> R.string.component_description_supabase_storage;
             case COMPONENT_TYPE_UNITY_INTERSTITIAL_AD -> R.string.component_description_unity_interstitial_ad;
             case COMPONENT_TYPE_UNITY_REWARDED_AD -> R.string.component_description_unity_rewarded_ad;
-            case COMPONENT_TYPE_UNITY_BANNER_AD -> R.string.component_description_unity_banner_ad;
             case COMPONENT_TYPE_FIREBASE_AUTH -> R.string.component_description_firebase_auth;
             case COMPONENT_TYPE_INTERSTITIAL_AD -> R.string.component_description_interstitial_ad;
             case COMPONENT_TYPE_FIREBASE_STORAGE -> R.string.component_description_firebase_storage;
@@ -422,8 +415,7 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
                     R.drawable.ic_mtrl_sensors;
             case COMPONENT_TYPE_SUPABASE_DATABASE, COMPONENT_TYPE_SUPABASE_AUTH,
                  COMPONENT_TYPE_SUPABASE_STORAGE -> R.drawable.ic_mtrl_supabase;
-            case COMPONENT_TYPE_UNITY_INTERSTITIAL_AD, COMPONENT_TYPE_UNITY_REWARDED_AD,
-                 COMPONENT_TYPE_UNITY_BANNER_AD -> R.drawable.ic_mtrl_unity_ads;
+            case COMPONENT_TYPE_UNITY_INTERSTITIAL_AD, COMPONENT_TYPE_UNITY_REWARDED_AD -> R.drawable.ic_mtrl_unity_ads;
             case COMPONENT_TYPE_INTERSTITIAL_AD -> R.drawable.ic_mtrl_admob;
             case COMPONENT_TYPE_CAMERA -> R.drawable.ic_mtrl_camera;
             case COMPONENT_TYPE_FILE_PICKER -> R.drawable.ic_mtrl_file;
@@ -474,7 +466,6 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_SUPABASE_STORAGE -> "SupabaseStorage";
             case COMPONENT_TYPE_UNITY_INTERSTITIAL_AD -> "UnityInterstitialAd";
             case COMPONENT_TYPE_UNITY_REWARDED_AD -> "UnityRewardedAd";
-            case COMPONENT_TYPE_UNITY_BANNER_AD -> "UnityBannerAd";
             case COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";

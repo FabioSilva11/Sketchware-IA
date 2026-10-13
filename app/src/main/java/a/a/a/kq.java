@@ -142,7 +142,7 @@ public class kq {
                  "firebaseauth", "timer", "gyroscope", "mediaplayer", "bluetoothconnect",
                  "vibrator", "firebasestorage", "phoneauth",
                  "googlelogin", "cloudmessage", "supabasedatabase", "supabaseauth",
-                 "supabasestorage", "unityinterstitialad", "unityrewardedad", "unitybannerad" -> "p";
+                 "supabasestorage", "unityinterstitialad", "unityrewardedad" -> "p";
             case "varMap" -> "a";
             case "listInt", "listMap", "listStr" -> "l";
             default -> "v";
@@ -215,7 +215,6 @@ public class kq {
             case "supabasestorage" -> "Supabase Storage";
             case "unityinterstitialad" -> "Unity Interstitial";
             case "unityrewardedad" -> "Unity Rewarded";
-            case "unitybannerad" -> "Unity Banner";
             case "ratingbar" -> "RatingBar";
             case "videoad" -> "VideoAd";
             case "mediaplayer" -> "MediaPlayer";

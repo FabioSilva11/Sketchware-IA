@@ -460,10 +460,6 @@ public class Gx {
                 classInfos = "Component.UnityAds.UnityRewardedAd";
                 break;
 
-            case "UnityBannerAd":
-                classInfos = "Component.UnityAds.UnityBannerAd";
-                break;
-
             case "FirebaseStorage":
                 classInfos = "Component.FirebaseStorage";
                 break;

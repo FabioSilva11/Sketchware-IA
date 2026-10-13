@@ -145,9 +145,6 @@ public class ExtraBlocks {
         arrayList.add(addBlock("unityRewardedLoad", " ", "", "%1$s.load(_%1$s_unity_listener);", "#2aa4e2", "%m.unityrewardedad load"));
         arrayList.add(addBlock("unityRewardedShow", " ", "", "%1$s.show(_%1$s_unity_listener);", "#2aa4e2", "%m.unityrewardedad show"));
         arrayList.add(addBlock("unityRewardedIsLoaded", "b", "", "%1$s.isLoaded()", "#2aa4e2", "%m.unityrewardedad is loaded"));
-        arrayList.add(addBlock("unityBannerLoad", " ", "", "%1$s.load(%2$s, _%1$s_unity_listener);", "#2aa4e2", "%m.unitybannerad load in layout %m.view"));
-        arrayList.add(addBlock("unityBannerRemove", " ", "", "%1$s.remove();", "#2aa4e2", "%m.unitybannerad remove"));
-        arrayList.add(addBlock("unityBannerIsLoaded", "b", "", "%1$s.isLoaded()", "#2aa4e2", "%m.unitybannerad is loaded"));
         arrayList.add(addBlock("unityBannerViewLoad", " ", "", "%1$s.load();", "#2aa4e2", "%m.unitybanner load"));
         arrayList.add(addBlock("unityBannerViewRemove", " ", "", "%1$s.remove();", "#2aa4e2", "%m.unitybanner remove"));
         arrayList.add(addBlock("unityBannerViewIsLoaded", "b", "", "%1$s.isLoaded()", "#2aa4e2", "%m.unitybanner is loaded"));

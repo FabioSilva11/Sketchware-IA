@@ -401,7 +401,6 @@ public class Hx {
                     case "SupabaseStorage":
                     case "UnityInterstitialAd":
                     case "UnityRewardedAd":
-                    case "UnityBannerAd":
                     case "FragmentAdapter":
                     case "WebView":
                     case "MapView":

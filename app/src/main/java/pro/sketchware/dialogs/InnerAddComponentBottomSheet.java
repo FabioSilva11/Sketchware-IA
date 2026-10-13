@@ -100,13 +100,11 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
 
             case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD:
             case ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD:
-            case ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD:
-                // The placement (ad unit) ID, in the same field; new Unity projects have these three already
+                // The placement (ad unit) ID, in the same field; new Unity projects have these already
                 binding.tiInputFirebasePath.setVisibility(View.VISIBLE);
                 if (Helper.getText(binding.edInputFirebasePath).isEmpty()) {
                     binding.edInputFirebasePath.setText(componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD
-                            ? "Interstitial_Android" : componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD
-                            ? "Rewarded_Android" : "Banner_Android");
+                            ? "Interstitial_Android" : "Rewarded_Android");
                 }
                 break;
 
@@ -162,8 +160,7 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
             binding.tiInputFirebasePath.setHint(Helper.getResString(R.string.supabase_component_bucket_hint));
             binding.tiInputFirebasePath.setHelperText(Helper.getResString(R.string.supabase_component_bucket_helper));
         } else if (componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD
-                || componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD
-                || componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD) {
+                || componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD) {
             binding.tiInputFirebasePath.setHint(Helper.getResString(R.string.unity_ads_component_placement_hint));
             binding.tiInputFirebasePath.setHelperText(Helper.getResString(R.string.unity_ads_component_placement_helper));
         }
@@ -304,7 +301,6 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
 
             case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD:
             case ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD:
-            case ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD:
                 if (!UnityAdsSettings.isConfigured(scId)) {
                     bB.b(getContext(), Helper.getResString(R.string.unity_ads_component_setup_first), bB.TOAST_WARNING).show();
                     return false;

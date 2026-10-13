@@ -156,8 +156,6 @@ public class GeneratedCodeSmoke extends AppCompatActivity {
     private UnityAdsClient.InterstitialListener _unityinterstitial_unity_listener;
     private UnityAdsClient.Rewarded unityrewarded;
     private UnityAdsClient.RewardedListener _unityrewarded_unity_listener;
-    private UnityAdsClient.Banner unitybanner;
-    private UnityAdsClient.BannerListener _unitybanner_unity_listener;
 
     private FusedLocationProviderClient location;
     private LocationRequest _location_location_request = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L).setMinUpdateIntervalMillis(500L).build();
@@ -364,7 +362,6 @@ public class GeneratedCodeSmoke extends AppCompatActivity {
 
         unityinterstitial = new UnityAdsClient.Interstitial(this, "Interstitial_Android");
         unityrewarded = new UnityAdsClient.Rewarded(this, "Rewarded_Android");
-        unitybanner = new UnityAdsClient.Banner("Banner_Android");
         _unityinterstitial_unity_listener = new UnityAdsClient.InterstitialListener() {
             @Override
             public void onLoaded() {
@@ -433,27 +430,6 @@ public class GeneratedCodeSmoke extends AppCompatActivity {
             public void onExpired() {
             }
         };
-        _unitybanner_unity_listener = new UnityAdsClient.BannerListener() {
-            @Override
-            public void onLoaded() {
-            }
-
-            @Override
-            public void onFailedToLoad(int _param1, String _param2) {
-            }
-
-            @Override
-            public void onShown() {
-            }
-
-            @Override
-            public void onClicked() {
-            }
-
-            @Override
-            public void onShowFailed(int _param1, String _param2) {
-            }
-        };
         // The Unity Banner widget (Lx: unityBannerViewListener), found in the layout like any view
         UnityBannerView unitybannerview = new UnityBannerView(this);
         unitybannerview.setListener(new UnityAdsClient.BannerListener() {
@@ -479,7 +455,6 @@ public class GeneratedCodeSmoke extends AppCompatActivity {
         });
         unitybannerview.load();
         unityrewarded.load(_unityrewarded_unity_listener);
-        unitybanner.load(image, _unitybanner_unity_listener);
 
         _location_location_callback = new LocationCallback() {
             @Override

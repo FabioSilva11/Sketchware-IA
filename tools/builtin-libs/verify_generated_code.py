@@ -181,8 +181,6 @@ SELECTORS = {
                             "UnityAdsClient.InterstitialListener _unityinterstitialad_unity_listener;", "unityinterstitialad"),
     "unityrewardedad": ("UnityAdsClient.Rewarded unityrewardedad; "
                         "UnityAdsClient.RewardedListener _unityrewardedad_unity_listener;", "unityrewardedad"),
-    "unitybannerad": ("UnityAdsClient.Banner unitybannerad; UnityAdsClient.BannerListener _unitybannerad_unity_listener;",
-                      "unitybannerad"),
     "unitybanner": ("UnityBannerView unitybanner;", "unitybanner"),
     # Selectors that pick a value rather than a component
     "activity": ("", "AllBlocksSmoke"),

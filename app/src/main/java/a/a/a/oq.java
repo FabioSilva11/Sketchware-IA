@@ -244,7 +244,6 @@ public class oq {
         }
         if (classInfo.a("UnityInterstitialAd")) addUnityFullscreenAdEvents(eventList, false);
         if (classInfo.a("UnityRewardedAd")) addUnityFullscreenAdEvents(eventList, true);
-        if (classInfo.a("UnityBannerAd")) addUnityBannerAdEvents(eventList);
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("onInterstitialAdLoaded");
@@ -369,7 +368,6 @@ public class oq {
         if (classInfo.a("SupabaseStorage")) eventList.add("supabaseStorageListener");
         if (classInfo.a("UnityInterstitialAd")) eventList.add("unityInterstitialListener");
         if (classInfo.a("UnityRewardedAd")) eventList.add("unityRewardedListener");
-        if (classInfo.a("UnityBannerAd")) eventList.add("unityBannerListener");
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("interstitialAdLoadCallback");
@@ -494,7 +492,7 @@ public class oq {
             }
             case "unityInterstitialListener" -> addUnityFullscreenAdEvents(eventList, false);
             case "unityRewardedListener" -> addUnityFullscreenAdEvents(eventList, true);
-            case "unityBannerListener", "unityBannerViewListener" -> addUnityBannerAdEvents(eventList);
+            case "unityBannerViewListener" -> addUnityBannerAdEvents(eventList);
             case "authCreateUserComplete" -> eventList.add("onCreateUserComplete");
             case "authSignInUserComplete" -> eventList.add("onSignInUserComplete");
             case "authResetEmailSent" -> eventList.add("onResetPasswordEmailSent");
