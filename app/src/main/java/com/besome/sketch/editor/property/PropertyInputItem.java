@@ -117,6 +117,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
             case "property_inject" -> icon = R.drawable.ic_mtrl_code;
             case "property_convert" -> icon = R.drawable.ic_mtrl_switch;
             case "property_text_size" -> icon = R.drawable.ic_mtrl_font;
+            case "property_unity_placement" -> icon = R.drawable.ic_mtrl_unity_ads;
         }
         imageView.setImageResource(icon);
     }
@@ -226,6 +227,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                         0f, 50f, 1f, true);
                 case "property_convert" -> showAutoCompleteDialog();
                 case "property_inject" -> showInjectDialog();
+                case "property_unity_placement" -> showPlacementDialog();
             }
         }
     }
@@ -500,6 +502,34 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
     public void a(String projectId, ProjectFileBean projectFileBean) {
         sc_id = projectId;
         this.projectFileBean = projectFileBean;
+    }
+
+    /** A Unity Ads placement (ad unit) ID: letters, numbers, _, - and . only. */
+    private void showPlacementDialog() {
+        MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(getContext());
+        dialog.setTitle(Helper.getText(tvName));
+        dialog.setIcon(icon);
+        PropertyPopupInputTextBinding binding = PropertyPopupInputTextBinding.inflate(LayoutInflater.from(getContext()));
+        binding.tiAutoCompleteInput.setVisibility(View.GONE);
+        binding.tiInput.setVisibility(View.VISIBLE);
+        binding.tiInput.setHint(Helper.getResString(R.string.unity_ads_component_placement_hint));
+        binding.tiInput.setHelperText(Helper.getResString(R.string.unity_ads_component_placement_helper));
+        binding.edInput.setText(value);
+        dialog.setView(binding.getRoot());
+        dialog.setPositiveButton(Helper.getResString(R.string.common_word_save), null);
+        dialog.setNegativeButton(Helper.getResString(R.string.common_word_cancel), null);
+        AlertDialog alertDialog = dialog.create();
+        alertDialog.setOnShowListener(d -> alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String placementId = Helper.getText(binding.edInput).trim();
+            if (!placementId.matches("[A-Za-z0-9_.\\-]+")) {
+                binding.tiInput.setError(Helper.getResString(R.string.unity_ads_component_placement_invalid));
+                return;
+            }
+            setValue(placementId);
+            if (valueChangeListener != null) valueChangeListener.a(key, value);
+            alertDialog.dismiss();
+        }));
+        alertDialog.show();
     }
 
     private void showTextInputDialog(int maxValue, boolean isInject) {

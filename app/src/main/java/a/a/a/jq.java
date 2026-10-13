@@ -188,6 +188,8 @@ public class jq {
     public boolean isFusedLocationManagerUsed = false;
     /** A Supabase component is used: the app gets SupabaseClient.java, OkHttp and Gson. */
     public boolean isSupabaseUsed = false;
+    /** A Unity Ads component is used: the app gets UnityAdsClient.java and the Unity Ads SDK. */
+    public boolean isUnityAdsUsed = false;
     public boolean isAlarmManagerUsed = false;
     /**
      * Whether the project posts notifications, which needs POST_NOTIFICATIONS on Android 13+.

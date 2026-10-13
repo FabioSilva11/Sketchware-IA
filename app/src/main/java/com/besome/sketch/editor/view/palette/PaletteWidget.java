@@ -191,6 +191,7 @@ public class PaletteWidget extends LinearLayout {
         IconBase iconBase;
         Context context = getContext();
         iconBase = switch (title) {
+            case "UnityBanner" -> new IconUnityBanner(context);
             case "DatePicker" -> new IconDatePicker(context);
             case "RatingBar" -> new IconRatingBar(context);
             case "SearchView" -> new IconSearchView(context);

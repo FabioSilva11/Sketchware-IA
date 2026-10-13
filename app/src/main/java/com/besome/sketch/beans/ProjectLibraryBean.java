@@ -39,6 +39,8 @@ public class ProjectLibraryBean implements Parcelable {
     public static final int PROJECT_LIB_TYPE_MATERIAL3 = 7;
     /** Only a row of the library screen: Supabase's settings are kept in the project config, not in a bean. */
     public static final int PROJECT_LIB_TYPE_SUPABASE = 8;
+    /** Only a row of the library screen: Unity Ads' settings are kept in the project config, not in a bean. */
+    public static final int PROJECT_LIB_TYPE_UNITY_ADS = 9;
 
     @Expose
     public String appId;

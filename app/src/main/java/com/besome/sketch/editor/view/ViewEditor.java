@@ -36,6 +36,7 @@ import com.besome.sketch.editor.view.palette.IconBase;
 import com.besome.sketch.editor.view.palette.IconLinearHorizontal;
 import com.besome.sketch.editor.view.palette.IconLinearVertical;
 import com.besome.sketch.editor.view.palette.IconMapView;
+import com.besome.sketch.editor.view.palette.IconUnityBanner;
 import com.besome.sketch.editor.view.palette.IconPreset;
 import com.besome.sketch.editor.manage.library.material3.Material3LibraryManager;
 import com.besome.sketch.editor.view.palette.PaletteFavorite;
@@ -68,6 +69,7 @@ import pro.sketchware.R;
 import pro.sketchware.utility.InjectAttributes;
 import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.ThemeUtils;
+import pro.sketchware.unityads.UnityAdsSettings;
 import pro.sketchware.widgets.BuiltInWidgets;
 import pro.sketchware.widgets.IconCustomWidget;
 import pro.sketchware.widgets.WidgetsCreatorManager;
@@ -867,6 +869,9 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                 }
             } else if (currentTouchedView instanceof IconAdView && !draggingListener.isAdmobEnabled()) {
                 bB.b(getContext(), getString(R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
+                return;
+            } else if (currentTouchedView instanceof IconUnityBanner && !UnityAdsSettings.isConfigured(a)) {
+                bB.b(getContext(), getString(R.string.unity_ads_component_setup_first), bB.TOAST_NORMAL).show();
                 return;
             } else if (currentTouchedView instanceof IconMapView && !draggingListener.isGoogleMapEnabled()) {
                 bB.b(getContext(), getString(R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();

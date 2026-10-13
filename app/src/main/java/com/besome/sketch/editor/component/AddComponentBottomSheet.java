@@ -105,6 +105,9 @@ public class AddComponentBottomSheet extends BottomSheetDialogFragment {
         componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE));
         componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH));
         componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE));
+        componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD));
+        componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD));
+        componentList.add(new ComponentBean(ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD));
 
         ComponentsHandler.add(componentList);
     }

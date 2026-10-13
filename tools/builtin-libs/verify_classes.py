@@ -31,6 +31,10 @@ OPTIONAL_SUPERTYPES = {
     # firebase-appcheck and firebase-datatransport only come in through Firebase libraries,
     # which all depend on firebase-common (and so firebase-components)
     "com/google/firebase/components/ComponentRegistrar",
+    # Unity Ads' Install Referrer and ironSource Ad Quality integrations, which its POM doesn't
+    # declare: ClassPresenceCapabilitiesChecker only uses them when the app has those libraries
+    "com/android/installreferrer/api/InstallReferrerStateListener",
+    "com/ironsource/adqualitysdk/sdk/ISAdQualityInitListener",
 }
 
 

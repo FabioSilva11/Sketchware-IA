@@ -300,6 +300,7 @@ public class ViewEditorFragment extends qA {
 
         viewEditor.paletteWidget.extraTitle("Google", 1);
         viewEditor.addWidget(PaletteWidget.b.l, "", "AdView", "AdView");
+        viewEditor.extraWidget("", "UnityBanner", "UnityBanner");
         viewEditor.addWidget(PaletteWidget.b.n, "", "MapView", "MapView");
         viewEditor.extraWidget("", "SignInButton", "SignInButton");
         viewEditor.extraWidget("", "YoutubePlayer", "YoutubePlayer");

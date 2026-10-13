@@ -5,7 +5,7 @@ projects on the device, and the library table in `mod/jbk/build/BuiltInLibraries
 
 | File | Contents |
 |---|---|
-| `libs.zip` | One folder per library: `classes.jar`, `res/`, `assets/`, `AndroidManifest.xml`, `proguard.txt` |
+| `libs.zip` | One folder per library: `classes.jar`, `res/`, `assets/`, `jni/` (native libraries, packed into the APK), `AndroidManifest.xml`, `proguard.txt` |
 | `dexs.zip` | One `<library>.dex` per library, dexed with D8 for `--min-api 21` |
 | `android.jar.zip` | `platforms/android-37.0/android.jar`, its `resources.arsc` re-encoded without compact entries |
 

@@ -81,6 +81,9 @@ public class mq {
             case ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE -> "SupabaseDatabase";
             case ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH -> "SupabaseAuth";
             case ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE -> "SupabaseStorage";
+            case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD -> "UnityInterstitialAd";
+            case ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD -> "UnityRewardedAd";
+            case ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD -> "UnityBannerAd";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH -> "FirebaseAuth";
             case ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD -> "InterstitialAd";
             case ComponentBean.COMPONENT_TYPE_FIREBASE_STORAGE -> "FirebaseStorage";
@@ -167,6 +170,9 @@ public class mq {
             case "supabasedatabase", "SupabaseDatabase" -> "SupabaseDatabase";
             case "supabaseauth", "SupabaseAuth" -> "SupabaseAuth";
             case "supabasestorage", "SupabaseStorage" -> "SupabaseStorage";
+            case "unityinterstitialad", "UnityInterstitialAd" -> "UnityInterstitialAd";
+            case "unityrewardedad", "UnityRewardedAd" -> "UnityRewardedAd";
+            case "unitybannerad", "UnityBannerAd" -> "UnityBannerAd";
             case "InterstitialAd" -> "InterstitialAd";
             case "varBool" -> "boolean.SelectBoolean";
             case "varInt" -> "double.SelectDouble";
@@ -189,6 +195,7 @@ public class mq {
             case "webview" -> "WebView";
             case "calendarview" -> "CalendarView";
             case "adview" -> "AdView";
+            case "unitybanner" -> "UnityBannerView";
             case "mapview" -> "MapView";
             case "timer" -> "Timer";
             case "mediaplayer" -> "MediaPlayer";
@@ -841,6 +848,10 @@ public class mq {
             case "SupabaseDatabase" -> "SupabaseClient.Database";
             case "SupabaseAuth" -> "SupabaseClient.Auth";
             case "SupabaseStorage" -> "SupabaseClient.Storage";
+            // UnityAdsClient.java too
+            case "UnityInterstitialAd" -> "UnityAdsClient.Interstitial";
+            case "UnityRewardedAd" -> "UnityAdsClient.Rewarded";
+            case "UnityBannerAd" -> "UnityAdsClient.Banner";
             case "Dialog" -> "AlertDialog.Builder";
             case "FirebaseDB" -> "DatabaseReference";
             case "FirebaseStorage" -> "StorageReference";

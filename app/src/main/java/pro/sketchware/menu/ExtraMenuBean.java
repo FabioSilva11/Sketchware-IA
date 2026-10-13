@@ -198,6 +198,7 @@ public class ExtraMenuBean {
                                 case "compoundButton":
                                 case "materialButton":
                                 case "adview":
+                                case "unitybanner":
                                 case "progressbar":
                                 case "mapview":
                                 case "radiobutton":
@@ -494,6 +495,21 @@ public class ExtraMenuBean {
                         case "supabasestorage":
                         title = logicEditor.getString(R.string.logic_editor_title_select_component_supabase_storage);
                         menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE);
+                        break;
+
+                        case "unityinterstitialad":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_unity_interstitial_ad);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD);
+                        break;
+
+                        case "unityrewardedad":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_unity_rewarded_ad);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD);
+                        break;
+
+                        case "unitybannerad":
+                        title = logicEditor.getString(R.string.logic_editor_title_select_component_unity_banner_ad);
+                        menus = getComponentMenus(ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD);
                         break;
 
                         case "interstitialad":

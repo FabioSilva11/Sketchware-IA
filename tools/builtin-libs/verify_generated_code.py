@@ -5,6 +5,7 @@ Compiles, with the same ECJ version the app runs on the device:
   * the helper classes Lx.java generates (SketchwareUtil, RequestNetworkController/OkHttp,
     GoogleMapController/Maps, BluetoothConnect, FileUtil, ...), extracted from its source;
   * the debug classes in app/src/main/assets/debug;
+  * the clients generated from Kotlin templates (SupabaseClient, UnityAdsClient);
   * smoke/GeneratedCodeSmoke.java, which mirrors what the generators emit per component;
   * every built-in custom block a palette offers (ExtraBlocks.java, then BlocksHandler.java, in
     BlockLoader's order), filled in the way Fx fills it: numbers as doubles, the two substack
@@ -35,6 +36,14 @@ LX = ROOT / "app/src/main/java/a/a/a/Lx.java"
 EXTRA_BLOCKS = ROOT / "app/src/main/java/pro/sketchware/blocks/ExtraBlocks.java"
 BLOCKS_HANDLER = ROOT / "app/src/main/java/mod/hilal/saif/blocks/BlocksHandler.java"
 FX = ROOT / "app/src/main/java/a/a/a/Fx.java"
+# Classes generated from a Kotlin raw string constant, and what their placeholders get
+UNITY_ADS_SOURCE = ROOT / "app/src/main/java/pro/sketchware/unityads/UnityAdsClientSource.kt"
+KOTLIN_TEMPLATES = {
+    "SupabaseClient": (ROOT / "app/src/main/java/pro/sketchware/supabase/SupabaseClientSource.kt", "TEMPLATE",
+                       {"__SUPABASE_URL__": "https://abcd.supabase.co", "__SUPABASE_ANON_KEY__": "key"}),
+    "UnityAdsClient": (UNITY_ADS_SOURCE, "TEMPLATE", {"__GAME_ID__": "14851", "__TEST_MODE__": "true"}),
+    "UnityBannerView": (UNITY_ADS_SOURCE, "BANNER_VIEW_TEMPLATE", {}),
+}
 UQ = ROOT / "app/src/main/java/a/a/a/uq.java"
 MENU_SOURCES = [ROOT / "app/src/main/java/pro/sketchware/menu" / name
                 for name in ("ExtraMenuBean.java", "DefaultExtraMenuBean.java")]
@@ -162,6 +171,19 @@ SELECTORS = {
     "phoneauth": ("PhoneAuthProvider.OnVerificationStateChangedCallbacks phoneauth; "
                   "PhoneAuthProvider.ForceResendingToken phoneauth_resendToken;", "phoneauth"),
     "cloudmessage": ("OnCompleteListener<String> cloudmessage_onCompleteListener;", "cloudmessage"),
+    "supabasedatabase": ("SupabaseClient.Database supabasedatabase; "
+                         "SupabaseClient.DatabaseListener _supabasedatabase_supabase_listener;", "supabasedatabase"),
+    "supabaseauth": ("SupabaseClient.Auth supabaseauth; SupabaseClient.AuthListener _supabaseauth_supabase_listener;",
+                     "supabaseauth"),
+    "supabasestorage": ("SupabaseClient.Storage supabasestorage; "
+                        "SupabaseClient.StorageListener _supabasestorage_supabase_listener;", "supabasestorage"),
+    "unityinterstitialad": ("UnityAdsClient.Interstitial unityinterstitialad; "
+                            "UnityAdsClient.InterstitialListener _unityinterstitialad_unity_listener;", "unityinterstitialad"),
+    "unityrewardedad": ("UnityAdsClient.Rewarded unityrewardedad; "
+                        "UnityAdsClient.RewardedListener _unityrewardedad_unity_listener;", "unityrewardedad"),
+    "unitybannerad": ("UnityAdsClient.Banner unitybannerad; UnityAdsClient.BannerListener _unitybannerad_unity_listener;",
+                      "unitybannerad"),
+    "unitybanner": ("UnityBannerView unitybanner;", "unitybanner"),
     # Selectors that pick a value rather than a component
     "activity": ("", "AllBlocksSmoke"),
     "SignButtonColor": ("", "COLOR_DARK"),
@@ -425,6 +447,14 @@ def generated_helper(source, method):
                    for m in JAVA_STRING.finditer(body))
 
 
+def kotlin_template(path, constant, replacements):
+    """A class generated from a Kotlin raw string constant, as its generate function fills it in."""
+    code = path.read_text(encoding="utf-8").split(f'private const val {constant} = """', 1)[1].split('"""', 1)[0]
+    for placeholder, value in dict(replacements, __PACKAGE__=PACKAGE).items():
+        code = code.replace(placeholder, value)
+    return code
+
+
 def generated_sketchware_util(source):
     """SketchwareUtil as Lx.i(packageName, false) builds it from text blocks."""
     start = source.index("public static String i(String packageName, boolean isMaterial3Enabled) {")
@@ -525,6 +555,8 @@ def main():
         name = re.search(r"public (?:final )?class (\w+)", code).group(1)
         (sources / f"{name}.java").write_text(code, encoding="utf-8")
     (sources / "SketchwareUtil.java").write_text(generated_sketchware_util(lx), encoding="utf-8")
+    for name, (template, constant, replacements) in KOTLIN_TEMPLATES.items():
+        (sources / f"{name}.java").write_text(kotlin_template(template, constant, replacements), encoding="utf-8")
     for debug_class in (ROOT / "app/src/main/assets/debug").glob("*.java"):
         code = debug_class.read_text(encoding="utf-8").replace("<?package_name?>", PACKAGE)
         code = code.replace("<?class_name_package?>", PACKAGE).replace("<?class_name?>", "SketchApplication")
@@ -566,14 +598,18 @@ def main():
     print("COMPILE OK")
 
     d8 = sdk / "build-tools" / BUILD_TOOLS_VERSION / "lib/d8.jar"
-    class_files = [str(p) for p in classes.rglob("*.class")]
+    # One jar rather than every class file: their paths overflow Windows' command line limit.
+    classes_jar = work / "classes.jar"
+    with zipfile.ZipFile(classes_jar, "w") as jar:
+        for class_file in classes.rglob("*.class"):
+            jar.write(class_file, class_file.relative_to(classes).as_posix())
     dex = work / "dex"
     dex.mkdir()
     command = ["java", "-Xmx768m", "-cp", str(d8), "com.android.tools.r8.D8", "--release", "--min-api", "23",
                "--lib", str(sdk / "platforms" / PLATFORM / "android.jar"), "--output", str(dex)]
     for jar in jars:
         command += ["--classpath", jar]
-    result = subprocess.run(command + class_files, capture_output=True, text=True)
+    result = subprocess.run(command + [str(classes_jar)], capture_output=True, text=True)
     if result.returncode != 0:
         print((result.stdout + result.stderr).strip())
         print("DEX FAILED")

@@ -55,6 +55,7 @@ import com.besome.sketch.editor.view.item.ItemLinearLayout;
 import com.besome.sketch.editor.view.item.ItemListView;
 import com.besome.sketch.editor.view.item.ItemMapView;
 import com.besome.sketch.editor.view.item.ItemPlainView;
+import com.besome.sketch.editor.view.item.ItemUnityBanner;
 import com.besome.sketch.editor.view.item.ItemProgressBar;
 import com.besome.sketch.editor.view.item.ItemRecyclerView;
 import com.besome.sketch.editor.view.item.ItemRelativeLayout;
@@ -463,6 +464,7 @@ public class ViewPane extends RelativeLayout {
             case ViewBeans.VIEW_TYPE_LAYOUT_FRAMELAYOUT -> new ItemFrameLayout(context);
             case ViewBeans.VIEW_TYPE_LAYOUT_INCLUDE -> new ItemInclude(context);
             case ViewBeans.VIEW_TYPE_WIDGET_VIEW -> new ItemPlainView(context);
+            case ViewBeans.VIEW_TYPE_WIDGET_UNITY_BANNER -> new ItemUnityBanner(context);
             default -> getUnknownItemView(viewBean);
         };
         item.setId(++b);
@@ -763,6 +765,9 @@ public class ViewPane extends RelativeLayout {
         }
         if (classInfo.b("AdView")) {
             ((ItemAdView) view).setAdSize(viewBean.adSize);
+        }
+        if (classInfo.b("UnityBannerView") && view instanceof ItemUnityBanner unityBanner) {
+            unityBanner.setPlacementId(viewBean.adUnitId);
         }
         if (classInfo.b("CardView")) {
             var cardView = (ItemCardView) view;

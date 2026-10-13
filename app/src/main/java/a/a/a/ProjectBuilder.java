@@ -660,6 +660,14 @@ public class ProjectBuilder {
                 apkBuilder.addNativeLibraries(new File(nativeLibraryDirectory));
             }
 
+            /* Add built-in libraries' native libraries, e.g. Unity Ads' coherencelib */
+            for (Jp library : builtInLibraryManager.getLibraries()) {
+                File jni = new File(BuiltInLibraries.getLibraryPath(library.getName()), "jni");
+                if (jni.isDirectory()) {
+                    apkBuilder.addNativeLibraries(jni);
+                }
+            }
+
             if (dexesToAddButNotMerge.isEmpty()) {
                 List<String> dexFiles = FileUtil.listFiles(yq.binDirectoryPath, "dex");
                 for (String dexFile : dexFiles) {
@@ -889,6 +897,9 @@ public class ProjectBuilder {
         }
         if (yq.N.isBiometricManagerUsed) {
             builtInLibraryManager.addLibrary(BuiltInLibraries.ANDROIDX_BIOMETRIC);
+        }
+        if (yq.N.isUnityAdsUsed) {
+            builtInLibraryManager.addLibrary(BuiltInLibraries.UNITY_ADS);
         }
 
         KotlinCompilerBridge.maybeAddKotlinBuiltInLibraryDependenciesIfPossible(this, builtInLibraryManager);

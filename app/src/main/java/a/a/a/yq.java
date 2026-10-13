@@ -526,6 +526,11 @@ public class yq {
         }
         for (ProjectFileBean customView : projectFileManager.c()) {
             for (ViewBean viewBean : pro.sketchware.utility.ViewHierarchy.sorted(projectDataManager.d(customView.getXmlName()))) {
+                if (viewBean.type == mod.agus.jcoderz.beans.ViewBeans.VIEW_TYPE_WIDGET_UNITY_BANNER) {
+                    N.isUnityAdsUsed = true;
+                    N.addPermission(jq.PERMISSION_INTERNET);
+                    N.addPermission(jq.PERMISSION_ACCESS_NETWORK_STATE);
+                }
                 var classNameParts = viewBean.convert.split("\\.");
                 var className = classNameParts[classNameParts.length - 1];
                 switch (className) {
@@ -611,6 +616,13 @@ public class yq {
                         N.addPermission(activity.getActivityName(), jq.PERMISSION_INTERNET);
                         N.addPermission(activity.getActivityName(), jq.PERMISSION_ACCESS_NETWORK_STATE);
                     }
+                    case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD, ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD,
+                         ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD -> {
+                        // The SDK's own manifest declares its other permissions, merged with the library.
+                        N.isUnityAdsUsed = true;
+                        N.addPermission(activity.getActivityName(), jq.PERMISSION_INTERNET);
+                        N.addPermission(activity.getActivityName(), jq.PERMISSION_ACCESS_NETWORK_STATE);
+                    }
                     case ComponentBean.COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE ->
                             N.x.isFCMUsed = true;
                     case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN ->
@@ -621,6 +633,11 @@ public class yq {
             }
 
             for (ViewBean view : pro.sketchware.utility.ViewHierarchy.sorted(projectDataManager.d(activity.getXmlName()))) {
+                if (view.type == mod.agus.jcoderz.beans.ViewBeans.VIEW_TYPE_WIDGET_UNITY_BANNER) {
+                    N.isUnityAdsUsed = true;
+                    N.addPermission(jq.PERMISSION_INTERNET);
+                    N.addPermission(jq.PERMISSION_ACCESS_NETWORK_STATE);
+                }
                 var classNameParts = view.convert.split("\\.");
                 var className = classNameParts[classNameParts.length - 1];
                 switch (className) {
@@ -887,6 +904,18 @@ public class yq {
                     pro.sketchware.supabase.SupabaseClientSource.generate(packageName,
                             pro.sketchware.supabase.SupabaseSettings.getUrl(sc_id),
                             pro.sketchware.supabase.SupabaseSettings.getAnonKey(sc_id))));
+        }
+
+        if (!javaFiles.contains(new File(javaDir + "UnityAdsClient.java")) && N.isUnityAdsUsed) {
+            // Builds Sketchware runs show test ads, like AdMob's test units; exported ones when chosen.
+            srcCodeBeans.add(new SrcCodeBean("UnityAdsClient.java",
+                    pro.sketchware.unityads.UnityAdsClientSource.generate(packageName,
+                            pro.sketchware.unityads.UnityAdsSettings.getGameId(sc_id),
+                            N.isDebugBuild || pro.sketchware.unityads.UnityAdsSettings.isTestMode(sc_id))));
+        }
+        if (!javaFiles.contains(new File(javaDir + "UnityBannerView.java")) && N.isUnityAdsUsed) {
+            srcCodeBeans.add(new SrcCodeBean("UnityBannerView.java",
+                    pro.sketchware.unityads.UnityAdsClientSource.generateBannerView(packageName)));
         }
 
         if (!javaFiles.contains(new File(javaDir + "BluetoothConnect.java")) && N.hasPermission(jq.PERMISSION_BLUETOOTH)) {

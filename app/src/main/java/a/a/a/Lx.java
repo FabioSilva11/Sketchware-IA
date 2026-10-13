@@ -151,6 +151,10 @@ public class Lx {
             appendDependency(content, "com.squareup.okhttp3:okhttp", BuiltInLibraries.OKHTTP_ANDROID);
         }
 
+        if (isLibraryNotExcluded(BuiltInLibraries.UNITY_ADS, excludedLibraries) && metadata.isUnityAdsUsed) {
+            appendDependency(content, "com.unity3d.ads:unity-ads", BuiltInLibraries.UNITY_ADS);
+        }
+
         ConstVarComponent extraMetadata = metadata.x;
         if (isLibraryNotExcluded(BuiltInLibraries.CIRCLEIMAGEVIEW, excludedLibraries) && extraMetadata.isCircleImageViewUsed) {
             appendDependency(content, "de.hdodenhof:circleimageview", BuiltInLibraries.CIRCLEIMAGEVIEW);
@@ -553,6 +557,48 @@ public class Lx {
                     "final String _message = _param2;\r\n" +
                     eventLogic + "\r\n" +
                     "}";
+            // Unity Ads: the methods of UnityAdsClient's listeners, shared by the three components
+            case "onUnityAdLoaded" -> "@Override\r\n" +
+                    "public void onLoaded() {\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onUnityAdFailedToLoad" -> "@Override\r\n" +
+                    "public void onFailedToLoad(int _param1, String _param2) {\r\n" +
+                    "final double _errorCode = _param1;\r\n" +
+                    "final String _errorMessage = _param2;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onUnityAdShowStarted" -> "@Override\r\n" +
+                    "public void onShowStarted() {\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onUnityAdClicked" -> "@Override\r\n" +
+                    "public void onClicked() {\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onUnityAdShowCompleted" -> "@Override\r\n" +
+                    "public void onShowCompleted(boolean _param1) {\r\n" +
+                    "final boolean _skipped = _param1;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onUnityAdShowFailed" -> "@Override\r\n" +
+                    "public void onShowFailed(int _param1, String _param2) {\r\n" +
+                    "final double _errorCode = _param1;\r\n" +
+                    "final String _errorMessage = _param2;\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onUnityAdExpired" -> "@Override\r\n" +
+                    "public void onExpired() {\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onUnityAdRewarded" -> "@Override\r\n" +
+                    "public void onRewarded() {\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
+            case "onUnityBannerShown" -> "@Override\r\n" +
+                    "public void onShown() {\r\n" +
+                    eventLogic + "\r\n" +
+                    "}";
             case "onAccuracyChanged" -> "@Override\r\n" +
                     "public void onAccuracyChanged(Sensor _param1, int _param2) {\r\n" +
                     eventLogic + "\r\n" +
@@ -773,6 +819,18 @@ public class Lx {
 
                 case "SupabaseStorage":
                     fieldDeclaration += "\r\nprivate SupabaseClient.StorageListener _" + typeInstanceName + "_supabase_listener;";
+                    break;
+
+                case "UnityInterstitialAd":
+                    fieldDeclaration += "\r\nprivate UnityAdsClient.InterstitialListener _" + typeInstanceName + "_unity_listener;";
+                    break;
+
+                case "UnityRewardedAd":
+                    fieldDeclaration += "\r\nprivate UnityAdsClient.RewardedListener _" + typeInstanceName + "_unity_listener;";
+                    break;
+
+                case "UnityBannerAd":
+                    fieldDeclaration += "\r\nprivate UnityAdsClient.BannerListener _" + typeInstanceName + "_unity_listener;";
                     break;
 
                 case "FusedLocationManager":
@@ -1373,6 +1431,20 @@ public class Lx {
                 return componentName + " = new SupabaseClient.Storage(getApplicationContext(), \""
                         + pro.sketchware.supabase.SupabaseClientSource.javaString(parameters.length > 0 && parameters[0] != null ? parameters[0] : "") + "\");";
 
+            // The placement ID from the component. Fullscreen ads open from the activity; in a fragment, Jx swaps
+            // `this` for getActivity().
+            case "UnityInterstitialAd":
+                return componentName + " = new UnityAdsClient.Interstitial(this, \""
+                        + pro.sketchware.supabase.SupabaseClientSource.javaString(parameters.length > 0 && parameters[0] != null ? parameters[0] : "") + "\");";
+
+            case "UnityRewardedAd":
+                return componentName + " = new UnityAdsClient.Rewarded(this, \""
+                        + pro.sketchware.supabase.SupabaseClientSource.javaString(parameters.length > 0 && parameters[0] != null ? parameters[0] : "") + "\");";
+
+            case "UnityBannerAd":
+                return componentName + " = new UnityAdsClient.Banner(\""
+                        + pro.sketchware.supabase.SupabaseClientSource.javaString(parameters.length > 0 && parameters[0] != null ? parameters[0] : "") + "\");";
+
             case "FirebaseAuth":
                 return componentName + " = FirebaseAuth.getInstance();";
 
@@ -1919,6 +1991,18 @@ public class Lx {
             case "supabaseStorageListener" ->
                     "_" + componentName + "_supabase_listener = new SupabaseClient.StorageListener() {\r\n" +
                             eventLogic + "\r\n};";
+            case "unityInterstitialListener" ->
+                    "_" + componentName + "_unity_listener = new UnityAdsClient.InterstitialListener() {\r\n" +
+                            eventLogic + "\r\n};";
+            case "unityRewardedListener" ->
+                    "_" + componentName + "_unity_listener = new UnityAdsClient.RewardedListener() {\r\n" +
+                            eventLogic + "\r\n};";
+            case "unityBannerListener" ->
+                    "_" + componentName + "_unity_listener = new UnityAdsClient.BannerListener() {\r\n" +
+                            eventLogic + "\r\n};";
+            case "unityBannerViewListener" ->
+                    componentName + ".setListener(new UnityAdsClient.BannerListener() {\r\n" +
+                            eventLogic + "\r\n});";
             case "onTextChangedListener" ->
                     componentName + ".addTextChangedListener(new TextWatcher() {\r\n"
                             + eventLogic + "\r\n"

@@ -106,6 +106,8 @@ public class BuiltInLibraries {
     public static String CHECKER_QUAL = "checker-qual-3.12.0";
     public static String CIRCLEIMAGEVIEW = "circleimageview-3.1.0";
     public static String CODEVIEW = "CodeView-0.4.0";
+    public static String COHERENCELIB = "coherencelib-0.2.0";
+    public static String CRONET_API = "cronet-api-72.3626.96";
     public static String DATATRANSPORT_TRANSPORT_API = "transport-api-3.1.0";
     public static String DATATRANSPORT_TRANSPORT_BACKEND_CCT = "transport-backend-cct-3.1.9";
     public static String DATATRANSPORT_TRANSPORT_RUNTIME = "transport-runtime-3.1.9";
@@ -171,6 +173,7 @@ public class BuiltInLibraries {
     public static String PLAY_SERVICES_BASE = "play-services-base-18.9.0";
     public static String PLAY_SERVICES_BASEMENT = "play-services-basement-18.9.0";
     public static String PLAY_SERVICES_CLOUD_MESSAGING = "play-services-cloud-messaging-17.4.0";
+    public static String PLAY_SERVICES_CRONET = "play-services-cronet-18.0.1";
     public static String PLAY_SERVICES_FIDO = "play-services-fido-21.0.0";
     public static String PLAY_SERVICES_IDENTITY_CREDENTIALS = "play-services-identity-credentials-16.0.0-alpha08";
     public static String PLAY_SERVICES_LOCATION = "play-services-location-21.4.0";
@@ -179,7 +182,10 @@ public class BuiltInLibraries {
     public static String PLAY_SERVICES_MEASUREMENT_SDK_API = "play-services-measurement-sdk-api-20.1.2";
     public static String PLAY_SERVICES_STATS = "play-services-stats-17.0.2";
     public static String PLAY_SERVICES_TASKS = "play-services-tasks-18.4.0";
+    public static String PROTOBUF_JAVALITE = "protobuf-javalite-3.25.6";
+    public static String PROTOBUF_KOTLIN_LITE = "protobuf-kotlin-lite-3.25.6";
     public static String RECAPTCHA = "recaptcha-18.6.1";
+    public static String UNITY_ADS = "unity-ads-4.21.0";
     public static String USER_MESSAGING_PLATFORM = "user-messaging-platform-4.0.0";
     public static String WAVE_SIDE_BAR = "wave-side-bar";
 
@@ -263,6 +269,8 @@ public class BuiltInLibraries {
             new BuiltInLibrary(CHECKER_QUAL),
             new BuiltInLibrary(CIRCLEIMAGEVIEW, List.of(), "de.hdodenhof.circleimageview"),
             new BuiltInLibrary(CODEVIEW, List.of(), "br.tiagohm.codeview"),
+            new BuiltInLibrary(COHERENCELIB),
+            new BuiltInLibrary(CRONET_API, List.of(), "org.chromium.net"),
             new BuiltInLibrary(DATATRANSPORT_TRANSPORT_API, List.of(ANDROIDX_ANNOTATION_JVM)),
             new BuiltInLibrary(DATATRANSPORT_TRANSPORT_BACKEND_CCT, List.of(ANDROIDX_ANNOTATION_JVM, DATATRANSPORT_TRANSPORT_API, DATATRANSPORT_TRANSPORT_RUNTIME, FIREBASE_ENCODERS, FIREBASE_ENCODERS_JSON)),
             new BuiltInLibrary(DATATRANSPORT_TRANSPORT_RUNTIME, List.of(ANDROIDX_ANNOTATION_JVM, DATATRANSPORT_TRANSPORT_API, FIREBASE_ENCODERS, FIREBASE_ENCODERS_PROTO, JAVAX_INJECT)),
@@ -328,6 +336,7 @@ public class BuiltInLibraries {
             new BuiltInLibrary(PLAY_SERVICES_BASE, List.of(ANDROIDX_COLLECTION_JVM, ANDROIDX_CORE, ANDROIDX_FRAGMENT, PLAY_SERVICES_BASEMENT, PLAY_SERVICES_TASKS), "com.google.android.gms.base"),
             new BuiltInLibrary(PLAY_SERVICES_BASEMENT, List.of(ANDROIDX_COLLECTION_JVM, ANDROIDX_CORE, ANDROIDX_FRAGMENT), "com.google.android.gms.common"),
             new BuiltInLibrary(PLAY_SERVICES_CLOUD_MESSAGING, List.of(PLAY_SERVICES_BASE, PLAY_SERVICES_BASEMENT, PLAY_SERVICES_TASKS)),
+            new BuiltInLibrary(PLAY_SERVICES_CRONET, List.of(CRONET_API, PLAY_SERVICES_BASE, PLAY_SERVICES_BASEMENT, PLAY_SERVICES_TASKS), "com.google.android.gms.cronet"),
             new BuiltInLibrary(PLAY_SERVICES_FIDO, List.of(JETBRAINS_KOTLINX_COROUTINES_CORE_JVM, JETBRAINS_KOTLIN_STDLIB, PLAY_SERVICES_BASE, PLAY_SERVICES_BASEMENT, PLAY_SERVICES_TASKS)),
             new BuiltInLibrary(PLAY_SERVICES_IDENTITY_CREDENTIALS, List.of(JETBRAINS_KOTLIN_STDLIB, PLAY_SERVICES_BASE, PLAY_SERVICES_BASEMENT, PLAY_SERVICES_TASKS)),
             new BuiltInLibrary(PLAY_SERVICES_LOCATION, List.of(JETBRAINS_KOTLINX_COROUTINES_ANDROID, JETBRAINS_KOTLINX_COROUTINES_CORE_JVM, JETBRAINS_KOTLIN_STDLIB, PLAY_SERVICES_BASE, PLAY_SERVICES_BASEMENT, PLAY_SERVICES_TASKS)),
@@ -336,7 +345,10 @@ public class BuiltInLibraries {
             new BuiltInLibrary(PLAY_SERVICES_MEASUREMENT_SDK_API, List.of(PLAY_SERVICES_BASEMENT, PLAY_SERVICES_MEASUREMENT_BASE)),
             new BuiltInLibrary(PLAY_SERVICES_STATS, List.of(ANDROIDX_LEGACY_SUPPORT_CORE_UTILS, PLAY_SERVICES_BASEMENT)),
             new BuiltInLibrary(PLAY_SERVICES_TASKS, List.of(PLAY_SERVICES_BASEMENT)),
+            new BuiltInLibrary(PROTOBUF_JAVALITE),
+            new BuiltInLibrary(PROTOBUF_KOTLIN_LITE, List.of(JETBRAINS_KOTLIN_STDLIB, PROTOBUF_JAVALITE)),
             new BuiltInLibrary(RECAPTCHA, List.of(JETBRAINS_KOTLINX_COROUTINES_ANDROID, JETBRAINS_KOTLINX_COROUTINES_PLAY_SERVICES, JETBRAINS_KOTLIN_STDLIB, PLAY_INTEGRITY, PLAY_SERVICES_BASEMENT, PLAY_SERVICES_TASKS)),
+            new BuiltInLibrary(UNITY_ADS, List.of(ANDROIDX_ACTIVITY, ANDROIDX_ANNOTATION_JVM, ANDROIDX_CORE, ANDROIDX_DATASTORE, ANDROIDX_LIFECYCLE_PROCESS, ANDROIDX_LIFECYCLE_RUNTIME, ANDROIDX_LIFECYCLE_VIEWMODEL, ANDROIDX_SAVEDSTATE, ANDROIDX_STARTUP_RUNTIME, ANDROIDX_WEBKIT, ANDROIDX_WORK_RUNTIME, COHERENCELIB, JETBRAINS_KOTLINX_COROUTINES_ANDROID, JETBRAINS_KOTLIN_STDLIB, OKHTTP_ANDROID, PLAY_SERVICES_CRONET, PROTOBUF_KOTLIN_LITE)),
             new BuiltInLibrary(USER_MESSAGING_PLATFORM, List.of(ANDROIDX_ANNOTATION_JVM, PLAY_SERVICES_BASEMENT)),
             new BuiltInLibrary(WAVE_SIDE_BAR, List.of(), "com.sayuti.lib"),
     };

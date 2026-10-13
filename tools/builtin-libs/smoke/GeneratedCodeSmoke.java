@@ -151,6 +151,14 @@ public class GeneratedCodeSmoke extends AppCompatActivity {
     private String _ad_unit_id;
     private String _reward_ad_unit_id;
 
+    // Unity Ads components (Lx): UnityAdsClient is generated in the app's package
+    private UnityAdsClient.Interstitial unityinterstitial;
+    private UnityAdsClient.InterstitialListener _unityinterstitial_unity_listener;
+    private UnityAdsClient.Rewarded unityrewarded;
+    private UnityAdsClient.RewardedListener _unityrewarded_unity_listener;
+    private UnityAdsClient.Banner unitybanner;
+    private UnityAdsClient.BannerListener _unitybanner_unity_listener;
+
     private FusedLocationProviderClient location;
     private LocationRequest _location_location_request = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L).setMinUpdateIntervalMillis(500L).build();
     private LocationCallback _location_location_callback;
@@ -353,6 +361,125 @@ public class GeneratedCodeSmoke extends AppCompatActivity {
                 final String _rewardType = _param1.getType();
             }
         };
+
+        unityinterstitial = new UnityAdsClient.Interstitial(this, "Interstitial_Android");
+        unityrewarded = new UnityAdsClient.Rewarded(this, "Rewarded_Android");
+        unitybanner = new UnityAdsClient.Banner("Banner_Android");
+        _unityinterstitial_unity_listener = new UnityAdsClient.InterstitialListener() {
+            @Override
+            public void onLoaded() {
+                unityinterstitial.show(_unityinterstitial_unity_listener);
+            }
+
+            @Override
+            public void onFailedToLoad(int _param1, String _param2) {
+                final double _errorCode = _param1;
+                final String _errorMessage = _param2;
+            }
+
+            @Override
+            public void onShowStarted() {
+            }
+
+            @Override
+            public void onClicked() {
+            }
+
+            @Override
+            public void onShowCompleted(boolean _param1) {
+                final boolean _skipped = _param1;
+            }
+
+            @Override
+            public void onShowFailed(int _param1, String _param2) {
+                final double _errorCode = _param1;
+                final String _errorMessage = _param2;
+            }
+
+            @Override
+            public void onExpired() {
+            }
+        };
+        _unityrewarded_unity_listener = new UnityAdsClient.RewardedListener() {
+            @Override
+            public void onLoaded() {
+            }
+
+            @Override
+            public void onFailedToLoad(int _param1, String _param2) {
+            }
+
+            @Override
+            public void onShowStarted() {
+            }
+
+            @Override
+            public void onClicked() {
+            }
+
+            @Override
+            public void onRewarded() {
+            }
+
+            @Override
+            public void onShowCompleted(boolean _param1) {
+            }
+
+            @Override
+            public void onShowFailed(int _param1, String _param2) {
+            }
+
+            @Override
+            public void onExpired() {
+            }
+        };
+        _unitybanner_unity_listener = new UnityAdsClient.BannerListener() {
+            @Override
+            public void onLoaded() {
+            }
+
+            @Override
+            public void onFailedToLoad(int _param1, String _param2) {
+            }
+
+            @Override
+            public void onShown() {
+            }
+
+            @Override
+            public void onClicked() {
+            }
+
+            @Override
+            public void onShowFailed(int _param1, String _param2) {
+            }
+        };
+        // The Unity Banner widget (Lx: unityBannerViewListener), found in the layout like any view
+        UnityBannerView unitybannerview = new UnityBannerView(this);
+        unitybannerview.setListener(new UnityAdsClient.BannerListener() {
+            @Override
+            public void onLoaded() {
+            }
+
+            @Override
+            public void onFailedToLoad(int _param1, String _param2) {
+            }
+
+            @Override
+            public void onShown() {
+            }
+
+            @Override
+            public void onClicked() {
+            }
+
+            @Override
+            public void onShowFailed(int _param1, String _param2) {
+            }
+        });
+        unitybannerview.load();
+        unityrewarded.load(_unityrewarded_unity_listener);
+        unitybanner.load(image, _unitybanner_unity_listener);
 
         _location_location_callback = new LocationCallback() {
             @Override

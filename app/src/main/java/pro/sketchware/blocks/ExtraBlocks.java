@@ -134,6 +134,24 @@ public class ExtraBlocks {
         arrayList.add(addBlock("supabaseStorageDownload", " ", "", "%1$s.download(%2$s, %3$s, _%1$s_supabase_listener);", "#249361", "%m.supabasestorage download %s to file %s"));
         arrayList.add(addBlock("supabaseStorageDelete", " ", "", "%1$s.delete(%2$s, _%1$s_supabase_listener);", "#249361", "%m.supabasestorage delete %s"));
         arrayList.add(addBlock("supabaseStorageGetPublicUrl", "s", "", "%1$s.getPublicUrl(%2$s)", "#249361", "%m.supabasestorage public url of %s"));
+        // Unity Ads: UnityAdsClient (generated per app) answers in the component's events
+        arrayList.add(addBlock("unityAdsSetUserConsent", " ", "", "com.unity3d.ads.UnityAds.setUserConsent(%1$s);", "#2aa4e2", "Unity Ads user gave consent (GDPR) %b"));
+        arrayList.add(addBlock("unityAdsSetUserOptOut", " ", "", "com.unity3d.ads.UnityAds.setUserOptOut(%1$s);", "#2aa4e2", "Unity Ads user opted out of data sale (CCPA) %b"));
+        arrayList.add(addBlock("unityAdsSetNonBehavioral", " ", "", "com.unity3d.ads.UnityAds.setNonBehavioral(%1$s);", "#2aa4e2", "Unity Ads only non-personalized ads (child user, COPPA) %b"));
+        arrayList.add(addBlock("unityAdsIsInitialized", "b", "", "UnityAdsClient.isInitialized()", "#2aa4e2", "Unity Ads is initialized"));
+        arrayList.add(addBlock("unityInterstitialLoad", " ", "", "%1$s.load(_%1$s_unity_listener);", "#2aa4e2", "%m.unityinterstitialad load"));
+        arrayList.add(addBlock("unityInterstitialShow", " ", "", "%1$s.show(_%1$s_unity_listener);", "#2aa4e2", "%m.unityinterstitialad show"));
+        arrayList.add(addBlock("unityInterstitialIsLoaded", "b", "", "%1$s.isLoaded()", "#2aa4e2", "%m.unityinterstitialad is loaded"));
+        arrayList.add(addBlock("unityRewardedLoad", " ", "", "%1$s.load(_%1$s_unity_listener);", "#2aa4e2", "%m.unityrewardedad load"));
+        arrayList.add(addBlock("unityRewardedShow", " ", "", "%1$s.show(_%1$s_unity_listener);", "#2aa4e2", "%m.unityrewardedad show"));
+        arrayList.add(addBlock("unityRewardedIsLoaded", "b", "", "%1$s.isLoaded()", "#2aa4e2", "%m.unityrewardedad is loaded"));
+        arrayList.add(addBlock("unityBannerLoad", " ", "", "%1$s.load(%2$s, _%1$s_unity_listener);", "#2aa4e2", "%m.unitybannerad load in layout %m.view"));
+        arrayList.add(addBlock("unityBannerRemove", " ", "", "%1$s.remove();", "#2aa4e2", "%m.unitybannerad remove"));
+        arrayList.add(addBlock("unityBannerIsLoaded", "b", "", "%1$s.isLoaded()", "#2aa4e2", "%m.unitybannerad is loaded"));
+        arrayList.add(addBlock("unityBannerViewLoad", " ", "", "%1$s.load();", "#2aa4e2", "%m.unitybanner load"));
+        arrayList.add(addBlock("unityBannerViewRemove", " ", "", "%1$s.remove();", "#2aa4e2", "%m.unitybanner remove"));
+        arrayList.add(addBlock("unityBannerViewIsLoaded", "b", "", "%1$s.isLoaded()", "#2aa4e2", "%m.unitybanner is loaded"));
+        arrayList.add(addBlock("unityBannerViewSetPlacement", " ", "", "%1$s.setPlacementId(%2$s);", "#2aa4e2", "%m.unitybanner set placement ID %s"));
         //OtpView Blocks
         arrayList.add(addBlock("otpViewSetFieldCount", " ", "", "%1$s.setFieldCount((int)(%2$s));", "#4a6cd4", "%m.otpview setFieldCount %d"));
         arrayList.add(addBlock("otpViewSetOTPText", " ", "", "%1$s.setOTPText(%2$s);", "#4a6cd4", "%m.otpview setOTPText %s"));

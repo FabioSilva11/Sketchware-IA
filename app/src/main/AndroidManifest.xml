@@ -323,6 +323,9 @@
             android:name="pro.sketchware.supabase.SupabaseLibraryActivity"
             android:windowSoftInputMode="adjustResize" />
         <activity
+            android:name="pro.sketchware.unityads.UnityAdsLibraryActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name="com.besome.sketch.editor.manage.view.PresetSettingActivity"
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar.Translucent"

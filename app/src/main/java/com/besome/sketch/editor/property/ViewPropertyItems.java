@@ -142,6 +142,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
             case "property_progress" -> b(property, String.valueOf(bean.progress));
             case "property_first_day_of_week" -> c(property, bean.firstDayOfWeek);
             case "property_ad_size" -> d(property, bean.adSize);
+            case "property_unity_placement" -> b(property, bean.adUnitId);
             case "property_progressbar_style" -> c(property, bean.progressStyle);
             case "property_indeterminate" -> d(property, bean.indeterminate);
             case "property_inject" -> b(property, bean.inject);
@@ -691,6 +692,10 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                 a(bean, "property_ad_size");
             }
 
+            if (classInfo.b("UnityBannerView")) {
+                a(bean, "property_unity_placement");
+            }
+
             if (classInfo.b("ProgressBar")) {
                 a(bean, "property_max");
                 a(bean, "property_progress");
@@ -787,6 +792,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                     }
                     case "property_convert" -> bean.convert = inputItem.getValue();
                     case "property_inject" -> bean.inject = inputItem.getValue();
+                    case "property_unity_placement" -> bean.adUnitId = inputItem.getValue();
                     case "property_text" -> {
                         bean.text.text = ProjectStrings.assign(sc_id, bean.id, ProjectStrings.FIELD_TEXT, bean.text.text, inputItem.getValue());
                         inputItem.setValue(bean.text.text);

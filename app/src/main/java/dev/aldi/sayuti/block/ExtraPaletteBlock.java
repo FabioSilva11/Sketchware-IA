@@ -886,6 +886,20 @@ public class ExtraPaletteBlock {
                 boolean youtubePlayerViewUsed = isWidgetUsed("YoutubePlayerView");
                 boolean adMobUsed = "Y".equals(jC.c(sc_id).b().useYn);
                 boolean mapViewUsed = isWidgetUsed("MapView");
+                boolean unityBannerViewUsed = isWidgetUsed("UnityBannerView");
+
+                if (unityBannerViewUsed) {
+                    logicEditor.a("Unity Ads", getTitleBgColor());
+                    logicEditor.a(" ", "unityBannerViewLoad");
+                    logicEditor.a(" ", "unityBannerViewRemove");
+                    logicEditor.a("b", "unityBannerViewIsLoaded");
+                    logicEditor.a(" ", "unityBannerViewSetPlacement");
+                    // Privacy choices go before the first load, which starts the SDK
+                    logicEditor.a(" ", "unityAdsSetUserConsent");
+                    logicEditor.a(" ", "unityAdsSetUserOptOut");
+                    logicEditor.a(" ", "unityAdsSetNonBehavioral");
+                    logicEditor.a("b", "unityAdsIsInitialized");
+                }
 
                 if (signInButtonUsed || youtubePlayerViewUsed || adMobUsed || mapViewUsed) {
                     logicEditor.a("Google", getTitleBgColor());
@@ -1209,6 +1223,35 @@ public class ExtraPaletteBlock {
                     logicEditor.a(" ", "supabaseStorageDownload");
                     logicEditor.a(" ", "supabaseStorageDelete");
                     logicEditor.a("s", "supabaseStorageGetPublicUrl");
+                }
+                boolean unityInterstitial = extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD);
+                boolean unityRewarded = extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD);
+                boolean unityBanner = extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD);
+                if (unityInterstitial || unityRewarded || unityBanner) {
+                    // Privacy choices go before the first load, which starts the SDK
+                    logicEditor.a("Unity Ads", getTitleBgColor());
+                    logicEditor.a(" ", "unityAdsSetUserConsent");
+                    logicEditor.a(" ", "unityAdsSetUserOptOut");
+                    logicEditor.a(" ", "unityAdsSetNonBehavioral");
+                    logicEditor.a("b", "unityAdsIsInitialized");
+                }
+                if (unityInterstitial) {
+                    logicEditor.a("Unity Interstitial", getTitleBgColor());
+                    logicEditor.a(" ", "unityInterstitialLoad");
+                    logicEditor.a(" ", "unityInterstitialShow");
+                    logicEditor.a("b", "unityInterstitialIsLoaded");
+                }
+                if (unityRewarded) {
+                    logicEditor.a("Unity Rewarded", getTitleBgColor());
+                    logicEditor.a(" ", "unityRewardedLoad");
+                    logicEditor.a(" ", "unityRewardedShow");
+                    logicEditor.a("b", "unityRewardedIsLoaded");
+                }
+                if (unityBanner) {
+                    logicEditor.a("Unity Banner", getTitleBgColor());
+                    logicEditor.a(" ", "unityBannerLoad");
+                    logicEditor.a(" ", "unityBannerRemove");
+                    logicEditor.a("b", "unityBannerIsLoaded");
                 }
                 if (extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD)) {
                     logicEditor.a("AdMob Interstitial", getTitleBgColor());

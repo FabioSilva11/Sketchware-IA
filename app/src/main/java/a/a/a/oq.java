@@ -62,6 +62,13 @@ public class oq {
             case "onSupabaseError", "onSupabaseAuthError", "onSupabaseStorageError" ->
                     R.drawable.ic_mtrl_supabase_error;
             case "onAccuracyChanged" -> R.drawable.ic_mtrl_center;
+            case "onUnityAdLoaded" -> R.drawable.ic_mtrl_loaded;
+            case "onUnityAdFailedToLoad", "onUnityAdShowFailed" -> R.drawable.ic_mtrl_load_failed;
+            case "onUnityAdShowStarted", "onUnityBannerShown" -> R.drawable.ic_mtrl_preview;
+            case "onUnityAdShowCompleted" -> R.drawable.ic_mtrl_preview_off;
+            case "onUnityAdClicked" -> R.drawable.ic_mtrl_touch;
+            case "onUnityAdRewarded" -> R.drawable.ic_mtrl_payment;
+            case "onUnityAdExpired" -> R.drawable.ic_mtrl_timer;
             case "onInterstitialAdLoaded", "onBannerAdLoaded", "onRewardAdLoaded" ->
                     R.drawable.ic_mtrl_loaded;
             case "onBannerAdFailedToLoad", "onInterstitialAdFailedToLoad",
@@ -139,6 +146,15 @@ public class oq {
             case "onSupabaseAuthError" -> Helper.getResString(R.string.event_on_supabase_auth_error);
             case "onSupabaseStorageSuccess" -> Helper.getResString(R.string.event_on_supabase_storage_success);
             case "onSupabaseStorageError" -> Helper.getResString(R.string.event_on_supabase_storage_error);
+            case "onUnityAdLoaded" -> Helper.getResString(R.string.event_on_unity_ad_loaded);
+            case "onUnityAdFailedToLoad" -> Helper.getResString(R.string.event_on_unity_ad_failed_to_load);
+            case "onUnityAdShowStarted" -> Helper.getResString(R.string.event_on_unity_ad_show_started);
+            case "onUnityAdClicked" -> Helper.getResString(R.string.event_on_unity_ad_clicked);
+            case "onUnityAdShowCompleted" -> Helper.getResString(R.string.event_on_unity_ad_show_completed);
+            case "onUnityAdShowFailed" -> Helper.getResString(R.string.event_on_unity_ad_show_failed);
+            case "onUnityAdExpired" -> Helper.getResString(R.string.event_on_unity_ad_expired);
+            case "onUnityAdRewarded" -> Helper.getResString(R.string.event_on_unity_ad_rewarded);
+            case "onUnityBannerShown" -> Helper.getResString(R.string.event_on_unity_banner_shown);
             case "onCreateUserComplete" -> Helper.getResString(R.string.event_oncreateusercomplete);
             case "onSignInUserComplete" -> Helper.getResString(R.string.event_onsigninusercomplete);
             case "onResetPasswordEmailSent" ->
@@ -226,6 +242,9 @@ public class oq {
             eventList.add("onSupabaseStorageSuccess");
             eventList.add("onSupabaseStorageError");
         }
+        if (classInfo.a("UnityInterstitialAd")) addUnityFullscreenAdEvents(eventList, false);
+        if (classInfo.a("UnityRewardedAd")) addUnityFullscreenAdEvents(eventList, true);
+        if (classInfo.a("UnityBannerAd")) addUnityBannerAdEvents(eventList);
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("onInterstitialAdLoaded");
@@ -348,6 +367,9 @@ public class oq {
         if (classInfo.a("SupabaseDatabase")) eventList.add("supabaseDatabaseListener");
         if (classInfo.a("SupabaseAuth")) eventList.add("supabaseAuthListener");
         if (classInfo.a("SupabaseStorage")) eventList.add("supabaseStorageListener");
+        if (classInfo.a("UnityInterstitialAd")) eventList.add("unityInterstitialListener");
+        if (classInfo.a("UnityRewardedAd")) eventList.add("unityRewardedListener");
+        if (classInfo.a("UnityBannerAd")) eventList.add("unityBannerListener");
 
         if (classInfo.a("InterstitialAd")) {
             eventList.add("interstitialAdLoadCallback");
@@ -357,6 +379,7 @@ public class oq {
         if (classInfo.a("AdView")) {
             eventList.add("bannerAdViewListener");
         }
+        if (classInfo.a("UnityBannerView")) eventList.add("unityBannerViewListener");
 
         if (classInfo.a("FirebaseStorage")) {
             eventList.add("onUploadProgressListener");
@@ -469,6 +492,9 @@ public class oq {
                 eventList.add("onSupabaseStorageSuccess");
                 eventList.add("onSupabaseStorageError");
             }
+            case "unityInterstitialListener" -> addUnityFullscreenAdEvents(eventList, false);
+            case "unityRewardedListener" -> addUnityFullscreenAdEvents(eventList, true);
+            case "unityBannerListener", "unityBannerViewListener" -> addUnityBannerAdEvents(eventList);
             case "authCreateUserComplete" -> eventList.add("onCreateUserComplete");
             case "authSignInUserComplete" -> eventList.add("onSignInUserComplete");
             case "authResetEmailSent" -> eventList.add("onResetPasswordEmailSent");
@@ -570,6 +596,28 @@ public class oq {
             eventList.add("onBannerAdClosed");
         }
 
+        if (classInfo.a("UnityBannerView")) addUnityBannerAdEvents(eventList);
+
         return eventList.toArray(new String[0]);
+    }
+
+    /** Events of a Unity Interstitial or Rewarded component, in the order of an ad's life. */
+    private static void addUnityFullscreenAdEvents(ArrayList<String> eventList, boolean rewarded) {
+        eventList.add("onUnityAdLoaded");
+        eventList.add("onUnityAdFailedToLoad");
+        eventList.add("onUnityAdShowStarted");
+        eventList.add("onUnityAdClicked");
+        if (rewarded) eventList.add("onUnityAdRewarded");
+        eventList.add("onUnityAdShowCompleted");
+        eventList.add("onUnityAdShowFailed");
+        eventList.add("onUnityAdExpired");
+    }
+
+    private static void addUnityBannerAdEvents(ArrayList<String> eventList) {
+        eventList.add("onUnityAdLoaded");
+        eventList.add("onUnityAdFailedToLoad");
+        eventList.add("onUnityBannerShown");
+        eventList.add("onUnityAdClicked");
+        eventList.add("onUnityAdShowFailed");
     }
 }

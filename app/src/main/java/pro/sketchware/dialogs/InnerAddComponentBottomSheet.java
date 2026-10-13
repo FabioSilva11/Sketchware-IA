@@ -32,6 +32,7 @@ import mod.hey.studios.util.Helper;
 import mod.hilal.saif.components.ComponentsHandler;
 import pro.sketchware.R;
 import pro.sketchware.supabase.SupabaseSettings;
+import pro.sketchware.unityads.UnityAdsSettings;
 import pro.sketchware.databinding.LogicAddComponentDialogBinding;
 import pro.sketchware.lib.DebouncedClickListener;
 import pro.sketchware.utility.TranslationFunction;
@@ -97,6 +98,18 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 binding.tiInputFirebasePath.setVisibility(View.VISIBLE);
                 break;
 
+            case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD:
+            case ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD:
+            case ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD:
+                // The placement (ad unit) ID, in the same field; new Unity projects have these three already
+                binding.tiInputFirebasePath.setVisibility(View.VISIBLE);
+                if (Helper.getText(binding.edInputFirebasePath).isEmpty()) {
+                    binding.edInputFirebasePath.setText(componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD
+                            ? "Interstitial_Android" : componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD
+                            ? "Rewarded_Android" : "Banner_Android");
+                }
+                break;
+
             case ComponentBean.COMPONENT_TYPE_GYROSCOPE:
                 if (!GB.b(getContext(), Sensor.TYPE_GYROSCOPE)) {
                     binding.cardWarning.setVisibility(View.VISIBLE);
@@ -148,6 +161,11 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
         } else if (componentBean.type == ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE) {
             binding.tiInputFirebasePath.setHint(Helper.getResString(R.string.supabase_component_bucket_hint));
             binding.tiInputFirebasePath.setHelperText(Helper.getResString(R.string.supabase_component_bucket_helper));
+        } else if (componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD
+                || componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD
+                || componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD) {
+            binding.tiInputFirebasePath.setHint(Helper.getResString(R.string.unity_ads_component_placement_hint));
+            binding.tiInputFirebasePath.setHelperText(Helper.getResString(R.string.unity_ads_component_placement_helper));
         }
         binding.tiInputFilePicker.setHelperText(Helper.getResString(R.string.component_description_file_picker_guide_mime_type_example));
 
@@ -282,6 +300,22 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 }
                 binding.tiInputFirebasePath.setError(null);
                 jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, name);
+                break;
+
+            case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD:
+            case ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD:
+            case ComponentBean.COMPONENT_TYPE_UNITY_BANNER_AD:
+                if (!UnityAdsSettings.isConfigured(scId)) {
+                    bB.b(getContext(), Helper.getResString(R.string.unity_ads_component_setup_first), bB.TOAST_WARNING).show();
+                    return false;
+                }
+                String placementId = Helper.getText(binding.edInputFirebasePath).trim();
+                if (!placementId.matches("[A-Za-z0-9_.\\-]+")) {
+                    binding.tiInputFirebasePath.setError(Helper.getResString(R.string.unity_ads_component_placement_invalid));
+                    return false;
+                }
+                binding.tiInputFirebasePath.setError(null);
+                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, placementId);
                 break;
 
             case ComponentBean.COMPONENT_TYPE_FRAGMENT_ADAPTER:

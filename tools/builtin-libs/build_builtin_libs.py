@@ -2,7 +2,7 @@
 """Rebuilds the compile assets Sketchware uses to build projects on the device.
 
 Outputs (in app/src/main/assets/libs/):
-  libs.zip         one folder per library: classes.jar, res/, assets/, AndroidManifest.xml,
+  libs.zip         one folder per library: classes.jar, res/, assets/, jni/, AndroidManifest.xml,
                    R.txt, proguard.txt
   dexs.zip         one <library>.dex per library, dexed with D8 for --min-api 21
   android.jar.zip  the framework jar generated projects compile against
@@ -457,8 +457,9 @@ def main():
             name = folder_name(component["group"], component["module"], component["version"])
             info = unpack(component, libs_root / name)
             if info["jni"]:
-                log(f"warning: {name} ships native libraries, which built-in libraries don't support")
-            if not (info["has_classes"] or info["has_res"] or info["has_assets"]):
+                abis = sorted(p.name for p in (libs_root / name / "jni").iterdir() if p.is_dir())
+                log(f"{name}: keeps its native libraries for {', '.join(abis)}")
+            if not (info["has_classes"] or info["has_res"] or info["has_assets"] or info["jni"]):
                 manifest = libs_root / name / "AndroidManifest.xml"
                 if manifest.exists() and re.search(r"<(application\b[^>]*>\s*<|uses-permission|queries|permission\b)",
                                                    manifest.read_text(encoding="utf-8")):

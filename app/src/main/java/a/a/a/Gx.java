@@ -140,6 +140,10 @@ public class Gx {
                 classInfos = "View.AdView";
                 break;
 
+            case "UnityBannerView":
+                classInfos = "View.UnityBannerView";
+                break;
+
             case "MapView":
                 classInfos = "View.MapView";
                 break;
@@ -446,6 +450,18 @@ public class Gx {
 
             case "SupabaseStorage":
                 classInfos = "Component.Supabase.SupabaseStorage";
+                break;
+
+            case "UnityInterstitialAd":
+                classInfos = "Component.UnityAds.UnityInterstitialAd";
+                break;
+
+            case "UnityRewardedAd":
+                classInfos = "Component.UnityAds.UnityRewardedAd";
+                break;
+
+            case "UnityBannerAd":
+                classInfos = "Component.UnityAds.UnityBannerAd";
                 break;
 
             case "FirebaseStorage":

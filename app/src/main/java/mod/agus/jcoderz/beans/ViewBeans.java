@@ -222,6 +222,8 @@ public class ViewBeans {
     public static final int VIEW_TYPE_LAYOUT_INCLUDE = 191;
     /** Plain android.view.View, Space or divider (the tag comes from ViewBean.convert). */
     public static final int VIEW_TYPE_WIDGET_VIEW = 192;
+    /** Unity Ads banner: a FrameLayout subclass generated per app (UnityBannerView), placement ID in ViewBean.adUnitId. */
+    public static final int VIEW_TYPE_WIDGET_UNITY_BANNER = 193;
 
     /**
      * Map that stores both a view's type and type name.
@@ -420,6 +422,7 @@ public class ViewBeans {
             .put(VIEW_TYPE_WIDGET_AVATARVIEW, "AvatarView")
             .put(VIEW_TYPE_LAYOUT_INCLUDE, "Include")
             .put(VIEW_TYPE_WIDGET_VIEW, "View")
+            .put(VIEW_TYPE_WIDGET_UNITY_BANNER, "UnityBannerView")
             .build();
 
     public static String buildClassInfo(int id) {
@@ -580,6 +583,7 @@ public class ViewBeans {
             case VIEW_TYPE_WIDGET_AVATARVIEW -> R.drawable.ic_mtrl_camera;
             case VIEW_TYPE_LAYOUT_INCLUDE -> R.drawable.ic_mtrl_frame_source;
             case VIEW_TYPE_WIDGET_VIEW -> R.drawable.ic_mtrl_rectangle;
+            case VIEW_TYPE_WIDGET_UNITY_BANNER -> R.drawable.ic_mtrl_unity_ads;
             default -> id;
         };
     }

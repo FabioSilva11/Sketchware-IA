@@ -315,8 +315,17 @@ public class Ox {
             // An include whose layout wasn't chosen yet would point at a missing resource.
             return;
         }
-        XmlBuilder widgetTag = convert.isEmpty() ? new XmlBuilder(viewBean.getClassInfo().getClassName()) :
+        boolean unityBanner = viewBean.type == ViewBeans.VIEW_TYPE_WIDGET_UNITY_BANNER;
+        // UnityBannerView.java is generated in the app's package; it reads its placement ID from the tag.
+        XmlBuilder widgetTag = unityBanner ? new XmlBuilder(pro.sketchware.unityads.UnityAdsClientSource.bannerViewClass(
+                buildConfig.packageName == null ? "" : buildConfig.packageName)) :
+                convert.isEmpty() ? new XmlBuilder(viewBean.getClassInfo().getClassName()) :
                 new XmlBuilder(convert.replaceAll(" ", ""));
+        if (unityBanner) {
+            if (!toNotAdd.contains("android:tag") && !injectHandler.contains("tag")) {
+                widgetTag.addAttribute("android", "tag", viewBean.adUnitId == null ? "" : viewBean.adUnitId);
+            }
+        }
         if (modernInclude) {
             // <include> accepts an id and layout_* parameters; width and height must both be set for
             // the other layout parameters (margins, rules, constraints) to apply.

@@ -929,6 +929,10 @@ public class LogicEditorActivity extends BaseAppCompatActivity implements View.O
                                             eC.g(xmlName, ViewBean.VIEW_TYPE_WIDGET_ADVIEW, parameter);
                                             break;
 
+                                        case "unitybanner":
+                                            eC.g(xmlName, mod.agus.jcoderz.beans.ViewBeans.VIEW_TYPE_WIDGET_UNITY_BANNER, parameter);
+                                            break;
+
                                         case "listview":
                                             eC.g(xmlName, ViewBean.VIEW_TYPE_WIDGET_LISTVIEW, parameter);
                                             break;
