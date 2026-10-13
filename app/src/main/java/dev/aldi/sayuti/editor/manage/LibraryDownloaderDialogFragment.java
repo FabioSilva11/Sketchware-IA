@@ -9,6 +9,7 @@ import static dev.aldi.sayuti.editor.manage.LocalLibrariesUtil.createLibraryMap;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.widget.Toast;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -50,6 +51,8 @@ public class LibraryDownloaderDialogFragment extends BottomSheetDialogFragment {
     private DependencyDownloadAdapter dependencyAdapter;
     private final List<DependencyDownloadItem> downloadItems = new ArrayList<>();
     private final List<String> queuedDependencies = new ArrayList<>();
+    /** Libraries saved without classes.dex: the build converts them, or says why it can't. */
+    private final List<String> dexingFailures = new ArrayList<>();
     private ExecutorService downloadExecutor;
 
     private final Gson gson = new Gson();
@@ -415,6 +418,7 @@ public class LibraryDownloaderDialogFragment extends BottomSheetDialogFragment {
                 @Override
                 public void dexingFailed(@NonNull Artifact dependency, @NonNull Exception e) {
                     handler.post(() -> {
+                        dexingFailures.add(dependency.toString());
                         DependencyDownloadItem item = findOrCreateDependencyItem(dependency);
                         item.setError("Dexing failed: " + e.getMessage());
                         dependencyAdapter.updateDependency(item);
@@ -445,7 +449,14 @@ public class LibraryDownloaderDialogFragment extends BottomSheetDialogFragment {
     }
 
     private void finishDownloadFlow() {
-        SketchwareUtil.toast("Library downloaded successfully");
+        if (dexingFailures.isEmpty()) {
+            SketchwareUtil.toast("Library downloaded successfully");
+        } else {
+            // Saying "successfully" here hid libraries whose code was then left out of the APK
+            SketchwareUtil.toastError("Downloaded, but " + String.join(", ", dexingFailures)
+                    + " couldn't be converted to DEX. Building the project converts it again or says why it can't.",
+                    Toast.LENGTH_LONG);
+        }
         if (getActivity() == null) return;
         dismiss();
         if (onLibraryDownloadedTask != null) onLibraryDownloadedTask.invoke();
