@@ -97,6 +97,25 @@ public final class IncludedViews {
             }
             return expression.toString();
         }
+
+        /**
+         * Whether the screen reaches this widget through one of {@code ids} of the layout {@code xml}: an include on
+         * the way (at any depth) or the widget itself in its own layout.
+         */
+        public boolean reachedThrough(@NonNull String xml, @NonNull Set<String> ids) {
+            for (int i = 0; i < path.size(); i++) {
+                if (layouts.get(i).equals(xml) && ids.contains(path.get(i))) return true;
+            }
+            return false;
+        }
+
+        /** Whether the screen reaches this widget through one of the layouts {@code xmls} (not the screen's own). */
+        public boolean reachedThroughLayouts(@NonNull Set<String> xmls) {
+            for (int i = 1; i < layouts.size(); i++) {
+                if (xmls.contains(layouts.get(i))) return true;
+            }
+            return false;
+        }
     }
 
     /** Why an include's widgets are left out: shown to the user rather than generating a wrong reference. */
@@ -220,6 +239,46 @@ public final class IncludedViews {
         for (ProjectFileBean file : files.b()) layouts.add(file.getXmlName());
         for (ProjectFileBean file : files.c()) layouts.add(file.getXmlName());
         return layouts;
+    }
+
+    /**
+     * Call before the widgets {@code removed} leave the layout {@code xml}. A screen that reached a widget through
+     * them (an include, an include nested in an included layout, or the widget itself inside an included layout)
+     * loses that widget's events and the blocks' references to it, as deleting one of its own widgets does.
+     */
+    public static void forgetLogicReachedThrough(@NonNull eC data, @NonNull String scId, @NonNull String xml,
+                                                 @NonNull List<ViewBean> removed) {
+        Set<String> ids = new HashSet<>();
+        for (ViewBean bean : removed) {
+            if (bean != null && bean.id != null) ids.add(bean.id);
+        }
+        if (ids.isEmpty()) return;
+        for (ProjectFileBean screen : jC.b(scId).b()) {
+            for (Entry entry : resolve(data, screen.getXmlName()).entries) {
+                if (entry.reachedThrough(xml, ids)) forget(data, screen.getJavaName(), entry);
+            }
+        }
+    }
+
+    /**
+     * Call before the layouts {@code removedXmls} are deleted from the project, while they can still be resolved:
+     * the screens {@code screens} lose the logic of the widgets they reached through them.
+     */
+    public static void forgetLogicReachedThroughLayouts(@NonNull eC data, @NonNull List<ProjectFileBean> screens,
+                                                        @NonNull Set<String> removedXmls) {
+        if (removedXmls.isEmpty()) return;
+        for (ProjectFileBean screen : screens) {
+            if (removedXmls.contains(screen.getXmlName())) continue;
+            for (Entry entry : resolve(data, screen.getXmlName()).entries) {
+                if (entry.reachedThroughLayouts(removedXmls)) forget(data, screen.getJavaName(), entry);
+            }
+        }
+    }
+
+    /** What eC does for a widget of the screen itself: its events with their blocks, and blocks pointing at it. */
+    private static void forget(eC data, String javaName, Entry entry) {
+        data.m(javaName, entry.id);
+        data.a(javaName, entry.view.getClassInfo(), entry.id, true);
     }
 
     /**

@@ -359,6 +359,8 @@ public class ViewEditorFragment extends qA {
 
                     viewEditor.a(viewEditor.e(currentUpdateData), false);
                 } else if (actionType == HistoryViewBean.ACTION_TYPE_REMOVE) {
+                    pro.sketchware.utility.IncludedViews.forgetLogicReachedThrough(jC.a(sc_id), sc_id,
+                            projectFileBean.getXmlName(), historyViewBean.getRemovedData());
                     for (ViewBean viewBean : historyViewBean.getRemovedData()) {
                         jC.a(sc_id).a(projectFileBean, viewBean);
                     }
@@ -406,6 +408,8 @@ public class ViewEditorFragment extends qA {
             if (historyViewBean != null) {
                 int actionType = historyViewBean.getActionType();
                 if (actionType == HistoryViewBean.ACTION_TYPE_ADD) {
+                    pro.sketchware.utility.IncludedViews.forgetLogicReachedThrough(jC.a(sc_id), sc_id,
+                            projectFileBean.getXmlName(), historyViewBean.getAddedData());
                     for (ViewBean view : historyViewBean.getAddedData()) {
                         jC.a(sc_id).a(projectFileBean, view);
                     }

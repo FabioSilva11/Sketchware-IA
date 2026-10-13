@@ -1,6 +1,7 @@
 package pro.sketchware.utility;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -14,6 +15,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import mod.agus.jcoderz.beans.ViewBeans;
 
@@ -159,5 +161,40 @@ public class IncludedViewsTest {
         assertEquals("button1", button.id);
         assertTrue(button.text.text == null || !button.text.text.equals("changed"));
         assertEquals("cabecalho", IncludedViews.includedLayout(include("i", "cabecalho")));
+    }
+
+    /** Deleting an include, or a widget anywhere on the way, takes the logic of the widgets reached through it. */
+    @Test
+    public void entriesKnowWhatTheyAreReachedThrough() {
+        cabecalho();
+        layouts.get("cabecalho.xml").add(include("include3", "rodape"));
+        layout("rodape", view("text_view", ViewBean.VIEW_TYPE_WIDGET_TEXTVIEW, "TextView"));
+        IncludedViews.Result result = resolve(include("include1", "cabecalho"), include("include2", "rodape"));
+        IncludedViews.Entry nested = result.find("include1_include3_text_view");
+        IncludedViews.Entry button = result.find("include1_button1");
+        IncludedViews.Entry direct = result.find("include2_text_view");
+
+        // The screen's include
+        assertTrue(nested.reachedThrough("main.xml", Set.of("include1")));
+        assertTrue(button.reachedThrough("main.xml", Set.of("include1")));
+        assertFalse(direct.reachedThrough("main.xml", Set.of("include1")));
+        // An include inside the included layout
+        assertTrue(nested.reachedThrough("cabecalho.xml", Set.of("include3")));
+        assertFalse(button.reachedThrough("cabecalho.xml", Set.of("include3")));
+        // The widget itself, deleted in its own layout: every instance loses it
+        assertTrue(nested.reachedThrough("rodape.xml", Set.of("text_view")));
+        assertTrue(direct.reachedThrough("rodape.xml", Set.of("text_view")));
+        assertTrue(button.reachedThrough("cabecalho.xml", Set.of("button1")));
+        // The same id in another layout is another widget
+        assertFalse(button.reachedThrough("rodape.xml", Set.of("button1")));
+        assertFalse(button.reachedThrough("main.xml", Set.of("button1")));
+
+        // Deleting a layout of the project
+        assertTrue(nested.reachedThroughLayouts(Set.of("rodape.xml")));
+        assertTrue(direct.reachedThroughLayouts(Set.of("rodape.xml")));
+        assertFalse(button.reachedThroughLayouts(Set.of("rodape.xml")));
+        assertTrue(button.reachedThroughLayouts(Set.of("cabecalho.xml")));
+        // The screen's own layout isn't "reached through"
+        assertFalse(button.reachedThroughLayouts(Set.of("main.xml")));
     }
 }

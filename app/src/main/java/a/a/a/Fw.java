@@ -114,6 +114,8 @@ public class Fw extends qA {
         ProjectFileBean projectFileBean = activitiesFiles.get(projectFilesAdapter.layoutPosition);
 
         ArrayList<ViewBean> fileViewBeans = jC.a(sc_id).d(projectFileBean.getXmlName());
+        pro.sketchware.utility.IncludedViews.forgetLogicReachedThrough(jC.a(sc_id), sc_id,
+                projectFileBean.getXmlName(), new ArrayList<>(fileViewBeans));
         for (int i = fileViewBeans.size() - 1; i >= 0; --i) {
             jC.a(sc_id).a(projectFileBean, fileViewBeans.get(i));
         }

@@ -257,6 +257,8 @@ public class ViewSelectorActivity extends BaseAppCompatActivity {
 
     private void a(ProjectFileBean presetData, ProjectFileBean projectFile, int requestCode) {
         ArrayList<ViewBean> d = jC.a(sc_id).d(projectFile.getXmlName());
+        pro.sketchware.utility.IncludedViews.forgetLogicReachedThrough(jC.a(sc_id), sc_id,
+                projectFile.getXmlName(), new ArrayList<>(d));
         for (int size = d.size() - 1; size >= 0; size--) {
             jC.a(sc_id).a(projectFile, d.get(size));
         }

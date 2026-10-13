@@ -159,6 +159,19 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
         customViewsFragment.g();
     }
 
+    /**
+     * Layouts deleted here may be included by the screens that stay: those lose the events and block references of
+     * the widgets they reached through them, while the layouts can still be resolved.
+     */
+    private void forgetLogicOfDeletedLayouts() {
+        java.util.Set<String> removed = new java.util.HashSet<>();
+        for (ProjectFileBean file : jC.b(sc_id).b()) removed.add(file.getXmlName());
+        for (ProjectFileBean file : jC.b(sc_id).c()) removed.add(file.getXmlName());
+        for (ProjectFileBean file : activitiesFragment.c()) removed.remove(file.getXmlName());
+        for (ProjectFileBean file : customViewsFragment.c()) removed.remove(file.getXmlName());
+        pro.sketchware.utility.IncludedViews.forgetLogicReachedThroughLayouts(jC.a(sc_id), activitiesFragment.c(), removed);
+    }
+
     public ArrayList<String> l() {
         ArrayList<String> projectLayoutFiles = new ArrayList<>();
         projectLayoutFiles.add("debug");
@@ -177,6 +190,7 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
     }
 
     public final void m() {
+        forgetLogicOfDeletedLayouts();
         jC.b(sc_id).a(activitiesFragment.c());
         jC.b(sc_id).b(customViewsFragment.c());
         jC.b(sc_id).l();
