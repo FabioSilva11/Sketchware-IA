@@ -421,7 +421,8 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
     private void setupMainPager(int initialPage) {
         binding.container.setAdapter(new MainPagerAdapter(this));
-        binding.container.setOffscreenPageLimit(MAIN_PAGE_COUNT - 1);
+        // No offscreen limit: only the shown tab is built at startup, the others when first opened. Building all
+        // four (store listings, web services, chat) took most of the time before the project list appeared.
         binding.container.setCurrentItem(initialPage, false);
         updateSelectedPage(initialPage);
         binding.bottomNav.setSelectedItemId(pageToNavId(initialPage));

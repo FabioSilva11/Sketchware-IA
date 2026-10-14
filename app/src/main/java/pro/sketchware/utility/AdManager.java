@@ -107,8 +107,12 @@ public final class AdManager {
 
     private static void initializeMobileAds() {
         if (appContext == null || !adsInitialized.compareAndSet(false, true)) return;
-        if (BuildConfig.DEBUG) MobileAds.setRequestConfiguration(new RequestConfiguration.Builder().build());
-        MobileAds.initialize(appContext, status -> flushPendingLoads());
+        // Off the main thread, as the Mobile Ads SDK asks: it sets up its WebView and adapters here, which held
+        // up the first screen. The completion listener still runs on the main thread.
+        new Thread(() -> {
+            if (BuildConfig.DEBUG) MobileAds.setRequestConfiguration(new RequestConfiguration.Builder().build());
+            MobileAds.initialize(appContext, status -> flushPendingLoads());
+        }, "MobileAdsInit").start();
     }
 
     private static void runWhenAdsReady(@NonNull Runnable operation) {
