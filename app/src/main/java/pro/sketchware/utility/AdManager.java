@@ -113,6 +113,7 @@ public final class AdManager {
                 return;
             }
             INITIALIZATION_BACKOFF.onSuccess();
+            log("initialized", null);
             applyContextualPrivacy();
             for (BannerSlot slot : new ArrayList<>(BANNERS.values())) slot.tryLoad();
         }));

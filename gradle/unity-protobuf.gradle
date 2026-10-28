@@ -1,0 +1,140 @@
+import org.gradle.api.attributes.Attribute
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.commons.ClassRemapper
+import org.objectweb.asm.commons.Remapper
+import java.util.zip.*
+
+buildscript {
+    repositories { mavenCentral() }
+    dependencies { classpath 'org.ow2.asm:asm-commons:9.8' }
+}
+
+/** Unity's generated messages require lite well-known types, while bundletool needs full ones.
+ * Relocate the SDK's private protobuf runtime and references; keep its Android manifest/resources.
+ * Never replace the full runtime with lite or simply exclude lite: both break runtime verification.
+ */
+class UnityProtobufRelocator {
+    static final String ORIGINAL = 'com/google/protobuf'
+    static final String PRIVATE = 'pro/sketchware/unity/protobuf'
+
+    static byte[] relocateArchive(byte[] source) {
+        def result = new ByteArrayOutputStream()
+        def input = new ZipInputStream(new ByteArrayInputStream(source))
+        def output = new ZipOutputStream(result)
+        def remapper = new Remapper() {
+            @Override String map(String name) {
+                name.startsWith(ORIGINAL + '/') ? PRIVATE + name.substring(ORIGINAL.length()) : name
+            }
+            @Override Object mapValue(Object value) {
+                // Includes reflective class names used by protobuf's runtime.
+                if (value instanceof String) {
+                    return value.replace('com.google.protobuf.', 'pro.sketchware.unity.protobuf.')
+                            .replace(ORIGINAL + '/', PRIVATE + '/')
+                }
+                return super.mapValue(value)
+            }
+        }
+        try {
+            ZipEntry entry
+            while ((entry = input.nextEntry) != null) {
+                if (entry.directory) continue
+                // Rewritten JARs cannot retain upstream signatures.
+                if (entry.name ==~ /META-INF\/.*\.(SF|RSA|DSA)/) continue
+                byte[] data = input.readAllBytes()
+                String name = entry.name.replace(ORIGINAL + '/', PRIVATE + '/')
+                if (name.endsWith('.class')) {
+                    def writer = new ClassWriter(0)
+                    new ClassReader(data).accept(new ClassRemapper(writer, remapper), 0)
+                    data = writer.toByteArray()
+                } else if (name.endsWith('.jar')) {
+                    data = relocateArchive(data)
+                } else if (name.endsWith('.pro') || name == 'proguard.txt') {
+                    data = new String(data, 'UTF-8').replace('com.google.protobuf',
+                            'pro.sketchware.unity.protobuf').getBytes('UTF-8')
+                }
+                def relocated = new ZipEntry(name)
+                relocated.time = 0
+                output.putNextEntry(relocated)
+                output.write(data)
+                output.closeEntry()
+            }
+        } finally {
+            input.close()
+            output.close()
+        }
+        return result.toByteArray()
+    }
+
+}
+
+def unityArchive = configurations.create('unityOriginalArchive') { transitive = false }
+def unityLite = configurations.create('unityOriginalProtobuf') { transitive = false }
+// Resolve the original POM separately so SDK upgrades retain all Android dependencies.
+def unityMetadata = configurations.create('unityOriginalMetadata')
+dependencies {
+    add(unityArchive.name, libs.unity.ads)
+    add(unityMetadata.name, libs.unity.ads)
+    add(unityLite.name, 'com.google.protobuf:protobuf-javalite:3.25.6')
+    add(unityLite.name, 'com.google.protobuf:protobuf-kotlin-lite:3.25.6')
+}
+configurations.named('implementation') {
+    dependencies.addAllLater(providers.provider {
+        def sdk = unityMetadata.incoming.resolutionResult.root.dependencies.first().selected
+        sdk.dependencies.findAll { it.selected.moduleVersion.group != 'com.google.protobuf' }.collect {
+            def id = it.selected.moduleVersion
+            project.dependencies.create("${id.group}:${id.name}:${id.version}")
+        }
+    })
+}
+def isolatedAar = layout.buildDirectory.file('unity-isolated/unity-ads-isolated.aar')
+def isolateUnity = tasks.register('isolateUnityProtobuf') {
+    inputs.files(unityArchive, unityLite).withPathSensitivity(PathSensitivity.NAME_ONLY)
+    outputs.file(isolatedAar)
+    doLast {
+        File target = isolatedAar.get().asFile
+        target.parentFile.mkdirs()
+        byte[] sdk = UnityProtobufRelocator.relocateArchive(unityArchive.singleFile.bytes)
+        def input = new ZipInputStream(new ByteArrayInputStream(sdk))
+        def output = new ZipOutputStream(new FileOutputStream(target))
+        try {
+            ZipEntry entry
+            while ((entry = input.nextEntry) != null) {
+                output.putNextEntry(new ZipEntry(entry.name))
+                output.write(input.readAllBytes())
+                output.closeEntry()
+            }
+            unityLite.files.sort { it.name }.each { file ->
+                output.putNextEntry(new ZipEntry('libs/' + file.name))
+                output.write(UnityProtobufRelocator.relocateArchive(file.bytes))
+                output.closeEntry()
+            }
+        } finally { input.close(); output.close() }
+    }
+}
+dependencies.add('implementation', files(isolatedAar).builtBy(isolateUnity))
+
+// A small regression check that does not require compiling the entire editor.
+def smokeJunit = configurations.create('unityProtobufSmokeJunit')
+dependencies.add(smokeJunit.name, 'junit:junit:4.13.2')
+def smokeClasses = layout.buildDirectory.dir('unity-protobuf-smoke')
+def compileSmoke = tasks.register('compileUnityProtobufSmoke', JavaCompile) {
+    source = fileTree('src/test/java') { include '**/UnityProtobufCompatibilityTest.java' }
+    classpath = smokeJunit
+    destinationDirectory = smokeClasses
+    sourceCompatibility = '17'
+    targetCompatibility = '17'
+}
+tasks.register('verifyUnityProtobufCompatibility', JavaExec) {
+    dependsOn compileSmoke
+    def runtime = configurations.named('debugRuntimeClasspath').get().incoming.artifactView {
+        attributes {
+            attribute(Attribute.of('artifactType', String), 'android-classes-jar')
+        }
+    }.files
+    classpath = files(smokeClasses, smokeJunit, runtime)
+    mainClass = 'pro.sketchware.utility.UnityProtobufCompatibilityTest'
+    maxHeapSize = '64m'
+}

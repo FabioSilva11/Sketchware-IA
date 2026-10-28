@@ -8,6 +8,7 @@ def analyticsEnabled = (secrets != null) || googleServicesFile.exists()
 apply plugin: "com.android.application"
 apply plugin: "com.google.gms.google-services"
 apply plugin: "com.google.firebase.crashlytics"
+apply from: rootProject.file("gradle/unity-protobuf.gradle")
 
 android {
     compileSdk = 37
@@ -84,6 +85,8 @@ android {
         resources.excludes += "license/*"
         resources.excludes += "META-INF/DEPENDENCIES"
         resources.pickFirsts += "api_database/*"
+        // Full and isolated lite protobuf 3.25.6 ship the same schema resources.
+        resources.pickFirsts += "google/protobuf/*.proto"
         // jniLibs/<abi>/libaapt2.so is the AAPT2 executable. Android only lets apps execute
         // files the installer extracted to nativeLibraryDir, so keep it extracted and unstripped.
         jniLibs.useLegacyPackaging = true
@@ -167,10 +170,7 @@ dependencies {
 
     implementation libs.libsu
     implementation libs.insetter
-    implementation(libs.bundles.ads) {
-        // Bundletool needs the full runtime, which also provides Unity's protobuf lite APIs.
-        exclude group: "com.google.protobuf", module: "protobuf-javalite"
-    }
+    // Unity and its dependencies are wired by gradle/unity-protobuf.gradle.
 
     implementation(libs.javaparser.symbol.solver) {
         exclude group: "com.google.guava", module: "guava"
