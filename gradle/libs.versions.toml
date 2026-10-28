@@ -36,7 +36,6 @@ nbJavacAndroid = "17.0.0.3"
 okhttp = "5.5.0"
 paging = "3.5.0"
 okio = "3.18.2"
-playServicesAds = "25.5.0"
 preference = "1.2.1"
 proguardCore = "9.0.2"
 protobufJava = "3.19.2"
@@ -46,7 +45,7 @@ scpkixJdk15on = "1.47.0.2"
 sdklib = "25.3.0"
 staxApi = "1.0-2"
 swiperefreshlayout = "1.2.0"
-userMessagingPlatform = "4.0.0"
+unityAds = "4.21.0"
 viewpager = "1.1.0"
 woodstoxCore = "7.3.0"
 zipalignJava = "1.2.2"
@@ -71,8 +70,7 @@ firebase-database = { module = "com.google.firebase:firebase-database" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 
 flexbox = { module = "com.google.android.flexbox:flexbox", version.ref = "flexbox" }
-play-services-ads = { module = "com.google.android.gms:play-services-ads", version.ref = "playServicesAds" }
-user-messaging-platform = { module = "com.google.android.ump:user-messaging-platform", version.ref = "userMessagingPlatform" }
+unity-ads = { module = "com.unity3d.ads:unity-ads", version.ref = "unityAds" }
 lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 
@@ -149,4 +147,4 @@ shrinker = ["r8", "proguard-core"]
 kotlin_compiler = ["kotlinc-for1-sketchware", "nb-javac-android", "woodstox-core"]
 editor_and_lang = ["editor", "language-java", "language-textmate"]
 firebase = ["firebase-analytics", "firebase-crashlytics", "firebase-messaging", "firebase-database"]
-ads = ["play-services-ads", "user-messaging-platform"]
+ads = ["unity-ads"]

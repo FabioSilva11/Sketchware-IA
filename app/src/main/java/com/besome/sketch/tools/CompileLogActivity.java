@@ -108,7 +108,7 @@ public class CompileLogActivity extends BaseAppCompatActivity {
         applyLogViewerPreferences();
         setErrorText();
 
-        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/2525937709");
+        AdManager.loadBanner(this, binding.adContainer);
     }
 
     private void clearLog() {

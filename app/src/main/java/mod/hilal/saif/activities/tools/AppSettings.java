@@ -132,7 +132,7 @@ public class AppSettings extends BaseAppCompatActivity {
         params.bottomMargin = marginVertical;
         adContainer.setLayoutParams(params);
 
-        AdManager.loadBanner(this, adContainer, "ca-app-pub-6598765502914364/9402654479");
+        AdManager.loadBanner(this, adContainer);
         return adContainer;
     }
 

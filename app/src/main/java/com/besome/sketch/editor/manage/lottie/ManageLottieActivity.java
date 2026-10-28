@@ -103,7 +103,7 @@ public class ManageLottieActivity extends BaseAppCompatActivity implements ViewP
         binding.viewPager.setOffscreenPageLimit(2);
         binding.viewPager.addOnPageChangeListener(this);
         binding.tabLayout.setupWithViewPager(binding.viewPager);
-        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/9870075252");
+        AdManager.loadBanner(this, binding.adContainer);
         AdManager.keepAboveBanner((View) binding.fab.getParent(), binding.adContainer);
     }
 

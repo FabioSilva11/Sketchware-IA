@@ -23,9 +23,6 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.nativead.NativeAd;
-import com.google.android.gms.ads.nativead.NativeAdView;
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -38,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import a.a.a.MA;
 import a.a.a.mB;
@@ -48,7 +44,6 @@ import pro.sketchware.R;
 import pro.sketchware.databinding.ManageLocallibrariesBinding;
 import pro.sketchware.databinding.ViewItemLocalLibBinding;
 import pro.sketchware.databinding.ViewItemLocalLibSearchBinding;
-import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.TranslationFunction;
 
@@ -237,8 +232,6 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
                 }
             }
         });
-
-        AdManager.preloadNativeAd(this);
     }
 
     private void runLoadLocalLibrariesTask() {
@@ -350,34 +343,20 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
     }
 
     public class LibraryAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-        private static final int VIEW_TYPE_LIBRARY = 0;
-        private static final int VIEW_TYPE_NATIVE_AD = 1;
-        private static final int NATIVE_AD_INTERVAL = 5;
-
         private final List<LocalLibrary> localLibraries = new ArrayList<>();
-        private WeakReference<NativeAd> loadedAd = new WeakReference<>(null);
-        private final AtomicBoolean loadingAd = new AtomicBoolean(false);
         public boolean isSelectionModeEnabled;
         private @Nullable OnLocalLibrarySelectedStateChangedListener onLocalLibrarySelectedStateChangedListener;
 
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            if (viewType == VIEW_TYPE_NATIVE_AD) {
-                View adView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_native_ad, parent, false);
-                return new NativeAdViewHolder(adView);
-            }
             return new ViewHolder(ViewItemLocalLibBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false));
         }
 
         @Override
         public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-            if (holder instanceof NativeAdViewHolder) {
-                bindNativeAd((NativeAdViewHolder) holder);
-                return;
-            }
             ViewHolder libraryHolder = (ViewHolder) holder;
-            int libraryPosition = translateToLibraryPosition(position);
+            int libraryPosition = position;
             if (libraryPosition < 0 || libraryPosition >= localLibraries.size()) {
                 return;
             }
@@ -424,13 +403,7 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
 
         @Override
         public int getItemCount() {
-            int libraryCount = localLibraries.size();
-            return libraryCount == 0 ? 0 : libraryCount + getNativeAdCountForTotalLibraries(libraryCount);
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return isNativeAdPosition(position) ? VIEW_TYPE_NATIVE_AD : VIEW_TYPE_LIBRARY;
+            return localLibraries.size();
         }
 
         public void setOnLocalLibrarySelectedStateChangedListener(
@@ -501,74 +474,6 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
             this.localLibraries.clear();
             this.localLibraries.addAll(localLibraries);
             notifyDataSetChanged();
-            if (this.localLibraries.size() >= NATIVE_AD_INTERVAL) {
-                AdManager.preloadNativeAd(ManageLocalLibraryActivity.this);
-            }
-        }
-
-        private int getNativeAdCountForTotalLibraries(int libraryCount) {
-            if (libraryCount < NATIVE_AD_INTERVAL) {
-                return 0;
-            }
-            return 1;
-        }
-
-        private boolean isNativeAdPosition(int virtualPosition) {
-            int libraryCount = localLibraries.size();
-            if (libraryCount < NATIVE_AD_INTERVAL) {
-                return false;
-            }
-            return virtualPosition == NATIVE_AD_INTERVAL;
-        }
-
-        private int translateToLibraryPosition(int virtualPosition) {
-            int adsBefore = virtualPosition / (NATIVE_AD_INTERVAL + 1);
-            return virtualPosition - adsBefore;
-        }
-
-        private void bindNativeAd(@NonNull NativeAdViewHolder holder) {
-            holder.adView.setVisibility(View.GONE);
-            NativeAd cached = loadedAd.get();
-            if (cached != null) {
-                AdManager.populateNativeAdView(cached, holder.adView);
-                return;
-            }
-            AdManager.consumeCachedNativeAd(new AdManager.NativeAdContainerBinder() {
-                @Override
-                public void bind(@NonNull NativeAd nativeAd) {
-                    loadedAd = new WeakReference<>(nativeAd);
-                    AdManager.populateNativeAdView(nativeAd, holder.adView);
-                }
-
-                @Nullable
-                @Override
-                public android.content.Context getContext() {
-                    return ManageLocalLibraryActivity.this;
-                }
-            }, new AdManager.NativeAdLoadCallback() {
-                @Override
-                public void onNativeAdLoaded(@NonNull NativeAd nativeAd) {
-                }
-
-                @Override
-                public void onNativeAdFailedToLoad(@NonNull LoadAdError error) {
-                    if (loadingAd.compareAndSet(false, true)) {
-                        AdManager.preloadNativeAd(ManageLocalLibraryActivity.this, AdManager.NATIVE_AD_UNIT_ID, new AdManager.NativeAdLoadCallback() {
-                            @Override
-                            public void onNativeAdLoaded(@NonNull NativeAd nativeAd) {
-                                loadingAd.set(false);
-                                loadedAd = new WeakReference<>(nativeAd);
-                                AdManager.populateNativeAdView(nativeAd, holder.adView);
-                            }
-
-                            @Override
-                            public void onNativeAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                                loadingAd.set(false);
-                            }
-                        });
-                    }
-                }
-            });
         }
 
         public static class ViewHolder extends RecyclerView.ViewHolder {
@@ -577,15 +482,6 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
             public ViewHolder(@NonNull ViewItemLocalLibBinding binding) {
                 super(binding.getRoot());
                 this.binding = binding;
-            }
-        }
-
-        public static class NativeAdViewHolder extends RecyclerView.ViewHolder {
-            private final NativeAdView adView;
-
-            public NativeAdViewHolder(@NonNull View itemView) {
-                super(itemView);
-                adView = (NativeAdView) itemView;
             }
         }
     }

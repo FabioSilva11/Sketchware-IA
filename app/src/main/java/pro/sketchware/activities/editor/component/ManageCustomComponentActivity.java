@@ -123,7 +123,7 @@ public class ManageCustomComponentActivity extends BaseAppCompatActivity {
             });
         }
 
-        AdManager.loadBanner(this, findViewById(R.id.ad_container), "ca-app-pub-6598765502914364/9870075252");
+        AdManager.loadBanner(this, findViewById(R.id.ad_container));
     }
 
     @Override

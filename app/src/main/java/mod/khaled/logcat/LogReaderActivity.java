@@ -64,7 +64,7 @@ public class LogReaderActivity extends BaseAppCompatActivity {
 
         initialize();
 
-        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/9402654479");
+        AdManager.loadBanner(this, binding.adContainer);
     }
 
     private void initialize() {

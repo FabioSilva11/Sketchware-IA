@@ -655,7 +655,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             registerReceiver(buildCancelReceiver, filter);
         }
 
-        AdManager.loadBanner(this, findViewById(R.id.ad_container), "ca-app-pub-6598765502914364/4929466111");
+        AdManager.loadBanner(this, findViewById(R.id.ad_container));
     }
 
     private boolean isDebugApkExists() {

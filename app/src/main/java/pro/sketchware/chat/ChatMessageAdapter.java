@@ -16,7 +16,6 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -28,16 +27,10 @@ import androidx.paging.PagingDataAdapter;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.gms.ads.nativead.MediaView;
-import com.google.android.gms.ads.nativead.NativeAd;
-import com.google.android.gms.ads.nativead.NativeAdView;
-
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import io.noties.markwon.Markwon;
 import pro.sketchware.R;
@@ -50,9 +43,6 @@ public class ChatMessageAdapter extends PagingDataAdapter<ChatPagingItem, Recycl
     private static final int VIEW_TYPE_CHECKPOINT = 4;
     private static final int VIEW_TYPE_AWAITING = 5;
     private static final int VIEW_TYPE_INTERRUPTED_TOOL = 6;
-    private static final int VIEW_TYPE_AD = 7;
-    /** Um novo anúncio nativo depois de cada N mensagens visíveis. */
-    public static final int AD_EVERY = 8;
 
     private static final DiffUtil.ItemCallback<ChatPagingItem> DIFF_CALLBACK =
             new DiffUtil.ItemCallback<ChatPagingItem>() {
@@ -73,32 +63,6 @@ public class ChatMessageAdapter extends PagingDataAdapter<ChatPagingItem, Recycl
     private final List<ChatMessage> messages;
     private Markwon markwon;
     private MessageActionListener actionListener;
-    private RecyclerView attachedRecyclerView;
-    private boolean lastPaidState = false;
-    private final Map<String, NativeAd> assignedAds = new HashMap<>();
-
-    private final AdmobNativeAdManager.Listener adStateListener =
-            () -> {
-                RecyclerView recyclerView = attachedRecyclerView;
-                if (recyclerView == null) {
-                    return;
-                }
-                recyclerView.post(() -> {
-                    for (int i = 0; i < getItemCount(); i++) {
-                        ChatPagingItem item = peek(i);
-                        if (item != null && item.isAd()) {
-                            notifyItemChanged(i);
-                        }
-                    }
-                });
-            };
-
-    /** Sem sessão Firebase, sempre mostra anúncios. */
-    private static boolean shouldShowAds() {
-        return true;
-    }
-
-
 
     public interface MessageActionListener {
         void onRegenerate(ChatMessage message);
@@ -145,9 +109,6 @@ public class ChatMessageAdapter extends PagingDataAdapter<ChatPagingItem, Recycl
     @Override
     public int getItemViewType(int position) {
         ChatPagingItem item = peek(position);
-        if (item != null && item.isAd()) {
-            return VIEW_TYPE_AD;
-        }
         ChatMessage msg = messageForItem(item);
         if (msg == null) return VIEW_TYPE_BOT;
         if (msg.isInterruptedStreamingTool()) return VIEW_TYPE_INTERRUPTED_TOOL;
@@ -163,8 +124,6 @@ public class ChatMessageAdapter extends PagingDataAdapter<ChatPagingItem, Recycl
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
         switch (viewType) {
-            case VIEW_TYPE_AD:
-                return new AdViewHolder(inflater.inflate(R.layout.item_chat_ad, parent, false));
             case VIEW_TYPE_TOOL:
                 return new ToolViewHolder(inflater.inflate(R.layout.item_message_tool, parent, false));
             case VIEW_TYPE_USER:
@@ -185,10 +144,6 @@ public class ChatMessageAdapter extends PagingDataAdapter<ChatPagingItem, Recycl
             return;
         }
         holder.itemView.setVisibility(View.VISIBLE);
-        if (item.isAd() && holder instanceof AdViewHolder) {
-            bindAd((AdViewHolder) holder, item);
-            return;
-        }
         int fullPosition = item.messageOrdinal;
         ChatMessage message = messageForItem(item);
         if (message == null) {
@@ -208,87 +163,6 @@ public class ChatMessageAdapter extends PagingDataAdapter<ChatPagingItem, Recycl
         } else if (holder instanceof ToolViewHolder) {
             bindTool((ToolViewHolder) holder, message);
         }
-    }
-
-    private void bindAd(@NonNull AdViewHolder holder, @NonNull ChatPagingItem item) {
-        Context context = holder.itemView.getContext();
-        FrameLayout container = holder.adContainer;
-        container.removeAllViews();
-        AdmobNativeAdManager manager = AdmobNativeAdManager.getInstance(context);
-        String adKey = item.stableKey();
-        NativeAd nativeAd = assignedAds.get(adKey);
-        if (nativeAd == null) {
-            nativeAd = manager.takeAd();
-            if (nativeAd != null) {
-                assignedAds.put(adKey, nativeAd);
-            }
-        }
-        if (nativeAd == null) {
-            ChatFlowLogger.event("ads", "row_loading",
-                    "slot=" + item.adSlot);
-            holder.adPlaceholder.setVisibility(View.VISIBLE);
-            container.addView(holder.adPlaceholder);
-            manager.requestAdIfNeeded();
-            return;
-        }
-        ChatFlowLogger.event("ads", "row_rendered",
-                "slot=" + item.adSlot);
-        holder.adPlaceholder.setVisibility(View.GONE);
-        NativeAdView adView = (NativeAdView) LayoutInflater.from(context)
-                .inflate(R.layout.native_ad_layout, container, false);
-        populateNativeAd(adView, nativeAd);
-        container.addView(adView);
-    }
-
-    private void populateNativeAd(@NonNull NativeAdView adView, @NonNull NativeAd nativeAd) {
-        TextView headline = adView.findViewById(R.id.ad_headline);
-        TextView body = adView.findViewById(R.id.ad_body);
-        TextView advertiser = adView.findViewById(R.id.ad_advertiser);
-        ImageView icon = adView.findViewById(R.id.ad_icon);
-        Button callToAction = adView.findViewById(R.id.ad_call_to_action);
-        MediaView mediaView = adView.findViewById(R.id.ad_media);
-
-        if (nativeAd.getHeadline() != null) {
-            headline.setText(nativeAd.getHeadline());
-            headline.setVisibility(View.VISIBLE);
-        } else {
-            headline.setVisibility(View.GONE);
-        }
-        if (nativeAd.getBody() != null) {
-            body.setText(nativeAd.getBody());
-            body.setVisibility(View.VISIBLE);
-        } else {
-            body.setVisibility(View.GONE);
-        }
-        if (nativeAd.getAdvertiser() != null) {
-            advertiser.setText(nativeAd.getAdvertiser());
-            advertiser.setVisibility(View.VISIBLE);
-        } else {
-            advertiser.setVisibility(View.GONE);
-        }
-        if (nativeAd.getIcon() != null && nativeAd.getIcon().getDrawable() != null) {
-            icon.setImageDrawable(nativeAd.getIcon().getDrawable());
-            icon.setVisibility(View.VISIBLE);
-        } else {
-            icon.setVisibility(View.GONE);
-        }
-        if (nativeAd.getCallToAction() != null) {
-            callToAction.setText(nativeAd.getCallToAction());
-            callToAction.setVisibility(View.VISIBLE);
-        } else {
-            callToAction.setVisibility(View.GONE);
-        }
-        if (nativeAd.getMediaContent() == null) {
-            mediaView.setVisibility(View.GONE);
-        }
-
-        adView.setHeadlineView(headline);
-        adView.setBodyView(body);
-        adView.setAdvertiserView(advertiser);
-        adView.setIconView(icon);
-        adView.setCallToActionView(callToAction);
-        adView.setMediaView(mediaView);
-        adView.setNativeAd(nativeAd);
     }
 
     private void bindMessage(@NonNull MessageViewHolder holder, @NonNull ChatMessage message) {
@@ -838,44 +712,8 @@ public class ChatMessageAdapter extends PagingDataAdapter<ChatPagingItem, Recycl
             if (dots != null) {
                 dots.stopAnimation();
             }
-        } else if (holder instanceof AdViewHolder) {
-            ((AdViewHolder) holder).adContainer.removeAllViews();
         }
         super.onViewRecycled(holder);
-    }
-
-    @Override
-    public void onAttachedToRecyclerView(@NonNull RecyclerView recyclerView) {
-        super.onAttachedToRecyclerView(recyclerView);
-        attachedRecyclerView = recyclerView;
-        lastPaidState = false;
-        AdmobNativeAdManager manager = AdmobNativeAdManager.getInstance(recyclerView.getContext());
-        manager.initialize();
-        manager.addListener(adStateListener);
-        if (shouldShowAds()) {
-            manager.requestAdIfNeeded();
-        }
-    }
-
-    @Override
-    public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
-        super.onDetachedFromRecyclerView(recyclerView);
-        attachedRecyclerView = null;
-
-        AdmobNativeAdManager manager =
-                AdmobNativeAdManager.getInstance(recyclerView.getContext());
-        manager.removeListener(adStateListener);
-        clearAssignedAds();
-        manager.destroy();
-    }
-
-    private void clearAssignedAds() {
-        for (NativeAd nativeAd : assignedAds.values()) {
-            if (nativeAd != null) {
-                nativeAd.destroy();
-            }
-        }
-        assignedAds.clear();
     }
 
     @Nullable
@@ -937,17 +775,6 @@ public class ChatMessageAdapter extends PagingDataAdapter<ChatPagingItem, Recycl
             actionMore = itemView.findViewById(R.id.action_more);
             textTokenCount = itemView.findViewById(R.id.text_token_count);
             streamingDots = itemView.findViewById(R.id.kelivo_streaming_dots);
-        }
-    }
-
-    public static class AdViewHolder extends RecyclerView.ViewHolder {
-        final FrameLayout adContainer;
-        final View adPlaceholder;
-
-        public AdViewHolder(@NonNull View itemView) {
-            super(itemView);
-            adContainer = itemView.findViewById(R.id.ad_container);
-            adPlaceholder = itemView.findViewById(R.id.ad_placeholder);
         }
     }
 

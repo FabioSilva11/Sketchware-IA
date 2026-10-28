@@ -80,7 +80,7 @@ public class ManageSoundActivity extends BaseAppCompatActivity implements ViewPa
         binding.viewPager.setOffscreenPageLimit(TAB_COUNT);
         binding.viewPager.addOnPageChangeListener(this);
         binding.tabLayout.setupWithViewPager(binding.viewPager);
-        AdManager.loadBanner(this, binding.adContainer, "ca-app-pub-6598765502914364/7586692691");
+        AdManager.loadBanner(this, binding.adContainer);
         AdManager.keepAboveBanner((View) binding.fab.getParent(), binding.adContainer);
     }
 

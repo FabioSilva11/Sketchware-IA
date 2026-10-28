@@ -28,6 +28,19 @@ public class ChatMessagePositionMapperTest {
     }
 
     @Test
+    public void withoutNativeAdsLongThreadsKeepEveryMessageAndToolInOrder() {
+        List<Integer> ordinals = new ArrayList<>();
+        List<String> roles = new ArrayList<>();
+        int[] expected = new int[100];
+        for (int i = 0; i < expected.length; i++) {
+            expected[i] = i;
+            ordinals.add(i);
+            roles.add(i % 4 == 0 ? U : i % 4 == 1 ? T : A);
+        }
+        assertArrayEquals(expected, ChatMessagePositionMapper.layout(ordinals, roles, false, 3));
+    }
+
+    @Test
     public void adsSitOnlyBeforeAUserMessageEveryFewTurns() {
         int[] rows = layout(true, 2, U, A, U, T, A, U, A, U, A, U);
         // turns start at ordinals 0, 2, 5, 7, 9: an ad before the 3rd and the 5th turn
