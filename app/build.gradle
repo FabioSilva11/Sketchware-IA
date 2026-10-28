@@ -167,7 +167,10 @@ dependencies {
 
     implementation libs.libsu
     implementation libs.insetter
-    implementation libs.bundles.ads
+    implementation(libs.bundles.ads) {
+        // Bundletool needs the full runtime, which also provides Unity's protobuf lite APIs.
+        exclude group: "com.google.protobuf", module: "protobuf-javalite"
+    }
 
     implementation(libs.javaparser.symbol.solver) {
         exclude group: "com.google.guava", module: "guava"
