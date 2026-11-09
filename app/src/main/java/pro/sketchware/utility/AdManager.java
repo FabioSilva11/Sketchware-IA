@@ -21,6 +21,11 @@ import com.unity3d.ads.BannerConfiguration;
 import com.unity3d.ads.BannerShowListener;
 import com.unity3d.ads.BannerSize;
 import com.unity3d.ads.InitializationConfiguration;
+import com.unity3d.ads.LoadConfiguration;
+import com.unity3d.ads.RewardedAd;
+import com.unity3d.ads.RewardedShowListener;
+import com.unity3d.ads.ShowConfiguration;
+import com.unity3d.ads.ShowFinishState;
 import com.unity3d.ads.UnityAds;
 import com.unity3d.ads.UnityAdsError;
 
@@ -53,6 +58,7 @@ public final class AdManager {
     private static boolean registered;
     private static boolean initializing;
     private static boolean ready;
+    private static Object rewardedRequest;
 
     private AdManager() { }
 
@@ -154,6 +160,46 @@ public final class AdManager {
         });
     }
 
+    /** Grants a single template import only after the opted-in video finishes. */
+    public static void showTemplateReward(@NonNull Activity activity,
+                                          @NonNull java.util.function.Consumer<Boolean> result) {
+        onMain(() -> {
+            if (!ready || rewardedRequest != null || !usable(activity) || !RESUMED.contains(activity)) {
+                ensureInitialized();
+                result.accept(false);
+                return;
+            }
+            Object request = new Object();
+            rewardedRequest = request;
+            java.util.function.Consumer<Boolean> finish = completed -> {
+                if (rewardedRequest != request) return;
+                rewardedRequest = null;
+                result.accept(completed && usable(activity));
+            };
+            Runnable loadTimeout = () -> finish.accept(false);
+            MAIN.postDelayed(loadTimeout, 20000);
+            RewardedAd.load(new LoadConfiguration.Builder(REWARDED_PLACEMENT_ID).build(),
+                    (ad, error) -> onMain(() -> {
+                        MAIN.removeCallbacks(loadTimeout);
+                        if (rewardedRequest != request) return;
+                        if (ad == null || error != null || !usable(activity) || !RESUMED.contains(activity)) {
+                            finish.accept(false);
+                            return;
+                        }
+                        ad.show(activity, new ShowConfiguration.Builder().build(), new RewardedShowListener() {
+                            @Override public void onStarted(RewardedAd ad) {}
+                            @Override public void onClicked(RewardedAd ad) {}
+                            @Override public void onRewarded(RewardedAd ad) {}
+                            @Override public void onCompleted(RewardedAd ad, ShowFinishState state) {
+                                onMain(() -> finish.accept(state == ShowFinishState.COMPLETED));
+                            }
+                            @Override public void onFailed(RewardedAd ad, UnityAdsError error) {
+                                onMain(() -> finish.accept(false));
+                            }
+                        });
+                    }));
+        });
+    }
     /** Keeps floating controls clear of the banner's actual height. */
     public static void keepAboveBanner(@NonNull View floating, @NonNull View adContainer) {
         adContainer.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> floating.setTranslationY(-(b - t)));

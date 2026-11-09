@@ -8,7 +8,7 @@
     <item
         android:id="@+id/item_store"
         android:icon="@drawable/ic_mtrl_category"
-        android:title="Store" />
+        android:title="Modelos" />
 
     <item
         android:id="@+id/item_web_service"

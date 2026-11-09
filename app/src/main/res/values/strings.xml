@@ -14,7 +14,7 @@
     <string name="main_search_chat_hint">Search projects to chat about...</string>
     <string name="main_restore_projects_description">Restore saved backups and imported projects.</string>
     <string name="main_drawer_subtitle">Project tools and app links</string>
-    <string name="store_search_hint">Search apps, projects, tags...</string>
+    <string name="store_search_hint">Buscar modelos</string>
     <string name="web_services_title">APIs and resources</string>
     <string name="web_service_open_error">Could not open this link</string>
     <string name="studio_editor_title">Android Studio Project</string>
@@ -3493,4 +3493,9 @@ Please try again later"</string>
     <string name="axion_no_providers_available">No providers are available for your plan.</string>
     <string name="axion_search_models">Search models…</string>
     <string name="axion_search_providers">Search providers…</string>
+    <string name='template_author_credit' translatable='false'>Made by Fabio Silva</string>
+    <string name="template_format_studio">Android Studio · Java e XML</string>
+    <string name="template_format_sketchware">Sketchware · Blocos visuais</string>
+    <string name="template_unlock_message">%1$s\n\nAssista ao vídeo até o fim para liberar este modelo. Sua cópia editável aparecerá em Projetos.</string>
+    <string name="template_watch_video">Assistir ao vídeo</string>
 </resources>

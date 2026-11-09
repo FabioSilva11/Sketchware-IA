@@ -416,7 +416,7 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
             ((TextView) row.findViewById(R.id.subtitle)).setText(R.string.manifest_manager_activity_summary);
             ImageButton delete = row.findViewById(R.id.action);
             delete.setVisibility(View.VISIBLE);
-            delete.setImageResource(R.drawable.ic_p2p_delete);
+            delete.setImageResource(R.drawable.ic_action_delete);
             delete.setContentDescription(getString(R.string.common_word_delete));
             delete.setOnClickListener(v -> confirmDeleteActivity(name));
             row.findViewById(R.id.chevron).setVisibility(View.GONE);
