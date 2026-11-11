@@ -33,15 +33,15 @@ public class AdRequestBackoffTest {
     }
 
     @Test
-    public void repeatedFailuresNeverWaitMoreThanFiveMinutes() {
+    public void repeatedFailuresNeverWaitMoreThanOneMinute() {
         AdRequestBackoff backoff = new AdRequestBackoff();
         long now = 0;
         for (int attempt = 0; attempt < 100; attempt++) {
             backoff.onFailure(now);
-            assertTrue(backoff.canRequest(now + 300_000));
-            now += 300_000;
+            assertTrue(backoff.canRequest(now + 60_000));
+            assertFalse(backoff.canRequest(now + 59_999) && attempt >= 2);
+            now += 60_000;
         }
-        assertFalse(backoff.canRequest(now - 1));
     }
 
     @Test

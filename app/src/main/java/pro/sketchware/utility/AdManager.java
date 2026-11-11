@@ -106,8 +106,6 @@ public final class AdManager {
         }
         MAIN.removeCallbacks(RETRY_INITIALIZATION);
         initializing = true;
-        // Contextual ads only: do not assume consent for profiling.
-        applyContextualPrivacy();
         UnityAds.initialize(new InitializationConfiguration.Builder(GAME_ID)
                 .withTestMode(BuildConfig.DEBUG).build(), error -> onMain(() -> {
             initializing = false;
@@ -120,7 +118,6 @@ public final class AdManager {
             }
             INITIALIZATION_BACKOFF.onSuccess();
             log("initialized", null);
-            applyContextualPrivacy();
             for (BannerSlot slot : new ArrayList<>(BANNERS.values())) slot.tryLoad();
         }));
     }
@@ -138,12 +135,6 @@ public final class AdManager {
             MAIN.postDelayed(RETRY_INITIALIZATION,
                     INITIALIZATION_BACKOFF.retryDelayMs(SystemClock.elapsedRealtime()));
         }
-    }
-
-    private static void applyContextualPrivacy() {
-        UnityAds.setUserConsent(false);
-        UnityAds.setUserOptOut(true);
-        UnityAds.setNonBehavioral(true);
     }
 
     public static void loadBanner(@NonNull Activity activity, @NonNull ViewGroup container) {
@@ -223,6 +214,7 @@ public final class AdManager {
         final Runnable retry = this::tryLoad;
         BannerAd ad;
         FrameLayout host;
+        boolean expired;
         boolean loading;
         boolean destroyed;
         int generation;
@@ -241,7 +233,8 @@ public final class AdManager {
 
         void tryLoad() {
             ViewGroup target = container.get();
-            if (destroyed || target == null || !usable(activity.get()) || loading || ad != null) return;
+            // An expired banner stays on screen until its replacement has loaded.
+            if (destroyed || target == null || !usable(activity.get()) || loading || (ad != null && !expired)) return;
             if (!active()) return;
             // Unity's standard banner needs 320dp; never crop or scale the clickable creative.
             int available = target.getWidth() - target.getPaddingLeft() - target.getPaddingRight();
@@ -291,6 +284,8 @@ public final class AdManager {
                         return;
                     }
                     backoff.onSuccess();
+                    // Swap only now, so the previous (expired) banner never leaves an empty gap.
+                    clearAd();
                     ad = loaded;
                     host = new FrameLayout(target.getContext());
                     detach(ad);
@@ -299,8 +294,10 @@ public final class AdManager {
                             Gravity.CENTER_HORIZONTAL));
                     target.addView(host, new ViewGroup.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                    loaded.setOnAdExpired(expired -> onMain(() -> {
-                        if (current(request) && ad == expired) clearAd();
+                    loaded.setOnAdExpired(expiredAd -> onMain(() -> {
+                        if (!current(request) || ad != expiredAd) return;
+                        expired = true;
+                        tryLoad();
                     }));
                     log("banner_loaded", null);
                 }));
@@ -332,6 +329,7 @@ public final class AdManager {
             if (ad != null) ad.setOnAdExpired(null);
             detach(ad);
             ad = null;
+            expired = false;
             if (host != null && host.getParent() instanceof ViewGroup parent) parent.removeView(host);
             host = null;
         }
