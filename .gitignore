@@ -66,3 +66,7 @@ fastlane/readme.md
 .androidide/
 /actions-runner
 release/
+# Decompilation work scratch (this project)
+_work/
+hs_err*.log
+replay*.log
