@@ -42,18 +42,76 @@ public class GamePaletteView extends LinearLayout {
         void onQuickAddObject(String type);
     }
 
-    private static class PaletteEntry {
-        final String type;
-        final String label;
-        final int iconRes;
-        final int accentColor;
+    public static class PaletteEntry {
+        public final String type;
+        public final String label;
+        public final int iconRes;
+        public final int accentColor;
 
-        PaletteEntry(String type, String label, @DrawableRes int iconRes, int accentColor) {
+        public PaletteEntry(String type, String label, @DrawableRes int iconRes, int accentColor) {
             this.type = type;
             this.label = label;
             this.iconRes = iconRes;
             this.accentColor = accentColor;
         }
+    }
+
+    private static final List<PaletteEntry> ALL_WORLD = List.of(
+            new PaletteEntry(GameObjectBean.TYPE_SPRITE, "Sprite", R.drawable.ic_mtrl_image, 0xFF3B82F6),
+            new PaletteEntry(GameObjectBean.TYPE_ANIMATED_SPRITE, "Animated", R.drawable.ic_mtrl_animation, 0xFF8B5CF6),
+            new PaletteEntry(GameObjectBean.TYPE_PARALLAX_BG, "Tiled BG", R.drawable.ic_mtrl_pattern, 0xFF64748B),
+            new PaletteEntry(GameObjectBean.TYPE_WORLD_TEXT, "World Text", R.drawable.ic_mtrl_article, 0xFF38BDF8),
+            new PaletteEntry(GameObjectBean.TYPE_PARTICLES, "Particles", R.drawable.ic_mtrl_auto_awesome, 0xFFEC4899),
+            new PaletteEntry(GameObjectBean.TYPE_LIGHT_2D, "Light 2D", R.drawable.ic_mtrl_bulb, 0xFFFACC15),
+            new PaletteEntry(GameObjectBean.TYPE_CAMERA, "Camera", R.drawable.ic_mtrl_camera, 0xFFEAB308)
+    );
+
+    private static final List<PaletteEntry> ALL_GAMEPLAY = List.of(
+            new PaletteEntry(GameObjectBean.TYPE_PLATFORM, "Platform", R.drawable.ic_mtrl_view_horizontal, 0xFF10B981),
+            new PaletteEntry(GameObjectBean.TYPE_MOVING_PLATFORM, "Moving Plat", R.drawable.ic_mtrl_swipe_horizontal, 0xFF0EA5E9),
+            new PaletteEntry(GameObjectBean.TYPE_ONEWAY_PLATFORM, "One-Way", R.drawable.ic_mtrl_swipe_up, 0xFF2DD4BF),
+            new PaletteEntry(GameObjectBean.TYPE_PHYSICS_BOX, "Physics Box", R.drawable.ic_mtrl_box, 0xFFF59E0B),
+            new PaletteEntry(GameObjectBean.TYPE_PHYSICS_CIRCLE, "Circle Body", R.drawable.ic_mtrl_circle, 0xFFF97316),
+            new PaletteEntry(GameObjectBean.TYPE_TRIGGER, "Trigger", R.drawable.ic_mtrl_sensor, 0xFF14B8A6),
+            new PaletteEntry(GameObjectBean.TYPE_GOAL, "Goal / Portal", R.drawable.ic_mtrl_next, 0xFF22C55E),
+            new PaletteEntry(GameObjectBean.TYPE_CHECKPOINT, "Checkpoint", R.drawable.ic_mtrl_pin_fill, 0xFF38BDF8),
+            new PaletteEntry(GameObjectBean.TYPE_DEATH_ZONE, "Death Zone", R.drawable.ic_mtrl_gpp_bad, 0xFFEF4444),
+            new PaletteEntry(GameObjectBean.TYPE_HAZARD, "Hazard", R.drawable.ic_mtrl_warning, 0xFFF43F5E),
+            new PaletteEntry(GameObjectBean.TYPE_COLLECTIBLE, "Collectible", R.drawable.ic_mtrl_star, 0xFFFACC15),
+            new PaletteEntry(GameObjectBean.TYPE_BOUNCE_PAD, "Bounce Pad", R.drawable.ic_mtrl_arrow_up, 0xFFA855F7),
+            new PaletteEntry(GameObjectBean.TYPE_SPAWNER, "Spawner", R.drawable.ic_mtrl_add_circle, 0xFF8B5CF6),
+            new PaletteEntry(GameObjectBean.TYPE_PROJECTILE, "Projectile", R.drawable.ic_mtrl_arrow_right2, 0xFF06B6D4)
+    );
+
+    private static final List<PaletteEntry> ALL_HUD = List.of(
+            new PaletteEntry(GameObjectBean.TYPE_HUD_PANEL, "HUD Panel", R.drawable.ic_mtrl_rectangle, 0xFF475569),
+            new PaletteEntry(GameObjectBean.TYPE_HUD_TEXT, "HUD Text", R.drawable.ic_mtrl_formattext, 0xFF06B6D4),
+            new PaletteEntry(GameObjectBean.TYPE_HUD_IMAGE, "HUD Image", R.drawable.ic_mtrl_preview, 0xFF60A5FA),
+            new PaletteEntry(GameObjectBean.TYPE_HUD_BUTTON, "HUD Button", R.drawable.ic_mtrl_button_click, 0xFF6366F1),
+            new PaletteEntry(GameObjectBean.TYPE_HUD_DPAD, "D-Pad", R.drawable.ic_mtrl_drag, 0xFF94A3B8),
+            new PaletteEntry(GameObjectBean.TYPE_HUD_JOYSTICK, "Joystick", R.drawable.ic_mtrl_target, 0xFF0EA5E9),
+            new PaletteEntry(GameObjectBean.TYPE_HUD_BAR, "HUD Bar", R.drawable.ic_mtrl_progress_bar, 0xFF22C55E),
+            new PaletteEntry(GameObjectBean.TYPE_HUD_TOUCH_AREA, "Touch Area", R.drawable.ic_mtrl_touch, 0xFF06B6D4),
+            new PaletteEntry(GameObjectBean.TYPE_HUD_DIALOG, "Dialog Box", R.drawable.ic_mtrl_chat, 0xFF3B82F6),
+            new PaletteEntry(GameObjectBean.TYPE_HUD_TOGGLE, "HUD Toggle", R.drawable.ic_mtrl_switch, 0xFF10B981)
+    );
+
+    @DrawableRes
+    public static int getTypeIconRes(@Nullable String type) {
+        if (type != null) {
+            for (PaletteEntry e : ALL_WORLD) if (type.equals(e.type)) return e.iconRes;
+            for (PaletteEntry e : ALL_GAMEPLAY) if (type.equals(e.type)) return e.iconRes;
+            for (PaletteEntry e : ALL_HUD) if (type.equals(e.type)) return e.iconRes;
+        }
+        return R.drawable.ic_mtrl_image;
+    }
+
+    public static List<PaletteEntry> getAllPaletteEntries() {
+        List<PaletteEntry> all = new ArrayList<>();
+        all.addAll(ALL_WORLD);
+        all.addAll(ALL_GAMEPLAY);
+        all.addAll(ALL_HUD);
+        return all;
     }
 
     private final List<PaletteEntry> entries = new ArrayList<>();
@@ -112,25 +170,16 @@ public class GamePaletteView extends LinearLayout {
         addView(rightDivider, new LayoutParams(dp(1), LayoutParams.MATCH_PARENT));
 
         // Section 1: 2D World
-        List<PaletteEntry> worldEntries = new ArrayList<>();
-        worldEntries.add(new PaletteEntry(GameObjectBean.TYPE_SPRITE, "Sprite", R.drawable.ic_mtrl_image, 0xFF3B82F6));
-        worldEntries.add(new PaletteEntry(GameObjectBean.TYPE_ANIMATED_SPRITE, "Animated", R.drawable.ic_mtrl_animation, 0xFF8B5CF6));
-        worldEntries.add(new PaletteEntry(GameObjectBean.TYPE_PLATFORM, "Platform", R.drawable.ic_mtrl_view_horizontal, 0xFF10B981));
-        worldEntries.add(new PaletteEntry(GameObjectBean.TYPE_PHYSICS_BOX, "Physics Box", R.drawable.ic_mtrl_box, 0xFFF59E0B));
-        worldEntries.add(new PaletteEntry(GameObjectBean.TYPE_TRIGGER, "Trigger", R.drawable.ic_mtrl_sensor, 0xFF14B8A6));
-        worldEntries.add(new PaletteEntry(GameObjectBean.TYPE_PARTICLES, "Particles", R.drawable.ic_mtrl_auto_awesome, 0xFFEC4899));
-        worldEntries.add(new PaletteEntry(GameObjectBean.TYPE_CAMERA, "Camera", R.drawable.ic_mtrl_camera, 0xFFEAB308));
-        entries.addAll(worldEntries);
-        addSection(context, listContainer, "2D World", worldEntries);
+        entries.addAll(ALL_WORLD);
+        addSection(context, listContainer, "2D World", ALL_WORLD);
 
-        // Section 2: UI / HUD
-        List<PaletteEntry> hudEntries = new ArrayList<>();
-        hudEntries.add(new PaletteEntry(GameObjectBean.TYPE_HUD_TEXT, "HUD Text", R.drawable.ic_mtrl_formattext, 0xFF06B6D4));
-        hudEntries.add(new PaletteEntry(GameObjectBean.TYPE_HUD_BUTTON, "HUD Button", R.drawable.ic_mtrl_button_click, 0xFF6366F1));
-        hudEntries.add(new PaletteEntry(GameObjectBean.TYPE_HUD_JOYSTICK, "Joystick", R.drawable.ic_mtrl_target, 0xFF0EA5E9));
-        hudEntries.add(new PaletteEntry(GameObjectBean.TYPE_HUD_BAR, "HUD Bar", R.drawable.ic_mtrl_progress_bar, 0xFF22C55E));
-        entries.addAll(hudEntries);
-        addSection(context, listContainer, "UI / HUD", hudEntries);
+        // Section 2: Gameplay & Physics
+        entries.addAll(ALL_GAMEPLAY);
+        addSection(context, listContainer, "Gameplay", ALL_GAMEPLAY);
+
+        // Section 3: UI / HUD
+        entries.addAll(ALL_HUD);
+        addSection(context, listContainer, "UI / HUD", ALL_HUD);
     }
 
     private void addSection(Context context, LinearLayout parent, String title, List<PaletteEntry> sectionEntries) {

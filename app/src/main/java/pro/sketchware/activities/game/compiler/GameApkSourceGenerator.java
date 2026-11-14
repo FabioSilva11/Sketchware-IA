@@ -168,11 +168,13 @@ public final class GameApkSourceGenerator {
 
     private static String buildMainActivitySource(String packageName, boolean defaultLandscape) {
         String pkgHeader = packageName.isEmpty() ? "" : ("package " + packageName + ";\n\n");
-        StringBuilder rawTemplate = new StringBuilder(131072);
+        StringBuilder rawTemplate = new StringBuilder(163840);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART1);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART2);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART2B);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART3);
+        rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART4);
+        rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART5);
         String body = rawTemplate.toString()
                 .replace("__DEFAULT_LANDSCAPE__", defaultLandscape ? "true" : "false");
         return pkgHeader + body;
@@ -182,6 +184,7 @@ public final class GameApkSourceGenerator {
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
@@ -190,8 +193,13 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.RadialGradient;
 import android.graphics.RectF;
+import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.media.SoundPool;
@@ -253,13 +261,31 @@ public class MainActivity extends Activity {
 
         if (Build.VERSION.SDK_INT >= 28) {
             WindowManager.LayoutParams lp = getWindow().getAttributes();
-            lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            lp.layoutInDisplayCutoutMode = Build.VERSION.SDK_INT >= 30
+                    ? 3 /* LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS */
+                    : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
             getWindow().setAttributes(lp);
         }
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        if (Build.VERSION.SDK_INT >= 21) {
+            try {
+                getWindow().setStatusBarColor(Color.TRANSPARENT);
+                getWindow().setNavigationBarColor(Color.TRANSPARENT);
+            } catch (Throwable ignored) {
+            }
+        }
+        try {
+            SceneData startScene = project != null ? project.getStartScene() : null;
+            int bgColor = startScene != null ? startScene.backgroundColor : 0xFF141A24;
+            getWindow().setBackgroundDrawable(new ColorDrawable(bgColor));
+        } catch (Throwable ignored) {
+        }
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+                | WindowManager.LayoutParams.FLAG_FULLSCREEN
+                | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
         applyImmersiveFullscreen();
 
         gameView = new GameSurfaceView(this, project);
+        gameView.setFitsSystemWindows(false);
         setContentView(gameView);
     }
 
@@ -307,7 +333,6 @@ public class MainActivity extends Activity {
                     controller.setSystemBarsBehavior(
                             WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
                 }
-                return;
             } catch (Throwable ignored) {
             }
         }
@@ -428,11 +453,27 @@ public class MainActivity extends Activity {
         boolean physicsEnabled = false;
         boolean isStatic = false;
         boolean isSensor = false;
+        boolean circleCollider = false;
+        boolean oneWay = false;
         float gravityScale = 1f;
         float bounce = 0f;
         float friction = 0.2f;
         float velocityX = 0f;
         float velocityY = 0f;
+        float speed = 120f;
+        float moveX = 0f;
+        float moveY = 0f;
+        float parallaxX = 0.5f;
+        float parallaxY = 0.5f;
+        float damage = 1f;
+        float cooldownSec = 1.5f;
+        String prefabName = "";
+        String targetScene = "__next__";
+        String spriteFrames = "";
+        float animFps = 8f;
+        boolean destroyOffscreen = false;
+        boolean activeOnlyNearCamera = false;
+        boolean toggled = false;
         boolean visible = true;
 
         ObjectData copy() {
@@ -460,20 +501,42 @@ public class MainActivity extends Activity {
             c.physicsEnabled = physicsEnabled;
             c.isStatic = isStatic;
             c.isSensor = isSensor;
+            c.circleCollider = circleCollider;
+            c.oneWay = oneWay;
             c.gravityScale = gravityScale;
             c.bounce = bounce;
             c.friction = friction;
             c.velocityX = velocityX;
             c.velocityY = velocityY;
+            c.speed = speed;
+            c.moveX = moveX;
+            c.moveY = moveY;
+            c.parallaxX = parallaxX;
+            c.parallaxY = parallaxY;
+            c.damage = damage;
+            c.cooldownSec = cooldownSec;
+            c.prefabName = prefabName;
+            c.targetScene = targetScene;
+            c.spriteFrames = spriteFrames;
+            c.animFps = animFps;
+            c.destroyOffscreen = destroyOffscreen;
+            c.activeOnlyNearCamera = activeOnlyNearCamera;
+            c.toggled = toggled;
             c.visible = visible;
             return c;
         }
 
         boolean isHudType() {
-            return "hud_text".equals(type)
+            return "hud_panel".equals(type)
+                    || "hud_text".equals(type)
+                    || "hud_image".equals(type)
                     || "hud_button".equals(type)
+                    || "hud_dpad".equals(type)
                     || "hud_joystick".equals(type)
-                    || "hud_bar".equals(type);
+                    || "hud_bar".equals(type)
+                    || "hud_touch_area".equals(type)
+                    || "hud_dialog".equals(type)
+                    || "hud_toggle".equals(type);
         }
 
         static ObjectData fromJson(JSONObject obj) {
@@ -502,11 +565,27 @@ public class MainActivity extends Activity {
             d.physicsEnabled = obj.optBoolean("physicsEnabled", false);
             d.isStatic = obj.optBoolean("isStatic", false);
             d.isSensor = obj.optBoolean("isSensor", false);
+            d.circleCollider = obj.optBoolean("circleCollider", "physics_circle".equals(d.type));
+            d.oneWay = obj.optBoolean("oneWay", "oneway_platform".equals(d.type));
             d.gravityScale = (float) obj.optDouble("gravityScale", 1.0);
             d.bounce = (float) obj.optDouble("bounce", 0.0);
             d.friction = (float) obj.optDouble("friction", 0.2);
             d.velocityX = (float) obj.optDouble("velocityX", 0.0);
             d.velocityY = (float) obj.optDouble("velocityY", 0.0);
+            d.speed = (float) obj.optDouble("speed", 120.0);
+            d.moveX = (float) obj.optDouble("moveX", 0.0);
+            d.moveY = (float) obj.optDouble("moveY", 0.0);
+            d.parallaxX = (float) obj.optDouble("parallaxX", 0.5);
+            d.parallaxY = (float) obj.optDouble("parallaxY", 0.5);
+            d.damage = (float) obj.optDouble("damage", 1.0);
+            d.cooldownSec = (float) obj.optDouble("cooldownSec", 1.5);
+            d.prefabName = obj.optString("prefabName", "");
+            d.targetScene = obj.optString("targetScene", "__next__");
+            d.spriteFrames = obj.optString("spriteFrames", "");
+            d.animFps = (float) obj.optDouble("animFps", 8.0);
+            d.destroyOffscreen = obj.optBoolean("destroyOffscreen", false);
+            d.activeOnlyNearCamera = obj.optBoolean("activeOnlyNearCamera", false);
+            d.toggled = obj.optBoolean("toggled", false);
             d.visible = obj.optBoolean("visible", true);
             return d;
         }
@@ -544,8 +623,22 @@ public class MainActivity extends Activity {
         String backgroundSprite = "";
         String bgmSound = "";
         float gravityY = 980f;
+        float worldWidth = 0f;
+        float worldHeight = 0f;
+        String worldBoundsMode = "free";
+        float ambientDarkness = 0f;
         final ArrayList<ObjectData> objects = new ArrayList<ObjectData>();
         final ArrayList<ScriptData> scripts = new ArrayList<ScriptData>();
+
+        float getEffectiveWorldWidth(GameProjectData p) {
+            int vw = p != null ? Math.max(1, p.virtualWidth) : 1280;
+            return worldWidth > 0f ? Math.max(vw, worldWidth) : vw;
+        }
+
+        float getEffectiveWorldHeight(GameProjectData p) {
+            int vh = p != null ? Math.max(1, p.virtualHeight) : 720;
+            return worldHeight > 0f ? Math.max(vh, worldHeight) : vh;
+        }
 
         static SceneData fromJson(JSONObject obj) {
             SceneData sc = new SceneData();
@@ -556,6 +649,10 @@ public class MainActivity extends Activity {
             sc.backgroundSprite = obj.optString("backgroundSprite", "");
             sc.bgmSound = obj.optString("bgmSound", "");
             sc.gravityY = (float) obj.optDouble("gravityY", 980.0);
+            sc.worldWidth = (float) obj.optDouble("worldWidth", 0.0);
+            sc.worldHeight = (float) obj.optDouble("worldHeight", 0.0);
+            sc.worldBoundsMode = obj.optString("worldBoundsMode", "free");
+            sc.ambientDarkness = (float) obj.optDouble("ambientDarkness", 0.0);
             JSONArray objs = obj.optJSONArray("objects");
             if (objs != null) {
                 for (int i = 0; i < objs.length(); i++) {
@@ -583,6 +680,7 @@ public class MainActivity extends Activity {
         String startSceneId = "scene_1";
         final ArrayList<SceneData> scenes = new ArrayList<SceneData>();
         final ArrayList<ObjectData> prefabs = new ArrayList<ObjectData>();
+        final ArrayList<ScriptData> prefabScripts = new ArrayList<ScriptData>();
         final HashMap<String, String> globalVariables = new HashMap<String, String>();
 
         static GameProjectData createFallback() {
@@ -614,6 +712,13 @@ public class MainActivity extends Activity {
                     for (int i = 0; i < prefabsArr.length(); i++) {
                         JSONObject pfObj = prefabsArr.optJSONObject(i);
                         if (pfObj != null) p.prefabs.add(ObjectData.fromJson(pfObj));
+                    }
+                }
+                JSONArray prefabScriptsArr = obj.optJSONArray("prefabScripts");
+                if (prefabScriptsArr != null) {
+                    for (int i = 0; i < prefabScriptsArr.length(); i++) {
+                        JSONObject psObj = prefabScriptsArr.optJSONObject(i);
+                        if (psObj != null) p.prefabScripts.add(ScriptData.fromJson(psObj));
                     }
                 }
                 JSONObject varsObj = obj.optJSONObject("globalVariables");
@@ -659,6 +764,8 @@ public class MainActivity extends Activity {
         private static final int MAX_SUBSTEPS = 4;
         private static final int MAX_PARTICLES = 320;
         private static final int MAX_FIBER_OPS = 400;
+        private static final float MAX_FALL_SPEED = 1600f;
+        private static final float TRANSITION_DURATION = 0.28f;
 
         private final Context appContext;
         private final GameProjectData project;
@@ -687,6 +794,11 @@ public class MainActivity extends Activity {
         private String pendingSceneLoadId = null;
         private boolean pendingSceneRestart = false;
 
+        private String transitionPhase = "";
+        private String transitionType = "";
+        private String transitionTargetSceneId = "";
+        private float transitionProgress = 0f;
+
         private float camX = 0f;
         private float camY = 0f;
         private String camFollowTargetId = "";
@@ -699,6 +811,9 @@ public class MainActivity extends Activity {
 
         private int joystickPointerId = -1;
         private String joystickObjectId = "";
+        private int dpadPointerId = -1;
+        private String dpadObjectId = "";
+        private String dpadDirectionKey = "";
         private volatile float joyX = 0f;
         private volatile float joyY = 0f;
         private volatile float touchX = 0f;
@@ -708,6 +823,7 @@ public class MainActivity extends Activity {
         private final SparseArray<String> pointerButtons = new SparseArray<String>();
         private final Set<String> pressedButtons = new HashSet<String>();
         private final Set<String> latchedButtons = new HashSet<String>();
+        private final Set<String> justPressedButtons = new HashSet<String>();
 
         private final HashMap<String, Bitmap> bitmapCache = new HashMap<String, Bitmap>();
         private final HashMap<String, Typeface> fontCache = new HashMap<String, Typeface>();
@@ -724,8 +840,10 @@ public class MainActivity extends Activity {
         private final Paint strokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+        private final Paint lightCutPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF tempRect = new RectF();
         private final Path speechBubblePath = new Path();
+        private final Path tempPath = new Path();
         private final ArrayList<RuntimeEntity> drawWorldScratch = new ArrayList<RuntimeEntity>();
         private final ArrayList<RuntimeEntity> drawHudScratch = new ArrayList<RuntimeEntity>();
         private int ambientCounter = 0;
@@ -935,6 +1053,18 @@ public class MainActivity extends Activity {
             }
         }
 
+        private float getWorldWidth() {
+            return currentScene != null
+                    ? currentScene.getEffectiveWorldWidth(project)
+                    : Math.max(1, project.virtualWidth);
+        }
+
+        private float getWorldHeight() {
+            return currentScene != null
+                    ? currentScene.getEffectiveWorldHeight(project)
+                    : Math.max(1, project.virtualHeight);
+        }
+
         private void loadSceneInternal(String sceneId) {
             SceneData target = project.getSceneByIdOrName(sceneId);
             if (target == null) target = project.getStartScene();
@@ -942,12 +1072,15 @@ public class MainActivity extends Activity {
 
             objects.clear();
             for (ObjectData bean : target.objects) {
-                objects.add(new RuntimeEntity(bean));
+                if (bean != null) objects.add(new RuntimeEntity(bean));
             }
             sceneScripts.clear();
             sceneScripts.addAll(target.scripts);
+            if (project.prefabScripts != null) {
+                sceneScripts.addAll(project.prefabScripts);
+            }
 
-            if (variables.isEmpty() || (currentScene.id.equals(project.startSceneId) && pendingSceneLoadId == null)) {
+            if (variables.isEmpty() || (currentScene.id.equals(project.startSceneId) && pendingSceneLoadId == null && transitionTargetSceneId.isEmpty())) {
                 variables.clear();
                 variables.putAll(project.globalVariables);
                 gameTimerSeconds = 0f;
@@ -969,6 +1102,9 @@ public class MainActivity extends Activity {
 
             joystickPointerId = -1;
             joystickObjectId = "";
+            dpadPointerId = -1;
+            dpadObjectId = "";
+            dpadDirectionKey = "";
             joyX = 0f;
             joyY = 0f;
             isTouchingWorld = false;
@@ -976,12 +1112,20 @@ public class MainActivity extends Activity {
             pointerButtons.clear();
             pressedButtons.clear();
             latchedButtons.clear();
+            justPressedButtons.clear();
 
+            float maxCamX = Math.max(0f, getWorldWidth() - project.virtualWidth);
+            float maxCamY = Math.max(0f, getWorldHeight() - project.virtualHeight);
             for (RuntimeEntity obj : objects) {
                 if ("camera".equals(obj.bean.type)) {
-                    camX = Math.max(0f, obj.bean.x - project.virtualWidth * 0.5f + obj.bean.width * 0.5f);
-                    camY = Math.max(0f, obj.bean.y - project.virtualHeight * 0.5f + obj.bean.height * 0.5f);
+                    camX = clamp(obj.bean.x - project.virtualWidth * 0.5f + obj.bean.width * 0.5f, 0f, maxCamX);
+                    camY = clamp(obj.bean.y - project.virtualHeight * 0.5f + obj.bean.height * 0.5f, 0f, maxCamY);
                     break;
+                }
+            }
+            for (RuntimeEntity obj : objects) {
+                if (!obj.isHud() && isInCameraViewport(obj, 0f)) {
+                    obj.enteredScreen = true;
                 }
             }
 
@@ -1028,12 +1172,15 @@ public class MainActivity extends Activity {
                     case MotionEvent.ACTION_CANCEL: {
                         joystickPointerId = -1;
                         joystickObjectId = "";
+                        dpadPointerId = -1;
+                        dpadObjectId = "";
+                        dpadDirectionKey = "";
                         joyX = 0f;
                         joyY = 0f;
                         worldTouchPointerId = -1;
                         isTouchingWorld = false;
                         pointerButtons.clear();
-                        pressedButtons.clear();
+                        rebuildPressedButtons();
                         break;
                     }
                     default:
@@ -1062,15 +1209,56 @@ public class MainActivity extends Activity {
                         updateJoystick(hud, vx, vy);
                         return;
                     }
-                } else if ("hud_button".equals(hud.bean.type)) {
-                    float pad = 12f;
+                } else if ("hud_dpad".equals(hud.bean.type)) {
+                    if (vx >= hud.bean.x - 8f && vx <= hud.bean.x + hud.bean.width + 8f
+                            && vy >= hud.bean.y - 8f && vy <= hud.bean.y + hud.bean.height + 8f && dpadPointerId == -1) {
+                        dpadPointerId = pointerId;
+                        dpadObjectId = hud.bean.id;
+                        updateDpadFromPoint(hud, vx, vy, true);
+                        pendingEvents.add(new QueuedEvent("on_touch", "", hud.bean.id));
+                        return;
+                    }
+                } else if ("hud_dialog".equals(hud.bean.type)) {
+                    if (vx >= hud.bean.x && vx <= hud.bean.x + hud.bean.width
+                            && vy >= hud.bean.y && vy <= hud.bean.y + hud.bean.height) {
+                        int totalLen = hud.bean.text != null ? hud.bean.text.length() : 0;
+                        if (hud.dialogVisibleChars < totalLen) {
+                            hud.dialogVisibleChars = totalLen;
+                        } else {
+                            hud.bean.visible = false;
+                        }
+                        pendingEvents.add(new QueuedEvent("on_touch", "", hud.bean.id));
+                        return;
+                    }
+                } else if ("hud_toggle".equals(hud.bean.type)) {
+                    float pad = 10f;
+                    if (vx >= hud.bean.x - pad && vx <= hud.bean.x + hud.bean.width + pad
+                            && vy >= hud.bean.y - pad && vy <= hud.bean.y + hud.bean.height + pad) {
+                        hud.bean.toggled = !hud.bean.toggled;
+                        String key = normalizeActionKey(hud.bean.actionKey);
+                        if (!key.isEmpty()) {
+                            if (hud.bean.toggled) {
+                                justPressedButtons.add(key);
+                                latchedButtons.add(key);
+                            }
+                            pendingEvents.add(new QueuedEvent("on_button", key, null));
+                        }
+                        rebuildPressedButtons();
+                        pendingEvents.add(new QueuedEvent("on_touch", "", hud.bean.id));
+                        return;
+                    }
+                } else if ("hud_button".equals(hud.bean.type) || "hud_touch_area".equals(hud.bean.type)) {
+                    float pad = "hud_button".equals(hud.bean.type) ? 12f : 0f;
                     if (vx >= hud.bean.x - pad && vx <= hud.bean.x + hud.bean.width + pad
                             && vy >= hud.bean.y - pad && vy <= hud.bean.y + hud.bean.height + pad) {
                         String key = normalizeActionKey(hud.bean.actionKey);
                         pointerButtons.put(pointerId, key);
                         rebuildPressedButtons();
-                        latchedButtons.add(key);
-                        pendingEvents.add(new QueuedEvent("on_button", key, null));
+                        if (!key.isEmpty()) {
+                            latchedButtons.add(key);
+                            justPressedButtons.add(key);
+                            pendingEvents.add(new QueuedEvent("on_button", key, null));
+                        }
                         pendingEvents.add(new QueuedEvent("on_touch", "", hud.bean.id));
                         return;
                     }
@@ -1095,6 +1283,9 @@ public class MainActivity extends Activity {
             if (pointerId == joystickPointerId) {
                 RuntimeEntity joy = findById(joystickObjectId);
                 if (joy != null) updateJoystick(joy, vx, vy);
+            } else if (pointerId == dpadPointerId) {
+                RuntimeEntity dpad = findById(dpadObjectId);
+                if (dpad != null) updateDpadFromPoint(dpad, vx, vy, false);
             } else if (pointerId == worldTouchPointerId) {
                 touchX = vx + camX;
                 touchY = vy + camY;
@@ -1107,6 +1298,16 @@ public class MainActivity extends Activity {
                 joystickObjectId = "";
                 joyX = 0f;
                 joyY = 0f;
+            }
+            if (pointerId == dpadPointerId) {
+                dpadPointerId = -1;
+                dpadObjectId = "";
+                dpadDirectionKey = "";
+                if (joystickPointerId == -1) {
+                    joyX = 0f;
+                    joyY = 0f;
+                }
+                rebuildPressedButtons();
             }
             if (pointerButtons.indexOfKey(pointerId) >= 0) {
                 pointerButtons.remove(pointerId);
@@ -1123,6 +1324,47 @@ public class MainActivity extends Activity {
             for (int i = 0; i < pointerButtons.size(); i++) {
                 String k = pointerButtons.valueAt(i);
                 if (k != null && !k.isEmpty()) pressedButtons.add(k);
+            }
+            if (!dpadDirectionKey.isEmpty()) {
+                pressedButtons.add(dpadDirectionKey);
+            }
+            for (RuntimeEntity o : objects) {
+                if (!o.destroyed && "hud_toggle".equals(o.bean.type) && o.bean.toggled) {
+                    String tk = normalizeActionKey(o.bean.actionKey);
+                    if (!tk.isEmpty()) pressedButtons.add(tk);
+                }
+            }
+        }
+
+        private void updateDpadFromPoint(RuntimeEntity dpadObj, float vx, float vy, boolean initial) {
+            float cx = dpadObj.bean.x + dpadObj.bean.width * 0.5f;
+            float cy = dpadObj.bean.y + dpadObj.bean.height * 0.5f;
+            float dx = vx - cx;
+            float dy = vy - cy;
+            float dead = Math.min(dpadObj.bean.width, dpadObj.bean.height) * 0.14f;
+            String nextDir = "";
+            float jx = 0f;
+            float jy = 0f;
+            if (Math.hypot(dx, dy) > dead) {
+                if (Math.abs(dx) >= Math.abs(dy)) {
+                    nextDir = dx < 0f ? "LEFT" : "RIGHT";
+                    jx = dx < 0f ? -1f : 1f;
+                } else {
+                    nextDir = dy < 0f ? "UP" : "DOWN";
+                    jy = dy < 0f ? -1f : 1f;
+                }
+            }
+            if (joystickPointerId == -1) {
+                joyX = jx;
+                joyY = jy;
+            }
+            boolean changed = !nextDir.equals(dpadDirectionKey);
+            dpadDirectionKey = nextDir;
+            rebuildPressedButtons();
+            if (!nextDir.isEmpty() && (changed || initial)) {
+                latchedButtons.add(nextDir);
+                justPressedButtons.add(nextDir);
+                pendingEvents.add(new QueuedEvent("on_button", nextDir, null));
             }
         }
 
@@ -1156,6 +1398,14 @@ public class MainActivity extends Activity {
 
         private void stepFixed(float dt) {
             if (currentScene == null) return;
+
+            if (!transitionPhase.isEmpty()) {
+                stepTransition(dt);
+                if ("out".equals(transitionPhase)) {
+                    return;
+                }
+            }
+
             gameTimerSeconds += dt;
 
             if (!pendingEvents.isEmpty()) {
@@ -1173,6 +1423,12 @@ public class MainActivity extends Activity {
             for (RuntimeEntity o : objects) {
                 o.prevX = o.bean.x;
                 o.prevY = o.bean.y;
+                if (!o.enteredScreen && !o.isHud() && isInCameraViewport(o, 0f)) {
+                    o.enteredScreen = true;
+                }
+                if (o.hitCooldown > 0f) {
+                    o.hitCooldown = Math.max(0f, o.hitCooldown - dt);
+                }
                 if (o.speechTimer > 0f) {
                     o.speechTimer = Math.max(0f, o.speechTimer - dt);
                     if (o.speechTimer <= 0f) {
@@ -1190,9 +1446,11 @@ public class MainActivity extends Activity {
                 }
             }
 
+            stepObjectBehaviors(dt);
             enqueueUpdateScripts();
             stepFibers(dt);
             latchedButtons.clear();
+            justPressedButtons.clear();
             stepPhysics(dt);
             stepParticles(dt);
             stepCamera(dt);
@@ -1215,58 +1473,221 @@ public class MainActivity extends Activity {
             }
         }
 
+        private void stepTransition(float dt) {
+            float step = dt / Math.max(0.05f, TRANSITION_DURATION);
+            if ("out".equals(transitionPhase)) {
+                transitionProgress = Math.min(1f, transitionProgress + step);
+                if (transitionProgress >= 1f) {
+                    String nextId = transitionTargetSceneId;
+                    transitionTargetSceneId = "";
+                    transitionPhase = "in";
+                    if (nextId != null && !nextId.isEmpty()) {
+                        loadSceneInternal(nextId);
+                    }
+                }
+            } else if ("in".equals(transitionPhase)) {
+                transitionProgress = Math.max(0f, transitionProgress - step);
+                if (transitionProgress <= 0f) {
+                    transitionPhase = "";
+                    transitionType = "";
+                    transitionProgress = 0f;
+                }
+            } else {
+                transitionPhase = "";
+                transitionProgress = 0f;
+            }
+        }
+
+        private void stepObjectBehaviors(float dt) {
+            ArrayList<RuntimeEntity> snapshot = new ArrayList<RuntimeEntity>(objects);
+            for (RuntimeEntity obj : snapshot) {
+                if (obj.destroyed) continue;
+                ObjectData b = obj.bean;
+                if (!obj.isHud() && b.activeOnlyNearCamera && !isInCameraViewport(obj, 360f)) {
+                    continue;
+                }
+                if ("moving_platform".equals(b.type)) {
+                    float spd = Math.max(1f, b.speed);
+                    float rangeX = Math.abs(b.moveX);
+                    float rangeY = Math.abs(b.moveY);
+                    if (rangeX > 0.5f || rangeY > 0.5f) {
+                        float oldX = b.x;
+                        float oldY = b.y;
+                        float dist = (float) Math.hypot(b.moveX, b.moveY);
+                        float fracStep = (spd * dt) / Math.max(1f, dist);
+                        float nextT = clamp(obj.patrolDir * fracStep, -1f, 1f);
+                        b.x += b.moveX * nextT;
+                        b.y += b.moveY * nextT;
+                        float dxFromStart = b.x - obj.startX;
+                        float dyFromStart = b.y - obj.startY;
+                        float dot = dxFromStart * b.moveX + dyFromStart * b.moveY;
+                        float lenSq = b.moveX * b.moveX + b.moveY * b.moveY;
+                        if (obj.patrolDir > 0f && dot >= lenSq) {
+                            b.x = obj.startX + b.moveX;
+                            b.y = obj.startY + b.moveY;
+                            obj.patrolDir = -1f;
+                        } else if (obj.patrolDir < 0f && dot <= 0f) {
+                            b.x = obj.startX;
+                            b.y = obj.startY;
+                            obj.patrolDir = 1f;
+                        }
+                        float platDx = b.x - oldX;
+                        float platDy = b.y - oldY;
+                        if (platDx != 0f || platDy != 0f) {
+                            carryRidersOnPlatform(obj, oldX, oldY, platDx, platDy);
+                        }
+                    }
+                } else if ("parallax_bg".equals(b.type)) {
+                    obj.scrollOffsetX += b.moveX * dt;
+                    obj.scrollOffsetY += b.moveY * dt;
+                } else if ("animated_sprite".equals(b.type)) {
+                    if (b.spriteFrames != null && !b.spriteFrames.trim().isEmpty()) {
+                        String[] parts = b.spriteFrames.split(",");
+                        ArrayList<String> valid = new ArrayList<String>();
+                        for (String p : parts) {
+                            String trimmed = p.trim();
+                            if (!trimmed.isEmpty()) valid.add(trimmed);
+                        }
+                        if (!valid.isEmpty()) {
+                            float frameDur = 1f / Math.max(0.5f, b.animFps);
+                            obj.animTimer += dt;
+                            while (obj.animTimer >= frameDur) {
+                                obj.animTimer -= frameDur;
+                                obj.animFrameIdx = (obj.animFrameIdx + 1) % valid.size();
+                            }
+                            b.spriteResName = valid.get(obj.animFrameIdx % valid.size());
+                        }
+                    }
+                } else if ("spawner".equals(b.type)) {
+                    if (b.cooldownSec > 0f && b.prefabName != null && !b.prefabName.trim().isEmpty()) {
+                        obj.spawnTimer -= dt;
+                        if (obj.spawnTimer <= 0f) {
+                            obj.spawnTimer = Math.max(0.05f, b.cooldownSec);
+                            RuntimeEntity spawned = spawnPrefabAt(b.prefabName.trim(), b.x, b.y);
+                            if (spawned != null) {
+                                float rangeX = Math.max(0f, b.width - spawned.bean.width);
+                                float rangeY = Math.max(0f, b.height - spawned.bean.height);
+                                spawned.bean.x = b.x + (rangeX > 0f ? random.nextFloat() * rangeX : 0f);
+                                spawned.bean.y = b.y + (rangeY > 0f ? random.nextFloat() * rangeY : 0f);
+                                spawned.prevX = spawned.bean.x;
+                                spawned.prevY = spawned.bean.y;
+                                spawned.startX = spawned.bean.x;
+                                spawned.startY = spawned.bean.y;
+                                if (b.moveX != 0f || b.moveY != 0f) {
+                                    spawned.bean.velocityX = b.moveX;
+                                    spawned.bean.velocityY = b.moveY;
+                                }
+                                spawned.enteredScreen = isInCameraViewport(spawned, 0f);
+                            }
+                        }
+                    }
+                } else if ("hud_dialog".equals(b.type)) {
+                    if (b.visible && b.text != null && obj.dialogVisibleChars < b.text.length()) {
+                        obj.dialogVisibleChars = Math.min(b.text.length(), obj.dialogVisibleChars + 45f * dt);
+                    }
+                }
+
+                if (!obj.isHud() && b.destroyOffscreen) {
+                    if ((obj.enteredScreen && !isInCameraViewport(obj, 96f)) || isFarOutsideWorldAndCamera(obj, 900f)) {
+                        obj.destroyed = true;
+                    }
+                }
+            }
+        }
+
+        private void carryRidersOnPlatform(RuntimeEntity plat, float oldPlatX, float oldPlatY, float platDx, float platDy) {
+            for (RuntimeEntity rider : objects) {
+                if (rider == plat || rider.destroyed || rider.isHud() || !rider.bean.physicsEnabled
+                        || rider.bean.isStatic || rider.bean.isSensor) {
+                    continue;
+                }
+                float riderBottom = rider.bean.y + rider.bean.height;
+                boolean horiz = (rider.bean.x + rider.bean.width > oldPlatX + 1f)
+                        && (rider.bean.x < oldPlatX + plat.bean.width - 1f);
+                boolean standing = Math.abs(riderBottom - oldPlatY) <= 6f && rider.bean.velocityY >= -10f;
+                if (horiz && standing) {
+                    rider.bean.x += platDx;
+                    rider.prevX += platDx;
+                    rider.bean.y += platDy;
+                    rider.prevY += platDy;
+                    rider.onGround = true;
+                }
+            }
+        }
+
         private void stepPhysics(float dt) {
             float gravityY = currentScene != null ? currentScene.gravityY : 980f;
+            float worldW = getWorldWidth();
+            float worldH = getWorldHeight();
+            boolean solidEdges = currentScene != null && "solid".equals(currentScene.worldBoundsMode);
+
             for (RuntimeEntity obj : objects) {
-                if (obj.destroyed || obj.isHud() || !obj.bean.physicsEnabled || obj.bean.isStatic || obj.bean.isSensor) {
+                if (obj.destroyed || obj.isHud() || !obj.bean.physicsEnabled || obj.bean.isStatic) {
+                    continue;
+                }
+                if (obj.bean.activeOnlyNearCamera && !isInCameraViewport(obj, 360f)) {
                     continue;
                 }
                 float scriptDx = obj.bean.x - obj.prevX;
                 float scriptDy = obj.bean.y - obj.prevY;
                 obj.onGround = false;
-                obj.bean.velocityY += gravityY * obj.bean.gravityScale * dt;
+                obj.bean.velocityY = clamp(obj.bean.velocityY + gravityY * obj.bean.gravityScale * dt, -2400f, MAX_FALL_SPEED);
 
                 float dx = scriptDx + obj.bean.velocityX * dt;
                 obj.bean.x = obj.prevX + dx;
-                for (RuntimeEntity other : objects) {
-                    if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled || other.bean.isSensor) {
-                        continue;
-                    }
-                    if (overlapsXPass(obj, other)) {
-                        if (dx > 0f) {
-                            obj.bean.x = other.bean.x - obj.bean.width;
-                            if (obj.bean.velocityX > 0f) obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
-                        } else if (dx < 0f) {
-                            obj.bean.x = other.bean.x + other.bean.width;
-                            if (obj.bean.velocityX < 0f) obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
-                        } else {
-                            float ol = (obj.bean.x + obj.bean.width) - other.bean.x;
-                            float or = (other.bean.x + other.bean.width) - obj.bean.x;
-                            obj.bean.x = ol < or ? (other.bean.x - obj.bean.width) : (other.bean.x + other.bean.width);
+                if (!obj.bean.isSensor) {
+                    for (RuntimeEntity other : objects) {
+                        if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled
+                                || other.bean.isSensor || other.bean.oneWay) {
+                            continue;
+                        }
+                        if (overlapsXPass(obj, other)) {
+                            if (dx > 0f) {
+                                obj.bean.x = other.bean.x - obj.bean.width;
+                                if (obj.bean.velocityX > 0f) obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
+                            } else if (dx < 0f) {
+                                obj.bean.x = other.bean.x + other.bean.width;
+                                if (obj.bean.velocityX < 0f) obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
+                            } else {
+                                float ol = (obj.bean.x + obj.bean.width) - other.bean.x;
+                                float or = (other.bean.x + other.bean.width) - obj.bean.x;
+                                obj.bean.x = ol < or ? (other.bean.x - obj.bean.width) : (other.bean.x + other.bean.width);
+                            }
                         }
                     }
                 }
 
                 float dy = scriptDy + obj.bean.velocityY * dt;
                 obj.bean.y = obj.prevY + dy;
-                for (RuntimeEntity other : objects) {
-                    if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled || other.bean.isSensor) {
-                        continue;
-                    }
-                    if (overlapsYPass(obj, other)) {
-                        if (dy >= 0f) {
-                            obj.bean.y = other.bean.y - obj.bean.height;
-                            obj.onGround = true;
-                            if (obj.bean.velocityY > 0f) {
-                                obj.bean.velocityY = (obj.bean.bounce > 0.05f) ? -obj.bean.velocityY * obj.bean.bounce : 0f;
+                if (!obj.bean.isSensor) {
+                    for (RuntimeEntity other : objects) {
+                        if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled || other.bean.isSensor) {
+                            continue;
+                        }
+                        if (other.bean.oneWay) {
+                            if (dy < 0f || (obj.prevY + obj.bean.height > other.bean.y + 6f)) {
+                                continue;
                             }
-                            float damp = Math.max(0f, 1f - Math.max(obj.bean.friction, other.bean.friction) * 8f * dt);
-                            obj.bean.velocityX *= damp;
-                        } else {
-                            obj.bean.y = other.bean.y + other.bean.height;
-                            if (obj.bean.velocityY < 0f) obj.bean.velocityY = -obj.bean.velocityY * obj.bean.bounce;
+                        }
+                        if (overlapsYPass(obj, other)) {
+                            if (dy >= 0f) {
+                                obj.bean.y = other.bean.y - obj.bean.height;
+                                obj.onGround = true;
+                                if (obj.bean.velocityY > 0f) {
+                                    obj.bean.velocityY = (obj.bean.bounce > 0.05f) ? -obj.bean.velocityY * obj.bean.bounce : 0f;
+                                }
+                                float damp = Math.max(0f, 1f - Math.max(obj.bean.friction, other.bean.friction) * 8f * dt);
+                                obj.bean.velocityX *= damp;
+                            } else {
+                                obj.bean.y = other.bean.y + other.bean.height;
+                                if (obj.bean.velocityY < 0f) obj.bean.velocityY = -obj.bean.velocityY * obj.bean.bounce;
+                            }
                         }
                     }
+                }
+
+                if (solidEdges && !obj.bean.isSensor && !"projectile".equals(obj.bean.type)) {
+                    clampInsideWorldRect(obj, worldW, worldH);
                 }
             }
 
@@ -1291,6 +1712,171 @@ public class MainActivity extends Activity {
                     }
                 }
             }
+
+            stepWorldBoundsAndBuiltins(worldW, worldH);
+        }
+
+        private void clampInsideWorldRect(RuntimeEntity obj, float worldW, float worldH) {
+            if (obj.bean.x < 0f) {
+                obj.bean.x = 0f;
+                if (obj.bean.velocityX < 0f) obj.bean.velocityX = 0f;
+            } else if (obj.bean.x + obj.bean.width > worldW) {
+                obj.bean.x = Math.max(0f, worldW - obj.bean.width);
+                if (obj.bean.velocityX > 0f) obj.bean.velocityX = 0f;
+            }
+            if (obj.bean.y < 0f) {
+                obj.bean.y = 0f;
+                if (obj.bean.velocityY < 0f) obj.bean.velocityY = 0f;
+            } else if (obj.bean.y + obj.bean.height > worldH) {
+                obj.bean.y = Math.max(0f, worldH - obj.bean.height);
+                if (obj.bean.velocityY >= 0f) {
+                    obj.bean.velocityY = 0f;
+                    obj.onGround = true;
+                }
+            }
+        }
+
+        private void respawnObjectAtCheckpoint(RuntimeEntity obj) {
+            if (obj == null) return;
+            obj.bean.x = obj.hasCheckpoint ? obj.checkpointX : obj.startX;
+            obj.bean.y = obj.hasCheckpoint ? obj.checkpointY : obj.startY;
+            obj.prevX = obj.bean.x;
+            obj.prevY = obj.bean.y;
+            obj.bean.velocityX = 0f;
+            obj.bean.velocityY = 0f;
+            obj.glideActive = false;
+            obj.hitCooldown = 0.4f;
+            emitParticles(obj.bean.x + obj.bean.width * 0.5f, obj.bean.y + obj.bean.height * 0.5f, 0xFF38BDF8, 12);
+        }
+
+        private void stepWorldBoundsAndBuiltins(float worldW, float worldH) {
+            String boundsMode = currentScene != null ? currentScene.worldBoundsMode : "free";
+            boolean respawnFall = "respawn_bottom".equals(boundsMode);
+            boolean restartFall = "restart_bottom".equals(boundsMode);
+
+            for (RuntimeEntity actor : objects) {
+                if (actor.destroyed || actor.isHud() || !actor.bean.physicsEnabled || actor.bean.isStatic
+                        || actor.bean.isSensor || "projectile".equals(actor.bean.type)) {
+                    continue;
+                }
+                if ((respawnFall || restartFall) && actor.bean.y > worldH + 120f) {
+                    if (respawnFall) {
+                        respawnObjectAtCheckpoint(actor);
+                    } else {
+                        pendingSceneRestart = true;
+                    }
+                    continue;
+                }
+                for (RuntimeEntity other : objects) {
+                    if (other == actor || other.destroyed || other.isHud()) continue;
+                    if (!actor.currentColliders.contains(other.bean.id)) continue;
+
+                    String oType = other.bean.type;
+                    if ("checkpoint".equals(oType)) {
+                        if (!actor.hasCheckpoint || Math.abs(actor.checkpointX - other.bean.x) > 4f
+                                || Math.abs(actor.checkpointY - other.bean.y) > 4f) {
+                            actor.checkpointX = other.bean.x + (other.bean.width - actor.bean.width) * 0.5f;
+                            actor.checkpointY = other.bean.y + other.bean.height - actor.bean.height;
+                            actor.hasCheckpoint = true;
+                            other.bean.toggled = true;
+                            emitParticles(other.bean.x + other.bean.width * 0.5f, other.bean.y + other.bean.height * 0.25f, 0xFF10B981, 10);
+                        }
+                    } else if ("bounce_pad".equals(oType)) {
+                        float actorBottom = actor.bean.y + actor.bean.height;
+                        if (actorBottom <= other.bean.y + other.bean.height * 0.65f && actor.bean.velocityY >= -20f) {
+                            float impulse = other.bean.speed >= 300f ? other.bean.speed : Math.max(480f, other.bean.speed * 5.2f);
+                            actor.bean.velocityY = -impulse;
+                            actor.onGround = false;
+                        }
+                    } else if ("collectible".equals(oType)) {
+                        if (!hasCollisionScriptBetween(actor, other)) {
+                            int pts = Math.max(1, Math.round(other.bean.damage));
+                            double cur = parseDoubleSafe(variables.get("score"), 0.0);
+                            variables.put("score", formatNumber(cur + pts));
+                            if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()) {
+                                playSoundInternal(other.bean.soundResName);
+                            }
+                            emitParticles(other.bean.x + other.bean.width * 0.5f, other.bean.y + other.bean.height * 0.5f, other.bean.color, 10);
+                            other.destroyed = true;
+                        }
+                    } else if ("death_zone".equals(oType)) {
+                        if (actor.hitCooldown <= 0f && !hasCollisionScriptBetween(actor, other)) {
+                            if (actor.hasCheckpoint || respawnFall) {
+                                respawnObjectAtCheckpoint(actor);
+                            } else {
+                                pendingSceneRestart = true;
+                            }
+                        }
+                    } else if ("goal".equals(oType)) {
+                        if (actor.hitCooldown <= 0f && !hasCollisionScriptBetween(actor, other)) {
+                            String nextSceneId = resolveGoalSceneId(other.bean.targetScene);
+                            if (nextSceneId != null && currentScene != null && !nextSceneId.equals(currentScene.id)) {
+                                actor.hitCooldown = 1.0f;
+                                startSceneTransition(nextSceneId, "fade");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        private boolean hasCollisionScriptBetween(RuntimeEntity actor, RuntimeEntity other) {
+            for (ScriptData s : sceneScripts) {
+                if (!"on_collision".equals(s.eventType)) continue;
+                if (actor.matchesTarget(s.targetObjectId) || other.matchesTarget(s.targetObjectId) || "__scene__".equals(s.targetObjectId)) {
+                    String f = s.eventParam == null ? "" : s.eventParam.trim();
+                    if (f.isEmpty() || f.equalsIgnoreCase(other.bean.tag) || f.equalsIgnoreCase(other.bean.name)
+                            || f.equalsIgnoreCase(actor.bean.tag) || f.equalsIgnoreCase(actor.bean.name)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private String resolveGoalSceneId(String spec) {
+            if (project.scenes.isEmpty()) return null;
+            if (spec == null || spec.trim().isEmpty() || "__next__".equals(spec.trim())) {
+                return resolveAdjacentSceneId(1);
+            }
+            if ("__prev__".equals(spec.trim())) {
+                return resolveAdjacentSceneId(-1);
+            }
+            SceneData matched = project.getSceneByIdOrName(spec.trim());
+            return matched != null ? matched.id : null;
+        }
+
+        private String resolveAdjacentSceneId(int delta) {
+            if (currentScene == null) return null;
+            int curIdx = -1;
+            for (int i = 0; i < project.scenes.size(); i++) {
+                SceneData s = project.scenes.get(i);
+                if (s != null && s.id != null && s.id.equals(currentScene.id)) {
+                    curIdx = i;
+                    break;
+                }
+            }
+            if (curIdx < 0) return null;
+            int targetIdx = curIdx + delta;
+            if (targetIdx >= 0 && targetIdx < project.scenes.size()) {
+                SceneData next = project.scenes.get(targetIdx);
+                return next != null ? next.id : null;
+            }
+            return null;
+        }
+
+        private void startSceneTransition(String sceneIdOrName, String type) {
+            SceneData target = project.getSceneByIdOrName(sceneIdOrName);
+            String resolvedId = target != null ? target.id : sceneIdOrName;
+            if (resolvedId == null || resolvedId.trim().isEmpty()) return;
+            if (type == null || type.trim().isEmpty() || "instant".equalsIgnoreCase(type.trim())) {
+                pendingSceneLoadId = resolvedId;
+                return;
+            }
+            transitionType = type.trim().toLowerCase(Locale.ROOT);
+            transitionTargetSceneId = resolvedId;
+            transitionPhase = "out";
+            transitionProgress = 0f;
         }
 
         private boolean overlapsXPass(RuntimeEntity a, RuntimeEntity b) {
@@ -1309,6 +1895,29 @@ public class MainActivity extends Activity {
 
         private boolean aabbTouching(RuntimeEntity a, RuntimeEntity b) {
             float tol = (a.bean.isSensor || b.bean.isSensor) ? -1f : 0.75f;
+            if (a.bean.circleCollider && b.bean.circleCollider) {
+                float ax = a.bean.x + a.bean.width * 0.5f;
+                float ay = a.bean.y + a.bean.height * 0.5f;
+                float ar = Math.min(a.bean.width, a.bean.height) * 0.5f;
+                float bx = b.bean.x + b.bean.width * 0.5f;
+                float by = b.bean.y + b.bean.height * 0.5f;
+                float br = Math.min(b.bean.width, b.bean.height) * 0.5f;
+                float distSq = (ax - bx) * (ax - bx) + (ay - by) * (ay - by);
+                float rSum = ar + br + tol;
+                return distSq <= rSum * rSum;
+            }
+            if (a.bean.circleCollider != b.bean.circleCollider) {
+                RuntimeEntity circ = a.bean.circleCollider ? a : b;
+                RuntimeEntity box = a.bean.circleCollider ? b : a;
+                float cx = circ.bean.x + circ.bean.width * 0.5f;
+                float cy = circ.bean.y + circ.bean.height * 0.5f;
+                float r = Math.min(circ.bean.width, circ.bean.height) * 0.5f + tol;
+                float nearX = clamp(cx, box.bean.x, box.bean.x + box.bean.width);
+                float nearY = clamp(cy, box.bean.y, box.bean.y + box.bean.height);
+                float dx = cx - nearX;
+                float dy = cy - nearY;
+                return dx * dx + dy * dy <= r * r;
+            }
             return a.bean.x + a.bean.width > b.bean.x - tol
                     && a.bean.x < b.bean.x + b.bean.width + tol
                     && a.bean.y + a.bean.height > b.bean.y - tol
@@ -1318,7 +1927,7 @@ public class MainActivity extends Activity {
         private void enqueueCollisionScripts(RuntimeEntity owner, RuntimeEntity other) {
             for (ScriptData script : sceneScripts) {
                 if (!"on_collision".equals(script.eventType)) continue;
-                if (!owner.bean.id.equals(script.targetObjectId) && !"__scene__".equals(script.targetObjectId)) continue;
+                if (!owner.matchesTarget(script.targetObjectId) && !"__scene__".equals(script.targetObjectId)) continue;
                 String filter = script.eventParam == null ? "" : script.eventParam.trim();
                 if (filter.isEmpty() || filter.equalsIgnoreCase(other.bean.tag) || filter.equalsIgnoreCase(other.bean.name)) {
                     activeFibers.add(new Fiber(script, owner, other));
@@ -1373,12 +1982,18 @@ public class MainActivity extends Activity {
                 if (target != null && !target.destroyed) {
                     float targetX = target.bean.x + target.bean.width * 0.5f - project.virtualWidth * 0.5f;
                     float targetY = target.bean.y + target.bean.height * 0.5f - project.virtualHeight * 0.5f;
-                    float maxRight = project.virtualWidth;
-                    float maxBottom = project.virtualHeight;
-                    for (RuntimeEntity o : objects) {
-                        if (!o.destroyed && !o.isHud()) {
-                            maxRight = Math.max(maxRight, o.bean.x + o.bean.width);
-                            maxBottom = Math.max(maxBottom, o.bean.y + o.bean.height);
+                    float maxRight = getWorldWidth();
+                    float maxBottom = getWorldHeight();
+                    if (currentScene == null || currentScene.worldWidth <= 0f || currentScene.worldHeight <= 0f) {
+                        for (RuntimeEntity o : objects) {
+                            if (!o.destroyed && !o.isHud() && o.bean.isStatic && !"death_zone".equals(o.bean.type)) {
+                                if (currentScene == null || currentScene.worldWidth <= 0f) {
+                                    maxRight = Math.max(maxRight, o.bean.x + o.bean.width);
+                                }
+                                if (currentScene == null || currentScene.worldHeight <= 0f) {
+                                    maxBottom = Math.max(maxBottom, o.bean.y + o.bean.height);
+                                }
+                            }
                         }
                     }
                     targetX = clamp(targetX, 0f, Math.max(0f, maxRight - project.virtualWidth));
@@ -1396,18 +2011,26 @@ public class MainActivity extends Activity {
         // ==================== Block VM & Expression Engine ====================
 
         private void enqueueUpdateScripts() {
-            Set<String> runningIds = new HashSet<String>();
+            Set<String> runningKeys = new HashSet<String>();
             for (Fiber f : activeFibers) {
-                if ("on_update".equals(f.script.eventType)) runningIds.add(f.script.id);
+                if ("on_update".equals(f.script.eventType)) {
+                    String ownerKey = f.self != null ? f.self.bean.id : "__scene__";
+                    runningKeys.add(f.script.id + "@" + ownerKey);
+                }
             }
             for (ScriptData script : sceneScripts) {
-                if (!"on_update".equals(script.eventType) || runningIds.contains(script.id)) continue;
+                if (!"on_update".equals(script.eventType)) continue;
                 if ("__scene__".equals(script.targetObjectId)) {
-                    activeFibers.add(new Fiber(script, null, null));
+                    if (!runningKeys.contains(script.id + "@__scene__")) {
+                        activeFibers.add(new Fiber(script, null, null));
+                    }
                 } else {
-                    RuntimeEntity owner = findById(script.targetObjectId);
-                    if (owner != null && !owner.destroyed) {
-                        activeFibers.add(new Fiber(script, owner, null));
+                    for (RuntimeEntity owner : objects) {
+                        if (owner.destroyed || !owner.matchesTarget(script.targetObjectId)) continue;
+                        if (owner.bean.activeOnlyNearCamera && !isInCameraViewport(owner, 360f)) continue;
+                        if (!runningKeys.contains(script.id + "@" + owner.bean.id)) {
+                            activeFibers.add(new Fiber(script, owner, null));
+                        }
                     }
                 }
             }
@@ -1420,12 +2043,20 @@ public class MainActivity extends Activity {
                 String tp = param == null ? "" : param.trim();
                 if (!sp.isEmpty() && !tp.isEmpty() && !sp.equalsIgnoreCase(tp)) continue;
                 if (!sp.isEmpty() && tp.isEmpty()) continue;
-                RuntimeEntity owner = selfObj;
-                if (owner == null && !"__scene__".equals(script.targetObjectId)) {
-                    owner = findById(script.targetObjectId);
-                    if (owner == null || owner.destroyed) continue;
+                if (selfObj != null) {
+                    if (!selfObj.destroyed && ("__scene__".equals(script.targetObjectId)
+                            || selfObj.matchesTarget(script.targetObjectId))) {
+                        activeFibers.add(new Fiber(script, selfObj, otherObj));
+                    }
+                } else if ("__scene__".equals(script.targetObjectId)) {
+                    activeFibers.add(new Fiber(script, null, otherObj));
+                } else {
+                    for (RuntimeEntity owner : objects) {
+                        if (!owner.destroyed && owner.matchesTarget(script.targetObjectId)) {
+                            activeFibers.add(new Fiber(script, owner, otherObj));
+                        }
+                    }
                 }
-                activeFibers.add(new Fiber(script, owner, otherObj));
             }
         }
 
@@ -1574,9 +2205,11 @@ public class MainActivity extends Activity {
                     copy.id = "clone_" + UUID.randomUUID().toString().substring(0, 8);
                     RuntimeEntity clone = new RuntimeEntity(copy);
                     clone.isClone = true;
-                    clone.templateId = src.templateId.isEmpty() ? src.bean.id : src.templateId;
+                    clone.templateId = src.matchKey();
+                    clone.enteredScreen = isInCameraViewport(clone, 0f);
                     objects.add(clone);
                     enqueueScriptsForTarget("on_clone_start", "", clone.templateId, clone, null);
+                    enqueueScriptsForTarget("on_scene_start", "", clone.templateId, clone, null);
                 }
                 return false;
             } else if ("deleteClone".equals(op)) {
@@ -1700,10 +2333,16 @@ public class MainActivity extends Activity {
             } else if ("setY".equals(op)) {
                 if (self != null) self.bean.y = evalSlotFloat(block, 0, 0f, fiber);
                 return false;
+            } else if ("keepInsideWorld".equals(op)) {
+                if (self != null) clampInsideWorldRect(self, getWorldWidth(), getWorldHeight());
+                return false;
+            } else if ("respawnAtCheckpoint".equals(op)) {
+                if (self != null) respawnObjectAtCheckpoint(self);
+                return false;
             } else if ("bounceOnEdge".equals(op)) {
                 if (self != null) {
-                    float maxX = Math.max(0f, project.virtualWidth - self.bean.width);
-                    float maxY = Math.max(0f, project.virtualHeight - self.bean.height);
+                    float maxX = Math.max(0f, getWorldWidth() - self.bean.width);
+                    float maxY = Math.max(0f, getWorldHeight() - self.bean.height);
                     boolean hitX = false;
                     boolean hitY = false;
                     if (self.bean.x < 0f) { self.bean.x = 0f; if (self.bean.velocityX < 0f) self.bean.velocityX = -self.bean.velocityX; hitX = true; }
@@ -1855,6 +2494,14 @@ public class MainActivity extends Activity {
                     self.bean.spriteResName = evalSlotText(block, 0, "", fiber);
                 }
                 return false;
+            } else if ("setAnimFrames".equals(op)) {
+                if (self != null) {
+                    self.bean.spriteFrames = evalSlotText(block, 0, "", fiber);
+                    self.bean.animFps = clamp(evalSlotFloat(block, 1, 8f, fiber), 0.5f, 60f);
+                    self.animFrameIdx = 0;
+                    self.animTimer = 0f;
+                }
+                return false;
             } else if ("setBackdrop".equals(op) || "switchBackdrop".equals(op)) {
                 String target = evalSlotText(block, 0, "", fiber);
                 SceneData sc = project.getSceneByIdOrName(target);
@@ -1976,6 +2623,12 @@ public class MainActivity extends Activity {
             } else if ("setFriction".equals(op)) {
                 if (self != null) self.bean.friction = clamp(evalSlotFloat(block, 0, 0.2f, fiber), 0f, 1f);
                 return false;
+            } else if ("setCircleCollider".equals(op)) {
+                if (self != null) self.bean.circleCollider = evalSlotBool(block, 0, true, fiber);
+                return false;
+            } else if ("setOneWay".equals(op)) {
+                if (self != null) self.bean.oneWay = evalSlotBool(block, 0, true, fiber);
+                return false;
             } else if ("playSound".equals(op)) {
                 playSoundInternal(evalSlotText(block, 0, "", fiber));
                 return false;
@@ -2025,9 +2678,44 @@ public class MainActivity extends Activity {
                     t.bean.text = formatNumber(val) + "/" + formatNumber(max);
                 }
                 return false;
+            } else if ("showDialog".equals(op)) {
+                String msg = evalSlotText(block, 0, "", fiber);
+                String speaker = evalSlotText(block, 1, "", fiber);
+                RuntimeEntity dlg = findOrCreateHudDialog();
+                dlg.bean.text = msg;
+                dlg.bean.actionKey = speaker;
+                dlg.bean.visible = true;
+                dlg.dialogVisibleChars = 0f;
+                return false;
+            } else if ("hideDialog".equals(op)) {
+                for (RuntimeEntity o : objects) {
+                    if (!o.destroyed && "hud_dialog".equals(o.bean.type)) {
+                        o.bean.visible = false;
+                    }
+                }
+                return false;
             } else if ("loadScene".equals(op)) {
                 pendingSceneLoadId = evalSlotText(block, 0, "", fiber);
                 return true;
+            } else if ("loadSceneWithTransition".equals(op)) {
+                String targetScene = evalSlotText(block, 0, "", fiber);
+                String trans = evalSlotText(block, 1, "fade", fiber);
+                startSceneTransition(targetScene, trans);
+                return true;
+            } else if ("nextScene".equals(op)) {
+                String nextId = resolveAdjacentSceneId(1);
+                if (nextId != null) {
+                    startSceneTransition(nextId, "fade");
+                    return true;
+                }
+                return false;
+            } else if ("previousScene".equals(op)) {
+                String prevId = resolveAdjacentSceneId(-1);
+                if (prevId != null) {
+                    startSceneTransition(prevId, "fade");
+                    return true;
+                }
+                return false;
             } else if ("restartScene".equals(op)) {
                 pendingSceneRestart = true;
                 return true;
@@ -2036,6 +2724,9 @@ public class MainActivity extends Activity {
                 float sx = hasSlot(block, 1) ? evalSlotFloat(block, 1, 0f, fiber) : (self != null ? self.bean.x : 100f);
                 float sy = hasSlot(block, 2) ? evalSlotFloat(block, 2, 0f, fiber) : (self != null ? self.bean.y : 100f);
                 spawnPrefabAt(name, sx, sy);
+                return false;
+            } else if ("setDestroyOffscreen".equals(op)) {
+                if (self != null) self.bean.destroyOffscreen = evalSlotBool(block, 0, true, fiber);
                 return false;
             } else if ("destroySelf".equals(op)) {
                 if (self != null) self.destroyed = true;
@@ -2054,6 +2745,16 @@ public class MainActivity extends Activity {
                     }
                 } else if (fiber.other != null) {
                     fiber.other.destroyed = true;
+                }
+                return false;
+            } else if ("saveGameData".equals(op)) {
+                String key = evalSlotText(block, 0, "", fiber).trim();
+                if (!key.isEmpty()) {
+                    String val = evalSlotString(block, 1, "", fiber);
+                    SharedPreferences prefs = getSavePrefs();
+                    if (prefs != null) {
+                        prefs.edit().putString(key, val).apply();
+                    }
                 }
                 return false;
             } else if ("sendMessage".equals(op) || "sendMessageWait".equals(op)) {
@@ -2075,27 +2776,74 @@ public class MainActivity extends Activity {
             return false;
         }
 
-        private void spawnPrefabAt(String prefabName, float x, float y) {
-            if (prefabName == null || prefabName.isEmpty()) return;
+        private RuntimeEntity findOrCreateHudDialog() {
+            for (RuntimeEntity o : objects) {
+                if (!o.destroyed && "hud_dialog".equals(o.bean.type)) {
+                    return o;
+                }
+            }
+            float dw = Math.min(880f, Math.max(260f, project.virtualWidth - 80f));
+            float dh = Math.min(180f, Math.max(120f, project.virtualHeight * 0.25f));
+            float dx = Math.max(20f, (project.virtualWidth - dw) * 0.5f);
+            float dy = Math.max(20f, project.virtualHeight - dh - 28f);
+            ObjectData bean = new ObjectData();
+            bean.id = "dlg_" + UUID.randomUUID().toString().substring(0, 8);
+            bean.name = "Dialog";
+            bean.type = "hud_dialog";
+            bean.isHud = true;
+            bean.x = dx;
+            bean.y = dy;
+            bean.width = dw;
+            bean.height = dh;
+            bean.color = 0xFF1E293B;
+            bean.zIndex = 200;
+            RuntimeEntity created = new RuntimeEntity(bean);
+            objects.add(created);
+            return created;
+        }
+
+        private SharedPreferences getSavePrefs() {
+            return appContext != null
+                    ? appContext.getSharedPreferences("sketchware_game_save", Context.MODE_PRIVATE)
+                    : null;
+        }
+
+        private String loadSavedValue(String key, String fallback) {
+            if (key == null || key.trim().isEmpty()) return fallback;
+            SharedPreferences prefs = getSavePrefs();
+            if (prefs == null) return fallback;
+            return prefs.getString(key.trim(), fallback);
+        }
+
+        private RuntimeEntity spawnPrefabAt(String prefabName, float x, float y) {
+            if (prefabName == null || prefabName.isEmpty()) return null;
             ObjectData template = null;
+            String resolvedTemplateId = "";
             for (ObjectData p : project.prefabs) {
                 if (prefabName.equalsIgnoreCase(p.name) || prefabName.equalsIgnoreCase(p.id)) {
                     template = p;
+                    resolvedTemplateId = p.id != null ? p.id : "";
                     break;
                 }
             }
             if (template == null) {
                 RuntimeEntity existing = findByIdOrName(prefabName);
-                if (existing != null) template = existing.bean;
+                if (existing != null) {
+                    template = existing.bean;
+                    resolvedTemplateId = existing.matchKey();
+                }
             }
-            if (template == null) return;
+            if (template == null) return null;
             ObjectData copy = template.copy();
             copy.id = "obj_" + UUID.randomUUID().toString().substring(0, 8);
             copy.x = x;
             copy.y = y;
             RuntimeEntity spawned = new RuntimeEntity(copy);
+            spawned.templateId = (resolvedTemplateId != null && !resolvedTemplateId.isEmpty()) ? resolvedTemplateId : template.id;
+            spawned.enteredScreen = isInCameraViewport(spawned, 0f);
             objects.add(spawned);
-            enqueueScriptsForTarget("on_scene_start", "", template.id, spawned, null);
+            enqueueScriptsForTarget("on_scene_start", "", spawned.templateId, spawned, null);
+            return spawned;
         }
 
         private void pushStack(Fiber fiber, List<BlockData> list, int iterations) {
@@ -2249,6 +2997,21 @@ public class MainActivity extends Activity {
                 return pressedButtons.contains(k) || latchedButtons.contains(k);
             }
             if ("isOnGround".equals(op)) return self != null && self.onGround;
+            if ("getWorldWidth".equals(op)) return (double) getWorldWidth();
+            if ("getWorldHeight".equals(op)) return (double) getWorldHeight();
+            if ("getSceneName".equals(op)) return currentScene != null ? currentScene.name : "";
+            if ("hasNextScene".equals(op)) return resolveAdjacentSceneId(1) != null;
+            if ("isOutsideWorld".equals(op)) return isOutsideWorld(self);
+            if ("hasLeftScreen".equals(op)) return hasLeftScreen(self);
+            if ("isActionJustPressed".equals(op)) {
+                String k = normalizeActionKey(evalSlotText(b, 0, "FIRE", fiber));
+                return justPressedButtons.contains(k);
+            }
+            if ("loadGameData".equals(op)) {
+                String key = evalSlotText(b, 0, "unlocked_level", fiber);
+                String def = evalSlotText(b, 1, "1", fiber);
+                return loadSavedValue(key, def);
+            }
             if ("isTouchingTarget".equals(op) || "isTouchingObj".equals(op) || "isCollidingTag".equals(op) || "touchingTag".equals(op) || "touchingObject".equals(op)) {
                 return checkTouchingTarget(self, evalSlotText(b, 0, "", fiber), fiber);
             }
@@ -2446,7 +3209,12 @@ public class MainActivity extends Activity {
             if ("camY".equals(name)) return (double) camY;
             if ("virtualWidth".equals(name) || "screenWidth".equals(name)) return (double) project.virtualWidth;
             if ("virtualHeight".equals(name) || "screenHeight".equals(name)) return (double) project.virtualHeight;
-            if ("backdrop".equals(name)) return currentScene != null ? currentScene.name : "";
+            if ("worldWidth".equals(name)) return (double) getWorldWidth();
+            if ("worldHeight".equals(name)) return (double) getWorldHeight();
+            if ("sceneName".equals(name) || "backdrop".equals(name)) return currentScene != null ? currentScene.name : "";
+            if ("hasNextScene".equals(name)) return resolveAdjacentSceneId(1) != null;
+            if ("outsideWorld".equals(name)) return isOutsideWorld(fiber != null ? fiber.self : null);
+            if ("leftScreen".equals(name)) return hasLeftScreen(fiber != null ? fiber.self : null);
             if ("isOnGround".equals(name) || "onGround".equals(name)) return fiber != null && fiber.self != null && fiber.self.onGround;
             if ("true".equals(name)) return true;
             if ("false".equals(name)) return false;
@@ -2739,7 +3507,20 @@ public class MainActivity extends Activity {
                     return fiber != null && fiber.self != null && fiber.self.onGround;
                 } else if ("joystickX".equals(fn) || "joyX".equals(fn)) return (double) joyX;
                 else if ("joystickY".equals(fn) || "joyY".equals(fn)) return (double) joyY;
-                else if ("joyAngle".equals(fn)) return (joyX == 0f && joyY == 0f) ? 0.0 : Math.toDegrees(Math.atan2(joyY, joyX));
+                else if ("worldWidth".equals(fn)) return (double) getWorldWidth();
+                else if ("worldHeight".equals(fn)) return (double) getWorldHeight();
+                else if ("sceneName".equals(fn)) return currentScene != null ? currentScene.name : "";
+                else if ("hasNextScene".equals(fn)) return resolveAdjacentSceneId(1) != null;
+                else if ("outsideWorld".equals(fn)) return isOutsideWorld(fiber != null ? fiber.self : null);
+                else if ("leftScreen".equals(fn)) return hasLeftScreen(fiber != null ? fiber.self : null);
+                else if ("btnJust".equals(fn) || "justPressed".equals(fn)) {
+                    String k = evalArgs.isEmpty() ? "FIRE" : valueToString(evalArgs.get(0));
+                    return justPressedButtons.contains(normalizeActionKey(k));
+                } else if ("loadSave".equals(fn)) {
+                    String k = evalArgs.size() >= 1 ? valueToString(evalArgs.get(0)) : "unlocked_level";
+                    String def = evalArgs.size() >= 2 ? valueToString(evalArgs.get(1)) : "1";
+                    return loadSavedValue(k, def);
+                } else if ("joyAngle".equals(fn)) return (joyX == 0f && joyY == 0f) ? 0.0 : Math.toDegrees(Math.atan2(joyY, joyX));
                 else if ("joyActive".equals(fn)) return joystickPointerId != -1 || Math.hypot(joyX, joyY) > 0.05;
                 else if ("touchDown".equals(fn)) return isTouchingWorld;
                 else if ("timer".equals(fn)) return (double) gameTimerSeconds;
@@ -2758,28 +3539,39 @@ public class MainActivity extends Activity {
                 return p < src.length() && (src.charAt(p) == ',' || src.charAt(p) == ')');
             }
         }
+""";
 
+    private static final String MAIN_ACTIVITY_BODY_TEMPLATE_PART4 = """
         // ==================== Rendering ====================
 
         private void renderScene(Canvas canvas) {
-            canvas.drawColor(0xFF0B0E14);
-            if (currentScene == null) return;
+            if (currentScene == null) {
+                canvas.drawColor(0xFF0B0E14);
+                return;
+            }
             int vw = Math.max(1, project.virtualWidth);
             int vh = Math.max(1, project.virtualHeight);
 
-            canvas.save();
-            canvas.translate(viewOffsetX, viewOffsetY);
-            canvas.clipRect(0f, 0f, vw * viewScale, vh * viewScale);
-            canvas.scale(viewScale, viewScale);
-
+            // Full-bleed background across the whole screen (zero black borders)
             canvas.drawColor(currentScene.backgroundColor);
             if (currentScene.backgroundSprite != null && !currentScene.backgroundSprite.isEmpty()) {
                 Bitmap bg = loadBitmap(currentScene.backgroundSprite);
                 if (bg != null && !bg.isRecycled()) {
-                    tempRect.set(0f, 0f, vw, vh);
-                    canvas.drawBitmap(bg, null, tempRect, bitmapPaint);
+                    drawBitmapCover(canvas, bg, surfaceWidth, surfaceHeight);
                 }
             }
+
+            canvas.save();
+            canvas.translate(viewOffsetX, viewOffsetY);
+            canvas.scale(viewScale, viewScale);
+
+            float safeScale = viewScale > 0.0001f ? viewScale : 1f;
+            float extraX = viewOffsetX / safeScale;
+            float extraY = viewOffsetY / safeScale;
+            float visLeft = -extraX;
+            float visTop = -extraY;
+            float visRight = vw + extraX;
+            float visBottom = vh + extraY;
 
             float shakeX = 0f;
             float shakeY = 0f;
@@ -2793,8 +3585,15 @@ public class MainActivity extends Activity {
             canvas.save();
             canvas.translate(-camX + shakeX, -camY + shakeY);
             ArrayList<RuntimeEntity> world = getWorldObjectsSorted();
-            for (RuntimeEntity obj : world) drawWorldObject(canvas, obj);
+            for (RuntimeEntity obj : world) {
+                if ("parallax_bg".equals(obj.bean.type)) {
+                    drawParallaxBackground(canvas, obj, visLeft, visTop, visRight, visBottom, vh);
+                } else {
+                    drawWorldObject(canvas, obj);
+                }
+            }
             drawParticles(canvas);
+            drawLighting2DPass(canvas, world, camX + visLeft, camY + visTop, camX + visRight, camY + visBottom);
             for (RuntimeEntity obj : world) drawSpeechBubble(canvas, obj);
             canvas.restore();
 
@@ -2802,12 +3601,153 @@ public class MainActivity extends Activity {
             for (RuntimeEntity obj : hud) drawHudObject(canvas, obj);
 
             canvas.restore();
+
+            if (!transitionPhase.isEmpty() && transitionProgress > 0.001f
+                    && !"instant".equalsIgnoreCase(transitionType)) {
+                int ovAlpha = Math.round(clamp(transitionProgress, 0f, 1f) * 255f);
+                int rgb = "flash".equalsIgnoreCase(transitionType) ? 0x00FFFFFF : 0x00000000;
+                fillPaint.setStyle(Paint.Style.FILL);
+                fillPaint.setColor((ovAlpha << 24) | rgb);
+                canvas.drawRect(0f, 0f, surfaceWidth, surfaceHeight, fillPaint);
+                fillPaint.setAlpha(255);
+            }
+        }
+
+        private void drawBitmapCover(Canvas canvas, Bitmap bmp, float targetW, float targetH) {
+            int bw = Math.max(1, bmp.getWidth());
+            int bh = Math.max(1, bmp.getHeight());
+            float s = Math.max(targetW / bw, targetH / bh);
+            float dw = bw * s;
+            float dh = bh * s;
+            float left = (targetW - dw) * 0.5f;
+            float top = (targetH - dh) * 0.5f;
+            tempRect.set(left, top, left + dw, top + dh);
+            bitmapPaint.setAlpha(255);
+            canvas.drawBitmap(bmp, null, tempRect, bitmapPaint);
+        }
+
+        private void drawParallaxBackground(
+                Canvas canvas,
+                RuntimeEntity obj,
+                float visLeft,
+                float visTop,
+                float visRight,
+                float visBottom,
+                int vh
+        ) {
+            ObjectData b = obj.bean;
+            if (obj.destroyed || !b.visible || b.alpha <= 0f) return;
+            int alphaInt = Math.max(0, Math.min(255, Math.round(b.alpha * 255f)));
+            float tileW = Math.max(64f, b.width);
+            float tileH = Math.max(64f, b.height);
+            float px = b.parallaxX;
+            float py = b.parallaxY;
+
+            float effX = camX * px - obj.scrollOffsetX;
+            float effY = camY * py - obj.scrollOffsetY;
+            float modX = ((effX % tileW) + tileW) % tileW;
+            float modY = ((effY % tileH) + tileH) % tileH;
+
+            float startX = camX + visLeft - modX - tileW;
+            float endX = camX + visRight + tileW;
+            boolean tileVert = b.moveY != 0f || tileH >= vh * 0.65f;
+            float startY = tileVert ? (camY + visTop - modY - tileH) : (b.y + camY * (1f - py) + obj.scrollOffsetY);
+            float endY = tileVert ? (camY + visBottom + tileH) : (startY + 1f);
+
+            Bitmap bmp = loadBitmap(b.spriteResName);
+            if (bmp != null && !bmp.isRecycled()) {
+                bitmapPaint.setAlpha(alphaInt);
+                for (float ty = startY; ty < endY; ty += tileH) {
+                    for (float tx = startX; tx < endX; tx += tileW) {
+                        tempRect.set(tx, ty, tx + tileW, ty + tileH);
+                        canvas.drawBitmap(bmp, null, tempRect, bitmapPaint);
+                    }
+                }
+                bitmapPaint.setAlpha(255);
+            } else {
+                fillPaint.setStyle(Paint.Style.FILL);
+                fillPaint.setColor(b.color);
+                fillPaint.setAlpha(alphaInt);
+                strokePaint.setStyle(Paint.Style.STROKE);
+                strokePaint.setStrokeWidth(2f);
+                strokePaint.setColor(0xFFFFFFFF);
+                strokePaint.setAlpha(Math.round(alphaInt * 0.14f));
+                for (float ty = startY; ty < endY; ty += tileH) {
+                    for (float tx = startX; tx < endX; tx += tileW) {
+                        tempRect.set(tx, ty, tx + tileW, ty + tileH);
+                        canvas.drawRect(tempRect, fillPaint);
+                        canvas.drawLine(tx, ty, tx, ty + tileH, strokePaint);
+                    }
+                }
+                fillPaint.setAlpha(255);
+            }
+        }
+
+        private void drawLighting2DPass(
+                Canvas canvas,
+                ArrayList<RuntimeEntity> world,
+                float left,
+                float top,
+                float right,
+                float bottom
+        ) {
+            if (currentScene == null || currentScene.ambientDarkness <= 0.01f) return;
+            float darkAlpha = clamp(currentScene.ambientDarkness, 0f, 0.96f);
+            int saveId = canvas.saveLayer(left, top, right, bottom, null);
+            fillPaint.setStyle(Paint.Style.FILL);
+            fillPaint.setColor(Color.argb(Math.round(darkAlpha * 255f), 0, 0, 0));
+            canvas.drawRect(left, top, right, bottom, fillPaint);
+
+            lightCutPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
+            for (RuntimeEntity obj : world) {
+                if (obj.destroyed || !obj.bean.visible || obj.bean.alpha <= 0f
+                        || !"light_2d".equals(obj.bean.type)) {
+                    continue;
+                }
+                float cx = obj.bean.x + obj.bean.width * 0.5f;
+                float cy = obj.bean.y + obj.bean.height * 0.5f;
+                float radius = Math.max(24f, Math.max(obj.bean.width, obj.bean.height) * 0.5f);
+                int centerCut = Math.round(clamp(obj.bean.alpha, 0f, 1f) * 255f);
+                lightCutPaint.setShader(new RadialGradient(
+                        cx, cy, radius,
+                        Color.argb(centerCut, 0, 0, 0),
+                        0x00000000,
+                        Shader.TileMode.CLAMP
+                ));
+                canvas.drawCircle(cx, cy, radius, lightCutPaint);
+            }
+            lightCutPaint.setShader(null);
+            lightCutPaint.setXfermode(null);
+            canvas.restoreToCount(saveId);
+
+            for (RuntimeEntity obj : world) {
+                if (obj.destroyed || !obj.bean.visible || obj.bean.alpha <= 0f
+                        || !"light_2d".equals(obj.bean.type)) {
+                    continue;
+                }
+                float cx = obj.bean.x + obj.bean.width * 0.5f;
+                float cy = obj.bean.y + obj.bean.height * 0.5f;
+                float radius = Math.max(24f, Math.max(obj.bean.width, obj.bean.height) * 0.5f);
+                int c = obj.bean.color;
+                int tintAlpha = Math.round(clamp(obj.bean.alpha, 0f, 1f) * 52f);
+                fillPaint.setStyle(Paint.Style.FILL);
+                fillPaint.setShader(new RadialGradient(
+                        cx, cy, radius,
+                        Color.argb(tintAlpha, Color.red(c), Color.green(c), Color.blue(c)),
+                        0x00000000,
+                        Shader.TileMode.CLAMP
+                ));
+                canvas.drawCircle(cx, cy, radius, fillPaint);
+                fillPaint.setShader(null);
+            }
+            fillPaint.setAlpha(255);
         }
 
         private void drawWorldObject(Canvas canvas, RuntimeEntity obj) {
             ObjectData b = obj.bean;
             if (obj.destroyed || !b.visible || b.alpha <= 0f) return;
-            if ("camera".equals(b.type) || "particles".equals(b.type)) {
+            if ("camera".equals(b.type) || "particles".equals(b.type)
+                    || "spawner".equals(b.type) || "light_2d".equals(b.type)) {
                 if (project.showDebugHitboxes) drawDebugHitbox(canvas, obj);
                 return;
             }
@@ -2829,13 +3769,34 @@ public class MainActivity extends Activity {
                 tempRect.set(-w * 0.5f, -h * 0.5f, w * 0.5f, h * 0.5f);
                 canvas.drawBitmap(bmp, null, tempRect, bitmapPaint);
                 bitmapPaint.setAlpha(255);
+            } else if ("world_text".equals(b.type)) {
+                Typeface tf = loadFont(b.fontResName);
+                textPaint.setTypeface(tf != null ? tf : Typeface.DEFAULT_BOLD);
+                textPaint.setTextSize(Math.max(18f, h * 0.6f));
+                textPaint.setTextAlign(Paint.Align.CENTER);
+                Paint.FontMetrics fm = textPaint.getFontMetrics();
+                float base = -(fm.ascent + fm.descent) * 0.5f;
+                String txt = b.text == null ? "" : b.text;
+                textPaint.setColor(0xAA000000);
+                canvas.drawText(txt, 2f, base + 2f, textPaint);
+                textPaint.setColor(b.color);
+                textPaint.setAlpha(alphaInt);
+                canvas.drawText(txt, 0f, base, textPaint);
             } else {
                 tempRect.set(-w * 0.5f, -h * 0.5f, w * 0.5f, h * 0.5f);
                 fillPaint.setStyle(Paint.Style.FILL);
                 fillPaint.setColor(b.color);
                 fillPaint.setAlpha(alphaInt);
 
-                if ("trigger".equals(b.type)) {
+                if (b.circleCollider || "physics_circle".equals(b.type)) {
+                    float r = Math.min(w, h) * 0.5f;
+                    canvas.drawCircle(0f, 0f, r, fillPaint);
+                    strokePaint.setStyle(Paint.Style.STROKE);
+                    strokePaint.setStrokeWidth(2.5f);
+                    strokePaint.setColor(0xFFFFFFFF);
+                    strokePaint.setAlpha(Math.round(alphaInt * 0.35f));
+                    canvas.drawCircle(0f, 0f, r - 1.5f, strokePaint);
+                } else if ("trigger".equals(b.type)) {
                     float r = Math.min(w, h) * 0.5f;
                     canvas.drawCircle(0f, 0f, r, fillPaint);
                     strokePaint.setStyle(Paint.Style.STROKE);
@@ -2843,12 +3804,92 @@ public class MainActivity extends Activity {
                     strokePaint.setColor(0xFFFFFFFF);
                     strokePaint.setAlpha(Math.round(alphaInt * 0.7f));
                     canvas.drawCircle(0f, 0f, r - 2f, strokePaint);
-                } else if ("platform".equals(b.type)) {
+                } else if ("goal".equals(b.type)) {
+                    float r = Math.min(w, h) * 0.48f;
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.28f));
+                    canvas.drawCircle(0f, 0f, r, fillPaint);
+                    strokePaint.setStyle(Paint.Style.STROKE);
+                    strokePaint.setStrokeWidth(4f);
+                    strokePaint.setColor(b.color);
+                    strokePaint.setAlpha(alphaInt);
+                    canvas.drawCircle(0f, 0f, r - 2f, strokePaint);
+                    fillPaint.setColor(0xFFFFFFFF);
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.85f));
+                    canvas.drawCircle(0f, 0f, r * 0.38f, fillPaint);
+                } else if ("checkpoint".equals(b.type)) {
+                    fillPaint.setColor(0xFFE2E8F0);
+                    fillPaint.setAlpha(alphaInt);
+                    canvas.drawRoundRect(-w * 0.14f, -h * 0.46f, -w * 0.02f, h * 0.46f, 4f, 4f, fillPaint);
+                    fillPaint.setColor(b.toggled ? 0xFF4CAF50 : b.color);
+                    fillPaint.setAlpha(alphaInt);
+                    tempPath.reset();
+                    tempPath.moveTo(-w * 0.02f, -h * 0.44f);
+                    tempPath.lineTo(w * 0.42f, -h * 0.24f);
+                    tempPath.lineTo(-w * 0.02f, -h * 0.04f);
+                    tempPath.close();
+                    canvas.drawPath(tempPath, fillPaint);
+                } else if ("death_zone".equals(b.type)) {
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.32f));
+                    canvas.drawRect(tempRect, fillPaint);
+                    strokePaint.setStyle(Paint.Style.STROKE);
+                    strokePaint.setStrokeWidth(2.5f);
+                    strokePaint.setColor(b.color);
+                    strokePaint.setAlpha(Math.round(alphaInt * 0.85f));
+                    canvas.drawRect(tempRect, strokePaint);
+                    float step = Math.max(24f, h * 0.7f);
+                    for (float sx = -w * 0.5f; sx < w * 0.5f; sx += step) {
+                        float ex = Math.min(w * 0.5f, sx + h * 0.6f);
+                        canvas.drawLine(sx, h * 0.5f, ex, -h * 0.5f, strokePaint);
+                    }
+                } else if ("hazard".equals(b.type)) {
+                    int count = Math.max(1, Math.round(w / Math.max(20f, h)));
+                    float sw = w / count;
+                    tempPath.reset();
+                    for (int i = 0; i < count; i++) {
+                        float x0 = -w * 0.5f + i * sw;
+                        tempPath.moveTo(x0, h * 0.5f);
+                        tempPath.lineTo(x0 + sw * 0.5f, -h * 0.5f);
+                        tempPath.lineTo(x0 + sw, h * 0.5f);
+                    }
+                    canvas.drawPath(tempPath, fillPaint);
+                } else if ("collectible".equals(b.type)) {
+                    float r = Math.min(w, h) * 0.46f;
+                    canvas.drawCircle(0f, 0f, r, fillPaint);
+                    strokePaint.setStyle(Paint.Style.STROKE);
+                    strokePaint.setStrokeWidth(3f);
+                    strokePaint.setColor(0xFFFFF8E1);
+                    strokePaint.setAlpha(Math.round(alphaInt * 0.85f));
+                    canvas.drawCircle(0f, 0f, r * 0.68f, strokePaint);
+                } else if ("bounce_pad".equals(b.type)) {
+                    canvas.drawRoundRect(-w * 0.5f, 0f, w * 0.5f, h * 0.5f, 8f, 8f, fillPaint);
+                    fillPaint.setColor(0xFFFFFFFF);
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.75f));
+                    canvas.drawRoundRect(-w * 0.44f, -h * 0.25f, w * 0.44f, 2f, 6f, 6f, fillPaint);
+                } else if ("projectile".equals(b.type)) {
+                    float r = Math.min(w, h) * 0.5f;
+                    canvas.drawRoundRect(tempRect, r, r, fillPaint);
+                    fillPaint.setColor(0xFFFFFFFF);
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.65f));
+                    canvas.drawCircle(w * 0.16f, 0f, Math.max(2f, r * 0.45f), fillPaint);
+                } else if ("oneway_platform".equals(b.type)) {
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.75f));
+                    canvas.drawRoundRect(tempRect, 6f, 6f, fillPaint);
+                    fillPaint.setColor(0xFFFFFFFF);
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.85f));
+                    canvas.drawRect(-w * 0.5f, -h * 0.5f, w * 0.5f, -h * 0.5f + Math.min(5f, h * 0.3f), fillPaint);
+                } else if ("platform".equals(b.type) || "moving_platform".equals(b.type)) {
                     canvas.drawRoundRect(tempRect, 10f, 10f, fillPaint);
                     fillPaint.setColor(0xFFFFFFFF);
-                    fillPaint.setAlpha(Math.round(alphaInt * 0.16f));
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.18f));
                     tempRect.set(-w * 0.5f, -h * 0.5f, w * 0.5f, -h * 0.5f + Math.min(8f, h * 0.25f));
                     canvas.drawRoundRect(tempRect, 8f, 8f, fillPaint);
+                    if ("moving_platform".equals(b.type)) {
+                        strokePaint.setStyle(Paint.Style.STROKE);
+                        strokePaint.setStrokeWidth(2.5f);
+                        strokePaint.setColor(0xFFFFFFFF);
+                        strokePaint.setAlpha(Math.round(alphaInt * 0.6f));
+                        canvas.drawLine(-w * 0.2f, 0f, w * 0.2f, 0f, strokePaint);
+                    }
                 } else {
                     canvas.drawRoundRect(tempRect, 14f, 14f, fillPaint);
                     strokePaint.setStyle(Paint.Style.STROKE);
@@ -3049,6 +4090,178 @@ public class MainActivity extends Activity {
                 strokePaint.setColor(0xFFFFFFFF);
                 strokePaint.setAlpha(Math.round(alphaInt * 0.45f));
                 canvas.drawRoundRect(tempRect, radius, radius, strokePaint);
+            } else if ("hud_panel".equals(b.type)) {
+                float radius = Math.min(20f, Math.min(b.width, b.height) * 0.25f);
+                tempRect.set(b.x, b.y, b.x + b.width, b.y + b.height);
+                Bitmap bmp = loadBitmap(b.spriteResName);
+                if (bmp != null && !bmp.isRecycled()) {
+                    bitmapPaint.setAlpha(alphaInt);
+                    canvas.drawBitmap(bmp, null, tempRect, bitmapPaint);
+                    bitmapPaint.setAlpha(255);
+                } else {
+                    fillPaint.setStyle(Paint.Style.FILL);
+                    fillPaint.setColor(b.color);
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.85f));
+                    canvas.drawRoundRect(tempRect, radius, radius, fillPaint);
+
+                    strokePaint.setStyle(Paint.Style.STROKE);
+                    strokePaint.setStrokeWidth(2f);
+                    strokePaint.setColor(0xFFFFFFFF);
+                    strokePaint.setAlpha(Math.round(alphaInt * 0.28f));
+                    canvas.drawRoundRect(tempRect, radius, radius, strokePaint);
+                }
+            } else if ("hud_image".equals(b.type)) {
+                tempRect.set(b.x, b.y, b.x + b.width, b.y + b.height);
+                Bitmap bmp = loadBitmap(b.spriteResName);
+                if (bmp != null && !bmp.isRecycled()) {
+                    bitmapPaint.setAlpha(alphaInt);
+                    canvas.drawBitmap(bmp, null, tempRect, bitmapPaint);
+                    bitmapPaint.setAlpha(255);
+                } else {
+                    fillPaint.setStyle(Paint.Style.FILL);
+                    fillPaint.setColor(b.color);
+                    fillPaint.setAlpha(alphaInt);
+                    canvas.drawRoundRect(tempRect, 12f, 12f, fillPaint);
+                }
+            } else if ("hud_dpad".equals(b.type)) {
+                float cx = b.x + b.width * 0.5f;
+                float cy = b.y + b.height * 0.5f;
+                float r = Math.min(b.width, b.height) * 0.48f;
+                float armW = r * 0.54f;
+                String activeDir = dpadObjectId.equals(b.id) ? dpadDirectionKey : "";
+
+                fillPaint.setStyle(Paint.Style.FILL);
+                fillPaint.setColor(0xFF000000);
+                fillPaint.setAlpha(Math.round(alphaInt * 0.22f));
+                canvas.drawCircle(cx, cy, r, fillPaint);
+
+                fillPaint.setColor(b.color);
+                fillPaint.setAlpha(Math.round(alphaInt * 0.45f));
+                tempRect.set(cx - armW * 0.5f, cy - r * 0.9f, cx + armW * 0.5f, cy + r * 0.9f);
+                canvas.drawRoundRect(tempRect, 12f, 12f, fillPaint);
+                tempRect.set(cx - r * 0.9f, cy - armW * 0.5f, cx + r * 0.9f, cy + armW * 0.5f);
+                canvas.drawRoundRect(tempRect, 12f, 12f, fillPaint);
+
+                if (!activeDir.isEmpty()) {
+                    fillPaint.setColor(0xFFFFFFFF);
+                    fillPaint.setAlpha(Math.round(alphaInt * 0.55f));
+                    if ("UP".equals(activeDir)) {
+                        tempRect.set(cx - armW * 0.5f, cy - r * 0.9f, cx + armW * 0.5f, cy - armW * 0.35f);
+                    } else if ("DOWN".equals(activeDir)) {
+                        tempRect.set(cx - armW * 0.5f, cy + armW * 0.35f, cx + armW * 0.5f, cy + r * 0.9f);
+                    } else if ("LEFT".equals(activeDir)) {
+                        tempRect.set(cx - r * 0.9f, cy - armW * 0.5f, cx - armW * 0.35f, cy + armW * 0.5f);
+                    } else {
+                        tempRect.set(cx + armW * 0.35f, cy - armW * 0.5f, cx + r * 0.9f, cy + armW * 0.5f);
+                    }
+                    canvas.drawRoundRect(tempRect, 10f, 10f, fillPaint);
+                }
+
+                strokePaint.setStyle(Paint.Style.STROKE);
+                strokePaint.setStrokeWidth(2.5f);
+                strokePaint.setColor(0xFFFFFFFF);
+                strokePaint.setAlpha(Math.round(alphaInt * 0.4f));
+                canvas.drawCircle(cx, cy, r, strokePaint);
+            } else if ("hud_touch_area".equals(b.type)) {
+                tempRect.set(b.x, b.y, b.x + b.width, b.y + b.height);
+                fillPaint.setStyle(Paint.Style.FILL);
+                fillPaint.setColor(b.color);
+                fillPaint.setAlpha(Math.round(alphaInt * 0.14f));
+                canvas.drawRoundRect(tempRect, 16f, 16f, fillPaint);
+
+                strokePaint.setStyle(Paint.Style.STROKE);
+                strokePaint.setStrokeWidth(2f);
+                strokePaint.setColor(b.color);
+                strokePaint.setAlpha(Math.round(alphaInt * 0.45f));
+                canvas.drawRoundRect(tempRect, 16f, 16f, strokePaint);
+            } else if ("hud_dialog".equals(b.type)) {
+                tempRect.set(b.x, b.y, b.x + b.width, b.y + b.height);
+                fillPaint.setStyle(Paint.Style.FILL);
+                fillPaint.setColor(b.color);
+                fillPaint.setAlpha(Math.round(alphaInt * 0.92f));
+                canvas.drawRoundRect(tempRect, 18f, 18f, fillPaint);
+
+                strokePaint.setStyle(Paint.Style.STROKE);
+                strokePaint.setStrokeWidth(3f);
+                strokePaint.setColor(0xFFFFFFFF);
+                strokePaint.setAlpha(Math.round(alphaInt * 0.65f));
+                canvas.drawRoundRect(tempRect, 18f, 18f, strokePaint);
+
+                float pad = 20f;
+                float tyStart = b.y + pad;
+                if (b.actionKey != null && !b.actionKey.trim().isEmpty()) {
+                    textPaint.setTypeface(Typeface.DEFAULT_BOLD);
+                    textPaint.setTextSize(Math.max(16f, Math.min(24f, b.height * 0.18f)));
+                    textPaint.setTextAlign(Paint.Align.LEFT);
+                    textPaint.setColor(0xFFFACC15);
+                    textPaint.setAlpha(alphaInt);
+                    float spBase = tyStart - textPaint.getFontMetrics().ascent;
+                    canvas.drawText(b.actionKey.trim(), b.x + pad, spBase, textPaint);
+                    tyStart = spBase + textPaint.getTextSize() * 0.65f;
+                }
+
+                String raw = b.text == null ? "" : b.text;
+                int visLen = Math.max(0, Math.min(raw.length(), (int) Math.ceil(obj.dialogVisibleChars)));
+                String shown = raw.substring(0, visLen);
+                Typeface tf = loadFont(b.fontResName);
+                textPaint.setTypeface(tf != null ? tf : Typeface.DEFAULT_BOLD);
+                textPaint.setTextSize(Math.max(18f, Math.min(30f, b.height * 0.22f)));
+                textPaint.setTextAlign(Paint.Align.LEFT);
+                textPaint.setColor(0xFFFFFFFF);
+                textPaint.setAlpha(alphaInt);
+
+                float maxTextW = Math.max(40f, b.width - pad * 2f);
+                float lineStep = textPaint.getTextSize() * 1.32f;
+                float ty = tyStart - textPaint.getFontMetrics().ascent;
+                int start = 0;
+                while (start < shown.length() && ty < b.y + b.height - 12f) {
+                    int count = textPaint.breakText(shown, start, shown.length(), true, maxTextW, null);
+                    if (count <= 0) break;
+                    int end = start + count;
+                    if (end < shown.length()) {
+                        int sp = shown.lastIndexOf(' ', end - 1);
+                        if (sp > start) end = sp + 1;
+                    }
+                    canvas.drawText(shown.substring(start, end).trim(), b.x + pad, ty, textPaint);
+                    start = end;
+                    ty += lineStep;
+                }
+            } else if ("hud_toggle".equals(b.type)) {
+                float trackH = Math.min(b.height, 56f);
+                float trackW = Math.min(b.width, trackH * 1.9f);
+                float tx = b.x;
+                float ty = b.y + (b.height - trackH) * 0.5f;
+                float rad = trackH * 0.5f;
+
+                tempRect.set(tx, ty, tx + trackW, ty + trackH);
+                fillPaint.setStyle(Paint.Style.FILL);
+                fillPaint.setColor(b.toggled ? b.color : 0xFF334155);
+                fillPaint.setAlpha(alphaInt);
+                canvas.drawRoundRect(tempRect, rad, rad, fillPaint);
+
+                strokePaint.setStyle(Paint.Style.STROKE);
+                strokePaint.setStrokeWidth(2.5f);
+                strokePaint.setColor(0xFFFFFFFF);
+                strokePaint.setAlpha(Math.round(alphaInt * 0.55f));
+                canvas.drawRoundRect(tempRect, rad, rad, strokePaint);
+
+                float knobR = rad - 5f;
+                float kx = b.toggled ? (tx + trackW - rad) : (tx + rad);
+                fillPaint.setColor(0xFFFFFFFF);
+                fillPaint.setAlpha(alphaInt);
+                canvas.drawCircle(kx, ty + rad, knobR, fillPaint);
+
+                if (b.text != null && !b.text.trim().isEmpty() && b.width > trackW + 16f) {
+                    Typeface tf = loadFont(b.fontResName);
+                    textPaint.setTypeface(tf != null ? tf : Typeface.DEFAULT_BOLD);
+                    textPaint.setTextSize(Math.max(16f, Math.min(28f, trackH * 0.52f)));
+                    textPaint.setTextAlign(Paint.Align.LEFT);
+                    textPaint.setColor(0xFFFFFFFF);
+                    textPaint.setAlpha(alphaInt);
+                    Paint.FontMetrics fm = textPaint.getFontMetrics();
+                    float base = b.y + b.height * 0.5f - (fm.ascent + fm.descent) * 0.5f;
+                    canvas.drawText(b.text.trim(), tx + trackW + 12f, base, textPaint);
+                }
             } else {
                 drawWorldObject(canvas, obj);
             }
@@ -3153,7 +4366,9 @@ public class MainActivity extends Activity {
             } catch (Throwable ignored) {
             }
         }
+""";
 
+    private static final String MAIN_ACTIVITY_BODY_TEMPLATE_PART5 = """
         private void playBgmInternal(String resName, boolean loop) {
             if (resName == null || resName.trim().isEmpty()) {
                 stopBgmInternal();
@@ -3379,6 +4594,47 @@ public class MainActivity extends Activity {
             return formatted;
         }
 
+        private boolean isInCameraViewport(RuntimeEntity obj, float margin) {
+            if (obj == null) return false;
+            int vw = Math.max(1, project.virtualWidth);
+            int vh = Math.max(1, project.virtualHeight);
+            float left = camX - margin;
+            float top = camY - margin;
+            float right = camX + vw + margin;
+            float bottom = camY + vh + margin;
+            return obj.bean.x + obj.bean.width >= left
+                    && obj.bean.x <= right
+                    && obj.bean.y + obj.bean.height >= top
+                    && obj.bean.y <= bottom;
+        }
+
+        private boolean isOutsideWorld(RuntimeEntity obj) {
+            if (obj == null) return false;
+            float ww = getWorldWidth();
+            float wh = getWorldHeight();
+            return obj.bean.x + obj.bean.width < 0f
+                    || obj.bean.x > ww
+                    || obj.bean.y + obj.bean.height < 0f
+                    || obj.bean.y > wh;
+        }
+
+        private boolean hasLeftScreen(RuntimeEntity obj) {
+            if (obj == null || !obj.enteredScreen) return false;
+            return !isInCameraViewport(obj, 24f);
+        }
+
+        private boolean isFarOutsideWorldAndCamera(RuntimeEntity obj, float margin) {
+            if (obj == null) return false;
+            float minX = Math.min(0f, camX) - margin;
+            float minY = Math.min(0f, camY) - margin;
+            float maxX = Math.max(getWorldWidth(), camX + project.virtualWidth) + margin;
+            float maxY = Math.max(getWorldHeight(), camY + project.virtualHeight) + margin;
+            return obj.bean.x + obj.bean.width < minX
+                    || obj.bean.x > maxX
+                    || obj.bean.y + obj.bean.height < minY
+                    || obj.bean.y > maxY;
+        }
+
         private static final Comparator<RuntimeEntity> Z_COMPARATOR = new Comparator<RuntimeEntity>() {
             @Override
             public int compare(RuntimeEntity a, RuntimeEntity b) {
@@ -3392,6 +4648,12 @@ public class MainActivity extends Activity {
             final int spawnOrder;
             float prevX;
             float prevY;
+            float startX;
+            float startY;
+            float checkpointX;
+            float checkpointY;
+            boolean hasCheckpoint = false;
+            boolean enteredScreen = false;
             boolean onGround = false;
             boolean destroyed = false;
             boolean isClone = false;
@@ -3406,18 +4668,51 @@ public class MainActivity extends Activity {
             float glideTargetY = 0f;
             float glideElapsed = 0f;
             float glideDuration = 0f;
+            int animFrameIdx = 0;
+            float animTimer = 0f;
+            float spawnTimer = 0f;
+            float patrolDir = 1f;
+            float hitCooldown = 0f;
+            float scrollOffsetX = 0f;
+            float scrollOffsetY = 0f;
+            float dialogVisibleChars = 0f;
             final Set<String> prevColliders = new HashSet<String>();
             final Set<String> currentColliders = new HashSet<String>();
 
             RuntimeEntity(ObjectData source) {
                 this.bean = source.copy();
                 this.spawnOrder = nextSpawnOrder++;
+                this.templateId = this.bean.id != null ? this.bean.id : "";
                 this.prevX = this.bean.x;
                 this.prevY = this.bean.y;
+                this.startX = this.bean.x;
+                this.startY = this.bean.y;
+                this.checkpointX = this.bean.x;
+                this.checkpointY = this.bean.y;
+                if ("spawner".equals(this.bean.type)) {
+                    this.spawnTimer = 0.15f;
+                }
+                if ("projectile".equals(this.bean.type)
+                        && this.bean.velocityX == 0f && this.bean.velocityY == 0f
+                        && (this.bean.moveX != 0f || this.bean.moveY != 0f)) {
+                    this.bean.velocityX = this.bean.moveX;
+                    this.bean.velocityY = this.bean.moveY;
+                }
             }
 
             boolean isHud() {
                 return bean.isHud || bean.isHudType();
+            }
+
+            String matchKey() {
+                return (templateId != null && !templateId.isEmpty())
+                        ? templateId
+                        : (bean.id != null ? bean.id : "");
+            }
+
+            boolean matchesTarget(String targetId) {
+                if (targetId == null || targetId.isEmpty()) return false;
+                return targetId.equals(bean.id) || (templateId != null && targetId.equals(templateId));
             }
         }
 

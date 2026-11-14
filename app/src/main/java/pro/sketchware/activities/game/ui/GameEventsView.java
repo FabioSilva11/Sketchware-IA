@@ -880,38 +880,11 @@ public class GameEventsView extends FrameLayout {
 
     @DrawableRes
     private static int getObjectIconRes(@Nullable String type) {
-        if (type == null) return R.drawable.ic_mtrl_image;
-        return switch (type) {
-            case GameObjectBean.TYPE_ANIMATED_SPRITE -> R.drawable.ic_mtrl_animation;
-            case GameObjectBean.TYPE_PLATFORM -> R.drawable.ic_mtrl_view_horizontal;
-            case GameObjectBean.TYPE_PHYSICS_BOX -> R.drawable.ic_mtrl_box;
-            case GameObjectBean.TYPE_TRIGGER -> R.drawable.ic_mtrl_sensor;
-            case GameObjectBean.TYPE_PARTICLES -> R.drawable.ic_mtrl_auto_awesome;
-            case GameObjectBean.TYPE_CAMERA -> R.drawable.ic_mtrl_camera;
-            case GameObjectBean.TYPE_HUD_TEXT -> R.drawable.ic_mtrl_formattext;
-            case GameObjectBean.TYPE_HUD_BUTTON -> R.drawable.ic_mtrl_button_click;
-            case GameObjectBean.TYPE_HUD_JOYSTICK -> R.drawable.ic_mtrl_target;
-            case GameObjectBean.TYPE_HUD_BAR -> R.drawable.ic_mtrl_progress_bar;
-            default -> R.drawable.ic_mtrl_image;
-        };
+        return GamePaletteView.getTypeIconRes(type);
     }
 
     private static String formatTypeName(@Nullable String type) {
-        if (type == null) return "Object";
-        return switch (type) {
-            case GameObjectBean.TYPE_SPRITE -> "2D Sprite";
-            case GameObjectBean.TYPE_ANIMATED_SPRITE -> "Animated Sprite";
-            case GameObjectBean.TYPE_PLATFORM -> "Platform";
-            case GameObjectBean.TYPE_PHYSICS_BOX -> "Physics Box";
-            case GameObjectBean.TYPE_TRIGGER -> "Trigger / Sensor";
-            case GameObjectBean.TYPE_PARTICLES -> "Particles";
-            case GameObjectBean.TYPE_CAMERA -> "2D Camera";
-            case GameObjectBean.TYPE_HUD_TEXT -> "HUD Text";
-            case GameObjectBean.TYPE_HUD_BUTTON -> "HUD Button";
-            case GameObjectBean.TYPE_HUD_JOYSTICK -> "HUD Joystick";
-            case GameObjectBean.TYPE_HUD_BAR -> "HUD Bar";
-            default -> type;
-        };
+        return GameObjectBean.getTypeDisplayName(type);
     }
 
     private static String nonEmpty(@Nullable String s, String fallback) {

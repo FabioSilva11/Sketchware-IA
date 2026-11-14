@@ -180,32 +180,14 @@ public class GameObjectsTabView extends FrameLayout {
         scene.ensureInitialized();
         Context context = getContext();
 
-        final String[] types = new String[]{
-                GameObjectBean.TYPE_SPRITE,
-                GameObjectBean.TYPE_ANIMATED_SPRITE,
-                GameObjectBean.TYPE_PLATFORM,
-                GameObjectBean.TYPE_PHYSICS_BOX,
-                GameObjectBean.TYPE_TRIGGER,
-                GameObjectBean.TYPE_PARTICLES,
-                GameObjectBean.TYPE_CAMERA,
-                GameObjectBean.TYPE_HUD_TEXT,
-                GameObjectBean.TYPE_HUD_BUTTON,
-                GameObjectBean.TYPE_HUD_JOYSTICK,
-                GameObjectBean.TYPE_HUD_BAR
-        };
-        final String[] labels = new String[]{
-                "2D Sprite",
-                "Animated Sprite",
-                "Solid Platform",
-                "Physics Box",
-                "Trigger / Sensor",
-                "Particles",
-                "2D Camera",
-                "HUD Text",
-                "HUD Button",
-                "HUD Joystick",
-                "HUD Bar"
-        };
+        List<GamePaletteView.PaletteEntry> paletteEntries = GamePaletteView.getAllPaletteEntries();
+        final String[] types = new String[paletteEntries.size()];
+        final String[] labels = new String[paletteEntries.size()];
+        for (int i = 0; i < paletteEntries.size(); i++) {
+            GamePaletteView.PaletteEntry entry = paletteEntries.get(i);
+            types[i] = entry.type;
+            labels[i] = GameObjectBean.getTypeDisplayName(entry.type) + " (" + entry.label + ")";
+        }
 
         LinearLayout box = new LinearLayout(context);
         box.setOrientation(LinearLayout.VERTICAL);
@@ -575,38 +557,11 @@ public class GameObjectsTabView extends FrameLayout {
 
     @DrawableRes
     private static int getObjectIconRes(@Nullable String type) {
-        if (type == null) return R.drawable.ic_mtrl_image;
-        return switch (type) {
-            case GameObjectBean.TYPE_ANIMATED_SPRITE -> R.drawable.ic_mtrl_animation;
-            case GameObjectBean.TYPE_PLATFORM -> R.drawable.ic_mtrl_view_horizontal;
-            case GameObjectBean.TYPE_PHYSICS_BOX -> R.drawable.ic_mtrl_box;
-            case GameObjectBean.TYPE_TRIGGER -> R.drawable.ic_mtrl_sensor;
-            case GameObjectBean.TYPE_PARTICLES -> R.drawable.ic_mtrl_auto_awesome;
-            case GameObjectBean.TYPE_CAMERA -> R.drawable.ic_mtrl_camera;
-            case GameObjectBean.TYPE_HUD_TEXT -> R.drawable.ic_mtrl_formattext;
-            case GameObjectBean.TYPE_HUD_BUTTON -> R.drawable.ic_mtrl_button_click;
-            case GameObjectBean.TYPE_HUD_JOYSTICK -> R.drawable.ic_mtrl_target;
-            case GameObjectBean.TYPE_HUD_BAR -> R.drawable.ic_mtrl_progress_bar;
-            default -> R.drawable.ic_mtrl_image;
-        };
+        return GamePaletteView.getTypeIconRes(type);
     }
 
     private static String formatTypeName(@Nullable String type) {
-        if (type == null) return "Object";
-        return switch (type) {
-            case GameObjectBean.TYPE_SPRITE -> "2D Sprite";
-            case GameObjectBean.TYPE_ANIMATED_SPRITE -> "Animated Sprite";
-            case GameObjectBean.TYPE_PLATFORM -> "Platform";
-            case GameObjectBean.TYPE_PHYSICS_BOX -> "Physics Box";
-            case GameObjectBean.TYPE_TRIGGER -> "Trigger / Sensor";
-            case GameObjectBean.TYPE_PARTICLES -> "Particles";
-            case GameObjectBean.TYPE_CAMERA -> "2D Camera";
-            case GameObjectBean.TYPE_HUD_TEXT -> "HUD Text";
-            case GameObjectBean.TYPE_HUD_BUTTON -> "HUD Button";
-            case GameObjectBean.TYPE_HUD_JOYSTICK -> "HUD Joystick";
-            case GameObjectBean.TYPE_HUD_BAR -> "HUD Bar";
-            default -> type;
-        };
+        return GameObjectBean.getTypeDisplayName(type);
     }
 
     private static String nonEmpty(@Nullable String s, String fallback) {

@@ -1328,6 +1328,10 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
                 out.addAll(Arrays.asList("true", "false"));
                 break;
 
+            case "transition":
+                out.addAll(Arrays.asList("fade", "flash", "instant"));
+                break;
+
             default:
                 break;
         }
@@ -1355,6 +1359,7 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
             case "mathfn": return "Select math function";
             case "message": return "Select broadcast message";
             case "bool": return "Select value";
+            case "transition": return "Select transition";
             case "color": return "Select color";
             default: return "Select";
         }

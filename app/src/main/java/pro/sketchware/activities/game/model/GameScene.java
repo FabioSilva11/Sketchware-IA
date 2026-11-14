@@ -7,12 +7,21 @@ import java.util.Objects;
  * Single playable scene/level containing 2D objects, physics settings, and event scripts.
  */
 public class GameScene {
+    public static final String WORLD_BOUNDS_FREE = "free";
+    public static final String WORLD_BOUNDS_SOLID = "solid";
+    public static final String WORLD_BOUNDS_RESPAWN_BOTTOM = "respawn_bottom";
+    public static final String WORLD_BOUNDS_RESTART_BOTTOM = "restart_bottom";
+
     public String id;
     public String name;
     public int backgroundColor = 0xFF141A24;
     public String backgroundSprite = "";
     public String bgmSound = "";
     public float gravityY = 980f;
+    public int worldWidth = 0;
+    public int worldHeight = 0;
+    public String worldBoundsMode = WORLD_BOUNDS_FREE;
+    public float ambientDarkness = 0f;
     public ArrayList<GameObjectBean> objects = new ArrayList<>();
     public ArrayList<GameScriptNode> scripts = new ArrayList<>();
 
@@ -38,6 +47,14 @@ public class GameScene {
         }
         if (bgmSound == null) {
             bgmSound = "";
+        }
+        if (worldBoundsMode == null || worldBoundsMode.isEmpty()) {
+            worldBoundsMode = WORLD_BOUNDS_FREE;
+        }
+        if (ambientDarkness < 0f) {
+            ambientDarkness = 0f;
+        } else if (ambientDarkness > 0.95f) {
+            ambientDarkness = 0.95f;
         }
         if (objects == null) {
             objects = new ArrayList<>();
@@ -106,12 +123,26 @@ public class GameScene {
         return created;
     }
 
+    public int getEffectiveWorldWidth(GameProject project) {
+        int vw = (project != null && project.virtualWidth > 0) ? project.virtualWidth : 1280;
+        return worldWidth > 0 ? Math.max(vw, worldWidth) : vw;
+    }
+
+    public int getEffectiveWorldHeight(GameProject project) {
+        int vh = (project != null && project.virtualHeight > 0) ? project.virtualHeight : 720;
+        return worldHeight > 0 ? Math.max(vh, worldHeight) : vh;
+    }
+
     public GameScene copy(String newId, String newName) {
         GameScene clone = new GameScene(newId, newName);
         clone.backgroundColor = backgroundColor;
         clone.backgroundSprite = backgroundSprite == null ? "" : backgroundSprite;
         clone.bgmSound = bgmSound == null ? "" : bgmSound;
         clone.gravityY = gravityY;
+        clone.worldWidth = worldWidth;
+        clone.worldHeight = worldHeight;
+        clone.worldBoundsMode = worldBoundsMode == null ? WORLD_BOUNDS_FREE : worldBoundsMode;
+        clone.ambientDarkness = ambientDarkness;
         if (objects != null) {
             for (GameObjectBean obj : objects) {
                 if (obj != null) {

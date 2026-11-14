@@ -279,6 +279,7 @@ public class BlockOpcodeUtils {
             case "bool" -> "Bool";
             case "direction" -> "Dir";
             case "effect" -> "Effect";
+            case "transition" -> "Transition";
             default -> DefaultExtraMenuBean.getName(typeName);
         };
     }

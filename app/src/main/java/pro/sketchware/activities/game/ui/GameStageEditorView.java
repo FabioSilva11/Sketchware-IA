@@ -394,10 +394,12 @@ public class GameStageEditorView extends View {
         if (scene == null || type == null) {
             return;
         }
-        float centerX = getWidth() > 0 ? screenToStageX(getWidth() * 0.5f) : getVirtualWidth() * 0.5f;
-        float centerY = getHeight() > 0 ? screenToStageY(getHeight() * 0.5f) : getVirtualHeight() * 0.5f;
-        centerX = clamp(centerX, 32f, Math.max(32f, getVirtualWidth() - 32f));
-        centerY = clamp(centerY, 32f, Math.max(32f, getVirtualHeight() - 32f));
+        int worldW = getWorldWidth();
+        int worldH = getWorldHeight();
+        float centerX = getWidth() > 0 ? screenToStageX(getWidth() * 0.5f) : worldW * 0.5f;
+        float centerY = getHeight() > 0 ? screenToStageY(getHeight() * 0.5f) : worldH * 0.5f;
+        centerX = clamp(centerX, 32f, Math.max(32f, worldW - 32f));
+        centerY = clamp(centerY, 32f, Math.max(32f, worldH - 32f));
         createAndInsertObject(type, centerX, centerY);
     }
 
@@ -417,13 +419,21 @@ public class GameStageEditorView extends View {
         if (obj.height <= 0f) {
             obj.height = 64f;
         }
-        obj.x = stageCenterX - obj.width * 0.5f;
-        obj.y = stageCenterY - obj.height * 0.5f;
-        if (snapToGrid) {
-            obj.x = snap(obj.x);
-            obj.y = snap(obj.y);
+        if (GameObjectBean.TYPE_PARALLAX_BG.equals(type)) {
+            obj.x = 0f;
+            obj.y = 0f;
+            obj.width = getWorldWidth();
+            obj.height = getWorldHeight();
+            obj.zIndex = -50;
+        } else {
+            obj.x = stageCenterX - obj.width * 0.5f;
+            obj.y = stageCenterY - obj.height * 0.5f;
+            if (snapToGrid) {
+                obj.x = snap(obj.x);
+                obj.y = snap(obj.y);
+            }
+            obj.zIndex = computeTopZIndex() + 1;
         }
-        obj.zIndex = computeTopZIndex() + 1;
         ensureUniqueIdentity(obj);
         if (obj.isHudType()) {
             obj.isHud = true;
@@ -543,13 +553,15 @@ public class GameStageEditorView extends View {
 
         int virtualW = getVirtualWidth();
         int virtualH = getVirtualHeight();
+        int worldW = getWorldWidth();
+        int worldH = getWorldHeight();
 
         canvas.save();
         canvas.translate(panX, panY);
         canvas.scale(zoom, zoom);
 
-        // Stage background
-        tempRect.set(0f, 0f, virtualW, virtualH);
+        // Stage background spans the full scene world bounds
+        tempRect.set(0f, 0f, worldW, worldH);
         int bgColor = (scene != null && scene.backgroundColor != 0) ? scene.backgroundColor : 0xFF1A2232;
         fillPaint.setColor(bgColor);
         canvas.drawRect(tempRect, fillPaint);
@@ -563,8 +575,8 @@ public class GameStageEditorView extends View {
             }
         }
 
-        // Grid lines
-        drawStageGrid(canvas, virtualW, virtualH, bgColor);
+        // Grid lines across full world
+        drawStageGrid(canvas, worldW, worldH, bgColor);
 
         // Objects sorted by zIndex
         if (scene != null && scene.objects != null) {
@@ -577,10 +589,25 @@ public class GameStageEditorView extends View {
             }
         }
 
-        // Stage outer border
+        if (scene == null || scene.objects == null || scene.objects.isEmpty()) {
+            drawCenteredLabel(canvas, "Empty Scene — Drag or tap items from the palette",
+                    virtualW * 0.5f, virtualH * 0.5f, 0x99CBD5E1, Math.max(18f, virtualW * 0.022f));
+        }
+
+        // Initial camera viewport guide when world extends beyond 1 screen
+        if (worldW > virtualW || worldH > virtualH) {
+            dashedPaint.setColor(0xBB38BDF8);
+            dashedPaint.setStrokeWidth(Math.max(1.2f, 2f / zoom));
+            dashedPaint.setPathEffect(new DashPathEffect(new float[]{14f / zoom, 8f / zoom}, 0f));
+            tempRect.set(0f, 0f, virtualW, virtualH);
+            canvas.drawRect(tempRect, dashedPaint);
+            drawBadgeLabel(canvas, 8f, 8f, "CAMERA " + virtualW + "x" + virtualH, 0xCC0284C7);
+        }
+
+        // World outer border
         strokePaint.setColor(0x9994A3B8);
         strokePaint.setStrokeWidth(Math.max(1f, 1.5f / zoom));
-        tempRect.set(0f, 0f, virtualW, virtualH);
+        tempRect.set(0f, 0f, worldW, worldH);
         canvas.drawRect(tempRect, strokePaint);
 
         // HUD safe frame indicator when HUD layer is visible
@@ -703,16 +730,69 @@ public class GameStageEditorView extends View {
         float minDim = Math.min(local.width(), local.height());
 
         switch (type) {
+            case GameObjectBean.TYPE_PARALLAX_BG -> {
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(110, alpha255)));
+                canvas.drawRect(local, fillPaint);
+                dashedPaint.setColor(applyAlpha(0xFF94A3B8, Math.min(200, alpha255)));
+                dashedPaint.setStrokeWidth(Math.max(1f, 1.5f / zoom));
+                dashedPaint.setPathEffect(new DashPathEffect(new float[]{12f, 8f}, 0f));
+                canvas.drawRect(local, dashedPaint);
+                drawCenteredLabel(canvas, "TILED / PARALLAX BG", 0f, 0f, applyAlpha(0xFFE2E8F0, alpha255), 14f);
+            }
+            case GameObjectBean.TYPE_WORLD_TEXT -> {
+                dashedPaint.setColor(applyAlpha(0xFF38BDF8, Math.min(170, alpha255)));
+                dashedPaint.setStrokeWidth(Math.max(1f, 1.2f / zoom));
+                dashedPaint.setPathEffect(new DashPathEffect(new float[]{6f, 6f}, 0f));
+                canvas.drawRect(local, dashedPaint);
+                String label = (obj.text != null && !obj.text.isEmpty()) ? obj.text : (obj.name != null ? obj.name : "Text");
+                int txtCol = obj.color != 0 ? applyAlpha(obj.color, alpha255) : applyAlpha(0xFFFFFFFF, alpha255);
+                drawCenteredLabel(canvas, label, 0f, 0f, txtCol, Math.min(20f, Math.max(12f, local.height() * 0.42f)));
+            }
+            case GameObjectBean.TYPE_LIGHT_2D -> {
+                float r = minDim * 0.48f;
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(55, alpha255)));
+                canvas.drawCircle(0f, 0f, r, fillPaint);
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(130, alpha255)));
+                canvas.drawCircle(0f, 0f, r * 0.45f, fillPaint);
+                strokePaint.setColor(applyAlpha(baseColor, alpha255));
+                strokePaint.setStrokeWidth(Math.max(1f, 1.5f / zoom));
+                canvas.drawCircle(0f, 0f, r, strokePaint);
+                drawCenteredLabel(canvas, "LIGHT", 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 11f);
+            }
             case GameObjectBean.TYPE_PLATFORM -> {
                 fillPaint.setColor(fillColor);
                 canvas.drawRoundRect(local, 6f, 6f, fillPaint);
-                // Top highlight strip
                 fillPaint.setColor(applyAlpha(0xFF4ADE80, alpha255));
                 tempRect.set(local.left, local.top, local.right, Math.min(local.bottom, local.top + Math.min(10f, local.height() * 0.25f)));
                 canvas.drawRoundRect(tempRect, 4f, 4f, fillPaint);
                 strokePaint.setColor(applyAlpha(0xFF0F172A, alpha255));
                 strokePaint.setStrokeWidth(Math.max(1f, 1.5f / zoom));
                 canvas.drawRoundRect(local, 6f, 6f, strokePaint);
+            }
+            case GameObjectBean.TYPE_MOVING_PLATFORM -> {
+                fillPaint.setColor(fillColor);
+                canvas.drawRoundRect(local, 6f, 6f, fillPaint);
+                strokePaint.setColor(applyAlpha(0xFFFFFFFF, Math.min(180, alpha255)));
+                strokePaint.setStrokeWidth(Math.max(1f, 1.5f / zoom));
+                canvas.drawRoundRect(local, 6f, 6f, strokePaint);
+                dashedPaint.setColor(applyAlpha(0xFF38BDF8, 220));
+                dashedPaint.setStrokeWidth(Math.max(1.5f, 2f / zoom));
+                dashedPaint.setPathEffect(new DashPathEffect(new float[]{8f, 6f}, 0f));
+                canvas.drawLine(0f, 0f, obj.moveX, obj.moveY, dashedPaint);
+                fillPaint.setColor(applyAlpha(0xFF38BDF8, 220));
+                canvas.drawCircle(obj.moveX, obj.moveY, 6f, fillPaint);
+                drawCenteredLabel(canvas, "MOVING", 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 10f);
+            }
+            case GameObjectBean.TYPE_ONEWAY_PLATFORM -> {
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(140, alpha255)));
+                canvas.drawRoundRect(local, 4f, 4f, fillPaint);
+                fillPaint.setColor(applyAlpha(0xFF2DD4BF, alpha255));
+                tempRect.set(local.left, local.top, local.right, Math.min(local.bottom, local.top + Math.max(6f, local.height() * 0.35f)));
+                canvas.drawRoundRect(tempRect, 4f, 4f, fillPaint);
+                dashedPaint.setColor(applyAlpha(0xFFFFFFFF, Math.min(180, alpha255)));
+                dashedPaint.setStrokeWidth(Math.max(1f, 1.4f / zoom));
+                dashedPaint.setPathEffect(new DashPathEffect(new float[]{6f, 5f}, 0f));
+                canvas.drawLine(local.left, local.bottom, local.right, local.bottom, dashedPaint);
             }
             case GameObjectBean.TYPE_PHYSICS_BOX -> {
                 fillPaint.setColor(fillColor);
@@ -723,6 +803,16 @@ public class GameStageEditorView extends View {
                 canvas.drawLine(local.left + 4f, local.top + 4f, local.right - 4f, local.bottom - 4f, strokePaint);
                 canvas.drawLine(local.right - 4f, local.top + 4f, local.left + 4f, local.bottom - 4f, strokePaint);
             }
+            case GameObjectBean.TYPE_PHYSICS_CIRCLE -> {
+                float r = minDim * 0.48f;
+                fillPaint.setColor(fillColor);
+                canvas.drawCircle(0f, 0f, r, fillPaint);
+                strokePaint.setColor(applyAlpha(0xFFFFFBEB, Math.min(210, alpha255)));
+                strokePaint.setStrokeWidth(Math.max(1f, 1.8f / zoom));
+                canvas.drawCircle(0f, 0f, r, strokePaint);
+                canvas.drawLine(-r * 0.6f, 0f, r * 0.6f, 0f, strokePaint);
+                canvas.drawLine(0f, -r * 0.6f, 0f, r * 0.6f, strokePaint);
+            }
             case GameObjectBean.TYPE_TRIGGER -> {
                 fillPaint.setColor(applyAlpha(baseColor, Math.min(90, alpha255)));
                 canvas.drawRect(local, fillPaint);
@@ -731,6 +821,77 @@ public class GameStageEditorView extends View {
                 dashedPaint.setPathEffect(new DashPathEffect(new float[]{10f, 6f}, 0f));
                 canvas.drawRect(local, dashedPaint);
                 drawCenteredLabel(canvas, "TRIGGER", 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 11f);
+            }
+            case GameObjectBean.TYPE_GOAL -> {
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(100, alpha255)));
+                canvas.drawRoundRect(local, 18f, 18f, fillPaint);
+                strokePaint.setColor(applyAlpha(baseColor, alpha255));
+                strokePaint.setStrokeWidth(Math.max(1.8f, 2.5f / zoom));
+                canvas.drawRoundRect(local, 18f, 18f, strokePaint);
+                drawCenteredLabel(canvas, "GOAL", 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 12f);
+            }
+            case GameObjectBean.TYPE_CHECKPOINT -> {
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(85, alpha255)));
+                canvas.drawRoundRect(local, 10f, 10f, fillPaint);
+                strokePaint.setColor(applyAlpha(baseColor, alpha255));
+                strokePaint.setStrokeWidth(Math.max(1.5f, 2f / zoom));
+                canvas.drawRoundRect(local, 10f, 10f, strokePaint);
+                drawCenteredLabel(canvas, "CP", 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 12f);
+            }
+            case GameObjectBean.TYPE_DEATH_ZONE -> {
+                fillPaint.setColor(applyAlpha(0xFFEF4444, Math.min(85, alpha255)));
+                canvas.drawRect(local, fillPaint);
+                dashedPaint.setColor(applyAlpha(0xFFEF4444, alpha255));
+                dashedPaint.setStrokeWidth(Math.max(1.5f, 2f / zoom));
+                dashedPaint.setPathEffect(new DashPathEffect(new float[]{12f, 6f}, 0f));
+                canvas.drawRect(local, dashedPaint);
+                drawCenteredLabel(canvas, "DEATH ZONE / VOID", 0f, 0f, applyAlpha(0xFFFCA5A5, alpha255), 12f);
+            }
+            case GameObjectBean.TYPE_HAZARD -> {
+                fillPaint.setColor(fillColor);
+                tempPath.reset();
+                tempPath.moveTo(local.left, local.bottom);
+                tempPath.lineTo(0f, local.top);
+                tempPath.lineTo(local.right, local.bottom);
+                tempPath.close();
+                canvas.drawPath(tempPath, fillPaint);
+                strokePaint.setColor(applyAlpha(0xFFFFFFFF, Math.min(200, alpha255)));
+                strokePaint.setStrokeWidth(Math.max(1f, 1.5f / zoom));
+                canvas.drawPath(tempPath, strokePaint);
+            }
+            case GameObjectBean.TYPE_COLLECTIBLE -> {
+                float r = minDim * 0.45f;
+                fillPaint.setColor(fillColor);
+                canvas.drawCircle(0f, 0f, r, fillPaint);
+                strokePaint.setColor(applyAlpha(0xFFFEF08A, alpha255));
+                strokePaint.setStrokeWidth(Math.max(1.5f, 2f / zoom));
+                canvas.drawCircle(0f, 0f, r * 0.72f, strokePaint);
+            }
+            case GameObjectBean.TYPE_BOUNCE_PAD -> {
+                fillPaint.setColor(fillColor);
+                canvas.drawRoundRect(local, 8f, 8f, fillPaint);
+                strokePaint.setColor(applyAlpha(0xFFFFFFFF, Math.min(200, alpha255)));
+                strokePaint.setStrokeWidth(Math.max(1.5f, 2f / zoom));
+                canvas.drawLine(-local.width() * 0.25f, 4f, 0f, -6f, strokePaint);
+                canvas.drawLine(0f, -6f, local.width() * 0.25f, 4f, strokePaint);
+            }
+            case GameObjectBean.TYPE_SPAWNER -> {
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(70, alpha255)));
+                canvas.drawRoundRect(local, 10f, 10f, fillPaint);
+                dashedPaint.setColor(applyAlpha(baseColor, alpha255));
+                dashedPaint.setStrokeWidth(Math.max(1.5f, 2f / zoom));
+                dashedPaint.setPathEffect(new DashPathEffect(new float[]{10f, 6f}, 0f));
+                canvas.drawRoundRect(local, 10f, 10f, dashedPaint);
+                String lbl = (obj.prefabName != null && !obj.prefabName.isEmpty())
+                        ? "SPAWN: " + obj.prefabName : "SPAWNER";
+                drawCenteredLabel(canvas, lbl, 0f, 0f, applyAlpha(0xFFE9D5FF, alpha255), 11f);
+            }
+            case GameObjectBean.TYPE_PROJECTILE -> {
+                fillPaint.setColor(fillColor);
+                canvas.drawRoundRect(local, Math.min(local.height() * 0.45f, 12f), Math.min(local.height() * 0.45f, 12f), fillPaint);
+                strokePaint.setColor(applyAlpha(0xFFFFFFFF, alpha255));
+                strokePaint.setStrokeWidth(Math.max(1f, 1.4f / zoom));
+                canvas.drawRoundRect(local, Math.min(local.height() * 0.45f, 12f), Math.min(local.height() * 0.45f, 12f), strokePaint);
             }
             case GameObjectBean.TYPE_PARTICLES -> {
                 fillPaint.setColor(applyAlpha(baseColor, Math.min(55, alpha255)));
@@ -752,6 +913,21 @@ public class GameStageEditorView extends View {
                 canvas.drawCircle(0f, 0f, minDim * 0.22f, strokePaint);
                 drawCenteredLabel(canvas, "CAM", 0f, local.bottom - 10f, applyAlpha(0xFFFACC15, alpha255), 10f);
             }
+            case GameObjectBean.TYPE_HUD_PANEL -> {
+                fillPaint.setColor(fillColor);
+                canvas.drawRoundRect(local, 14f, 14f, fillPaint);
+                strokePaint.setColor(applyAlpha(0xFF94A3B8, Math.min(200, alpha255)));
+                strokePaint.setStrokeWidth(Math.max(1.2f, 1.5f / zoom));
+                canvas.drawRoundRect(local, 14f, 14f, strokePaint);
+            }
+            case GameObjectBean.TYPE_HUD_IMAGE -> {
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(120, alpha255)));
+                canvas.drawRoundRect(local, 8f, 8f, fillPaint);
+                strokePaint.setColor(applyAlpha(0xFFFFFFFF, Math.min(180, alpha255)));
+                strokePaint.setStrokeWidth(Math.max(1f, 1.5f / zoom));
+                canvas.drawRoundRect(local, 8f, 8f, strokePaint);
+                drawCenteredLabel(canvas, "IMG", 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 11f);
+            }
             case GameObjectBean.TYPE_HUD_TEXT -> {
                 dashedPaint.setColor(applyAlpha(0xFF94A3B8, Math.min(160, alpha255)));
                 dashedPaint.setStrokeWidth(Math.max(1f, 1.2f / zoom));
@@ -770,6 +946,14 @@ public class GameStageEditorView extends View {
                 canvas.drawRoundRect(local, radius, radius, strokePaint);
                 String btnLabel = (obj.text != null && !obj.text.isEmpty()) ? obj.text : "BUTTON";
                 drawCenteredLabel(canvas, btnLabel, 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), Math.min(16f, Math.max(11f, local.height() * 0.32f)));
+            }
+            case GameObjectBean.TYPE_HUD_DPAD -> {
+                float arm = minDim * 0.17f;
+                float half = minDim * 0.46f;
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(170, alpha255)));
+                canvas.drawRoundRect(new RectF(-half, -arm, half, arm), 8f, 8f, fillPaint);
+                canvas.drawRoundRect(new RectF(-arm, -half, arm, half), 8f, 8f, fillPaint);
+                drawCenteredLabel(canvas, "D-PAD", 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 10f);
             }
             case GameObjectBean.TYPE_HUD_JOYSTICK -> {
                 float outerR = minDim * 0.46f;
@@ -791,6 +975,31 @@ public class GameStageEditorView extends View {
                 strokePaint.setColor(applyAlpha(0xFFFFFFFF, Math.min(180, alpha255)));
                 strokePaint.setStrokeWidth(Math.max(1f, 1.5f / zoom));
                 canvas.drawRoundRect(local, r, r, strokePaint);
+            }
+            case GameObjectBean.TYPE_HUD_TOUCH_AREA -> {
+                fillPaint.setColor(applyAlpha(baseColor, Math.min(50, alpha255)));
+                canvas.drawRect(local, fillPaint);
+                dashedPaint.setColor(applyAlpha(baseColor, alpha255));
+                dashedPaint.setStrokeWidth(Math.max(1.2f, 1.8f / zoom));
+                dashedPaint.setPathEffect(new DashPathEffect(new float[]{12f, 8f}, 0f));
+                canvas.drawRect(local, dashedPaint);
+                String tLabel = (obj.actionKey != null && !obj.actionKey.isEmpty()) ? "TOUCH: " + obj.actionKey : "TOUCH AREA";
+                drawCenteredLabel(canvas, tLabel, 0f, 0f, applyAlpha(0xFFBAE6FD, alpha255), 13f);
+            }
+            case GameObjectBean.TYPE_HUD_DIALOG -> {
+                fillPaint.setColor(fillColor);
+                canvas.drawRoundRect(local, 16f, 16f, fillPaint);
+                strokePaint.setColor(applyAlpha(0xFF60A5FA, alpha255));
+                strokePaint.setStrokeWidth(Math.max(1.5f, 2f / zoom));
+                canvas.drawRoundRect(local, 16f, 16f, strokePaint);
+                drawCenteredLabel(canvas, nonEmptyStr(obj.text, "Dialog Box"), 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 14f);
+            }
+            case GameObjectBean.TYPE_HUD_TOGGLE -> {
+                float r = local.height() * 0.45f;
+                fillPaint.setColor(applyAlpha(obj.toggled ? baseColor : 0xFF475569, alpha255));
+                canvas.drawRoundRect(local, r, r, fillPaint);
+                drawCenteredLabel(canvas, nonEmptyStr(obj.text, "TOGGLE") + (obj.toggled ? ": ON" : ": OFF"),
+                        0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 12f);
             }
             default -> {
                 // Sprite / Animated Sprite placeholder
@@ -954,8 +1163,13 @@ public class GameStageEditorView extends View {
         String filterTag = layerFilter == LAYER_WORLD_ONLY ? " • World"
                 : (layerFilter == LAYER_HUD_ONLY ? " • HUD" : "");
         String snapTag = snapToGrid ? " • Grid" : "";
-        String status = String.format(Locale.US, "%d%% • %dx%d%s%s",
-                Math.round(zoom * 100f), virtualW, virtualH, filterTag, snapTag);
+        int worldW = getWorldWidth();
+        int worldH = getWorldHeight();
+        String sizeTag = (worldW != virtualW || worldH != virtualH)
+                ? String.format(Locale.US, "Cam %dx%d • World %dx%d", virtualW, virtualH, worldW, worldH)
+                : String.format(Locale.US, "%dx%d", virtualW, virtualH);
+        String status = String.format(Locale.US, "%d%% • %s%s%s",
+                Math.round(zoom * 100f), sizeTag, filterTag, snapTag);
 
         textPaint.setTextSize(10.5f * density);
         textPaint.setTextAlign(Paint.Align.LEFT);
@@ -1475,6 +1689,20 @@ public class GameStageEditorView extends View {
         return (project != null && project.virtualHeight > 0) ? project.virtualHeight : 720;
     }
 
+    private int getWorldWidth() {
+        int vw = getVirtualWidth();
+        return (scene != null && scene.worldWidth > 0) ? Math.max(vw, scene.worldWidth) : vw;
+    }
+
+    private int getWorldHeight() {
+        int vh = getVirtualHeight();
+        return (scene != null && scene.worldHeight > 0) ? Math.max(vh, scene.worldHeight) : vh;
+    }
+
+    private static String nonEmptyStr(@Nullable String s, String fallback) {
+        return (s != null && !s.trim().isEmpty()) ? s : fallback;
+    }
+
     private float screenToStageX(float screenX) {
         return (screenX - panX) / zoom;
     }
@@ -1528,14 +1756,34 @@ public class GameStageEditorView extends View {
             return obj.color;
         }
         return switch (type) {
+            case GameObjectBean.TYPE_PARALLAX_BG -> 0xFF1E293B;
+            case GameObjectBean.TYPE_WORLD_TEXT -> 0xFF38BDF8;
+            case GameObjectBean.TYPE_LIGHT_2D -> 0xFFFACC15;
             case GameObjectBean.TYPE_PLATFORM -> 0xFF334155;
+            case GameObjectBean.TYPE_MOVING_PLATFORM -> 0xFF0EA5E9;
+            case GameObjectBean.TYPE_ONEWAY_PLATFORM -> 0xFF2DD4BF;
             case GameObjectBean.TYPE_PHYSICS_BOX -> 0xFFD97706;
+            case GameObjectBean.TYPE_PHYSICS_CIRCLE -> 0xFFF97316;
             case GameObjectBean.TYPE_TRIGGER -> 0xFF10B981;
+            case GameObjectBean.TYPE_GOAL -> 0xFF22C55E;
+            case GameObjectBean.TYPE_CHECKPOINT -> 0xFF38BDF8;
+            case GameObjectBean.TYPE_DEATH_ZONE -> 0xFFEF4444;
+            case GameObjectBean.TYPE_HAZARD -> 0xFFF43F5E;
+            case GameObjectBean.TYPE_COLLECTIBLE -> 0xFFFACC15;
+            case GameObjectBean.TYPE_BOUNCE_PAD -> 0xFFA855F7;
+            case GameObjectBean.TYPE_SPAWNER -> 0xFF8B5CF6;
+            case GameObjectBean.TYPE_PROJECTILE -> 0xFF06B6D4;
             case GameObjectBean.TYPE_PARTICLES -> 0xFFF472B6;
             case GameObjectBean.TYPE_CAMERA -> 0xFFFACC15;
+            case GameObjectBean.TYPE_HUD_PANEL -> 0xFF1E293B;
+            case GameObjectBean.TYPE_HUD_IMAGE -> 0xFF60A5FA;
             case GameObjectBean.TYPE_HUD_BUTTON -> 0xFF2563EB;
+            case GameObjectBean.TYPE_HUD_DPAD -> 0xFF64748B;
             case GameObjectBean.TYPE_HUD_JOYSTICK -> 0xFF38BDF8;
             case GameObjectBean.TYPE_HUD_BAR -> 0xFF22C55E;
+            case GameObjectBean.TYPE_HUD_TOUCH_AREA -> 0xFF06B6D4;
+            case GameObjectBean.TYPE_HUD_DIALOG -> 0xFF0F172A;
+            case GameObjectBean.TYPE_HUD_TOGGLE -> 0xFF22C55E;
             case GameObjectBean.TYPE_ANIMATED_SPRITE -> 0xFF8B5CF6;
             default -> 0xFF3B82F6;
         };

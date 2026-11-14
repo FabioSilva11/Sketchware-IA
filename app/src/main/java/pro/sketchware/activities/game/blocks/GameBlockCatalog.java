@@ -38,6 +38,7 @@ public final class GameBlockCatalog {
     public static final String KIND_PROP = "prop";
     public static final String KIND_LAYER = "layer";
     public static final String KIND_MESSAGE = "message";
+    public static final String KIND_TRANSITION = "transition";
 
     public static final int COLOR_MOTION = 0xFF4C97FF;
     public static final int COLOR_LOOKS = 0xFF9966FF;
@@ -130,6 +131,10 @@ public final class GameBlockCatalog {
                         arr("Player", "0.15"), arr(KIND_OBJECT, KIND_NUMBER)),
                 def("cameraShake", "shake camera force %d duration %d", " ", COLOR_MOTION,
                         arr("12", "0.25"), arr(KIND_NUMBER, KIND_NUMBER)),
+                def("keepInsideWorld", "keep inside world edges", " ", COLOR_MOTION,
+                        arr(), arr()),
+                def("respawnAtCheckpoint", "respawn at checkpoint", " ", COLOR_MOTION,
+                        arr(), arr()),
                 def("getPosX", "x position", "d", COLOR_MOTION,
                         arr(), arr()),
                 def("getPosY", "y position", "d", COLOR_MOTION,
@@ -139,6 +144,10 @@ public final class GameBlockCatalog {
                 def("getVelY", "y velocity", "d", COLOR_MOTION,
                         arr(), arr()),
                 def("getDirection", "direction", "d", COLOR_MOTION,
+                        arr(), arr()),
+                def("getWorldWidth", "world width", "d", COLOR_MOTION,
+                        arr(), arr()),
+                def("getWorldHeight", "world height", "d", COLOR_MOTION,
                         arr(), arr())
         )));
 
@@ -175,6 +184,8 @@ public final class GameBlockCatalog {
                         arr("1"), arr(KIND_NUMBER)),
                 def("spawnParticles", "spawn particles color %m.color count %d", " ", COLOR_LOOKS,
                         arr("#FFD54F", "12"), arr(KIND_COLOR, KIND_NUMBER)),
+                def("setAnimFrames", "set anim frames %s fps %d", " ", COLOR_LOOKS,
+                        arr("frame1,frame2", "8"), arr(KIND_TEXT, KIND_NUMBER)),
                 def("getSize", "size", "d", COLOR_LOOKS,
                         arr(), arr()),
                 def("getSpriteName", "costume name", "d", COLOR_LOOKS,
@@ -188,6 +199,10 @@ public final class GameBlockCatalog {
                         arr("1.0"), arr(KIND_NUMBER)),
                 def("setBounce", "set bounciness %d", " ", COLOR_PHYSICS,
                         arr("0.0"), arr(KIND_NUMBER)),
+                def("setCircleCollider", "set circle collider %m.bool", " ", COLOR_PHYSICS,
+                        arr("true"), arr(KIND_BOOL)),
+                def("setOneWay", "set one-way platform %m.bool", " ", COLOR_PHYSICS,
+                        arr("true"), arr(KIND_BOOL)),
                 def("ifCollidingTag", "if colliding with tag %m.tag", "c", COLOR_PHYSICS,
                         arr("coin"), arr(KIND_TAG)),
                 def("ifOnGround", "if on ground", "c", COLOR_PHYSICS,
@@ -235,6 +250,8 @@ public final class GameBlockCatalog {
         cats.add(new CategoryDef("sensing", "Sensing", COLOR_SENSING, Arrays.asList(
                 def("touchingButton", "button %m.action pressed?", "b", COLOR_SENSING,
                         arr("JUMP"), arr(KIND_ACTION)),
+                def("isActionJustPressed", "button %m.action just pressed?", "b", COLOR_SENSING,
+                        arr("FIRE"), arr(KIND_ACTION)),
                 def("isJoystickActive", "joystick active?", "b", COLOR_SENSING,
                         arr(), arr()),
                 def("isTouchingScreen", "screen touched?", "b", COLOR_SENSING,
@@ -244,6 +261,10 @@ public final class GameBlockCatalog {
                 def("touchingObject", "touching %m.gameObject ?", "b", COLOR_SENSING,
                         arr("touch"), arr(KIND_OBJECT)),
                 def("isOnGround", "on ground?", "b", COLOR_SENSING,
+                        arr(), arr()),
+                def("isOutsideWorld", "outside world?", "b", COLOR_SENSING,
+                        arr(), arr()),
+                def("hasLeftScreen", "left screen?", "b", COLOR_SENSING,
                         arr(), arr()),
                 def("joyX", "joystick x", "d", COLOR_SENSING,
                         arr(), arr()),
@@ -325,7 +346,11 @@ public final class GameBlockCatalog {
                 def("setHudText", "set text of %m.hud to %s", " ", COLOR_HUD,
                         arr("ScoreText", "Score: {score}"), arr(KIND_HUD, KIND_TEXT)),
                 def("setHudBar", "set bar %m.hud value to %d", " ", COLOR_HUD,
-                        arr("HealthBar", "100"), arr(KIND_HUD, KIND_NUMBER))
+                        arr("HealthBar", "100"), arr(KIND_HUD, KIND_NUMBER)),
+                def("showDialog", "show dialog %s speaker %s", " ", COLOR_HUD,
+                        arr("Hello, hero!", "NPC"), arr(KIND_TEXT, KIND_TEXT)),
+                def("hideDialog", "hide dialog", " ", COLOR_HUD,
+                        arr(), arr())
         )));
 
         cats.add(new CategoryDef("scenes", "Scenes & Messages", COLOR_SCENES, Arrays.asList(
@@ -335,14 +360,30 @@ public final class GameBlockCatalog {
                         arr("gameover"), arr(KIND_MESSAGE)),
                 def("loadScene", "go to scene %m.scene", " ", COLOR_SCENES,
                         arr("Scene 1"), arr(KIND_SCENE)),
+                def("loadSceneWithTransition", "go to scene %m.scene transition %m.transition", " ", COLOR_SCENES,
+                        arr("Scene 1", "fade"), arr(KIND_SCENE, KIND_TRANSITION)),
+                def("nextScene", "next scene", " ", COLOR_SCENES,
+                        arr(), arr()),
+                def("previousScene", "previous scene", " ", COLOR_SCENES,
+                        arr(), arr()),
                 def("restartScene", "restart scene", " ", COLOR_SCENES,
+                        arr(), arr()),
+                def("hasNextScene", "has next scene?", "b", COLOR_SCENES,
+                        arr(), arr()),
+                def("getSceneName", "current scene name", "d", COLOR_SCENES,
                         arr(), arr()),
                 def("spawnPrefab", "spawn %m.prefab at x: %d y: %d", " ", COLOR_SCENES,
                         arr("CoinPrefab", "100", "100"), arr(KIND_PREFAB, KIND_EXPR, KIND_EXPR)),
+                def("setDestroyOffscreen", "destroy offscreen %m.bool", " ", COLOR_SCENES,
+                        arr("true"), arr(KIND_BOOL)),
                 def("destroySelf", "destroy this object", "f", COLOR_SCENES,
                         arr(), arr()),
                 def("destroyOther", "destroy collided object", " ", COLOR_SCENES,
-                        arr(), arr())
+                        arr(), arr()),
+                def("saveGameData", "save data key %s value %s", " ", COLOR_SCENES,
+                        arr("unlocked_level", "1"), arr(KIND_TEXT, KIND_EXPR)),
+                def("loadGameData", "load data key %s default %s", "d", COLOR_SCENES,
+                        arr("unlocked_level", "1"), arr(KIND_TEXT, KIND_TEXT))
         )));
 
         CATEGORIES = Collections.unmodifiableList(cats);
@@ -541,6 +582,23 @@ public final class GameBlockCatalog {
                 return "vy";
             case "getDirection":
                 return "rot";
+            case "getWorldWidth":
+                return "worldWidth";
+            case "getWorldHeight":
+                return "worldHeight";
+            case "getSceneName":
+                return "sceneName";
+            case "hasNextScene":
+                return "hasNextScene";
+            case "isOutsideWorld":
+                return "outsideWorld";
+            case "hasLeftScreen":
+                return "leftScreen";
+            case "loadGameData":
+                return "loadSave(" + slotTextOrExpr(block, 0, "unlocked_level") + ", "
+                        + slotTextOrExpr(block, 1, "1") + ")";
+            case "isActionJustPressed":
+                return "btnJust(" + quoteExprStr(slotRaw(block, 0, "FIRE")) + ")";
             case "getSize":
                 return "size";
             case "getSpriteName":

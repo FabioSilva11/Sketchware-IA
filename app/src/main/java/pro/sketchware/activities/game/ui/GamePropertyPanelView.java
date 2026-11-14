@@ -17,6 +17,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
@@ -366,11 +367,23 @@ public class GamePropertyPanelView extends LinearLayout {
                     scene.bgmSound = chosen;
                     notifySceneChanged(false);
                 }));
+
+        int worldW = Math.round(scene.getEffectiveWorldWidth(project));
+        int worldH = Math.round(scene.getEffectiveWorldHeight(project));
+        addPropertyCard(R.drawable.ic_mtrl_devices, "World Size", worldW + "x" + worldH, 0,
+                v -> showSceneWorldSizeDialog());
+
+        int darkPct = Math.round(Math.max(0f, Math.min(1f, scene.ambientDarkness)) * 100f);
+        addPropertyCard(R.drawable.ic_mtrl_bulb, "Ambient Dark", darkPct + "%", 0,
+                v -> showSceneAmbientDarknessDialog());
     }
 
     private void buildScenePhysicsCards() {
         addPropertyCard(R.drawable.ic_mtrl_tune, "Gravity Y", formatFloat(scene.gravityY), 0,
                 v -> showSceneGravityDialog());
+
+        addPropertyCard(R.drawable.ic_mtrl_sensor, "Fall / Bounds", formatBoundsMode(scene.worldBoundsMode), 0,
+                v -> showSceneBoundsDialog());
 
         if (project != null) {
             addToggleCard(R.drawable.ic_mtrl_grid, "Hitboxes", project.showDebugHitboxes ? "Visible" : "Hidden", project.showDebugHitboxes,
@@ -457,6 +470,8 @@ public class GamePropertyPanelView extends LinearLayout {
                     notifySceneChanged(false);
                 }));
 
+        buildTypeSpecificCards();
+
         String textPreview = nonEmpty(selected.text, nonEmpty(selected.actionKey, "Empty"));
         addPropertyCard(R.drawable.ic_mtrl_formattext, "Text / Action", textPreview, 0,
                 v -> showTextAndActionDialog());
@@ -480,7 +495,7 @@ public class GamePropertyPanelView extends LinearLayout {
 
     private void buildObjectPhysicsCards() {
         String physicsSummary = selected.physicsEnabled
-                ? (selected.isSensor ? "Sensor" : (selected.isStatic ? "Static" : "Dynamic"))
+                ? (selected.isSensor ? "Sensor" : (selected.oneWay ? "One-Way" : (selected.isStatic ? "Static" : (selected.circleCollider ? "Circle" : "Dynamic"))))
                 : "Disabled";
         addPropertyCard(R.drawable.ic_mtrl_tune, "Physics", physicsSummary, 0,
                 v -> showPhysicsDialog());
@@ -1013,6 +1028,26 @@ public class GamePropertyPanelView extends LinearLayout {
         swSensor.setChecked(selected.isSensor);
         box.addView(swSensor);
 
+        MaterialSwitch swCircle = new MaterialSwitch(context);
+        swCircle.setText("Circle Collider");
+        swCircle.setChecked(selected.circleCollider);
+        box.addView(swCircle);
+
+        MaterialSwitch swOneWay = new MaterialSwitch(context);
+        swOneWay.setText("One-Way Platform (jump through bottom)");
+        swOneWay.setChecked(selected.oneWay);
+        box.addView(swOneWay);
+
+        MaterialSwitch swDestroyOff = new MaterialSwitch(context);
+        swDestroyOff.setText("Destroy Offscreen");
+        swDestroyOff.setChecked(selected.destroyOffscreen);
+        box.addView(swDestroyOff);
+
+        MaterialSwitch swNearCam = new MaterialSwitch(context);
+        swNearCam.setText("Active Only Near Camera");
+        swNearCam.setChecked(selected.activeOnlyNearCamera);
+        box.addView(swNearCam);
+
         EditText etGrav = createStyledEditText(context, formatFloat(selected.gravityScale), "1.0",
                 InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
         EditText etBounce = createStyledEditText(context, formatFloat(selected.bounce), "0.0 - 1.0",
@@ -1032,6 +1067,10 @@ public class GamePropertyPanelView extends LinearLayout {
                     selected.physicsEnabled = swEnabled.isChecked();
                     selected.isStatic = swStatic.isChecked();
                     selected.isSensor = swSensor.isChecked();
+                    selected.circleCollider = swCircle.isChecked();
+                    selected.oneWay = swOneWay.isChecked();
+                    selected.destroyOffscreen = swDestroyOff.isChecked();
+                    selected.activeOnlyNearCamera = swNearCam.isChecked();
                     selected.gravityScale = parseFloatOr(etGrav.getText().toString(), selected.gravityScale);
                     selected.bounce = Math.max(0f, parseFloatOr(etBounce.getText().toString(), selected.bounce));
                     selected.friction = Math.max(0f, parseFloatOr(etFriction.getText().toString(), selected.friction));
@@ -1039,6 +1078,407 @@ public class GamePropertyPanelView extends LinearLayout {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void buildTypeSpecificCards() {
+        if (selected == null || selected.type == null) {
+            return;
+        }
+        switch (selected.type) {
+            case GameObjectBean.TYPE_GOAL -> {
+                String targetLabel = resolveSceneTargetLabel(selected.targetScene);
+                addPropertyCard(R.drawable.ic_mtrl_next, "Target Scene", targetLabel, 0,
+                        v -> showGoalTargetDialog());
+            }
+            case GameObjectBean.TYPE_SPAWNER -> {
+                String spLabel = nonEmpty(selected.prefabName, "Choose prefab") + " (" + formatFloat(selected.cooldownSec) + "s)";
+                addPropertyCard(R.drawable.ic_mtrl_add_circle, "Spawner", spLabel, 0,
+                        v -> showSpawnerConfigDialog());
+            }
+            case GameObjectBean.TYPE_PARALLAX_BG -> {
+                String pLabel = formatFloat(selected.parallaxX) + "x, scroll " + formatFloat(selected.moveX);
+                addPropertyCard(R.drawable.ic_mtrl_pattern, "Parallax / Scroll", pLabel, 0,
+                        v -> showMotionConfigDialog(true));
+            }
+            case GameObjectBean.TYPE_MOVING_PLATFORM, GameObjectBean.TYPE_PROJECTILE, GameObjectBean.TYPE_BOUNCE_PAD -> {
+                String mLabel = "spd=" + formatFloat(selected.speed) + " (" + formatFloat(selected.moveX) + "," + formatFloat(selected.moveY) + ")";
+                addPropertyCard(R.drawable.ic_mtrl_swipe_horizontal, "Motion / Speed", mLabel, 0,
+                        v -> showMotionConfigDialog(false));
+            }
+            case GameObjectBean.TYPE_ANIMATED_SPRITE -> {
+                String fLabel = nonEmpty(selected.spriteFrames, "No frames") + " @ " + formatFloat(selected.animFps) + "fps";
+                addPropertyCard(R.drawable.ic_mtrl_animation, "Anim Frames", fLabel, 0,
+                        v -> showAnimFramesDialog());
+            }
+            case GameObjectBean.TYPE_HAZARD, GameObjectBean.TYPE_COLLECTIBLE, GameObjectBean.TYPE_DEATH_ZONE -> {
+                String lbl = GameObjectBean.TYPE_COLLECTIBLE.equals(selected.type) ? "Points" : "Damage";
+                addPropertyCard(R.drawable.ic_mtrl_star, lbl, formatFloat(selected.damage), 0,
+                        v -> showDamageOrValueDialog(lbl));
+            }
+            case GameObjectBean.TYPE_HUD_TOGGLE -> {
+                addToggleCard(R.drawable.ic_mtrl_switch, "State", selected.toggled ? "ON" : "OFF", selected.toggled,
+                        v -> {
+                            pushUndo();
+                            selected.toggled = !selected.toggled;
+                            notifySceneChanged(false);
+                        });
+            }
+            default -> {
+            }
+        }
+    }
+
+    private String resolveSceneTargetLabel(@Nullable String targetScene) {
+        if (targetScene == null || targetScene.trim().isEmpty() || "__next__".equals(targetScene)) {
+            return "Next Scene";
+        }
+        if ("__prev__".equals(targetScene)) {
+            return "Previous Scene";
+        }
+        if (project != null && project.scenes != null) {
+            for (GameScene s : project.scenes) {
+                if (s != null && (targetScene.equals(s.id) || targetScene.equalsIgnoreCase(s.name))) {
+                    return nonEmpty(s.name, s.id);
+                }
+            }
+        }
+        return targetScene;
+    }
+
+    private static String formatBoundsMode(@Nullable String mode) {
+        if (mode == null) return "Free";
+        return switch (mode) {
+            case GameScene.WORLD_BOUNDS_SOLID -> "Solid Edges";
+            case GameScene.WORLD_BOUNDS_RESPAWN_BOTTOM -> "Respawn Fall";
+            case GameScene.WORLD_BOUNDS_RESTART_BOTTOM -> "Restart Fall";
+            default -> "Free";
+        };
+    }
+
+    private void showSceneWorldSizeDialog() {
+        if (scene == null) return;
+        Context context = getContext();
+        ScrollView sv = new ScrollView(context);
+        LinearLayout box = createDialogContainer(context);
+        sv.addView(box);
+
+        EditText etW = createStyledEditText(context, formatFloat(scene.getEffectiveWorldWidth(project)), "1280",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        EditText etH = createStyledEditText(context, formatFloat(scene.getEffectiveWorldHeight(project)), "720",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        box.addView(labeledField(context, "World Width (0 = Match Camera)", etW));
+        box.addView(labeledField(context, "World Height (0 = Match Camera)", etH));
+
+        LinearLayout presets = new LinearLayout(context);
+        presets.setOrientation(HORIZONTAL);
+        presets.setPadding(0, dp(8), 0, 0);
+        String[] pLabels = new String[]{"Camera", "Wide 3840", "Tall 2560", "Big 2560x1920"};
+        float[] pWidths = new float[]{0f, 3840f, 720f, 2560f};
+        float[] pHeights = new float[]{0f, 720f, 2560f, 1920f};
+        for (int i = 0; i < pLabels.length; i++) {
+            float pw = pWidths[i];
+            float ph = pHeights[i];
+            MaterialButton btn = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+            btn.setText(pLabels[i]);
+            btn.setTextSize(10f);
+            btn.setOnClickListener(v -> {
+                etW.setText(formatFloat(pw));
+                etH.setText(formatFloat(ph));
+            });
+            presets.addView(btn);
+        }
+        HorizontalScrollView hsv = new HorizontalScrollView(context);
+        hsv.addView(presets);
+        box.addView(hsv);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Scene World Size")
+                .setView(sv)
+                .setPositiveButton("Apply", (d, w) -> {
+                    float wVal = parseFloatOr(etW.getText().toString(), 0f);
+                    float hVal = parseFloatOr(etH.getText().toString(), 0f);
+                    scene.worldWidth = wVal <= 0f ? 0 : Math.round(Math.max(240f, Math.min(20000f, wVal)));
+                    scene.worldHeight = hVal <= 0f ? 0 : Math.round(Math.max(240f, Math.min(20000f, hVal)));
+                    notifySceneChanged(false);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showSceneAmbientDarknessDialog() {
+        if (scene == null) return;
+        Context context = getContext();
+        LinearLayout box = createDialogContainer(context);
+        int currentPct = Math.round(Math.max(0f, Math.min(1f, scene.ambientDarkness)) * 100f);
+        EditText etPct = createStyledEditText(context, String.valueOf(currentPct), "0 - 100",
+                InputType.TYPE_CLASS_NUMBER);
+        box.addView(labeledField(context, "Ambient Darkness (%)", etPct));
+
+        LinearLayout presets = new LinearLayout(context);
+        presets.setOrientation(HORIZONTAL);
+        presets.setPadding(0, dp(8), 0, 0);
+        int[] pcts = new int[]{0, 45, 85};
+        String[] labels = new String[]{"0% Day", "45% Dusk", "85% Night"};
+        for (int i = 0; i < pcts.length; i++) {
+            int val = pcts[i];
+            MaterialButton btn = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+            btn.setText(labels[i]);
+            btn.setTextSize(10.5f);
+            btn.setOnClickListener(v -> etPct.setText(String.valueOf(val)));
+            presets.addView(btn);
+        }
+        box.addView(presets);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Ambient Darkness (2D Lights)")
+                .setView(box)
+                .setPositiveButton("Apply", (d, w) -> {
+                    float pct = Math.max(0f, Math.min(100f, parseFloatOr(etPct.getText().toString(), currentPct)));
+                    scene.ambientDarkness = pct / 100f;
+                    notifySceneChanged(false);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showSceneBoundsDialog() {
+        if (scene == null) return;
+        final String[] modes = new String[]{
+                GameScene.WORLD_BOUNDS_FREE,
+                GameScene.WORLD_BOUNDS_SOLID,
+                GameScene.WORLD_BOUNDS_RESPAWN_BOTTOM,
+                GameScene.WORLD_BOUNDS_RESTART_BOTTOM
+        };
+        final String[] labels = new String[]{
+                "Free (No World Borders)",
+                "Solid World Edges (Keep Inside)",
+                "Respawn at Checkpoint on Fall",
+                "Restart Scene on Bottom Fall"
+        };
+        int checked = 0;
+        for (int i = 0; i < modes.length; i++) {
+            if (modes[i].equals(scene.worldBoundsMode)) {
+                checked = i;
+                break;
+            }
+        }
+        final int[] chosen = new int[]{checked};
+        new MaterialAlertDialogBuilder(getContext())
+                .setTitle("World Bounds & Fall Behavior")
+                .setSingleChoiceItems(labels, checked, (d, which) -> chosen[0] = which)
+                .setPositiveButton("Apply", (d, w) -> {
+                    scene.worldBoundsMode = modes[chosen[0]];
+                    notifySceneChanged(false);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showGoalTargetDialog() {
+        if (selected == null) return;
+        List<String> keys = new ArrayList<>();
+        List<String> labels = new ArrayList<>();
+        keys.add("__next__");
+        labels.add("Next Scene (Auto Order)");
+        keys.add("__prev__");
+        labels.add("Previous Scene (Auto Order)");
+        if (project != null && project.scenes != null) {
+            for (GameScene s : project.scenes) {
+                if (s != null) {
+                    keys.add(s.id);
+                    labels.add(nonEmpty(s.name, s.id) + " (" + s.id + ")");
+                }
+            }
+        }
+        int currentIdx = 0;
+        for (int i = 0; i < keys.size(); i++) {
+            if (keys.get(i).equals(selected.targetScene)) {
+                currentIdx = i;
+                break;
+            }
+        }
+        final int[] chosen = new int[]{currentIdx};
+        new MaterialAlertDialogBuilder(getContext())
+                .setTitle("Goal / Portal Destination")
+                .setSingleChoiceItems(labels.toArray(new String[0]), currentIdx, (d, which) -> chosen[0] = which)
+                .setPositiveButton("Apply", (d, w) -> {
+                    pushUndo();
+                    selected.targetScene = keys.get(chosen[0]);
+                    notifySceneChanged(false);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showSpawnerConfigDialog() {
+        if (selected == null) return;
+        Context context = getContext();
+        ScrollView sv = new ScrollView(context);
+        LinearLayout box = createDialogContainer(context);
+        sv.addView(box);
+
+        List<String> candidateValues = new ArrayList<>();
+        List<String> candidateLabels = new ArrayList<>();
+        candidateValues.add("");
+        candidateLabels.add("(None)");
+        if (project != null && project.prefabs != null) {
+            for (GameObjectBean pf : project.prefabs) {
+                if (pf != null && pf.name != null && !pf.name.trim().isEmpty()) {
+                    candidateValues.add(pf.name);
+                    candidateLabels.add("Prefab: " + pf.name);
+                }
+            }
+        }
+        if (scene != null && scene.objects != null) {
+            for (GameObjectBean obj : scene.objects) {
+                if (obj != null && !obj.id.equals(selected.id) && obj.name != null && !obj.name.trim().isEmpty()) {
+                    if (!candidateValues.contains(obj.name)) {
+                        candidateValues.add(obj.name);
+                        candidateLabels.add("Scene: " + obj.name);
+                    }
+                }
+            }
+        }
+
+        Spinner spPrefab = new Spinner(context);
+        spPrefab.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item, candidateLabels));
+        int selIdx = Math.max(0, candidateValues.indexOf(nonEmpty(selected.prefabName, "")));
+        spPrefab.setSelection(selIdx);
+        box.addView(labeledField(context, "Prefab / Object to Spawn", spPrefab));
+
+        EditText etInterval = createStyledEditText(context, formatFloat(selected.cooldownSec), "1.5",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        EditText etMoveX = createStyledEditText(context, formatFloat(selected.moveX), "0",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        EditText etMoveY = createStyledEditText(context, formatFloat(selected.moveY), "180",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+
+        box.addView(labeledField(context, "Spawn Interval (seconds, 0 = manual)", etInterval));
+        box.addView(labeledField(context, "Initial Velocity X", etMoveX));
+        box.addView(labeledField(context, "Initial Velocity Y", etMoveY));
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Spawner Emitter Config")
+                .setView(sv)
+                .setPositiveButton("Apply", (d, w) -> {
+                    pushUndo();
+                    int pos = spPrefab.getSelectedItemPosition();
+                    selected.prefabName = (pos >= 0 && pos < candidateValues.size()) ? candidateValues.get(pos) : "";
+                    selected.cooldownSec = Math.max(0f, parseFloatOr(etInterval.getText().toString(), selected.cooldownSec));
+                    selected.moveX = parseFloatOr(etMoveX.getText().toString(), selected.moveX);
+                    selected.moveY = parseFloatOr(etMoveY.getText().toString(), selected.moveY);
+                    notifySceneChanged(false);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showMotionConfigDialog(boolean isParallax) {
+        if (selected == null) return;
+        Context context = getContext();
+        ScrollView sv = new ScrollView(context);
+        LinearLayout box = createDialogContainer(context);
+        sv.addView(box);
+
+        EditText etSpeed = createStyledEditText(context, formatFloat(selected.speed), "120",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        EditText etMoveX = createStyledEditText(context, formatFloat(selected.moveX), "0",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        EditText etMoveY = createStyledEditText(context, formatFloat(selected.moveY), "0",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        EditText etParX = createStyledEditText(context, formatFloat(selected.parallaxX), "0.4",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        EditText etParY = createStyledEditText(context, formatFloat(selected.parallaxY), "0.4",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+
+        if (isParallax) {
+            box.addView(labeledField(context, "Parallax Factor X (0 = fixed, 1 = world)", etParX));
+            box.addView(labeledField(context, "Parallax Factor Y (0 = fixed, 1 = world)", etParY));
+            box.addView(labeledField(context, "Auto Scroll Speed X (px/sec)", etMoveX));
+            box.addView(labeledField(context, "Auto Scroll Speed Y (px/sec)", etMoveY));
+        } else {
+            box.addView(labeledField(context, GameObjectBean.TYPE_BOUNCE_PAD.equals(selected.type) ? "Bounce Speed (%)" : "Speed", etSpeed));
+            box.addView(labeledField(context, "Move / Velocity X", etMoveX));
+            box.addView(labeledField(context, "Move / Velocity Y", etMoveY));
+        }
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(isParallax ? "Parallax & Auto-Scroll" : "Motion & Speed")
+                .setView(sv)
+                .setPositiveButton("Apply", (d, w) -> {
+                    pushUndo();
+                    selected.speed = parseFloatOr(etSpeed.getText().toString(), selected.speed);
+                    selected.moveX = parseFloatOr(etMoveX.getText().toString(), selected.moveX);
+                    selected.moveY = parseFloatOr(etMoveY.getText().toString(), selected.moveY);
+                    if (isParallax) {
+                        selected.parallaxX = clamp(parseFloatOr(etParX.getText().toString(), selected.parallaxX), 0f, 3f);
+                        selected.parallaxY = clamp(parseFloatOr(etParY.getText().toString(), selected.parallaxY), 0f, 3f);
+                    }
+                    notifySceneChanged(false);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showAnimFramesDialog() {
+        if (selected == null) return;
+        Context context = getContext();
+        ScrollView sv = new ScrollView(context);
+        LinearLayout box = createDialogContainer(context);
+        sv.addView(box);
+
+        EditText etFrames = createStyledEditText(context, nonEmpty(selected.spriteFrames, ""), "walk_1,walk_2,walk_3",
+                InputType.TYPE_CLASS_TEXT);
+        EditText etFps = createStyledEditText(context, formatFloat(selected.animFps), "8",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+
+        box.addView(labeledField(context, "Sprite Frames (comma-separated image names)", etFrames));
+        box.addView(labeledField(context, "Animation FPS", etFps));
+
+        MaterialButton btnAddFrame = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        btnAddFrame.setText("Append Image Frame...");
+        btnAddFrame.setOnClickListener(v -> showImagePickerDialog("Add Animation Frame", "", img -> {
+            if (img != null && !img.isEmpty()) {
+                String cur = etFrames.getText().toString().trim();
+                etFrames.setText(cur.isEmpty() ? img : cur + "," + img);
+            }
+        }));
+        box.addView(btnAddFrame);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Sprite Animation")
+                .setView(sv)
+                .setPositiveButton("Apply", (d, w) -> {
+                    pushUndo();
+                    selected.spriteFrames = etFrames.getText().toString().trim();
+                    selected.animFps = Math.max(0.5f, Math.min(60f, parseFloatOr(etFps.getText().toString(), selected.animFps)));
+                    notifySceneChanged(true);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showDamageOrValueDialog(String label) {
+        if (selected == null) return;
+        Context context = getContext();
+        LinearLayout box = createDialogContainer(context);
+        EditText etVal = createStyledEditText(context, formatFloat(selected.damage), "1",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        box.addView(labeledField(context, label + " Value", etVal));
+        new MaterialAlertDialogBuilder(context)
+                .setTitle(label)
+                .setView(box)
+                .setPositiveButton("Apply", (d, w) -> {
+                    pushUndo();
+                    selected.damage = Math.max(0f, parseFloatOr(etVal.getText().toString(), selected.damage));
+                    notifySceneChanged(false);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private static float clamp(float val, float min, float max) {
+        return Math.max(min, Math.min(max, val));
     }
 
     private void showSceneGravityDialog() {
@@ -1455,6 +1895,23 @@ public class GamePropertyPanelView extends LinearLayout {
             prefab.name = trimmed;
             prefab.id = "prefab_" + System.currentTimeMillis();
             project.prefabs.add(prefab);
+            if (scene != null && scene.scripts != null && selected.id != null) {
+                if (project.prefabScripts == null) {
+                    project.prefabScripts = new ArrayList<>();
+                }
+                com.google.gson.Gson gson = new com.google.gson.Gson();
+                int sIdx = 1;
+                for (GameScriptNode script : scene.scripts) {
+                    if (script != null && selected.id.equals(script.targetObjectId)) {
+                        GameScriptNode copiedScript = gson.fromJson(gson.toJson(script), GameScriptNode.class);
+                        if (copiedScript != null) {
+                            copiedScript.id = "pfscript_" + System.currentTimeMillis() + "_" + (sIdx++);
+                            copiedScript.targetObjectId = prefab.id;
+                            project.prefabScripts.add(copiedScript);
+                        }
+                    }
+                }
+            }
             Toast.makeText(getContext(), "Prefab \"" + trimmed + "\" saved!", Toast.LENGTH_SHORT).show();
             if (listener != null) {
                 listener.onPropertyChanged();
@@ -1634,7 +2091,7 @@ public class GamePropertyPanelView extends LinearLayout {
         return et;
     }
 
-    private View labeledField(Context context, String label, EditText editText) {
+    private View labeledField(Context context, String label, View fieldView) {
         LinearLayout col = new LinearLayout(context);
         col.setOrientation(VERTICAL);
         LayoutParams lp = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
@@ -1646,7 +2103,7 @@ public class GamePropertyPanelView extends LinearLayout {
         tv.setTextSize(11.5f);
         tv.setTextColor(colorOnSurfaceVariant);
         col.addView(tv);
-        col.addView(editText);
+        col.addView(fieldView);
         return col;
     }
 
@@ -1688,21 +2145,7 @@ public class GamePropertyPanelView extends LinearLayout {
     }
 
     private static String formatTypeName(@Nullable String type) {
-        if (type == null) return "object";
-        return switch (type) {
-            case GameObjectBean.TYPE_SPRITE -> "Sprite";
-            case GameObjectBean.TYPE_ANIMATED_SPRITE -> "Animated";
-            case GameObjectBean.TYPE_PLATFORM -> "Platform";
-            case GameObjectBean.TYPE_PHYSICS_BOX -> "Physics Box";
-            case GameObjectBean.TYPE_TRIGGER -> "Trigger";
-            case GameObjectBean.TYPE_PARTICLES -> "Particles";
-            case GameObjectBean.TYPE_CAMERA -> "Camera";
-            case GameObjectBean.TYPE_HUD_TEXT -> "HUD Text";
-            case GameObjectBean.TYPE_HUD_BUTTON -> "HUD Button";
-            case GameObjectBean.TYPE_HUD_JOYSTICK -> "Joystick";
-            case GameObjectBean.TYPE_HUD_BAR -> "HUD Bar";
-            default -> type;
-        };
+        return GameObjectBean.getTypeDisplayName(type);
     }
 
     private int dp(float val) {

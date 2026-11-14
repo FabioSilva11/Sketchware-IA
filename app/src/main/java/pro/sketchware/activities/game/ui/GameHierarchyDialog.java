@@ -9,11 +9,13 @@ import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -154,8 +156,10 @@ public class GameHierarchyDialog {
                 textCol.addView(titleRow);
 
                 int objCount = scene.objects != null ? scene.objects.size() : 0;
+                int worldW = Math.round(scene.getEffectiveWorldWidth(project));
+                int worldH = Math.round(scene.getEffectiveWorldHeight(project));
                 TextView tvSub = new TextView(context);
-                tvSub.setText(objCount + (objCount == 1 ? " object" : " objects"));
+                tvSub.setText(objCount + (objCount == 1 ? " object" : " objects") + " • " + worldW + "x" + worldH);
                 tvSub.setTextColor(isCurrent ? colorOnPrimaryContainer : colorOnSurfaceVariant);
                 tvSub.setTextSize(11.5f);
                 textCol.addView(tvSub);
@@ -242,16 +246,7 @@ public class GameHierarchyDialog {
                 .show();
 
         dialogRef[0].getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v ->
-                promptText(context, "New Scene", "Level " + (project.scenes.size() + 1), "New scene name", name -> {
-                    String trimmed = name.trim();
-                    if (trimmed.isEmpty()) return;
-                    GameScene newScene = new GameScene();
-                    newScene.id = generateUniqueSceneId(project);
-                    newScene.name = generateUniqueSceneName(project, trimmed);
-                    newScene.backgroundColor = 0xFF1A2232;
-                    newScene.gravityY = 980f;
-                    newScene.objects = new ArrayList<>();
-                    newScene.scripts = new ArrayList<>();
+                showNewScenePresetDialog(context, project, newScene -> {
                     project.scenes.add(newScene);
                     if (project.startSceneId == null || project.startSceneId.isEmpty()) {
                         project.startSceneId = newScene.id;
@@ -676,8 +671,94 @@ public class GameHierarchyDialog {
 
     // --- Helpers ---
 
+    private interface SceneConsumer {
+        void accept(GameScene scene);
+    }
+
     private interface TextConsumer {
         void accept(String value);
+    }
+
+    private static void showNewScenePresetDialog(Context context, GameProject project, SceneConsumer onCreate) {
+        int colorOnSurfaceVariant = MaterialColors.getColor(context, R.attr.colorOnSurfaceVariant, 0xFF94A3B8);
+
+        LinearLayout box = new LinearLayout(context);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(12), dp(20), dp(8));
+
+        EditText etName = new EditText(context);
+        etName.setText("Level " + (project.scenes.size() + 1));
+        etName.setHint("New scene name");
+        etName.setSingleLine(true);
+        box.addView(createLabeledInput(context, "Scene Name", etName, colorOnSurfaceVariant));
+
+        TextView lblPreset = new TextView(context);
+        lblPreset.setText("Scene Preset (starts completely blank)");
+        lblPreset.setTextSize(11.5f);
+        lblPreset.setTextColor(colorOnSurfaceVariant);
+        LinearLayout.LayoutParams lpLbl = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lpLbl.topMargin = dp(10);
+        box.addView(lblPreset, lpLbl);
+
+        final String[] presets = new String[]{
+                "Empty Landscape (1280x720, Gravity 980)",
+                "Wide Platformer (3840x720, Respawn Fall)",
+                "Vertical Shooter (720x1280, Zero Gravity)",
+                "Top-Down RPG (2560x1920, Zero Gravity)"
+        };
+        Spinner spPreset = new Spinner(context);
+        spPreset.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item, presets));
+        box.addView(spPreset);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("New Scene")
+                .setView(box)
+                .setPositiveButton("Create", (d, w) -> {
+                    String trimmed = etName.getText().toString().trim();
+                    if (trimmed.isEmpty()) {
+                        trimmed = "Level " + (project.scenes.size() + 1);
+                    }
+                    GameScene newScene = new GameScene();
+                    newScene.id = generateUniqueSceneId(project);
+                    newScene.name = generateUniqueSceneName(project, trimmed);
+                    newScene.backgroundColor = 0xFF1A2232;
+                    newScene.objects = new ArrayList<>();
+                    newScene.scripts = new ArrayList<>();
+                    int presetIdx = spPreset.getSelectedItemPosition();
+                    switch (presetIdx) {
+                        case 1 -> {
+                            newScene.worldWidth = 3840;
+                            newScene.worldHeight = 720;
+                            newScene.gravityY = 980f;
+                            newScene.worldBoundsMode = GameScene.WORLD_BOUNDS_RESPAWN_BOTTOM;
+                        }
+                        case 2 -> {
+                            newScene.worldWidth = 720;
+                            newScene.worldHeight = 1280;
+                            newScene.gravityY = 0f;
+                            newScene.worldBoundsMode = GameScene.WORLD_BOUNDS_SOLID;
+                            project.landscape = false;
+                            project.virtualWidth = 720;
+                            project.virtualHeight = 1280;
+                        }
+                        case 3 -> {
+                            newScene.worldWidth = 2560;
+                            newScene.worldHeight = 1920;
+                            newScene.gravityY = 0f;
+                            newScene.worldBoundsMode = GameScene.WORLD_BOUNDS_SOLID;
+                        }
+                        default -> {
+                            newScene.worldWidth = 0;
+                            newScene.worldHeight = 0;
+                            newScene.gravityY = 980f;
+                            newScene.worldBoundsMode = GameScene.WORLD_BOUNDS_FREE;
+                        }
+                    }
+                    onCreate.accept(newScene);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private static void promptText(Context context, String title, String initial, String hint, TextConsumer onConfirm) {
