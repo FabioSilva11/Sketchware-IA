@@ -126,6 +126,16 @@ public class AsdDialog extends Dialog implements DialogInterface.OnDismissListen
         binding.btnSave.setOnClickListener(new AsdHandlerCodeEditor(logicEditorActivity, z, ss, asdDialog, binding.editor));
     }
 
+    public void setOnSaveClickListener(java.util.function.Consumer<String> onSave) {
+        binding.btnSave.setOnClickListener(v -> {
+            String value = binding.editor.getText().toString();
+            if (onSave != null) {
+                onSave.accept(value);
+            }
+            dismiss();
+        });
+    }
+
     public void setOnCancelClickListener(AsdDialog asdDialog) {
         binding.btnCancel.setOnClickListener(Helper.getDialogDismissListener(asdDialog));
     }

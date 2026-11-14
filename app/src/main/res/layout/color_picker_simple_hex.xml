@@ -16,7 +16,8 @@
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/ti_custom_color"
             android:layout_width="match_parent"
-            android:layout_height="50dp"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:gravity="center_vertical"
             android:importantForAutofill="noExcludeDescendants"
             app:errorEnabled="false"

@@ -8,15 +8,22 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
+import android.media.AudioAttributes;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Vibrator;
+import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -24,9 +31,12 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.widget.EditText;
+import android.view.inputmethod.EditorInfo;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -35,10 +45,13 @@ import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.besome.sketch.beans.BlockBean;
 import com.besome.sketch.editor.LogicEditorDrawer;
@@ -55,7 +68,9 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.color.MaterialColors;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.radiobutton.MaterialRadioButton;
 
+import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,7 +82,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import mod.hilal.saif.asd.AsdDialog;
 import pro.sketchware.R;
 import pro.sketchware.activities.game.blocks.GameBlockBeanConverter;
 import pro.sketchware.activities.game.blocks.GameBlockCatalog;
@@ -78,9 +95,14 @@ import pro.sketchware.activities.game.model.GameProjectRepository;
 import pro.sketchware.activities.game.model.GameScene;
 import pro.sketchware.activities.game.model.GameScriptNode;
 import pro.sketchware.activities.game.runtime.GamePreviewActivity;
+import pro.sketchware.databinding.ImagePickerItemBinding;
+import pro.sketchware.databinding.PropertyPopupInputTextBinding;
+import pro.sketchware.databinding.PropertyPopupSelectorSingleBinding;
+import pro.sketchware.databinding.SearchWithRecyclerViewBinding;
 import pro.sketchware.editor.BlockCanvasView;
 import pro.sketchware.editor.BlockMenuItem;
 import pro.sketchware.editor.BlockView;
+import pro.sketchware.menu.ExtraMenuBean;
 
 /**
  * Fullscreen single-event Scratch block coding screen for the 2D Game Engine.
@@ -1004,25 +1026,64 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
         recordHistoryCommit();
     }
 
+    private static String formatHexColor(int color) {
+        int alpha = (color >>> 24) & 0xFF;
+        return alpha != 0xFF
+                ? String.format(Locale.US, "#%08X", color)
+                : String.format(Locale.US, "#%06X", (0xFFFFFF & color));
+    }
+
     private void showColorPicker(@NonNull BlockView hostBlock,
                                  @NonNull BlockMenuItem menuItem,
                                  @NonNull String currentVal) {
         String seed = TextUtils.isEmpty(currentVal) ? "#FF5252" : currentVal.replace("0xFF", "#");
-        ColorPickerDialog dialog = new ColorPickerDialog(this, seed, false, false, scId);
+        ColorPickerDialog dialog = new ColorPickerDialog(this, seed, true, false, scId);
         dialog.a(new ColorPickerDialog.b() {
             @Override
             public void a(int color) {
-                String hex = String.format(Locale.US, "#%06X", (0xFFFFFF & color));
-                applyMenuItemValue(hostBlock, menuItem, hex);
+                applyMenuItemValue(hostBlock, menuItem, formatHexColor(color));
             }
 
             @Override
             public void a(String colorName, int color) {
-                String hex = String.format(Locale.US, "#%06X", (0xFFFFFF & color));
-                applyMenuItemValue(hostBlock, menuItem, hex);
+                applyMenuItemValue(hostBlock, menuItem, formatHexColor(color));
             }
         });
+        dialog.materialColorAttr((attr, attrColor) ->
+                applyMenuItemValue(hostBlock, menuItem, formatHexColor(attrColor)));
         dialog.showAtLocation(menuItem, Gravity.CENTER, 0, 0);
+    }
+
+    private PropertyPopupInputTextBinding inflateTextInputBinding(@NonNull String hint,
+                                                                   @NonNull String initialValue,
+                                                                   int inputType,
+                                                                   boolean singleLine) {
+        PropertyPopupInputTextBinding binding = PropertyPopupInputTextBinding.inflate(getLayoutInflater());
+        binding.tiInput.setHint(hint);
+        binding.edInput.setInputType(inputType);
+        binding.edInput.setSingleLine(singleLine);
+        if (singleLine) {
+            binding.edInput.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        }
+        binding.edInput.setText(initialValue);
+        binding.edInput.setSelection(initialValue.length());
+        return binding;
+    }
+
+    private RadioButton createSelectorRadioButton(@NonNull String label) {
+        MaterialRadioButton rb = new MaterialRadioButton(this);
+        rb.setId(View.generateViewId());
+        rb.setText(label);
+        rb.setTag(label);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(2);
+        lp.bottomMargin = dp(2);
+        rb.setLayoutParams(lp);
+        rb.setMinHeight(dp(44));
+        rb.setPaddingRelative(dp(8), dp(8), dp(8), dp(8));
+        rb.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+        return rb;
     }
 
     private void showTextOrExpressionDialog(@NonNull BlockView hostBlock,
@@ -1030,17 +1091,15 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
                                             @NonNull BlockMenuItem menuItem,
                                             boolean numericMode,
                                             @NonNull String currentVal) {
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(dp(20), dp(12), dp(20), dp(4));
-
-        EditText et = new EditText(this);
-        et.setText(currentVal);
-        et.setSelection(currentVal.length());
-        et.setSingleLine(true);
-        et.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        et.setHint(numericMode ? "Number or expression (e.g. 10, score + 1)" : "Text or {var}");
-        container.addView(et);
+        String hint = numericMode ? "Number or expression (e.g. 10, score + 1)" : "Text or {var}";
+        PropertyPopupInputTextBinding binding = inflateTextInputBinding(
+                hint,
+                currentVal,
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
+                true);
+        LinearLayout container = (LinearLayout) binding.getRoot();
+        container.setPadding(container.getPaddingLeft(), container.getPaddingTop(),
+                container.getPaddingRight(), dp(8));
 
         GameBlockCatalog.BlockDef def = GameBlockCatalog.findByOpCode(hostBlock.U);
         String kind = (def != null && def.paramKinds != null && slotIndex < def.paramKinds.length)
@@ -1052,31 +1111,54 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
             TextView header = new TextView(this);
             header.setText("Quick insert");
             header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+            header.setTextColor(MaterialColors.getColor(
+                    this, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF777777));
             header.setPadding(0, dp(12), 0, dp(6));
             container.addView(header);
 
             HorizontalScrollView hsv = new HorizontalScrollView(this);
             hsv.setHorizontalScrollBarEnabled(false);
+            hsv.setClipToPadding(false);
+            hsv.setClipChildren(false);
+            hsv.setPadding(dp(2), dp(4), dp(2), dp(8));
+
             ChipGroup cg = new ChipGroup(this);
             cg.setSingleLine(true);
+            cg.setChipSpacingHorizontal(dp(8));
+            cg.setClipChildren(false);
+            cg.setClipToPadding(false);
             for (String sug : suggestions) {
                 Chip chip = new Chip(this);
                 chip.setText(sug);
                 chip.setEnsureMinTouchTargetSize(false);
                 chip.setOnClickListener(v -> {
-                    et.setText(sug);
-                    et.setSelection(sug.length());
+                    binding.edInput.setText(sug);
+                    binding.edInput.setSelection(sug.length());
                 });
                 cg.addView(chip);
             }
             hsv.addView(cg);
-            container.addView(hsv);
+            container.addView(hsv, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         }
 
         new MaterialAlertDialogBuilder(this)
                 .setTitle(numericMode ? "Enter number / expression" : "Enter value")
                 .setView(container)
-                .setPositiveButton("Save", (d, w) -> applyMenuItemValue(hostBlock, menuItem, et.getText().toString()))
+                .setNeutralButton("Code Editor", (d, w) -> {
+                    String draft = binding.edInput.getText() != null
+                            ? binding.edInput.getText().toString() : currentVal;
+                    d.dismiss();
+                    AsdDialog editor = new AsdDialog(this);
+                    editor.setContent(draft);
+                    editor.show();
+                    editor.setOnSaveClickListener(value -> applyMenuItemValue(hostBlock, menuItem, value));
+                    editor.setOnCancelClickListener(editor);
+                })
+                .setPositiveButton("Save", (d, w) -> applyMenuItemValue(
+                        hostBlock,
+                        menuItem,
+                        binding.edInput.getText() != null ? binding.edInput.getText().toString() : ""))
                 .setNegativeButton("Cancel", null)
                 .show();
     }
@@ -1086,32 +1168,19 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
                                             @NonNull BlockMenuItem menuItem,
                                             @NonNull String currentVal) {
         List<String> options = buildDropdownOptions(hostBlock.U, menuName);
-        if (options.isEmpty() || allowsCustomEntry(menuName)) {
-            if ("gameVar".equals(menuName) && options.isEmpty()) {
-                Toast.makeText(this, "No variables yet. Create one first.", Toast.LENGTH_SHORT).show();
-                showAddVariableDialog();
-                return;
-            }
+        if ("gameVar".equals(menuName) && options.isEmpty()) {
+            Toast.makeText(this, "No variables yet. Create one first.", Toast.LENGTH_SHORT).show();
+            showAddVariableDialog();
+            return;
         }
 
-        if (allowsCustomEntry(menuName)) {
-            List<String> listWithCustom = new ArrayList<>(options);
-            listWithCustom.add("+ Custom value...");
-            String[] items = listWithCustom.toArray(new String[0]);
-            int checked = findSelectedIndex(options, currentVal);
-            new MaterialAlertDialogBuilder(this)
-                    .setTitle(getMenuDialogTitle(menuName))
-                    .setSingleChoiceItems(items, checked, (dialog, which) -> {
-                        if (which == listWithCustom.size() - 1) {
-                            dialog.dismiss();
-                            showCustomDropdownInputDialog(hostBlock, menuName, menuItem, currentVal);
-                        } else {
-                            applyMenuItemValue(hostBlock, menuItem, items[which]);
-                            dialog.dismiss();
-                        }
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
+        if ("sprite".equals(menuName) || "backdrop".equals(menuName)) {
+            showImageDropdownDialog(hostBlock, menuName, menuItem, currentVal, options);
+            return;
+        }
+
+        if ("sound".equals(menuName)) {
+            showSoundDropdownDialog(hostBlock, menuName, menuItem, currentVal, options);
             return;
         }
 
@@ -1120,41 +1189,169 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
             return;
         }
 
-        String[] items = options.toArray(new String[0]);
-        int checked = findSelectedIndex(options, currentVal);
+        PropertyPopupSelectorSingleBinding binding = PropertyPopupSelectorSingleBinding.inflate(getLayoutInflater());
+        binding.desc.setVisibility(View.GONE);
+        for (String opt : options) {
+            RadioButton rb = createSelectorRadioButton(opt);
+            binding.rgContent.addView(rb);
+            if (TextUtils.equals(opt, currentVal)) {
+                rb.setChecked(true);
+            }
+        }
+        ExtraMenuBean.setupSearchView(binding.getRoot(), binding.rgContent);
+
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this)
                 .setTitle(getMenuDialogTitle(menuName))
-                .setSingleChoiceItems(items, checked, (dialog, which) -> {
-                    applyMenuItemValue(hostBlock, menuItem, items[which]);
+                .setView(binding.getRoot())
+                .setPositiveButton("Select", (dialog, which) -> {
+                    String selected = getCheckedRadioValue(binding.rgContent);
+                    if (selected != null) {
+                        applyMenuItemValue(hostBlock, menuItem, selected);
+                    }
                     dialog.dismiss();
                 })
                 .setNegativeButton("Cancel", null);
-        if ("gameVar".equals(menuName)) {
-            builder.setNeutralButton("+ New Variable", (dialog, which) -> showAddVariableDialog());
+
+        if (allowsCustomEntry(menuName)) {
+            builder.setNeutralButton("Custom...", (dialog, which) -> {
+                dialog.dismiss();
+                showCustomDropdownInputDialog(hostBlock, menuName, menuItem, currentVal);
+            });
+        } else if ("gameVar".equals(menuName)) {
+            builder.setNeutralButton("+ New Variable", (dialog, which) -> {
+                dialog.dismiss();
+                showAddVariableDialog();
+            });
         }
         builder.show();
+    }
+
+    @Nullable
+    private static String getCheckedRadioValue(@NonNull RadioGroup group) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child instanceof RadioButton rb && rb.isChecked()) {
+                Object tag = rb.getTag();
+                return tag != null ? tag.toString() : rb.getText().toString();
+            }
+        }
+        return null;
+    }
+
+    private void showImageDropdownDialog(@NonNull BlockView hostBlock,
+                                         @NonNull String menuName,
+                                         @NonNull BlockMenuItem menuItem,
+                                         @NonNull String currentVal,
+                                         @NonNull List<String> imageNames) {
+        List<String> items = new ArrayList<>();
+        items.add("NONE");
+        for (String name : imageNames) {
+            if (!TextUtils.isEmpty(name) && !"NONE".equals(name)) {
+                items.add(name);
+            }
+        }
+        String seedSelected = TextUtils.isEmpty(currentVal) ? "NONE" : currentVal;
+
+        SearchWithRecyclerViewBinding binding = SearchWithRecyclerViewBinding.inflate(getLayoutInflater());
+        GameImagePickerAdapter adapter = new GameImagePickerAdapter(items, seedSelected);
+        binding.recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        binding.recyclerView.setAdapter(adapter);
+        binding.searchInput.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                adapter.filter(s != null ? s.toString() : "");
+            }
+        });
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(getMenuDialogTitle(menuName))
+                .setView(binding.getRoot())
+                .setPositiveButton("Select", (d, w) -> {
+                    String selected = adapter.getSelected();
+                    applyMenuItemValue(hostBlock, menuItem, "NONE".equals(selected) ? "" : selected);
+                    d.dismiss();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showSoundDropdownDialog(@NonNull BlockView hostBlock,
+                                         @NonNull String menuName,
+                                         @NonNull BlockMenuItem menuItem,
+                                         @NonNull String currentVal,
+                                         @NonNull List<String> options) {
+        PropertyPopupSelectorSingleBinding binding = PropertyPopupSelectorSingleBinding.inflate(getLayoutInflater());
+        binding.desc.setVisibility(View.GONE);
+
+        SoundPool soundPool = new SoundPool.Builder()
+                .setMaxStreams(1)
+                .setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build())
+                .build();
+        soundPool.setOnLoadCompleteListener((pool, sampleId, status) -> {
+            if (pool != null && status == 0) {
+                pool.play(sampleId, 1f, 1f, 1, 0, 1f);
+            }
+        });
+
+        for (String soundName : options) {
+            RadioButton rb = createSelectorRadioButton(soundName);
+            binding.rgContent.addView(rb);
+            if (TextUtils.equals(soundName, currentVal)) {
+                rb.setChecked(true);
+            }
+            rb.setOnClickListener(v -> {
+                File soundFile = GameProjectRepository.getSoundFile(scId, soundName);
+                if (soundFile != null && soundFile.exists()) {
+                    try {
+                        soundPool.load(soundFile.getAbsolutePath(), 1);
+                    } catch (Throwable ignored) {
+                    }
+                }
+            });
+        }
+        ExtraMenuBean.setupSearchView(binding.getRoot(), binding.rgContent);
+
+        AlertDialog alertDialog = new MaterialAlertDialogBuilder(this)
+                .setTitle(getMenuDialogTitle(menuName))
+                .setView(binding.getRoot())
+                .setPositiveButton("Select", (dialog, which) -> {
+                    String selected = getCheckedRadioValue(binding.rgContent);
+                    if (selected != null) {
+                        applyMenuItemValue(hostBlock, menuItem, selected);
+                    }
+                    dialog.dismiss();
+                })
+                .setNegativeButton("Cancel", null)
+                .create();
+        alertDialog.setOnDismissListener(d -> {
+            try {
+                soundPool.release();
+            } catch (Throwable ignored) {
+            }
+        });
+        alertDialog.show();
     }
 
     private void showCustomDropdownInputDialog(@NonNull BlockView hostBlock,
                                                @NonNull String menuName,
                                                @NonNull BlockMenuItem menuItem,
                                                @NonNull String currentVal) {
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(dp(20), dp(12), dp(20), dp(4));
-
-        EditText et = new EditText(this);
-        et.setText(currentVal);
-        et.setSelection(currentVal.length());
-        et.setSingleLine(true);
-        et.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        container.addView(et);
+        PropertyPopupInputTextBinding binding = inflateTextInputBinding(
+                getMenuDialogTitle(menuName),
+                currentVal,
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
+                true);
 
         new MaterialAlertDialogBuilder(this)
                 .setTitle(getMenuDialogTitle(menuName))
-                .setView(container)
+                .setView(binding.getRoot())
                 .setPositiveButton("Save", (d, w) -> {
-                    String typed = et.getText().toString().trim();
+                    String typed = binding.edInput.getText() != null
+                            ? binding.edInput.getText().toString().trim() : "";
                     if (!typed.isEmpty()) {
                         applyMenuItemValue(hostBlock, menuItem, typed);
                     }
@@ -1421,46 +1618,66 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
     }
 
     private void showAddVariableDialog() {
+        PropertyPopupInputTextBinding nameBinding = inflateTextInputBinding(
+                "Variable name (e.g. score)",
+                "",
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
+                true);
+        PropertyPopupInputTextBinding valueBinding = inflateTextInputBinding(
+                "Initial value (default 0)",
+                "0",
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
+                true);
+
+        nameBinding.getRoot().setPadding(dp(20), dp(16), dp(20), dp(6));
+        valueBinding.getRoot().setPadding(dp(20), dp(6), dp(20), dp(4));
+
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(dp(20), dp(12), dp(20), dp(4));
+        container.addView(nameBinding.getRoot());
+        container.addView(valueBinding.getRoot());
 
-        EditText nameEt = new EditText(this);
-        nameEt.setHint("Variable name (e.g. score)");
-        nameEt.setSingleLine(true);
-        nameEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        container.addView(nameEt);
+        nameBinding.edInput.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                nameBinding.tiInput.setError(null);
+            }
+        });
 
-        EditText valueEt = new EditText(this);
-        valueEt.setHint("Initial value (default 0)");
-        valueEt.setText("0");
-        valueEt.setSingleLine(true);
-        container.addView(valueEt);
-
-        new MaterialAlertDialogBuilder(this)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle("Add Variable")
                 .setView(container)
-                .setPositiveButton("Add", (d, w) -> {
-                    String name = nameEt.getText().toString().trim();
-                    if (TextUtils.isEmpty(name)) {
-                        Toast.makeText(this, "Enter a variable name.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (!name.matches("[A-Za-z_][A-Za-z0-9_]*")) {
-                        Toast.makeText(this, "Use letters, numbers, or underscore.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-                    if (gameProject.globalVariables == null) {
-                        gameProject.globalVariables = new HashMap<>();
-                    }
-                    String initVal = valueEt.getText().toString().trim();
-                    gameProject.globalVariables.put(name, TextUtils.isEmpty(initVal) ? "0" : initVal);
-                    hasUnsavedChanges = true;
-                    saveProjectSafely();
-                    showCategory(selectedCategoryIndex);
-                })
+                .setPositiveButton("Add", null)
                 .setNegativeButton("Cancel", null)
-                .show();
+                .create();
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String name = nameBinding.edInput.getText() != null
+                    ? nameBinding.edInput.getText().toString().trim() : "";
+            if (TextUtils.isEmpty(name)) {
+                nameBinding.tiInput.setError("Enter a variable name");
+                return;
+            }
+            if (!name.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+                nameBinding.tiInput.setError("Use letters, numbers, or underscore (start with letter/_)");
+                return;
+            }
+            if (gameProject.globalVariables != null && gameProject.globalVariables.containsKey(name)) {
+                nameBinding.tiInput.setError("Variable already exists");
+                return;
+            }
+            if (gameProject.globalVariables == null) {
+                gameProject.globalVariables = new HashMap<>();
+            }
+            String initVal = valueBinding.edInput.getText() != null
+                    ? valueBinding.edInput.getText().toString().trim() : "";
+            gameProject.globalVariables.put(name, TextUtils.isEmpty(initVal) ? "0" : initVal);
+            hasUnsavedChanges = true;
+            saveProjectSafely();
+            showCategory(selectedCategoryIndex);
+            dialog.dismiss();
+        }));
+        dialog.show();
     }
 
     private void showRemoveVariableDialog() {
@@ -1469,34 +1686,223 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
             Toast.makeText(this, "No variables to remove.", Toast.LENGTH_SHORT).show();
             return;
         }
-        String[] items = names.toArray(new String[0]);
-        new MaterialAlertDialogBuilder(this)
+        PropertyPopupSelectorSingleBinding binding = PropertyPopupSelectorSingleBinding.inflate(getLayoutInflater());
+        binding.desc.setVisibility(View.VISIBLE);
+        binding.desc.setText("Select a variable to remove");
+        for (String name : names) {
+            binding.rgContent.addView(createSelectorRadioButton(name));
+        }
+        ExtraMenuBean.setupSearchView(binding.getRoot(), binding.rgContent);
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle("Remove Variable")
-                .setItems(items, (d, which) -> {
-                    if (gameProject != null && gameProject.globalVariables != null) {
-                        gameProject.globalVariables.remove(items[which]);
-                        hasUnsavedChanges = true;
-                        saveProjectSafely();
-                        showCategory(selectedCategoryIndex);
-                    }
-                })
+                .setView(binding.getRoot())
+                .setPositiveButton("Remove", null)
                 .setNegativeButton("Cancel", null)
-                .show();
+                .create();
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String targetName = getCheckedRadioValue(binding.rgContent);
+            if (TextUtils.isEmpty(targetName)) {
+                Toast.makeText(this, "Select a variable first.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (isVariableInUse(targetName)) {
+                Toast.makeText(this, "Cannot remove '" + targetName + "': used in a script.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (gameProject != null && gameProject.globalVariables != null) {
+                gameProject.globalVariables.remove(targetName);
+                hasUnsavedChanges = true;
+                saveProjectSafely();
+                showCategory(selectedCategoryIndex);
+            }
+            dialog.dismiss();
+        }));
+        dialog.show();
+    }
+
+    private boolean isVariableInUse(@NonNull String varName) {
+        if (gameProject == null || gameProject.scenes == null) {
+            return false;
+        }
+        Pattern tokenPattern = Pattern.compile("\\b" + Pattern.quote(varName) + "\\b");
+        String braceRef = "{" + varName + "}";
+        for (GameScene s : gameProject.scenes) {
+            if (s == null || s.scripts == null) {
+                continue;
+            }
+            for (GameScriptNode node : s.scripts) {
+                if (node == null) {
+                    continue;
+                }
+                if (blocksReferenceVariable(node.blocks, varName, braceRef, tokenPattern)) {
+                    return true;
+                }
+                if (node.floatingStacks != null) {
+                    for (List<GameBlockItem> stack : node.floatingStacks) {
+                        if (blocksReferenceVariable(stack, varName, braceRef, tokenPattern)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean blocksReferenceVariable(@Nullable List<GameBlockItem> blocks,
+                                                   @NonNull String varName,
+                                                   @NonNull String braceRef,
+                                                   @NonNull Pattern tokenPattern) {
+        if (blocks == null) {
+            return false;
+        }
+        for (GameBlockItem b : blocks) {
+            if (b == null) {
+                continue;
+            }
+            GameBlockCatalog.BlockDef def = GameBlockCatalog.findByOpCode(b.opCode);
+            if (b.parameters != null) {
+                for (int i = 0; i < b.parameters.size(); i++) {
+                    String val = b.parameters.get(i);
+                    if (TextUtils.isEmpty(val)) {
+                        continue;
+                    }
+                    String kind = (def != null && def.paramKinds != null && i < def.paramKinds.length)
+                            ? def.paramKinds[i] : "";
+                    if (GameBlockCatalog.KIND_VAR.equals(kind) && varName.equals(val.trim())) {
+                        return true;
+                    }
+                    if (val.contains(braceRef)) {
+                        return true;
+                    }
+                    if ((GameBlockCatalog.KIND_EXPR.equals(kind)
+                            || GameBlockCatalog.KIND_NUMBER.equals(kind)
+                            || GameBlockCatalog.KIND_BOOL.equals(kind))
+                            && tokenPattern.matcher(val).find()) {
+                        return true;
+                    }
+                }
+            }
+            if (blocksReferenceVariable(b.paramBlocks, varName, braceRef, tokenPattern)
+                    || blocksReferenceVariable(b.subStack1, varName, braceRef, tokenPattern)
+                    || blocksReferenceVariable(b.subStack2, varName, braceRef, tokenPattern)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private final class GameImagePickerAdapter extends RecyclerView.Adapter<GameImagePickerAdapter.ViewHolder> {
+        private final List<String> allImages;
+        private final List<String> filteredImages;
+        private final Map<String, Bitmap> thumbCache = new HashMap<>();
+        private String selected;
+
+        GameImagePickerAdapter(@NonNull List<String> images, @NonNull String initialSelected) {
+            this.allImages = new ArrayList<>(images);
+            this.filteredImages = new ArrayList<>(images);
+            this.selected = initialSelected;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            ImagePickerItemBinding itemBinding = ImagePickerItemBinding.inflate(
+                    LayoutInflater.from(parent.getContext()), parent, false);
+            return new ViewHolder(itemBinding);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            String name = filteredImages.get(position);
+            holder.binding.textView.setText(name);
+            holder.binding.radioButton.setChecked(TextUtils.equals(name, selected));
+
+            holder.binding.layoutImg.removeAllViews();
+            ImageView iv = new ImageView(holder.itemView.getContext());
+            int sizePx = dp(48);
+            iv.setLayoutParams(new ViewGroup.LayoutParams(sizePx, sizePx));
+            iv.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            iv.setBackgroundResource(R.drawable.bg_outline);
+
+            if (!"NONE".equals(name)) {
+                Bitmap thumb = thumbCache.get(name);
+                if (thumb == null && !thumbCache.containsKey(name)) {
+                    File imgFile = GameProjectRepository.getImageFile(scId, name);
+                    if (imgFile != null && imgFile.exists()) {
+                        thumb = decodeSampledThumb(imgFile, sizePx * 2);
+                    }
+                    thumbCache.put(name, thumb);
+                }
+                if (thumb != null) {
+                    iv.setImageBitmap(thumb);
+                } else {
+                    iv.setScaleType(ImageView.ScaleType.CENTER);
+                    iv.setImageResource(R.drawable.ic_remove_grey600_24dp);
+                }
+            }
+            holder.binding.layoutImg.addView(iv);
+
+            holder.binding.transparentOverlay.setOnClickListener(v -> {
+                selected = name;
+                notifyDataSetChanged();
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return filteredImages.size();
+        }
+
+        void filter(@NonNull String query) {
+            String q = query.trim().toLowerCase(Locale.ROOT);
+            filteredImages.clear();
+            for (String item : allImages) {
+                if (q.isEmpty() || item.toLowerCase(Locale.ROOT).contains(q)) {
+                    filteredImages.add(item);
+                }
+            }
+            notifyDataSetChanged();
+        }
+
+        @NonNull
+        String getSelected() {
+            return selected != null ? selected : "";
+        }
+
+        @Nullable
+        private Bitmap decodeSampledThumb(@NonNull File file, int maxDimPx) {
+            try {
+                BitmapFactory.Options opts = new BitmapFactory.Options();
+                opts.inJustDecodeBounds = true;
+                BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
+                int sample = 1;
+                while (opts.outWidth / sample > maxDimPx || opts.outHeight / sample > maxDimPx) {
+                    sample *= 2;
+                }
+                opts.inJustDecodeBounds = false;
+                opts.inSampleSize = sample;
+                return BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
+            } catch (Throwable t) {
+                return null;
+            }
+        }
+
+        final class ViewHolder extends RecyclerView.ViewHolder {
+            final ImagePickerItemBinding binding;
+
+            ViewHolder(@NonNull ImagePickerItemBinding binding) {
+                super(binding.getRoot());
+                this.binding = binding;
+            }
+        }
     }
 
     private void showEditEventParamDialog() {
         if (!eventUsesParam(eventType)) {
             return;
         }
-        LinearLayout container = new LinearLayout(this);
-        container.setOrientation(LinearLayout.VERTICAL);
-        container.setPadding(dp(20), dp(12), dp(20), dp(4));
-
-        EditText et = new EditText(this);
-        et.setText(eventParam != null ? eventParam : "");
-        et.setSingleLine(true);
-        et.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        container.addView(et);
 
         String title;
         if (GameScriptNode.EVENT_COLLISION.equals(eventType)) {
@@ -1507,27 +1913,46 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
             title = "Broadcast Message";
         }
 
-        new MaterialAlertDialogBuilder(this)
+        PropertyPopupInputTextBinding binding = inflateTextInputBinding(
+                title,
+                eventParam != null ? eventParam : "",
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
+                true);
+        binding.edInput.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                binding.tiInput.setError(null);
+            }
+        });
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setTitle(title)
-                .setView(container)
-                .setPositiveButton("Save", (d, w) -> {
-                    String next = et.getText().toString().trim();
-                    if (!TextUtils.isEmpty(next)) {
-                        eventParam = next;
-                        if (currentScript != null) {
-                            currentScript.eventParam = next;
-                        }
-                        if (blockPane.getRoot() != null) {
-                            blockPane.getRoot().setSpec(buildHatTitle());
-                            blockPane.getRoot().k();
-                        }
-                        toolbar.setSubtitle(buildDefaultSubtitle(eventType, eventParam));
-                        hasUnsavedChanges = true;
-                        saveProjectSafely();
-                    }
-                })
+                .setView(binding.getRoot())
+                .setPositiveButton("Save", null)
                 .setNegativeButton("Cancel", null)
-                .show();
+                .create();
+        dialog.setOnShowListener(d -> dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String next = binding.edInput.getText() != null
+                    ? binding.edInput.getText().toString().trim() : "";
+            if (TextUtils.isEmpty(next)) {
+                binding.tiInput.setError("Enter a value");
+                return;
+            }
+            eventParam = next;
+            if (currentScript != null) {
+                currentScript.eventParam = next;
+            }
+            if (blockPane.getRoot() != null) {
+                blockPane.getRoot().setSpec(buildHatTitle());
+                blockPane.getRoot().k();
+            }
+            toolbar.setSubtitle(buildDefaultSubtitle(eventType, eventParam));
+            hasUnsavedChanges = true;
+            saveProjectSafely();
+            dialog.dismiss();
+        }));
+        dialog.show();
     }
 
     // -------------------------------------------------------------------------

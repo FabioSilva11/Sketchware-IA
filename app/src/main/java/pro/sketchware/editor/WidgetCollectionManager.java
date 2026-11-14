@@ -27,45 +27,13 @@ public class WidgetCollectionManager extends LifecycleTask {
 
    public static WidgetCollectionManager h() {
       if (f == null) {
-         synchronized(WidgetCollectionManager.class){}
-
-         Throwable var10000;
-         label144: {
-            try {
-               if (f == null) {
-                  WidgetCollectionManager var0 = new WidgetCollectionManager();
-                  f = var0;
-               }
-            } catch (Throwable var12) {
-               var10000 = var12;
-               boolean var10001 = false;
-               break label144;
-            }
-
-            label141:
-            try {
-               return f;
-            } catch (Throwable var11) {
-               var10000 = var11;
-               boolean var14 = false;
-               break label141;
+         synchronized (WidgetCollectionManager.class) {
+            if (f == null) {
+               f = new WidgetCollectionManager();
             }
          }
-
-         while(true) {
-            Throwable var13 = var10000;
-
-            try {
-               throw var13;
-            } catch (Throwable var10) {
-               var10000 = var10;
-               boolean var15 = false;
-               continue;
-            }
-         }
-      } else {
-         return f;
       }
+      return f;
    }
 
    public WidgetCollectionBean a(String var1) {

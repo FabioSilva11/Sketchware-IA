@@ -31,55 +31,13 @@ public class ViewHistoryManager {
 
    public static ViewHistoryManager c(String var0) {
       if (a == null) {
-         synchronized(ViewHistoryManager.class){}
-
-         Throwable var10000;
-         label211: {
-            label210: {
-               try {
-                  if (a != null && a.d.equals(var0)) {
-                     break label210;
-                  }
-               } catch (Throwable var21) {
-                  var10000 = var21;
-                  boolean var10001 = false;
-                  break label211;
-               }
-
-               try {
-                  ViewHistoryManager var1 = new ViewHistoryManager(var0);
-                  a = var1;
-               } catch (Throwable var20) {
-                  var10000 = var20;
-                  boolean var23 = false;
-                  break label211;
-               }
-            }
-
-            label201:
-            try {
-               return a;
-            } catch (Throwable var19) {
-               var10000 = var19;
-               boolean var24 = false;
-               break label201;
+         synchronized (ViewHistoryManager.class) {
+            if (a == null || a.d == null || !a.d.equals(var0)) {
+               a = new ViewHistoryManager(var0);
             }
          }
-
-         while(true) {
-            Throwable var22 = var10000;
-
-            try {
-               throw var22;
-            } catch (Throwable var18) {
-               var10000 = var18;
-               boolean var25 = false;
-               continue;
-            }
-         }
-      } else {
-         return a;
       }
+      return a;
    }
 
    public final void a(String var1) {

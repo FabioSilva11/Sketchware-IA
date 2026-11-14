@@ -27,45 +27,13 @@ public class BlockCollectionManager extends LifecycleTask {
 
    public static BlockCollectionManager h() {
       if (f == null) {
-         synchronized(BlockCollectionManager.class){}
-
-         Throwable var10000;
-         label144: {
-            try {
-               if (f == null) {
-                  BlockCollectionManager var0 = new BlockCollectionManager();
-                  f = var0;
-               }
-            } catch (Throwable var12) {
-               var10000 = var12;
-               boolean var10001 = false;
-               break label144;
-            }
-
-            label141:
-            try {
-               return f;
-            } catch (Throwable var11) {
-               var10000 = var11;
-               boolean var14 = false;
-               break label141;
+         synchronized (BlockCollectionManager.class) {
+            if (f == null) {
+               f = new BlockCollectionManager();
             }
          }
-
-         while(true) {
-            Throwable var13 = var10000;
-
-            try {
-               throw var13;
-            } catch (Throwable var10) {
-               var10000 = var10;
-               boolean var15 = false;
-               continue;
-            }
-         }
-      } else {
-         return f;
       }
+      return f;
    }
 
    public BlockCollectionBean a(String var1) {

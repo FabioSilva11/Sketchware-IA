@@ -93,7 +93,12 @@ public class PaletteSelector extends RecyclerView {
         allPalettes = new ArrayList<>();
 
         if (customPalettes != null) {
-            allPalettes.addAll(customPalettes);
+            for (int i = 0; i < customPalettes.size(); i++) {
+                var palette = customPalettes.get(i);
+                if (matchesSearch(palette.text())) {
+                    allPalettes.add(palette);
+                }
+            }
             paletteAdapter.setPalettes(allPalettes);
             if (paletteAdapter.getItemCount() > 0) {
                 paletteAdapter.selectPosition(0);

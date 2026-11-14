@@ -40,45 +40,13 @@ public class TranslationManager {
 
    public static TranslationManager b() {
       if (a == null) {
-         synchronized(TranslationManager.class){}
-
-         Throwable var10000;
-         label144: {
-            try {
-               if (a == null) {
-                  TranslationManager var0 = new TranslationManager();
-                  a = var0;
-               }
-            } catch (Throwable var12) {
-               var10000 = var12;
-               boolean var10001 = false;
-               break label144;
-            }
-
-            label141:
-            try {
-               return a;
-            } catch (Throwable var11) {
-               var10000 = var11;
-               boolean var14 = false;
-               break label141;
+         synchronized (TranslationManager.class) {
+            if (a == null) {
+               a = new TranslationManager();
             }
          }
-
-         while(true) {
-            Throwable var13 = var10000;
-
-            try {
-               throw var13;
-            } catch (Throwable var10) {
-               var10000 = var10;
-               boolean var15 = false;
-               continue;
-            }
-         }
-      } else {
-         return a;
       }
+      return a;
    }
 
    public String a(Context var1, int var2) {

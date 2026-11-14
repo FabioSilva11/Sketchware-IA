@@ -12,49 +12,17 @@ import pro.sketchware.core.StringListStore;
 import pro.sketchware.workspace.WorkspacePathManager;
 
 public class SoundResourceManager extends LifecycleTask {
-   public static SoundResourceManager f;
+   public static volatile SoundResourceManager f;
 
    public static SoundResourceManager g() {
       if (f == null) {
-         synchronized(SoundResourceManager.class){}
-
-         Throwable var10000;
-         label144: {
-            try {
-               if (f == null) {
-                  SoundResourceManager var0 = new SoundResourceManager();
-                  f = var0;
-               }
-            } catch (Throwable var12) {
-               var10000 = var12;
-               boolean var10001 = false;
-               break label144;
-            }
-
-            label141:
-            try {
-               return f;
-            } catch (Throwable var11) {
-               var10000 = var11;
-               boolean var14 = false;
-               break label141;
+         synchronized (SoundResourceManager.class) {
+            if (f == null) {
+               f = new SoundResourceManager();
             }
          }
-
-         while(true) {
-            Throwable var13 = var10000;
-
-            try {
-               throw var13;
-            } catch (Throwable var10) {
-               var10000 = var10;
-               boolean var15 = false;
-               continue;
-            }
-         }
-      } else {
-         return f;
       }
+      return f;
    }
 
    public ProjectResourceBean a(String var1) {

@@ -12,49 +12,17 @@ import pro.sketchware.core.StringListStore;
 import pro.sketchware.workspace.WorkspacePathManager;
 
 public class AnimationResourceManager extends LifecycleTask {
-   public static AnimationResourceManager f;
+   public static volatile AnimationResourceManager f;
 
    public static AnimationResourceManager g() {
       if (f == null) {
-         synchronized(AnimationResourceManager.class){}
-
-         Throwable var10000;
-         label144: {
-            try {
-               if (f == null) {
-                  AnimationResourceManager var0 = new AnimationResourceManager();
-                  f = var0;
-               }
-            } catch (Throwable var12) {
-               var10000 = var12;
-               boolean var10001 = false;
-               break label144;
-            }
-
-            label141:
-            try {
-               return f;
-            } catch (Throwable var11) {
-               var10000 = var11;
-               boolean var14 = false;
-               break label141;
+         synchronized (AnimationResourceManager.class) {
+            if (f == null) {
+               f = new AnimationResourceManager();
             }
          }
-
-         while(true) {
-            Throwable var13 = var10000;
-
-            try {
-               throw var13;
-            } catch (Throwable var10) {
-               var10000 = var10;
-               boolean var15 = false;
-               continue;
-            }
-         }
-      } else {
-         return f;
       }
+      return f;
    }
 
    public ProjectResourceBean a(String var1) {

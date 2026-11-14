@@ -811,15 +811,15 @@ public class GamePropertyPanelView extends LinearLayout {
 
         HorizontalScrollView hsv = new HorizontalScrollView(context);
         hsv.setHorizontalScrollBarEnabled(false);
+        hsv.setClipToPadding(false);
+        hsv.setPadding(0, dp(2), 0, dp(2));
         LinearLayout chips = new LinearLayout(context);
         chips.setOrientation(HORIZONTAL);
         String[] suggestions = new String[]{"player", "enemy", "ground", "wall", "coin", "goal", "bullet"};
         for (String tag : suggestions) {
-            MaterialButton chip = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-            chip.setText(tag);
-            chip.setTextSize(11f);
+            MaterialButton chip = createCompactOutlinedButton(context, tag, 11.5f);
             chip.setOnClickListener(v -> et.setText(tag));
-            LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, dp(36));
+            LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
             lp.setMarginEnd(dp(6));
             chips.addView(chip, lp);
         }
@@ -1175,19 +1175,22 @@ public class GamePropertyPanelView extends LinearLayout {
         String[] pLabels = new String[]{"Camera", "Wide 3840", "Tall 2560", "Big 2560x1920"};
         float[] pWidths = new float[]{0f, 3840f, 720f, 2560f};
         float[] pHeights = new float[]{0f, 720f, 2560f, 1920f};
+        presets.setPadding(0, dp(8), 0, dp(2));
         for (int i = 0; i < pLabels.length; i++) {
             float pw = pWidths[i];
             float ph = pHeights[i];
-            MaterialButton btn = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-            btn.setText(pLabels[i]);
-            btn.setTextSize(10f);
+            MaterialButton btn = createCompactOutlinedButton(context, pLabels[i], 11.5f);
             btn.setOnClickListener(v -> {
                 etW.setText(formatFloat(pw));
                 etH.setText(formatFloat(ph));
             });
-            presets.addView(btn);
+            LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+            lp.setMarginEnd(dp(6));
+            presets.addView(btn, lp);
         }
         HorizontalScrollView hsv = new HorizontalScrollView(context);
+        hsv.setHorizontalScrollBarEnabled(false);
+        hsv.setClipToPadding(false);
         hsv.addView(presets);
         box.addView(hsv);
 
@@ -1214,20 +1217,24 @@ public class GamePropertyPanelView extends LinearLayout {
                 InputType.TYPE_CLASS_NUMBER);
         box.addView(labeledField(context, "Ambient Darkness (%)", etPct));
 
+        HorizontalScrollView hsv = new HorizontalScrollView(context);
+        hsv.setHorizontalScrollBarEnabled(false);
+        hsv.setClipToPadding(false);
         LinearLayout presets = new LinearLayout(context);
         presets.setOrientation(HORIZONTAL);
-        presets.setPadding(0, dp(8), 0, 0);
+        presets.setPadding(0, dp(8), 0, dp(2));
         int[] pcts = new int[]{0, 45, 85};
         String[] labels = new String[]{"0% Day", "45% Dusk", "85% Night"};
         for (int i = 0; i < pcts.length; i++) {
             int val = pcts[i];
-            MaterialButton btn = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-            btn.setText(labels[i]);
-            btn.setTextSize(10.5f);
+            MaterialButton btn = createCompactOutlinedButton(context, labels[i], 11.5f);
             btn.setOnClickListener(v -> etPct.setText(String.valueOf(val)));
-            presets.addView(btn);
+            LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+            lp.setMarginEnd(dp(6));
+            presets.addView(btn, lp);
         }
-        box.addView(presets);
+        hsv.addView(presets);
+        box.addView(hsv);
 
         new MaterialAlertDialogBuilder(context)
                 .setTitle("Ambient Darkness (2D Lights)")
@@ -1435,15 +1442,16 @@ public class GamePropertyPanelView extends LinearLayout {
         box.addView(labeledField(context, "Sprite Frames (comma-separated image names)", etFrames));
         box.addView(labeledField(context, "Animation FPS", etFps));
 
-        MaterialButton btnAddFrame = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-        btnAddFrame.setText("Append Image Frame...");
+        MaterialButton btnAddFrame = createCompactOutlinedButton(context, "Append Image Frame...", 12f);
         btnAddFrame.setOnClickListener(v -> showImagePickerDialog("Add Animation Frame", "", img -> {
             if (img != null && !img.isEmpty()) {
                 String cur = etFrames.getText().toString().trim();
                 etFrames.setText(cur.isEmpty() ? img : cur + "," + img);
             }
         }));
-        box.addView(btnAddFrame);
+        LayoutParams addFrameLp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+        addFrameLp.topMargin = dp(4);
+        box.addView(btnAddFrame, addFrameLp);
 
         new MaterialAlertDialogBuilder(context)
                 .setTitle("Sprite Animation")
@@ -1488,22 +1496,26 @@ public class GamePropertyPanelView extends LinearLayout {
                 InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
         box.addView(etGrav);
 
+        HorizontalScrollView hsv = new HorizontalScrollView(context);
+        hsv.setHorizontalScrollBarEnabled(false);
+        hsv.setClipToPadding(false);
         LinearLayout presets = new LinearLayout(context);
         presets.setOrientation(HORIZONTAL);
-        presets.setPadding(0, dp(8), 0, 0);
+        presets.setPadding(0, dp(8), 0, dp(2));
         String[] labels = new String[]{"0 (Top-Down)", "600 (Moon)", "980 (Normal)"};
         float[] values = new float[]{0f, 600f, 980f};
         for (int i = 0; i < labels.length; i++) {
             float val = values[i];
-            MaterialButton btn = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-            btn.setText(labels[i]);
-            btn.setTextSize(10.5f);
+            MaterialButton btn = createCompactOutlinedButton(context, labels[i], 11.5f);
             btn.setOnClickListener(v -> etGrav.setText(formatFloat(val)));
-            LayoutParams lp = new LayoutParams(0, dp(36), 1f);
-            lp.setMarginEnd(i < labels.length - 1 ? dp(4) : 0);
+            LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+            if (i < labels.length - 1) {
+                lp.setMarginEnd(dp(6));
+            }
             presets.addView(btn, lp);
         }
-        box.addView(presets);
+        hsv.addView(presets);
+        box.addView(hsv);
 
         new MaterialAlertDialogBuilder(context)
                 .setTitle("Scene Gravity Y")
@@ -1965,14 +1977,14 @@ public class GamePropertyPanelView extends LinearLayout {
 
             HorizontalScrollView hsv = new HorizontalScrollView(context);
             hsv.setHorizontalScrollBarEnabled(false);
+            hsv.setClipToPadding(false);
+            hsv.setPadding(0, dp(2), 0, dp(2));
             LinearLayout row = new LinearLayout(context);
             row.setOrientation(HORIZONTAL);
             for (String tag : tags) {
-                MaterialButton btn = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-                btn.setText(tag);
-                btn.setTextSize(11f);
+                MaterialButton btn = createCompactOutlinedButton(context, tag, 11.5f);
                 btn.setOnClickListener(v -> etTag.setText(tag));
-                LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, dp(34));
+                LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
                 lp.setMarginEnd(dp(6));
                 row.addView(btn, lp);
             }
@@ -2146,6 +2158,24 @@ public class GamePropertyPanelView extends LinearLayout {
 
     private static String formatTypeName(@Nullable String type) {
         return GameObjectBean.getTypeDisplayName(type);
+    }
+
+    static MaterialButton createCompactOutlinedButton(Context context, String text, float textSizeSp) {
+        MaterialButton btn = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
+        btn.setText(text);
+        btn.setTextSize(textSizeSp);
+        btn.setSingleLine(true);
+        btn.setInsetTop(0);
+        btn.setInsetBottom(0);
+        int minH = SketchwareUtil.dpToPx(38);
+        int hPad = SketchwareUtil.dpToPx(12);
+        int vPad = SketchwareUtil.dpToPx(6);
+        btn.setMinHeight(minH);
+        btn.setMinimumHeight(minH);
+        btn.setMinWidth(0);
+        btn.setMinimumWidth(0);
+        btn.setPaddingRelative(hPad, vPad, hPad, vPad);
+        return btn;
     }
 
     private int dp(float val) {

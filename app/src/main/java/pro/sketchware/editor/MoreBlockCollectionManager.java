@@ -27,45 +27,13 @@ public class MoreBlockCollectionManager extends LifecycleTask {
 
    public static MoreBlockCollectionManager h() {
       if (f == null) {
-         synchronized(MoreBlockCollectionManager.class){}
-
-         Throwable var10000;
-         label144: {
-            try {
-               if (f == null) {
-                  MoreBlockCollectionManager var0 = new MoreBlockCollectionManager();
-                  f = var0;
-               }
-            } catch (Throwable var12) {
-               var10000 = var12;
-               boolean var10001 = false;
-               break label144;
-            }
-
-            label141:
-            try {
-               return f;
-            } catch (Throwable var11) {
-               var10000 = var11;
-               boolean var14 = false;
-               break label141;
+         synchronized (MoreBlockCollectionManager.class) {
+            if (f == null) {
+               f = new MoreBlockCollectionManager();
             }
          }
-
-         while(true) {
-            Throwable var13 = var10000;
-
-            try {
-               throw var13;
-            } catch (Throwable var10) {
-               var10000 = var10;
-               boolean var15 = false;
-               continue;
-            }
-         }
-      } else {
-         return f;
       }
+      return f;
    }
 
    public MoreBlockCollectionBean a(String var1) {

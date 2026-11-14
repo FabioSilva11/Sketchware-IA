@@ -215,7 +215,7 @@ public class GamePaletteView extends LinearLayout {
         item.setBackgroundResource(R.drawable.icon_bg);
         item.setClickable(true);
         item.setFocusable(true);
-        item.setMinimumHeight(dp(34));
+        item.setMinimumHeight(dp(40));
 
         LayoutInflater.from(context).inflate(R.layout.widget_layout, item, true);
 
@@ -229,7 +229,7 @@ public class GamePaletteView extends LinearLayout {
         tvWidget.setSingleLine(true);
         tvWidget.setEllipsize(TextUtils.TruncateAt.END);
 
-        LayoutParams itemLp = new LayoutParams(LayoutParams.MATCH_PARENT, dp(34));
+        LayoutParams itemLp = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
         item.setLayoutParams(itemLp);
 
         item.setOnClickListener(v -> {

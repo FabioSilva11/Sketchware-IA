@@ -478,9 +478,7 @@ public class GameHierarchyDialog {
 
                     row.addView(infoCol, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-                    MaterialButton btnSpawn = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-                    btnSpawn.setText("Spawn");
-                    btnSpawn.setTextSize(11.5f);
+                    MaterialButton btnSpawn = GamePropertyPanelView.createCompactOutlinedButton(context, "Spawn", 12f);
                     btnSpawn.setOnClickListener(v -> {
                         GameObjectBean instance = cloneWithUniqueIdentity(currentScene, prefab);
                         int vw = project.virtualWidth > 0 ? project.virtualWidth : 1280;
@@ -560,6 +558,8 @@ public class GameHierarchyDialog {
 
         HorizontalScrollView hsv = new HorizontalScrollView(context);
         hsv.setHorizontalScrollBarEnabled(false);
+        hsv.setClipToPadding(false);
+        hsv.setPadding(0, dp(2), 0, dp(2));
         LinearLayout presetRow = new LinearLayout(context);
         presetRow.setOrientation(LinearLayout.HORIZONTAL);
 
@@ -569,16 +569,14 @@ public class GameHierarchyDialog {
         for (int i = 0; i < pNames.length; i++) {
             int w = pW[i];
             int h = pH[i];
-            MaterialButton btn = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-            btn.setText(pNames[i]);
-            btn.setTextSize(11.5f);
+            MaterialButton btn = GamePropertyPanelView.createCompactOutlinedButton(context, pNames[i], 12f);
             btn.setOnClickListener(v -> {
                 etWidth.setText(String.valueOf(w));
                 etHeight.setText(String.valueOf(h));
                 swLandscape.setChecked(w >= h);
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.WRAP_CONTENT, dp(36));
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
             lp.setMarginEnd(dp(6));
             presetRow.addView(btn, lp);
         }
@@ -612,10 +610,8 @@ public class GameHierarchyDialog {
         final int[] chosenFps = new int[]{project.targetFps == 30 ? 30 : 60};
         LinearLayout fpsRow = new LinearLayout(context);
         fpsRow.setOrientation(LinearLayout.HORIZONTAL);
-        MaterialButton btn30 = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-        MaterialButton btn60 = new MaterialButton(context, null, com.google.android.material.R.attr.materialButtonOutlinedStyle);
-        btn30.setText("30 FPS");
-        btn60.setText("60 FPS");
+        MaterialButton btn30 = GamePropertyPanelView.createCompactOutlinedButton(context, "30 FPS", 12.5f);
+        MaterialButton btn60 = GamePropertyPanelView.createCompactOutlinedButton(context, "60 FPS", 12.5f);
 
         Runnable updateFpsButtons = () -> {
             boolean is30 = chosenFps[0] == 30;
@@ -638,10 +634,10 @@ public class GameHierarchyDialog {
             updateFpsButtons.run();
         });
 
-        LinearLayout.LayoutParams fpsLp1 = new LinearLayout.LayoutParams(0, dp(40), 1f);
+        LinearLayout.LayoutParams fpsLp1 = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         fpsLp1.setMarginEnd(dp(8));
         fpsRow.addView(btn30, fpsLp1);
-        fpsRow.addView(btn60, new LinearLayout.LayoutParams(0, dp(40), 1f));
+        fpsRow.addView(btn60, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         form.addView(fpsRow);
 
         MaterialSwitch swHitboxes = new MaterialSwitch(context);

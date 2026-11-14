@@ -118,7 +118,6 @@ public class GameObjectsTabView extends FrameLayout {
 
         emptyMessage.setText("No 2D objects in this scene.\nTap + to add one.");
         componentList.setLayoutManager(new LinearLayoutManager(context, RecyclerView.VERTICAL, false));
-        componentList.setHasFixedSize(true);
         adapter = new ObjectAdapter();
         componentList.setAdapter(adapter);
 
