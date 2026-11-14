@@ -9,7 +9,7 @@ import com.besome.sketch.beans.ViewBean;
 import java.util.ArrayList;
 import java.util.List;
 
-import a.a.a.Gx;
+import pro.sketchware.editor.ComponentClassInfo;
 import mod.agus.jcoderz.beans.ViewBeans;
 import pro.sketchware.R;
 
@@ -94,6 +94,7 @@ public final class WidgetAttributes {
         if (bean.id == null || bean.id.startsWith("_")) return specs;
         if ("include".equals(bean.convert)) {
             // <include> only takes the layout, visibility and layout parameters.
+
             specs.add(spec("layout", "Included layout", GROUP_BEHAVIOR, Kind.LAYOUT, R.drawable.ic_mtrl_frame_source,
                     "Layout of this project shown in place of the include."));
             specs.add(spec("android:visibility", "Visibility", GROUP_BEHAVIOR, Kind.ENUM, R.drawable.ic_mtrl_visibility,
@@ -101,7 +102,7 @@ public final class WidgetAttributes {
             addConstraintParams(bean, specs);
             return specs;
         }
-        Gx info = bean.getClassInfo();
+        ComponentClassInfo info = bean.getClassInfo();
         boolean textView = info.a("TextView");
         boolean editText = info.a("EditText");
         boolean imageView = info.a("ImageView");
@@ -109,6 +110,7 @@ public final class WidgetAttributes {
                 || info.a("FrameLayout") || info.a("ScrollView") || info.a("HorizontalScrollView");
 
         // Behavior
+
         specs.add(spec("android:visibility", "Visibility", GROUP_BEHAVIOR, Kind.ENUM, R.drawable.ic_mtrl_visibility,
                 "gone also removes the space the view takes.", "visible", "invisible", "gone"));
         specs.add(spec("android:focusable", "Focusable", GROUP_BEHAVIOR, Kind.BOOLEAN, R.drawable.ic_mtrl_touch,
@@ -120,6 +122,7 @@ public final class WidgetAttributes {
                 "?attr/selectableItemBackground", "?attr/selectableItemBackgroundBorderless"));
 
         // Accessibility
+
         specs.add(spec("android:contentDescription", "Content description", GROUP_ACCESSIBILITY, Kind.STRING, R.drawable.ic_mtrl_bulb,
                 "Read by screen readers. Required for images and icon buttons. Saved in strings.xml."));
         specs.add(spec("android:importantForAccessibility", "Important for accessibility", GROUP_ACCESSIBILITY, Kind.ENUM, R.drawable.ic_mtrl_bulb,
@@ -128,12 +131,14 @@ public final class WidgetAttributes {
                 "Shown on long press (Android 8.0+). Saved in strings.xml."));
 
         // Appearance
+
         specs.add(spec("android:elevation", "Elevation", GROUP_APPEARANCE, Kind.DIMEN, R.drawable.ic_kelivo_layers,
                 "Shadow depth, e.g. 4dp."));
         specs.add(spec("android:backgroundTint", "Background tint", GROUP_APPEARANCE, Kind.COLOR, R.drawable.ic_mtrl_palette,
                 "Tints the background drawable."));
 
         // Size limits
+
         specs.add(spec("android:minWidth", "Minimum width", GROUP_SIZE, Kind.DIMEN, R.drawable.ic_mtrl_width, "e.g. 48dp"));
         specs.add(spec("android:minHeight", "Minimum height", GROUP_SIZE, Kind.DIMEN, R.drawable.ic_mtrl_height, "e.g. 48dp"));
         if (textView || imageView) {

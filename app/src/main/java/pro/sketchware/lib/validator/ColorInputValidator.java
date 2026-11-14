@@ -8,11 +8,11 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.regex.Pattern;
 
-import a.a.a.MB;
+import pro.sketchware.lib.validator.TextInputValidator;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
-public class ColorInputValidator extends MB {
+public class ColorInputValidator extends TextInputValidator {
 
     private final Pattern hexPattern = Pattern.compile("[A-Fa-f0-9]*");
     private final View colorPreview;

@@ -2,8 +2,8 @@ package mod.hey.studios.compiler.kotlin;
 
 import java.io.File;
 
-import a.a.a.ProjectBuilder;
-import a.a.a.yq;
+import pro.sketchware.compiler.ProjectBuilder;
+import pro.sketchware.workspace.ProjectWorkspaceManager;
 import mod.jbk.build.BuildProgressReceiver;
 import mod.jbk.build.BuiltInLibraries;
 import pro.sketchware.util.library.BuiltInLibraryManager;
@@ -23,14 +23,14 @@ public class KotlinCompilerBridge {
         }
     }
 
-    public static void maybeAddKotlinFilesToClasspath(StringBuilder classpath, yq workspace) {
+    public static void maybeAddKotlinFilesToClasspath(StringBuilder classpath, ProjectWorkspaceManager workspace) {
         if (FileUtil.isExistFile(workspace.compiledClassesPath)) {
             classpath.append(workspace.compiledClassesPath);
             classpath.append(":");
         }
     }
 
-    public static String getKotlinHome(yq workspace) {
+    public static String getKotlinHome(ProjectWorkspaceManager workspace) {
         return workspace.binDirectoryPath + File.separator + "kotlin_home";
     }
 }

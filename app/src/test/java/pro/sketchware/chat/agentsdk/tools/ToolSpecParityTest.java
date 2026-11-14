@@ -101,7 +101,7 @@ public class ToolSpecParityTest {
                 .source("core")
                 .build();
         ToolRegistration decl2 = ToolRegistration.builder(ToolSpec.namespace(
-                        ToolName.plain("mcp__server_a"), "MCP tools exposed by server_a.",
+                        ToolName.plain("mcp__server_a"), "MCP tools exposed ProjectFileActionListener server_a.",
                         List.of(ToolSpec.function(
                                 ToolName.namespaced("mcp__server_a", "search"), "search", params()))))
                 .source("mcp:server_a")
@@ -129,7 +129,7 @@ public class ToolSpecParityTest {
     @Test
     public void toolSearchKeepsToolSearchWireShape() throws Exception {
         ToolRegistration toolSearch = ToolRegistration.builder(ToolSpec.toolSearch(
-                        "Searches for a tool by name or description.",
+                        "Searches for a tool ProjectFileActionListener name or description.",
                         params("query")))
                 .executor(ctx -> AgentToolResult.success("{\"tools\":[]}"))
                 .source("core")

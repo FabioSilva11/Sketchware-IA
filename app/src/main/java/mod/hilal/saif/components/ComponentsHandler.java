@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import a.a.a.Lx;
+import pro.sketchware.compiler.ComponentSourceGenerator;
 import mod.hey.studios.util.Helper;
 import mod.jbk.util.OldResourceIdMapper;
 import pro.sketchware.R;
@@ -28,12 +28,19 @@ import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.TranslationFunction;
 //responsible code :
+
 //ComponentBean == sketchware / beans √
+
 //Manage components == agus /component √
+
 //Manage events components == agus/editor/event √
+
 //TypeVarComponent == agus / lib √
+
 //TypeClassComponent == agus/lib √
+
 //importClass== dev.aldi.sayuti.editor.manage
+
 
 public class ComponentsHandler {
 
@@ -49,6 +56,7 @@ public class ComponentsHandler {
      * Called at {@link ComponentBean#getComponentTypeByTypeName(String)}.
      */
     //√ give typeName and return id
+
     public static int id(String name) {
         if (name.equals("AsyncTask")) {
             return 36;
@@ -89,6 +97,7 @@ public class ComponentsHandler {
      * Called at {@link ComponentBean#getComponentTypeName(int)}.
      */
     // √ give id and return typeName
+
     public static String typeName(int id) {
         if (id == 36) {
             return "AsyncTask";
@@ -131,6 +140,7 @@ public class ComponentsHandler {
      * Called at {@link ComponentBean#getComponentName(Context, int)}.
      */
     //√ give id and return name
+
     public static String name(int id) {
         if (id == 36) {
             return "AsyncTask";
@@ -172,6 +182,7 @@ public class ComponentsHandler {
      * Called at {@link ComponentBean#getIconResource(int)}.
      */
     //√ give id and return icon
+
     public static int icon(int id) {
         if (id == 36) {
             return R.drawable.ic_cycle_color_48dp;
@@ -216,9 +227,13 @@ public class ComponentsHandler {
      * @return Descriptions of Components, both built-in ones and Custom Components'
      */
     // give id and return description
+
     //goto ComponentAddActivity
+
     //remove lines: 2303 to 2307
+
     //call this method using v0 as id and move result to v0
+
     public static String description(int id) {
         int componentBeanDescriptionResId = ComponentBean.getDescStrResource(id);
         if (componentBeanDescriptionResId != 0) {
@@ -269,6 +284,7 @@ public class ComponentsHandler {
      * Called at {@link ComponentBean#getComponentDocsUrlByTypeName(int)}.
      */
     // √give id and return docs url
+
     public static String docs(int id) {
         if (id != 36) {
             for (int i = 0; i < cachedCustomComponents.size(); i++) {
@@ -347,12 +363,15 @@ public class ComponentsHandler {
 
     // mod •••••••••••••••••••••••••••••••
 
+
     /**
      * Adds Custom Components to available Components section.
      * Used at {@link com.besome.sketch.editor.component.AddComponentBottomSheet#onCreate(Bundle)}.
      */
     // √ add components to sk
+
     //structure : list.add(new ComponentBean(27));
+
     public static void add(ArrayList<ComponentBean> list) {
         list.add(new ComponentBean(36));
 
@@ -488,6 +507,7 @@ public class ComponentsHandler {
     }
 
     //√√
+
     public static String defineExtraVar(String name, String varName) {
         for (int i = 0; i < cachedCustomComponents.size(); i++) {
             HashMap<String, Object> component = cachedCustomComponents.get(i);

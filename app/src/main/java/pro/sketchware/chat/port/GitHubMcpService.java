@@ -36,6 +36,7 @@ public final class GitHubMcpService {
     public static final String TOOL_PREFIX = "github_";
 
     // Tool names (without prefix)
+
     public static final String TOOL_LIST_REPOS       = TOOL_PREFIX + "list_repos";
     public static final String TOOL_GET_REPO         = TOOL_PREFIX + "get_repo";
     public static final String TOOL_LIST_BRANCHES    = TOOL_PREFIX + "list_branches";
@@ -53,6 +54,7 @@ public final class GitHubMcpService {
     public static final String TOOL_CREATE_BRANCH    = TOOL_PREFIX + "create_branch";
 
     private static final String GITHUB_API = "https://api.github.com";
+
     private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private static final OkHttpClient CLIENT = new OkHttpClient.Builder()
@@ -64,8 +66,11 @@ public final class GitHubMcpService {
     private GitHubMcpService() {}
 
     // ─────────────────────────────────────────────────────────────────
+
     // Tool schema registration
+
     // ─────────────────────────────────────────────────────────────────
+
 
     /** Returns MCP-style tool definitions for all GitHub tools. */
     @NonNull
@@ -188,8 +193,11 @@ public final class GitHubMcpService {
     }
 
     // ─────────────────────────────────────────────────────────────────
+
     // Tool dispatch
+
     // ─────────────────────────────────────────────────────────────────
+
 
     /**
      * Dispatches a tool call to the GitHub REST API.
@@ -343,11 +351,13 @@ public final class GitHubMcpService {
                 String branch  = a.optString("branch", "");
 
                 // Encode content as base64
+
                 String encoded = android.util.Base64.encodeToString(
                         content.getBytes(java.nio.charset.StandardCharsets.UTF_8),
                         android.util.Base64.NO_WRAP);
 
                 // Get existing file SHA if it exists (needed for updates)
+
                 String apiPath = "/repos/" + ownerRepo(a) + "/contents/" + enc(path);
                 String existingSha = "";
                 try {
@@ -389,8 +399,11 @@ public final class GitHubMcpService {
     }
 
     // ─────────────────────────────────────────────────────────────────
+
     // HTTP helpers
+
     // ─────────────────────────────────────────────────────────────────
+
 
     @NonNull
     private static JSONObject getObject(String token, String path) throws Exception {
@@ -402,10 +415,12 @@ public final class GitHubMcpService {
     private static JSONArray getArray(String token, String path) throws Exception {
         String body = get(token, path);
         // GitHub may return an object with 'items' for search endpoints
+
         if (body.trim().startsWith("{")) {
             JSONObject obj = new JSONObject(body);
             if (obj.has("items")) return obj.getJSONArray("items");
             // repos API sometimes wraps in object
+
         }
         return new JSONArray(body);
     }
@@ -469,8 +484,11 @@ public final class GitHubMcpService {
     }
 
     // ─────────────────────────────────────────────────────────────────
+
     // Formatting helpers
+
     // ─────────────────────────────────────────────────────────────────
+
 
     private static String formatRepoList(JSONArray arr) {
         if (arr.length() == 0) return "No repositories found.";
@@ -528,6 +546,7 @@ public final class GitHubMcpService {
         for (int i = 0; i < arr.length(); i++) {
             JSONObject issue = arr.optJSONObject(i);
             if (issue == null || issue.has("pull_request")) continue; // skip PRs
+
             sb.append("#").append(issue.optInt("number")).append(" ")
               .append(issue.optString("title")).append("\n");
         }
@@ -569,6 +588,7 @@ public final class GitHubMcpService {
             JSONObject commit = c.optJSONObject("commit");
             String msg = commit == null ? "" : commit.optString("message", "");
             // first line only
+
             int nl = msg.indexOf('\n');
             if (nl > 0) msg = msg.substring(0, nl);
             sb.append(sha, 0, Math.min(8, sha.length())).append(" ")
@@ -589,8 +609,11 @@ public final class GitHubMcpService {
     }
 
     // ─────────────────────────────────────────────────────────────────
+
     // Schema builder helpers
+
     // ─────────────────────────────────────────────────────────────────
+
 
     private static JSONObject tool(String name, String description, ParamBuilder params)
             throws JSONException {
@@ -629,8 +652,11 @@ public final class GitHubMcpService {
     }
 
     // ─────────────────────────────────────────────────────────────────
+
     // Misc
+
     // ─────────────────────────────────────────────────────────────────
+
 
     @NonNull
     private static String ownerRepo(JSONObject a) throws Exception {

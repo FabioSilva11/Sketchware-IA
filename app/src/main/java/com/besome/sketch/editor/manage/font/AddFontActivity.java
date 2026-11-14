@@ -13,11 +13,11 @@ import android.widget.Toast;
 import com.besome.sketch.beans.ProjectResourceBean;
 import com.besome.sketch.lib.base.BaseDialogActivity;
 
-import a.a.a.Np;
-import a.a.a.bB;
-import a.a.a.mB;
-import a.a.a.uq;
-import a.a.a.yy;
+import pro.sketchware.filemanagers.ImageResourceManager;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.core.StringListStore;
 import mod.hey.studios.util.Helper;
 import mod.jbk.util.LogUtil;
 import pro.sketchware.R;
@@ -60,7 +60,7 @@ public class AddFontActivity extends BaseDialogActivity implements View.OnClickL
         r.setOnClickListener(this);
         s.setOnClickListener(this);
 
-        fontNameValidator = new FontNameValidator(this, binding.tiInput, uq.b, intent.getStringArrayListExtra("font_names"));
+        fontNameValidator = new FontNameValidator(this, binding.tiInput, ComponentNameRegistry.b, intent.getStringArrayListExtra("font_names"));
         if (intent.getIntExtra("request_code", -1) == 272) {
             e(Helper.getResString(R.string.design_manager_font_title_edit_font));
             binding.edInput.setText(((ProjectResourceBean) intent.getParcelableExtra("resource_bean")).resName);
@@ -71,7 +71,7 @@ public class AddFontActivity extends BaseDialogActivity implements View.OnClickL
             binding.clearInput.setVisibility(str.isEmpty() ? View.GONE : View.VISIBLE);
         });
         binding.selectFile.setOnClickListener(view -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 Intent intent1 = new Intent(Intent.ACTION_GET_CONTENT);
                 intent1.setType("*/*");
                 startActivityForResult(Intent.createChooser(intent1, Helper.getResString(R.string.common_word_choose)), REQUEST_CODE_FONT_PICKER);
@@ -89,19 +89,19 @@ public class AddFontActivity extends BaseDialogActivity implements View.OnClickL
 
             if (binding.addToCollectionCheckbox.isChecked()) {
                 try {
-                    Np.g().a(sc_id, resourceBean);
+                    ImageResourceManager.g().a(sc_id, resourceBean);
                 } catch (Exception e) {
                     Log.e("AddFontActivity", "Failed to add font to collection", e);
-                    // Well, (parts of) the bytecode's lying, yy can be thrown.
+                    // Well, (parts of) the bytecode's lying, StringListStore can be thrown.
                     //noinspection ConstantConditions
-                    if (e instanceof yy) {
+                    if (e instanceof StringListStore) {
                         switch (e.getMessage()) {
                             case "duplicate_name" ->
-                                    bB.b(this, Helper.getResString(R.string.collection_duplicated_name), Toast.LENGTH_LONG).show();
+                                    ToastFactory.b(this, Helper.getResString(R.string.collection_duplicated_name), Toast.LENGTH_LONG).show();
                             case "file_no_exist" ->
-                                    bB.b(this, Helper.getResString(R.string.collection_no_exist_file), Toast.LENGTH_LONG).show();
+                                    ToastFactory.b(this, Helper.getResString(R.string.collection_no_exist_file), Toast.LENGTH_LONG).show();
                             case "fail_to_copy" ->
-                                    bB.b(this, Helper.getResString(R.string.collection_failed_to_copy), Toast.LENGTH_LONG).show();
+                                    ToastFactory.b(this, Helper.getResString(R.string.collection_failed_to_copy), Toast.LENGTH_LONG).show();
                             default -> {
                             }
                         }
@@ -117,7 +117,7 @@ public class AddFontActivity extends BaseDialogActivity implements View.OnClickL
             }
             finish();
         } else {
-            bB.b(this, Helper.getResString(R.string.design_manager_message_no_font_selected), Toast.LENGTH_LONG).show();
+            ToastFactory.b(this, Helper.getResString(R.string.design_manager_message_no_font_selected), Toast.LENGTH_LONG).show();
         }
     }
 

@@ -24,21 +24,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 
-import a.a.a.Cx;
-import a.a.a.Gx;
-import a.a.a.Kw;
-import a.a.a.Lw;
-import a.a.a.cC;
-import a.a.a.jC;
-import a.a.a.mB;
-import a.a.a.oq;
+import pro.sketchware.filemanagers.ProjectResourceRegistry;
+import pro.sketchware.editor.ComponentClassInfo;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.ViewSelectionListener;
+import pro.sketchware.editor.ViewHistoryManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ComponentEventRegistry;
 import mod.hey.studios.project.ProjectSettings;
 import mod.pranav.viewbinding.ViewBindingBuilder;
 import pro.sketchware.R;
 import pro.sketchware.utility.ProjectStrings;
 import pro.sketchware.utility.TranslationFunction;
 
-public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickListener {
+public class ViewPropertyItems extends LinearLayout implements ObjectChangeListener, View.OnClickListener {
     private final boolean b = false;
     private final HashMap<String, View> f = new HashMap<>();
 
@@ -54,13 +54,13 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
     private String sc_id;
     private ViewBean c;
-    private Lw d;
+    private ViewSelectionListener d;
     private ProjectFileBean e;
     private ProjectSettings settings;
 
     public ViewPropertyItems(Context var1) {
         super(var1);
-        Cx.a().a(var1);
+        ProjectResourceRegistry.a().a(var1);
     }
 
     private void setupViews() {
@@ -276,7 +276,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     public void a(String scId, ViewBean bean) {
         sc_id = scId;
         c = bean;
-        Cx.a().b(c.getClassInfo().getClassName());
+        ProjectResourceRegistry.a().b(c.getClassInfo().getClassName());
         pendingRows = new ArrayList<>();
         ArrayList<View> rows;
         try {
@@ -334,12 +334,12 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
 
     @Override
     public void a(String var1, Object var2) {
-        Cx.a().a(c.getClassInfo().getClassName(), var1);
+        ProjectResourceRegistry.a().a(c.getClassInfo().getClassName(), var1);
         if (d != null) {
             ViewBean cloned = c.clone();
             i(c);
             if (!b) {
-                cC.c(sc_id).a(e.getXmlName(), cloned, c.clone());
+                ViewHistoryManager.c(sc_id).a(e.getXmlName(), cloned, c.clone());
                 d.a(c);
             }
         }
@@ -356,7 +356,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
             f.put(key, propertyCustomViewItem);
         }
 
-        propertyCustomViewItem.setCustomView(jC.b(sc_id).c());
+        propertyCustomViewItem.setCustomView(ProjectDataManagerRegistry.b(sc_id).c());
         propertyCustomViewItem.setValue(value);
         addView(propertyCustomViewItem);
     }
@@ -384,7 +384,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     public void save() {
-        Cx.a().b();
+        ProjectResourceRegistry.a().b();
     }
 
     private void b(ViewBean bean) {
@@ -493,8 +493,8 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
             a(getContext().getString(R.string.property_header_layout));
         }
 
-        Gx classInfo = bean.getClassInfo();
-        Gx parentClassInfo = bean.getParentClassInfo();
+        ComponentClassInfo classInfo = bean.getClassInfo();
+        ComponentClassInfo parentClassInfo = bean.getParentClassInfo();
         a(bean, "property_layout_width");
         a(bean, "property_layout_height");
         if (bean.parentType == ViewBean.VIEW_TYPE_LAYOUT_RELATIVE
@@ -567,7 +567,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
         params.gravity = Gravity.LEFT;
         setLayoutParams(params);
         setGravity(Gravity.LEFT);
-        ArrayList<String> items = Cx.a().a(bean.getClassInfo().getClassName());
+        ArrayList<String> items = ProjectResourceRegistry.a().a(bean.getClassInfo().getClassName());
         if (items == null) {
             setupViews();
         } else {
@@ -604,7 +604,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     private void setupAttributes(String key, HashMap<String, String> value) {
-        ArrayList<ViewBean> viewBeans = jC.a(sc_id).d(e.getXmlName());
+        ArrayList<ViewBean> viewBeans = ProjectDataManagerRegistry.a(sc_id).d(e.getXmlName());
         List<String> ids = new ArrayList<>();
         for (ViewBean bean : viewBeans) {
             if (!bean.id.equals(c.id) && bean.parent.equals(c.parent)) {
@@ -632,7 +632,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
 
     public void f(ViewBean bean) {
         if (!bean.id.equals("_fab")) {
-            Gx classInfo = bean.getClassInfo();
+            ComponentClassInfo classInfo = bean.getClassInfo();
             a(bean, "property_inject");
             a(bean, "property_convert");
             if (classInfo.b("Spinner")) {
@@ -706,7 +706,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     public void g(ViewBean bean) {
-        Gx classInfo = bean.getClassInfo();
+        ComponentClassInfo classInfo = bean.getClassInfo();
         if (classInfo.a("TextView")) {
             if (getOrientation() == LinearLayout.VERTICAL) {
                 a(getContext().getString(R.string.property_header_text));
@@ -739,7 +739,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
     }
 
     public void h(ViewBean bean) {
-        Gx classInfo = bean.getClassInfo();
+        ComponentClassInfo classInfo = bean.getClassInfo();
         if (getOrientation() == LinearLayout.VERTICAL) {
             if (classInfo.a("ImageView")) {
                 a(getContext().getString(R.string.property_header_image), this);
@@ -918,6 +918,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
         }
 
         // Attribute items write on top of the inject text, so they run after the inject item above.
+
         for (int index = 0; index < childCount; ++index) {
             if (getChildAt(index) instanceof PropertyAttributeItem attributeItem && attributeItem.isDirty()) {
                 attributeItem.applyTo(bean);
@@ -936,11 +937,12 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
 
         if (!bean.id.equals(bean.preId)) {
             boolean viewBinding = settings.getValue(ProjectSettings.SETTING_ENABLE_VIEWBINDING, "false").equals("true");
-            for (ViewBean viewBean : jC.a(sc_id).d(e.getXmlName())) {
+            for (ViewBean viewBean : ProjectDataManagerRegistry.a(sc_id).d(e.getXmlName())) {
                 if (viewBean.parent.equals(bean.preId)) {
                     viewBean.parent = bean.id;
                 }
                 // RelativeLayout rules and constraints of the siblings follow the renamed widget.
+
                 for (java.util.Map.Entry<String, String> rule : viewBean.parentAttributes.entrySet()) {
                     if (bean.preId.equals(rule.getValue())) {
                         rule.setValue(bean.id);
@@ -949,15 +951,15 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
             }
 
             if (e.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY) {
-                for (EventBean eventBean : jC.a(sc_id).g(e.getJavaName())) {
+                for (EventBean eventBean : ProjectDataManagerRegistry.a(sc_id).g(e.getJavaName())) {
                     if (eventBean.targetId.equals(bean.preId)) {
                         eventBean.targetId = bean.id;
                     }
                 }
 
-                HashMap<String, ArrayList<BlockBean>> beanMap = jC.a(sc_id).b(e.getJavaName());
+                HashMap<String, ArrayList<BlockBean>> beanMap = ProjectDataManagerRegistry.a(sc_id).b(e.getJavaName());
 
-                for (String events : oq.getEventsForClass(bean.getClassInfo())) {
+                for (String events : ComponentEventRegistry.getEventsForClass(bean.getClassInfo())) {
                     StringBuilder eventBodyBuilder = new StringBuilder();
                     eventBodyBuilder.append(bean.preId);
                     eventBodyBuilder.append("_");
@@ -978,7 +980,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                     events.add("onCreate_initializeLogic");
                 }
 
-                for (Pair<String, String> moreblocks : jC.a(sc_id).i(e.getJavaName())) {
+                for (Pair<String, String> moreblocks : ProjectDataManagerRegistry.a(sc_id).i(e.getJavaName())) {
                     String key = moreblocks.first +
                             "_" +
                             "moreBlock";
@@ -987,7 +989,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                     }
                 }
 
-                for (EventBean eventBean : jC.a(sc_id).g(e.getJavaName())) {
+                for (EventBean eventBean : ProjectDataManagerRegistry.a(sc_id).g(e.getJavaName())) {
                     if (!eventBean.eventName.equals("onBindCustomView")) {
                         String eventKey = eventBean.getEventKey();
                         if (beanMap.containsKey(eventKey)) {
@@ -1000,12 +1002,12 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                     ArrayList<BlockBean> blockBeans = beanMap.get(event);
                     if (blockBeans != null) {
                         for (BlockBean blockBean : blockBeans) {
-                            Gx classInfo = blockBean.getClassInfo();
+                            ComponentClassInfo classInfo = blockBean.getClassInfo();
 
                             if (classInfo != null && classInfo.d() && blockBean.spec.equals(viewBinding ? "binding." + ViewBindingBuilder.generateParameterFromId(bean.preId) : bean.preId)) {
                                 blockBean.spec = viewBinding ? "binding." + ViewBindingBuilder.generateParameterFromId(bean.id) : bean.id;
                             } else {
-                                ArrayList<Gx> paramClassInfo = blockBean.getParamClassInfo();
+                                ArrayList<ComponentClassInfo> paramClassInfo = blockBean.getParamClassInfo();
                                 if (paramClassInfo != null && !paramClassInfo.isEmpty()) {
                                     for (int i = 0; i < paramClassInfo.size(); ++i) {
                                         if (paramClassInfo.get(i).d() && blockBean.parameters.get(i).equals(viewBinding ? "binding." + ViewBindingBuilder.generateParameterFromId(bean.preId) : bean.preId)) {
@@ -1020,8 +1022,8 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
             } else {
                 ArrayList<Pair<String, String>> viewBeanItems = new ArrayList<>();
 
-                for (ProjectFileBean projectFileBean : jC.b(sc_id).b()) {
-                    for (ViewBean viewBean : jC.a(sc_id).f(projectFileBean.getXmlName())) {
+                for (ProjectFileBean projectFileBean : ProjectDataManagerRegistry.b(sc_id).b()) {
+                    for (ViewBean viewBean : ProjectDataManagerRegistry.a(sc_id).f(projectFileBean.getXmlName())) {
                         if (viewBean.customView.equals(e.fileName)) {
                             String javaName = projectFileBean.getJavaName();
                             String key = viewBean.id +
@@ -1033,15 +1035,15 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                 }
 
                 for (Pair<String, String> viewBean : viewBeanItems) {
-                    ArrayList<BlockBean> blockBeans = jC.a(sc_id).b(viewBean.first).get(viewBean.second);
+                    ArrayList<BlockBean> blockBeans = ProjectDataManagerRegistry.a(sc_id).b(viewBean.first).get(viewBean.second);
                     if (blockBeans != null) {
                         for (BlockBean blockBean : blockBeans) {
-                            Gx classInfo = blockBean.getClassInfo();
+                            ComponentClassInfo classInfo = blockBean.getClassInfo();
 
                             if (classInfo != null && classInfo.d() && blockBean.spec.equals(viewBinding ? "binding." + ViewBindingBuilder.generateParameterFromId(bean.preId) : bean.preId)) {
                                 blockBean.spec = viewBinding ? "binding." + ViewBindingBuilder.generateParameterFromId(bean.id) : bean.id;
                             } else {
-                                ArrayList<Gx> paramClassInfo = blockBean.getParamClassInfo();
+                                ArrayList<ComponentClassInfo> paramClassInfo = blockBean.getParamClassInfo();
                                 if (paramClassInfo != null && !paramClassInfo.isEmpty()) {
                                     for (int i = 0; i < paramClassInfo.size(); ++i) {
                                         if (paramClassInfo.get(i).d() && blockBean.parameters.get(i).equals(viewBinding ? "binding." + ViewBindingBuilder.generateParameterFromId(bean.preId) : bean.preId)) {
@@ -1057,19 +1059,19 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
         }
 
         if (bean.type == ViewBean.VIEW_TYPE_WIDGET_LISTVIEW) {
-            ViewBean viewBean = jC.a(sc_id).c(e.getXmlName(), bean.preId);
+            ViewBean viewBean = ProjectDataManagerRegistry.a(sc_id).c(e.getXmlName(), bean.preId);
             String custom = bean.customView;
             if (custom != null && viewBean != null) {
                 String customView = viewBean.customView;
                 if (customView != null && !customView.equals(custom)) {
-                    ArrayList<EventBean> eventBeans = jC.a(sc_id).g(e.getJavaName());
+                    ArrayList<EventBean> eventBeans = ProjectDataManagerRegistry.a(sc_id).g(e.getJavaName());
                     int size = eventBeans.size();
 
                     while (true) {
                         childCount = size - 1;
                         if (childCount < 0) {
                             if (bean.customView.isEmpty() || bean.customView.equals("none")) {
-                                Iterator<Entry<String, ArrayList<BlockBean>>> blocks = jC.a(sc_id).b(e.getJavaName()).entrySet().iterator();
+                                Iterator<Entry<String, ArrayList<BlockBean>>> blocks = ProjectDataManagerRegistry.a(sc_id).b(e.getJavaName()).entrySet().iterator();
 
                                 while (blocks.hasNext()) {
                                     for (BlockBean blockBean : blocks.next().getValue()) {
@@ -1087,7 +1089,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
                         if (eventBean.targetId.equals(bean.id)) {
                             if (eventBean.eventName.equals("onBindCustomView")) {
                                 eventBeans.remove(eventBean);
-                                HashMap<String, ArrayList<BlockBean>> blocks = jC.a(sc_id).b(e.getJavaName());
+                                HashMap<String, ArrayList<BlockBean>> blocks = ProjectDataManagerRegistry.a(sc_id).b(e.getJavaName());
                                 blocks.remove(eventBean.getEventKey());
                             }
                         }
@@ -1102,7 +1104,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
         this.settings = settings;
     }
 
-    public void setOnPropertyValueChangedListener(Lw listener) {
+    public void setOnPropertyValueChangedListener(ViewSelectionListener listener) {
         d = listener;
     }
 
@@ -1112,7 +1114,7 @@ public class ViewPropertyItems extends LinearLayout implements Kw, View.OnClickL
 
     @Override
     public void onClick(View v) {
-        if (!mB.a() && !b) {
+        if (!EditorViewUtils.a() && !b) {
             Intent intent = new Intent(getContext(), ManageImageActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             intent.putExtra("sc_id", sc_id);

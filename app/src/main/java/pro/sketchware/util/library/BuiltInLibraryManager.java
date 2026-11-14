@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import a.a.a.Jp;
-import a.a.a.ProjectBuilder;
+import pro.sketchware.compiler.ProjectLibraryInfo;
+import pro.sketchware.compiler.ProjectBuilder;
 import mod.jbk.build.BuiltInLibraries;
 import mod.jbk.editor.manage.library.ExcludeBuiltInLibrariesActivity;
 
@@ -18,7 +18,7 @@ import mod.jbk.editor.manage.library.ExcludeBuiltInLibrariesActivity;
 public class BuiltInLibraryManager {
 
     private final ArrayList<String> libraryNames = new ArrayList<>();
-    private final ArrayList<Jp> libraries = new ArrayList<>();
+    private final ArrayList<ProjectLibraryInfo> libraries = new ArrayList<>();
     private final List<BuiltInLibraries.BuiltInLibrary> excludedLibraries;
 
     public BuiltInLibraryManager(String projectId) {
@@ -35,11 +35,12 @@ public class BuiltInLibraryManager {
     public void addLibrary(String libraryName) {
         Optional<BuiltInLibraries.BuiltInLibrary> library = BuiltInLibraries.BuiltInLibrary.ofName(libraryName);
         //noinspection SimplifyOptionalCallChains because #isEmpty() isn't available on Android.
+
         if (!library.isPresent() || !excludedLibraries.contains(library.get())) {
             if (!libraryNames.contains(libraryName)) {
                 Log.d(ProjectBuilder.TAG, "Added built-in library \"" + libraryName + "\" to project's dependencies");
                 libraryNames.add(libraryName);
-                libraries.add(new Jp(libraryName));
+                libraries.add(new ProjectLibraryInfo(libraryName));
                 addDependencies(libraryName);
             } else {
                 Log.v(ProjectBuilder.TAG, "Didn't add built-in library \"" + libraryName + "\" to project's dependencies again");
@@ -60,16 +61,17 @@ public class BuiltInLibraryManager {
     public boolean containsLibrary(String libraryName) {
         Optional<BuiltInLibraries.BuiltInLibrary> library = BuiltInLibraries.BuiltInLibrary.ofName(libraryName);
         //noinspection SimplifyOptionalCallChains because #isEmpty() isn't available on Android.
+
         if (!library.isPresent()) {
             return false;
         }
-        return libraries.contains(new Jp(library.get().getName()));
+        return libraries.contains(new ProjectLibraryInfo(library.get().getName()));
     }
 
     /**
      * @return {@link BuiltInLibraryManager#libraries}
      */
-    public ArrayList<Jp> getLibraries() {
+    public ArrayList<ProjectLibraryInfo> getLibraries() {
         return libraries;
     }
 }

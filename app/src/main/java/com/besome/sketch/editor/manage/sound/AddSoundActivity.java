@@ -30,11 +30,11 @@ import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import a.a.a.Qp;
-import a.a.a.WB;
-import a.a.a.bB;
-import a.a.a.uq;
-import a.a.a.yy;
+import pro.sketchware.filemanagers.AnimationResourceManager;
+import pro.sketchware.lib.validator.SimpleNameInputValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.core.StringListStore;
 import mod.hey.studios.util.Helper;
 import mod.jbk.util.LogUtil;
 import pro.sketchware.R;
@@ -55,7 +55,7 @@ public class AddSoundActivity extends BaseDialogActivity implements View.OnClick
     private MediaPlayer nowPlayingPlayer;
     private TimerTask nowPlayingProgressUpdater;
     private SeekBar nowPlayingProgressBar;
-    private WB soundNameValidator;
+    private SimpleNameInputValidator soundNameValidator;
     private String sc_id;
     private String soundsDirectory;
     private MaterialCardView nowPlayingContainer;
@@ -152,7 +152,7 @@ public class AddSoundActivity extends BaseDialogActivity implements View.OnClick
         nowPlayingContainer.setVisibility(View.GONE);
         TextInputLayout soundInputLayout = findViewById(R.id.ti_input);
         soundName = findViewById(R.id.ed_input);
-        soundNameValidator = new WB(this, soundInputLayout, uq.b, existingSoundNames);
+        soundNameValidator = new SimpleNameInputValidator(this, soundInputLayout, ComponentNameRegistry.b, existingSoundNames);
         playPause.setEnabled(false);
         playPause.setOnClickListener(this);
         nowPlayingProgressBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -185,7 +185,7 @@ public class AddSoundActivity extends BaseDialogActivity implements View.OnClick
         if (requestCode == 270) {
             e(getString(R.string.design_manager_sound_title_edit_sound));
             ProjectResourceBean projectResourceBean = intent.getParcelableExtra("project_resource");
-            soundNameValidator = new WB(this, soundInputLayout, uq.b, new ArrayList<>());
+            soundNameValidator = new SimpleNameInputValidator(this, soundInputLayout, ComponentNameRegistry.b, new ArrayList<>());
             soundName.setText(projectResourceBean.resName);
             soundName.setEnabled(false);
             addToCollection.setEnabled(false);
@@ -218,24 +218,24 @@ public class AddSoundActivity extends BaseDialogActivity implements View.OnClick
                         projectResourceBean.isNew = true;
                         if (addToCollection.isChecked()) {
                             try {
-                                Qp.g().a(sc_id, projectResourceBean);
+                                AnimationResourceManager.g().a(sc_id, projectResourceBean);
                             } catch (Exception e) {
                                 // The bytecode is lying. Checked exceptions suck.
                                 //noinspection ConstantConditions
-                                if (e instanceof yy) {
+                                if (e instanceof StringListStore) {
                                     String message = e.getMessage();
 
                                     switch (message) {
                                         case "duplicate_name":
-                                            bB.b(this, getString(R.string.collection_duplicated_name), 1).show();
+                                            ToastFactory.b(this, getString(R.string.collection_duplicated_name), 1).show();
                                             break;
 
                                         case "file_no_exist":
-                                            bB.b(this, getString(R.string.collection_no_exist_file), 1).show();
+                                            ToastFactory.b(this, getString(R.string.collection_no_exist_file), 1).show();
                                             break;
 
                                         case "fail_to_copy":
-                                            bB.b(this, getString(R.string.collection_failed_to_copy), 1).show();
+                                            ToastFactory.b(this, getString(R.string.collection_failed_to_copy), 1).show();
                                             break;
 
                                         default:
@@ -362,7 +362,7 @@ public class AddSoundActivity extends BaseDialogActivity implements View.OnClick
         mediaMetadataRetriever.release();
     }
 
-    private boolean isSoundValid(WB wb) {
+    private boolean isSoundValid(SimpleNameInputValidator wb) {
         if (!wb.b()) {
             return false;
         }

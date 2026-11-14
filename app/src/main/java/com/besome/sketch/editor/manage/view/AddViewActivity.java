@@ -21,11 +21,11 @@ import com.google.android.material.button.MaterialButtonToggleGroup;
 
 import java.util.ArrayList;
 
-import a.a.a.YB;
-import a.a.a.bB;
-import a.a.a.rq;
-import a.a.a.uq;
-import a.a.a.wB;
+import pro.sketchware.editor.ViewNameValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectDataProvider;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageScreenActivityAddTempBinding;
@@ -44,7 +44,7 @@ public class AddViewActivity extends BaseAppCompatActivity {
     private static final int FEATURE_TYPE_TOOLBAR = 1;
     private static final int FEATURE_TYPE_DRAWER = 2;
     private static final int FEATURE_TYPE_FAB = 3;
-    private YB nameValidator;
+    private ViewNameValidator nameValidator;
     private boolean featureStatusBar, featureToolbar, featureFab, featureDrawer;
     private int requestCode;
     private ProjectFileBean projectFileBean;
@@ -102,7 +102,7 @@ public class AddViewActivity extends BaseAppCompatActivity {
         }
     }
 
-    private boolean isValid(YB validator) {
+    private boolean isValid(ViewNameValidator validator) {
         return validator.b();
     }
 
@@ -157,7 +157,7 @@ public class AddViewActivity extends BaseAppCompatActivity {
     }
 
     private ArrayList<ViewBean> getPresetData(String presetName) {
-        return rq.f(presetName);
+        return ProjectDataProvider.f(presetName);
     }
 
     private void initItem(int featureOptions) {
@@ -264,7 +264,7 @@ public class AddViewActivity extends BaseAppCompatActivity {
         Intent intent = new Intent();
         intent.putExtra("project_file", projectFileBean);
         setResult(RESULT_OK, intent);
-        bB.a(getApplicationContext(), getString(R.string.design_manager_message_edit_complete, new Object[0]), bB.TOAST_NORMAL).show();
+        ToastFactory.a(getApplicationContext(), getString(R.string.design_manager_message_edit_complete, new Object[0]), ToastFactory.TOAST_NORMAL).show();
         finish();
     }
 
@@ -277,12 +277,12 @@ public class AddViewActivity extends BaseAppCompatActivity {
             intent.putExtra("preset_views", getPresetData(presetName));
         }
         setResult(RESULT_OK, intent);
-        bB.a(getApplicationContext(), getString(R.string.design_manager_message_add_complete, new Object[0]), bB.TOAST_NORMAL).show();
+        ToastFactory.a(getApplicationContext(), getString(R.string.design_manager_message_add_complete, new Object[0]), ToastFactory.TOAST_NORMAL).show();
         finish();
     }
 
     private void handleEditModeInitialization() {
-        nameValidator = new YB(getApplicationContext(), binding.tiName, uq.b, new ArrayList<>(), projectFileBean.fileName);
+        nameValidator = new ViewNameValidator(getApplicationContext(), binding.tiName, ComponentNameRegistry.b, new ArrayList<>(), projectFileBean.fileName);
         binding.edName.setText(projectFileBean.fileName);
         binding.edName.setEnabled(false);
         binding.edName.setBackgroundResource(R.color.transparent);
@@ -305,7 +305,7 @@ public class AddViewActivity extends BaseAppCompatActivity {
     private void handleCreateModeInitialization() {
         featureToolbar = true;
         featureStatusBar = true;
-        nameValidator = new YB(getApplicationContext(), binding.tiName, uq.b, screenNames);
+        nameValidator = new ViewNameValidator(getApplicationContext(), binding.tiName, ComponentNameRegistry.b, screenNames);
     }
 
 
@@ -326,6 +326,7 @@ public class AddViewActivity extends BaseAppCompatActivity {
             }
         }
         return -1;  // Return -1 if no button is selected
+
     }
 
     public void makeTransitionAnimation(LinearLayout linearLayout) {
@@ -397,7 +398,7 @@ public class AddViewActivity extends BaseAppCompatActivity {
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup var1, int var2) {
-            View var3 = wB.a(var1.getContext(), R.layout.manage_screen_activity_add_feature_item);
+            View var3 = ViewInflationUtils.a(var1.getContext(), R.layout.manage_screen_activity_add_feature_item);
             var3.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             return new ViewHolder(var3);
         }

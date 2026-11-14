@@ -61,6 +61,7 @@ public class FileMutationE2EEvalTest {
         FileChangeTracker.clearChanges("sc_e2e");
         FakeAgentLlmGateway gateway = new FakeAgentLlmGateway(
                 // Turn 1: the model edits the file through the registry tool.
+
                 FakeAgentLlmGateway.ScriptedTurn.toolCall("apply_patch",
                         "*** Begin Patch\n"
                                 + "*** Update File: src/Config.java\n"
@@ -69,6 +70,7 @@ public class FileMutationE2EEvalTest {
                                 + "+int timeout = 60;\n"
                                 + "*** End Patch"),
                 // Turn 2: done — the mutation is already on disk.
+
                 FakeAgentLlmGateway.ScriptedTurn.text("Timeout atualizado para 60."));
 
         AgentRuntime runtime = new AgentRuntime.Builder(gateway)
@@ -90,16 +92,22 @@ public class FileMutationE2EEvalTest {
         assertEquals("the user approved exactly once", 1, approvals.requests);
 
         // The filesystem already carries the final content.
+
         assertEquals("int timeout = 60;\n", fs.readText("src/Config.java"));
 
         // The change is already tracked as applied (diff = review surface).
+
         assertTrue(FileChangeTracker.getAllRecentChanges("sc_e2e")
                 .containsKey("src/Config.java"));
 
         // Event order: the approval decision fully precedes the execution of
+
         // the mutation (Codex: approval before the tool runtime runs), and the
+
         // FileChanged announces the real side effect BEFORE the call is
+
         // declared complete — the file is final when Completed is emitted.
+
         int asked = firstIndexOf(AgentEvent.ApprovalRequired.class);
         int resolved = firstIndexOf(AgentEvent.PermissionResolved.class);
         int started = firstIndexOf(AgentEvent.ToolCallStarted.class);
@@ -114,10 +122,12 @@ public class FileMutationE2EEvalTest {
         assertEquals("apply_patch", fileChanged.getTool());
 
         // The Codex acceptance criterion: no accept click is needed — the file
+
         // is final the moment the tool completed.
+
         assertTrue("accept must not be required to apply the change",
                 FileChangeTracker.acceptChange("sc_e2e", "src/Config.java"));
-        assertEquals("content is unchanged by the review action",
+        assertEquals("content is unchanged ProjectFileActionListener the review action",
                 "int timeout = 60;\n", fs.readText("src/Config.java"));
     }
 
@@ -190,8 +200,11 @@ public class FileMutationE2EEvalTest {
     }
 
     // ------------------------------------------------------------------
+
     // helpers
+
     // ------------------------------------------------------------------
+
 
     /** A registry carrying ONLY apply_patch, bound to the injected filesystem. */
     private AxionToolRegistry applyPatchRegistry() {

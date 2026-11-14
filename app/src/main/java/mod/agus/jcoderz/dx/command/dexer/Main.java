@@ -268,9 +268,12 @@ public class Main {
     public int runDx(Arguments arguments) throws IOException {
 
         // Reset the error count to start fresh.
+
         errors.set(0);
         // empty the list, so that  tools that load dx and keep it around
+
         // for multiple runs don't reuse older buffers.
+
         libraryDexBuffers.clear();
 
         args = arguments;
@@ -314,9 +317,11 @@ public class Main {
 
         if (args.incremental && !anyFilesProcessed) {
             return 0; // this was a no-op incremental build
+
         }
 
         // this array is null if no classes were defined
+
         byte[] outArray = null;
 
         if (!outputDex.isEmpty() || (args.humanOutName != null)) {
@@ -335,6 +340,7 @@ public class Main {
 
         if (args.jarOutput) {
             // Effectively free up the (often massive) DexFile memory.
+
             outputDex = null;
 
             if (outArray != null) {
@@ -374,9 +380,11 @@ public class Main {
         if (outputDex != null) {
             // this array is null if no classes were defined
 
+
             dexOutputFutures.add(dexOutPool.submit(new DexWriter(outputDex)));
 
             // Effectively free up the (often massive) DexFile memory.
+
             outputDex = null;
         }
         try {
@@ -523,21 +531,25 @@ public class Main {
         Arrays.sort(fileNames);
 
         // translate classes in parallel
+
         classTranslatorPool = new ThreadPoolExecutor(args.numThreads,
                args.numThreads, 0, TimeUnit.SECONDS,
                new ArrayBlockingQueue<Runnable>(2 * args.numThreads, true),
                new ThreadPoolExecutor.CallerRunsPolicy());
         // collect translated and write to dex in order
+
         classDefItemConsumer = Executors.newSingleThreadExecutor();
 
 
         try {
             if (args.mainDexListFile != null) {
                 // with --main-dex-list
+
                 FileNameFilter mainPassFilter = args.strictNameCheck ? new MainDexListFilter() :
                     new BestEffortMainDexListFilter();
 
                 // forced in main dex
+
                 for (int i = 0; i < fileNames.length; i++) {
                     processOne(fileNames[i], mainPassFilter);
                 }
@@ -550,7 +562,9 @@ public class Main {
                 if (args.minimalMainDex) {
                     // start second pass directly in a secondary dex file.
 
+
                     // Wait for classes in progress to complete
+
                     synchronized(dexRotationLock) {
                         while(maxMethodIdsInProcess > 0 || maxFieldIdsInProcess > 0) {
                             try {
@@ -565,12 +579,14 @@ public class Main {
                 }
 
                 // remaining files
+
                 FileNameFilter filter = new RemoveModuleInfoFilter(new NotFilter(mainPassFilter));
                 for (int i = 0; i < fileNames.length; i++) {
                     processOne(fileNames[i], filter);
                 }
             } else {
                 // without --main-dex-list
+
                 FileNameFilter filter = new RemoveModuleInfoFilter(ClassPathOpener.acceptAll);
                 for (int i = 0; i < fileNames.length; i++) {
                     processOne(fileNames[i], filter);
@@ -594,7 +610,9 @@ public class Main {
                     f.get();
                 } catch(ExecutionException ex) {
                     // Catch any previously uncaught exceptions from
+
                     // class translation and adding to dex.
+
                     int count = errors.incrementAndGet();
                     if (count < 10) {
                         if (args.debug) {
@@ -724,7 +742,9 @@ public class Main {
             }
             processClass(fixedName, bytes);
             // Assume that an exception may occur. Status will be updated
+
             // asynchronously, if the class compiles without error.
+
             return false;
         } else if (isClassesDex) {
             synchronized (libraryDexBuffers) {
@@ -757,6 +777,7 @@ public class Main {
                     new ClassParserTask(name, bytes).call());
         } catch (ParseException ex) {
             // handled in FileBytesConsumer
+
             throw ex;
         } catch(Exception ex) {
             throw new RuntimeException("Exception parsing classes", ex);
@@ -772,6 +793,7 @@ public class Main {
                 args.cfOptions.strictNameCheck);
         cf.setAttributeFactory(StdAttributeFactory.THE_ONE);
         cf.getMagic(); // triggers the actual parsing
+
         return cf;
     }
 
@@ -815,6 +837,7 @@ public class Main {
             int slashAt = name.indexOf('/', 6);
             if (slashAt == -1) {
                 // Top-level javax classes are verboten.
+
                 bogus = true;
             } else {
                 String pkg = name.substring(6, slashAt);
@@ -954,6 +977,7 @@ public class Main {
 
         if (manifestBytes == null) {
             // We need to construct an entirely new manifest.
+
             manifest = new Manifest();
             attribs = manifest.getMainAttributes();
             attribs.put(Attributes.Name.MANIFEST_VERSION, "1.0");
@@ -1107,6 +1131,7 @@ public class Main {
 
         for (EncodedMethod meth : meths.values()) {
             // TODO: Better stuff goes here, perhaps.
+
             meth.debugPrint(pw, args.verboseDump);
 
             /*
@@ -1245,6 +1270,7 @@ public class Main {
      */
     private static class StopProcessing extends RuntimeException {
         // This space intentionally left blank.
+
     }
 
     /**
@@ -1460,12 +1486,15 @@ public class Main {
                 int n = prefix.length();
                 if (n > 0 && prefix.charAt(n-1) == '=') {
                     // Argument accepts a value. Capture it.
+
                     if (current.startsWith(prefix)) {
                         // Argument is in the form --name=value, split the value out
+
                         lastValue = current.substring(n);
                         return true;
                     } else {
                         // Check whether we have "--name value" as 2 arguments
+
                         prefix = prefix.substring(0, n-1);
                         if (current.equals(prefix)) {
                             if (getNextValue()) {
@@ -1480,6 +1509,7 @@ public class Main {
                     }
                 } else {
                     // Argument does not accept a value.
+
                     return current.equals(prefix);
                 }
             }
@@ -1575,6 +1605,7 @@ public class Main {
                 } else if (parser.isArg(MINIMAL_MAIN_DEX_OPTION)) {
                     minimalMainDex = true;
                 } else if (parser.isArg("--set-max-idx-number=")) { // undocumented test option
+
                     maxNumberOfIdxPerDex = Integer.parseInt(parser.getLastValue());
                 } else if(parser.isArg(INPUT_LIST_OPTION + "=")) {
                     File inputListFile = new File(parser.getLastValue());
@@ -1585,6 +1616,7 @@ public class Main {
                         context.err.println(
                             "Unable to read input list file: " + inputListFile.getName());
                         // problem reading the file so we should halt execution
+
                         throw new UsageException();
                     }
                 } else if (parser.isArg("--min-sdk-version=")) {
@@ -1624,6 +1656,7 @@ public class Main {
             fileNames = parser.getRemaining();
             if(inputList != null && !inputList.isEmpty()) {
                 // append the file names to the end of the input list
+
                 inputList.addAll(Arrays.asList(fileNames));
                 fileNames = inputList.toArray(new String[inputList.size()]);
             }
@@ -1813,11 +1846,17 @@ public class Main {
             if (args.multiDex) {
 
                 // Calculate max number of indices this class will add to the
+
                 // dex file.
+
                 // The possibility of overloading means that we can't easily
+
                 // know how many constant are needed for declared methods and
+
                 // fields. We therefore make the simplifying assumption that
+
                 // all constants are external method or field references.
+
 
                 int constantPoolSize = cf.getConstantPool().size();
                 maxMethodIdsInClass = constantPoolSize + cf.getMethods().size()
@@ -1829,12 +1868,15 @@ public class Main {
                     int numMethodIds;
                     int numFieldIds;
                     // Number of indices used in current dex file.
+
                     synchronized(outputDex) {
                         numMethodIds = outputDex.getMethodIds().items().size();
                         numFieldIds = outputDex.getFieldIds().items().size();
                     }
                     // Wait until we're sure this class will fit in the current
+
                     // dex file.
+
                     while(((numMethodIds + maxMethodIdsInClass + maxMethodIdsInProcess
                             > args.maxNumberOfIdxPerDex) ||
                            (numFieldIds + maxFieldIdsInClass + maxFieldIdsInProcess
@@ -1842,8 +1884,11 @@ public class Main {
 
                         if (maxMethodIdsInProcess > 0 || maxFieldIdsInProcess > 0) {
                             // There are classes in the translation phase that
+
                             // have not yet been added to the dex file, so we
+
                             // wait for the next class to complete.
+
                             try {
                                 dexRotationLock.wait();
                             } catch(InterruptedException ex) {
@@ -1851,12 +1896,17 @@ public class Main {
                             }
                         } else if (!outputDex.getClassDefs().items().isEmpty()) {
                             // There are no further classes in the translation
+
                             // phase, and we have a full dex file. Rotate!
+
                             rotateDexFile();
                         } else {
                             // The estimated number of indices is too large for
+
                             // an empty dex file. We proceed hoping the actual
+
                             // number of indices needed will fit.
+
                             break;
                         }
                         synchronized(outputDex) {
@@ -1865,13 +1915,16 @@ public class Main {
                         }
                     }
                     // Add our estimate to the total estimate for
+
                     // classes under translation.
+
                     maxMethodIdsInProcess += maxMethodIdsInClass;
                     maxFieldIdsInProcess += maxFieldIdsInClass;
                 }
             }
 
             // Submit class to translation phase.
+
             Future<mod.agus.jcoderz.dx.dex.file.ClassDefItem> cdif = classTranslatorPool.submit(
                     new ClassTranslatorTask(name, bytes, cf));
             Future<Boolean> res = classDefItemConsumer.submit(new ClassDefItemConsumer(
@@ -1937,17 +1990,25 @@ public class Main {
                 return true;
             } catch(ExecutionException ex) {
                 // Rethrow previously uncaught translation exceptions.
+
                 // These, as well as any exceptions from addClassToDex,
+
                 // are handled and reported in processAllFiles().
+
                 Throwable t = ex.getCause();
                 throw (t instanceof Exception) ? (Exception) t : ex;
             } finally {
                 if (args.multiDex) {
                     // Having added our actual indicies to the dex file,
+
                     // we subtract our original estimate from the total estimate,
+
                     // and signal the translation phase, which may be paused
+
                     // waiting to determine if more classes can be added to the
+
                     // current dex file, or if a new dex file must be created.
+
                     synchronized(dexRotationLock) {
                         maxMethodIdsInProcess -= maxMethodIdsInClass;
                         maxFieldIdsInProcess -= maxFieldIdsInClass;

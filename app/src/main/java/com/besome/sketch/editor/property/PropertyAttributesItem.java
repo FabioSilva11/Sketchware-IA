@@ -27,9 +27,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import a.a.a.Kw;
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.PropertyInputItemBinding;
@@ -91,7 +91,7 @@ public class PropertyAttributesItem extends LinearLayout implements View.OnClick
     private View propertyItem;
     private View propertyMenuItem;
     private ImageView imgLeftIcon;
-    private Kw valueChangeListener;
+    private ObjectChangeListener valueChangeListener;
     private ViewBean bean;
     private List<String> ids = new ArrayList<>();
 
@@ -101,16 +101,20 @@ public class PropertyAttributesItem extends LinearLayout implements View.OnClick
     }
 
     private void initialize(Context context, boolean z) {
-        wB.a(context, this, R.layout.property_input_item);
+        ViewInflationUtils.a(context, this, R.layout.property_input_item);
         tvName = findViewById(R.id.tv_name);
         tvValue = findViewById(R.id.tv_value);
         imgLeftIcon = findViewById(R.id.img_left_icon);
         propertyItem = findViewById(R.id.property_item);
         propertyMenuItem = findViewById(R.id.property_menu_item);
 //        if (z) {
+
 //            propertyMenuItem.setOnClickListener(this);
+
 //            propertyMenuItem.setSoundEffectsEnabled(true);
+
 //        }
+
     }
 
     public String getKey() {
@@ -118,7 +122,7 @@ public class PropertyAttributesItem extends LinearLayout implements View.OnClick
     }
 
     public void setKey(String key) {
-        mB.a(this);
+        EditorViewUtils.a(this);
         this.key = key;
         int identifier = getResources().getIdentifier(key, "string", getContext().getPackageName());
         if (identifier > 0) {
@@ -185,7 +189,7 @@ public class PropertyAttributesItem extends LinearLayout implements View.OnClick
         this.ids = ids;
     }
 
-    public void setOnPropertyValueChangeListener(Kw onPropertyValueChangeListener) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener onPropertyValueChangeListener) {
         valueChangeListener = onPropertyValueChangeListener;
     }
 
@@ -247,6 +251,7 @@ public class PropertyAttributesItem extends LinearLayout implements View.OnClick
                                             .show();
                                 } else {
                                     // Adding a rule such as alignParentTop means turning it on.
+
                                     value.put(attr, "true");
                                     if (valueChangeListener != null)
                                         valueChangeListener.a(key, value);

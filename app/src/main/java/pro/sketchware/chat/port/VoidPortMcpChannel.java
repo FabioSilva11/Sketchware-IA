@@ -176,6 +176,7 @@ public final class VoidPortMcpChannel {
                         }
                     } catch (Exception ignored) {
                         // An unavailable server must not prevent the chat from starting.
+
                     }
                 }
                 if (discoveredTools != null && discoveredTools.length() > 0) {
@@ -433,7 +434,9 @@ public final class VoidPortMcpChannel {
         }
 
         // 2026-07-28 is stateless: every request carries its own protocol/client
+
         // metadata and no initialize/session is required.
+
         try {
             return requestStateless(serverName, server, url, method, params, true);
         } catch (IOException modernFailure) {
@@ -441,7 +444,9 @@ public final class VoidPortMcpChannel {
                 throw modernFailure;
             }
             // Backwards compatibility for servers that only implement the 2025
+
             // Streamable-HTTP lifecycle.
+
             return requestLegacy(serverName, server, method, params);
         }
     }
@@ -721,7 +726,9 @@ public final class VoidPortMcpChannel {
     private static String toolCacheKey(String serverName, JSONObject server) {
         String url = server == null ? "" : server.optString("url", "").trim();
         // Conservative identity isolation: include configured auth/header context
+
         // even when a server advertises a public catalog.
+
         String headers = server == null || server.optJSONObject("headers") == null
                 ? "" : server.optJSONObject("headers").toString();
         return sessionCacheKey(serverName, url) + "\n" + Integer.toHexString(headers.hashCode());
@@ -732,7 +739,9 @@ public final class VoidPortMcpChannel {
         String scope = response == null ? "private" : response.optString("cacheScope", "private");
         if (!"public".equals(scope) && !"private".equals(scope)) scope = "private";
         // ttlMs=0 means immediately stale. Keep the snapshot only for resolving a
+
         // tool call already shown to the model; getToolsAsMCP will re-fetch it.
+
         long expiresAt = System.currentTimeMillis() + ttl;
         JSONArray toolsCopy;
         try {

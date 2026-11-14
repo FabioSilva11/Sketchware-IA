@@ -14,7 +14,7 @@ import com.besome.sketch.editor.view.ItemView;
 import com.besome.sketch.editor.view.ScrollContainer;
 import com.google.android.material.card.MaterialCardView;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 
 public class ItemCardView extends MaterialCardView implements ItemView, ScrollContainer {
 
@@ -36,14 +36,15 @@ public class ItemCardView extends MaterialCardView implements ItemView, ScrollCo
 
     private void initialize(Context context) {
         setDrawingCacheEnabled(true);
-        setMinimumWidth((int) wB.a(context, 32.0f));
-        setMinimumHeight((int) wB.a(context, 32.0f));
+        setMinimumWidth((int) ViewInflationUtils.a(context, 32.0f));
+        setMinimumHeight((int) ViewInflationUtils.a(context, 32.0f));
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     }
 
     @Override
     public void addView(View child, int index) {
         // index counts editor widgets, not raw children (see EditorChildren).
+
         super.addView(child, EditorChildren.insertionIndex(this, index));
     }
 
@@ -111,9 +112,9 @@ public class ItemCardView extends MaterialCardView implements ItemView, ScrollCo
 
     @Override
     public void setContentPadding(int left, int top, int right, int bottom) {
-        super.setContentPadding((int) wB.a(getContext(), (float) left),
-                (int) wB.a(getContext(), (float) top),
-                (int) wB.a(getContext(), (float) right),
-                (int) wB.a(getContext(), (float) bottom));
+        super.setContentPadding((int) ViewInflationUtils.a(getContext(), (float) left),
+                (int) ViewInflationUtils.a(getContext(), (float) top),
+                (int) ViewInflationUtils.a(getContext(), (float) right),
+                (int) ViewInflationUtils.a(getContext(), (float) bottom));
     }
 }

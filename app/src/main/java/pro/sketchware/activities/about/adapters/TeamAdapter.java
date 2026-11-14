@@ -19,7 +19,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
-import a.a.a.mB;
+import pro.sketchware.editor.EditorViewUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.activities.about.models.AboutResponseModel;
@@ -99,6 +99,7 @@ public class TeamAdapter extends RecyclerView.Adapter<TeamAdapter.ViewHolder> {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.setData(Uri.parse(String.format("https://github.com/%s", username)));
+
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -114,9 +115,10 @@ public class TeamAdapter extends RecyclerView.Adapter<TeamAdapter.ViewHolder> {
         dialog.setTitle(Helper.getResString(R.string.title_compatible_chrome_browser));
         dialog.setMessage(Helper.getResString(R.string.message_compatible_chrome_brower));
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_ok), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse("market://details?id=com.android.chrome"));
+
                 context.startActivity(intent);
                 v.dismiss();
             }

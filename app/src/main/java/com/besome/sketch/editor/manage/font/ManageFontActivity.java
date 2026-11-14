@@ -15,9 +15,9 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 
 import java.lang.ref.WeakReference;
 
-import a.a.a.MA;
-import a.a.a.Np;
-import a.a.a.mB;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.filemanagers.ImageResourceManager;
+import pro.sketchware.editor.EditorViewUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageFontBinding;
@@ -60,7 +60,7 @@ public class ManageFontActivity extends BaseAppCompatActivity {
         }
 
         binding.toolbar.setNavigationOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 onBackPressed();
             }
         });
@@ -117,7 +117,7 @@ public class ManageFontActivity extends BaseAppCompatActivity {
         super.onSaveInstanceState(outState);
     }
 
-    private static class SaveAsyncTask extends MA {
+    private static class SaveAsyncTask extends BackgroundTask {
         private final WeakReference<ManageFontActivity> activityWeakReference;
 
         public SaveAsyncTask(ManageFontActivity activity) {
@@ -132,7 +132,7 @@ public class ManageFontActivity extends BaseAppCompatActivity {
             activity.h();
             activity.setResult(RESULT_OK);
             activity.finish();
-            Np.g().d();
+            ImageResourceManager.g().d();
         }
 
         @Override

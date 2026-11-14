@@ -15,7 +15,7 @@ import androidx.annotation.Nullable;
 import com.besome.sketch.beans.ViewBean;
 import com.besome.sketch.editor.view.ItemView;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.utility.IncludedViews;
 
 /**
@@ -47,7 +47,7 @@ public class ItemInclude extends View implements ItemView {
 
     public ItemInclude(Context context) {
         super(context);
-        dp = wB.a(context, 1.0F);
+        dp = ViewInflationUtils.a(context, 1.0F);
         setMinimumWidth((int) (dp * 96));
         setMinimumHeight((int) (dp * 56));
         borderPaint.setStyle(Paint.Style.STROKE);
@@ -84,6 +84,7 @@ public class ItemInclude extends View implements ItemView {
         requestLayout();
         invalidate();
         // Images of the copy can load after it's built; a detached view can't ask for a redraw itself.
+
         postInvalidateDelayed(400);
         postInvalidateDelayed(1500);
     }
@@ -140,6 +141,7 @@ public class ItemInclude extends View implements ItemView {
         }
         borderPaint.setColor(accent);
         // Selected: a solid, thicker border like the other widgets' selection; otherwise dashed.
+
         borderPaint.setStrokeWidth(isSelected ? dp * 2.5f : dp * 1.5f);
         borderPaint.setPathEffect(isSelected ? null : new DashPathEffect(new float[]{dp * 6, dp * 4}, 0));
         canvas.drawRoundRect(rect, dp * 6, dp * 6, borderPaint);
@@ -202,7 +204,7 @@ public class ItemInclude extends View implements ItemView {
 
     @Override
     public void setPadding(int left, int top, int right, int bottom) {
-        super.setPadding((int) wB.a(getContext(), (float) left), (int) wB.a(getContext(), (float) top),
-                (int) wB.a(getContext(), (float) right), (int) wB.a(getContext(), (float) bottom));
+        super.setPadding((int) ViewInflationUtils.a(getContext(), (float) left), (int) ViewInflationUtils.a(getContext(), (float) top),
+                (int) ViewInflationUtils.a(getContext(), (float) right), (int) ViewInflationUtils.a(getContext(), (float) bottom));
     }
 }

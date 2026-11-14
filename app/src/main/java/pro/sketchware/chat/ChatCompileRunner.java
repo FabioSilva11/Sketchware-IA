@@ -8,13 +8,13 @@ import java.lang.ref.WeakReference;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import a.a.a.ProjectBuilder;
-import a.a.a.jC;
-import a.a.a.kC;
-import a.a.a.lC;
-import a.a.a.wq;
-import a.a.a.yq;
-import a.a.a.zy;
+import pro.sketchware.compiler.ProjectBuilder;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.filemanagers.ProjectResourceManager;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.workspace.ProjectWorkspaceManager;
+import pro.sketchware.filemanagers.ProjectResourceStore;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
 import mod.hey.studios.project.proguard.ProguardHandler;
 import mod.hey.studios.project.stringfog.StringfogHandler;
@@ -64,40 +64,41 @@ final class ChatCompileRunner implements BuildProgressReceiver {
             return;
         }
         try {
-            yq workspace = new yq(context, scId);
+            ProjectWorkspaceManager workspace = new ProjectWorkspaceManager(context, scId);
             onProgress("Deleting temporary files...", 1);
             FileUtil.deleteFile(workspace.projectMyscPath);
 
             workspace.c(context);
             workspace.a();
-            workspace.a(context, wq.e("600"));
-            if (ProjectMapUtils.getBoolean(lC.b(scId), "custom_icon")) {
-                workspace.aa(wq.e() + File.separator + scId + File.separator + "mipmaps");
-                if (ProjectMapUtils.getBoolean(lC.b(scId), "isIconAdaptive", false)) {
+            workspace.a(context, WorkspacePathManager.e("600"));
+            if (ProjectMapUtils.getBoolean(RecentProjectsRegistry.b(scId), "custom_icon")) {
+                workspace.aa(WorkspacePathManager.e() + File.separator + scId + File.separator + "mipmaps");
+                if (ProjectMapUtils.getBoolean(RecentProjectsRegistry.b(scId), "isIconAdaptive", false)) {
                     workspace.createLauncherIconXml("""
                             <?xml version="1.0" encoding="utf-8"?>
                             <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android" >
+
                             <background android:drawable="@mipmap/ic_launcher_background"/>
                             <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
                             <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
                             </adaptive-icon>""");
                 } else {
-                    workspace.a(wq.e() + File.separator + scId + File.separator + "icon.png");
+                    workspace.a(WorkspacePathManager.e() + File.separator + scId + File.separator + "icon.png");
                 }
             }
 
             onProgress("Generating source code...", 2);
-            kC resourceManager = jC.d(scId);
+            ProjectResourceManager resourceManager = ProjectDataManagerRegistry.d(scId);
             resourceManager.b(workspace.resDirectoryPath + File.separator + "drawable-xhdpi");
-            resourceManager = jC.d(scId);
+            resourceManager = ProjectDataManagerRegistry.d(scId);
             resourceManager.c(workspace.resDirectoryPath + File.separator + "raw");
-            resourceManager = jC.d(scId);
+            resourceManager = ProjectDataManagerRegistry.d(scId);
             resourceManager.a(workspace.assetsPath + File.separator + "fonts");
 
             ProjectBuilder builder = new ProjectBuilder(this, context, workspace);
-            var fileManager = jC.b(scId);
-            var dataManager = jC.a(scId);
-            var libraryManager = jC.c(scId);
+            var fileManager = ProjectDataManagerRegistry.b(scId);
+            var dataManager = ProjectDataManagerRegistry.a(scId);
+            var libraryManager = ProjectDataManagerRegistry.c(scId);
             workspace.a(libraryManager, fileManager, dataManager);
             builder.buildBuiltInLibraryInformation();
             workspace.b(fileManager, dataManager, libraryManager, builder.getBuiltInLibraryManager());
@@ -128,7 +129,7 @@ final class ChatCompileRunner implements BuildProgressReceiver {
         } catch (MissingFileException e) {
             finish(false, "Missing " + (e.isMissingDirectory() ? "directory" : "file") + ": "
                     + e.getMissingFile().getAbsolutePath(), null);
-        } catch (zy e) {
+        } catch (ProjectResourceStore e) {
             new CompileErrorSaver(scId).writeLogsToFile(e.getMessage());
             finish(false, e.getMessage(), null);
         } catch (Throwable t) {
@@ -148,6 +149,9 @@ final class ChatCompileRunner implements BuildProgressReceiver {
 
     private void finish(boolean success, String message, String apkPath) {
         running = false;
+        // Release the worker thread: a new ChatCompileRunner is created for every build,
+        // so without this each finished compile would leave its executor thread alive.
+        executor.shutdown();
         if (listener != null) {
             listener.onCompileFinished(success, message, apkPath);
         }

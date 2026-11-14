@@ -5,8 +5,8 @@ import com.github.javaparser.ParseResult;
 import com.github.javaparser.ast.CompilationUnit;
 import com.besome.sketch.beans.BlockBean;
 import java.util.ArrayList;
-import a.a.a.Fx;
-import a.a.a.jq;
+import pro.sketchware.compiler.BlockCodeGenerator;
+import pro.sketchware.compiler.ProjectBuildMetadata;
 
 public class LogicSyntaxChecker {
 
@@ -26,14 +26,15 @@ public class LogicSyntaxChecker {
      * Checks the syntax of the generated code from blocks.
      * We wrap the block code in a dummy class/method to allow JavaParser to parse it.
      */
-    public static SyntaxResult check(String activityName, jq buildConfig, ArrayList<BlockBean> blocks, boolean isViewBindingEnabled) {
+    public static SyntaxResult check(String activityName, ProjectBuildMetadata buildConfig, ArrayList<BlockBean> blocks, boolean isViewBindingEnabled) {
         if (blocks == null || blocks.isEmpty()) {
             return new SyntaxResult(true, null, "");
         }
 
         try {
             // Generate the code using the existing Fx class
-            Fx generator = new Fx(activityName, buildConfig, blocks, isViewBindingEnabled);
+
+            BlockCodeGenerator generator = new BlockCodeGenerator(activityName, buildConfig, blocks, isViewBindingEnabled);
             String code = generator.a();
 
             if (code == null || code.trim().isEmpty()) {
@@ -41,6 +42,7 @@ public class LogicSyntaxChecker {
             }
 
             // Wrap in a method and class for parsing
+
             String wrappedCode = "class Dummy { void dummy() {\n" + code + "\n} }";
 
             JavaParser parser = new JavaParser();

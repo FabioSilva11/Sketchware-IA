@@ -133,15 +133,19 @@ public class AgentManagerProductionPathTest {
         List<String> names = namesOf(catalog.registrations());
 
         // Exact canonical equality: the catalog IS the registry's model-visible set.
+
         assertTrue("catalog must equal registry.modelVisibleTools()",
                 names.equals(namesOf(registry.modelVisibleTools())));
 
         // New Codex-parity contracts are the only mutations/shell faces.
+
         assertTrue("core apply_patch must be present", names.contains("apply_patch"));
         // Sketchware exposes no shell: a command would run as the app, outside the project's workspace
+
         assertFalse("exec_command must not be exposed in Sketchware", names.contains("exec_command"));
         assertTrue("core update_plan must be present", names.contains("update_plan"));
         // The chat has no question UI and no deferred tools: these would be declarations with nothing behind them
+
         assertFalse("request_user_input must not be offered", names.contains("request_user_input"));
         assertFalse("tool_search must not be offered", names.contains("tool_search"));
         assertFalse("new_context must not be offered", names.contains("new_context"));
@@ -149,10 +153,12 @@ public class AgentManagerProductionPathTest {
         assertTrue("core get_context_remaining must be present", names.contains("get_context_remaining"));
 
         // Model-compatible legacy tools survive via the registry.
+
         assertTrue("read_file must survive as a registry citizen", names.contains("read_file"));
         assertTrue("ls_dir must survive as a registry citizen", names.contains("ls_dir"));
 
         // Replaced legacy names never surface next to their new contracts.
+
         for (String forbidden : REPLACED_LEGACY_NAMES) {
             assertFalse("legacy '" + forbidden + "' must NOT be model-facing", names.contains(forbidden));
         }
@@ -162,6 +168,7 @@ public class AgentManagerProductionPathTest {
     public void agentManagerMountsACatalogFreeCoordinatorAndRunsAgainstTheRegistry() throws Exception {
         Agent coordinator = plainCoordinator();
         // The coordinator carries NO per-agent tools — the registry feeds the model.
+
 
         AxionToolRegistry registry = productionRegistry();
         CaptureGateway gateway = new CaptureGateway();
@@ -189,11 +196,13 @@ public class AgentManagerProductionPathTest {
         RunContext context = RunContext.bare("sc-exec", "coordinator", null);
 
         // exec_command isn't registered in Sketchware: the router refuses it instead of running a shell.
+
         AxionToolRouter.Routed exec = router.route(new AxionToolRouter.Route(
                 "c_exec", "exec_command", "{\"cmd\":\"echo hi\"}"), "sc-exec", context, null);
         assertNull("exec_command must not resolve in Sketchware", exec.registration());
 
         // update_plan executes its structured contract via ChatPlanManager.
+
         AxionToolRouter.Routed plan = router.route(new AxionToolRouter.Route(
                 "c_plan", "update_plan",
                 "{\"plan\":[{\"step\":\"Do the work\",\"status\":\"in_progress\"}]}"),
@@ -202,6 +211,7 @@ public class AgentManagerProductionPathTest {
         assertFalse("update_plan must execute cleanly: " + plan.result().output(), plan.result().isError());
 
         // request_user_input isn't offered: the router refuses it as an unknown tool.
+
         AxionToolRouter.Routed input = router.route(new AxionToolRouter.Route(
                 "c_input", "request_user_input",
                 "{\"questions\":[{\"id\":\"q1\",\"header\":\"Pick\",\"question\":\"Which?\","
@@ -211,7 +221,9 @@ public class AgentManagerProductionPathTest {
         assertTrue(input.result().isError());
 
         // apply_patch: FREEFORM raw-input executor bound to the run filesystem
+
         // (real mutations proven in ApplyPatchFreeformTest).
+
         ToolRegistration apply = registry.get("apply_patch");
         assertNotNull(apply);
         assertNotNull("apply_patch must have a bound FREEFORM executor", apply.executor());
@@ -252,7 +264,7 @@ public class AgentManagerProductionPathTest {
                 sawToolResult = true;
             }
         }
-        assertTrue("the structured call must be executed by the router (tool result in history)",
+        assertTrue("the structured call must be executed ProjectFileActionListener the router (tool result in history)",
                 sawToolResult);
         assertTrue(gateway.catalogNames.contains("get_context_remaining"));
         assertTrue(gateway.catalogNames.contains("read_file"));

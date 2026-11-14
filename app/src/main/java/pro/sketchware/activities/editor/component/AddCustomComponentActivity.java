@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import a.a.a.wq;
+import pro.sketchware.workspace.WorkspacePathManager;
 import dev.pranav.filepicker.FilePickerCallback;
 import dev.pranav.filepicker.FilePickerDialogFragment;
 import dev.pranav.filepicker.FilePickerOptions;
@@ -42,7 +42,7 @@ import pro.sketchware.utility.TranslationFunction;
 
 public class AddCustomComponentActivity extends BaseAppCompatActivity implements View.OnClickListener {
 
-    private final String path = wq.getCustomComponent();
+    private final String path = WorkspacePathManager.getCustomComponent();
     private boolean isEditMode = false;
     private int position = 0;
     private ManageCustomComponentAddBinding binding;

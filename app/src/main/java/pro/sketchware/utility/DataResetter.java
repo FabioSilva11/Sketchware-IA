@@ -6,12 +6,12 @@ import android.content.Intent;
 
 import java.util.HashMap;
 
-import a.a.a.DB;
-import a.a.a.bB;
-import a.a.a.lC;
-import a.a.a.oB;
-import a.a.a.wq;
-import a.a.a.yB;
+import pro.sketchware.core.PreferenceStore;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.MapValueUtils;
 import mod.hey.studios.util.Helper;
 import mod.jbk.build.BuiltInLibraries;
 import pro.sketchware.R;
@@ -20,36 +20,36 @@ import pro.sketchware.utility.TranslationFunction;
 
 public class DataResetter {
     public static void a(Context context, boolean resetOnlySettings) {
-        new DB(context, "P2").a();
-        new DB(context, "P3").a();
-        new DB(context, "P1").a();
-        new DB(context, "P12").a();
-        new DB(context, "P99").a();
-        new DB(context, "P25").a();
-        new DB(context, "P26").a();
-        new DB(context, "P16").a("P16I0");
+        new PreferenceStore(context, "P2").a();
+        new PreferenceStore(context, "P3").a();
+        new PreferenceStore(context, "P1").a();
+        new PreferenceStore(context, "P12").a();
+        new PreferenceStore(context, "P99").a();
+        new PreferenceStore(context, "P25").a();
+        new PreferenceStore(context, "P26").a();
+        new PreferenceStore(context, "P16").a("P16I0");
 
-        oB oBVar = new oB();
-        oBVar.b(wq.r());
+        FileCryptoUtils oBVar = new FileCryptoUtils();
+        oBVar.b(WorkspacePathManager.r());
         oBVar.b(BuiltInLibraries.EXTRACTED_COMPILE_ASSETS_PATH.getAbsolutePath());
 
         if (!resetOnlySettings) {
-            oBVar.b(wq.q());
-            oBVar.b(wq.s());
+            oBVar.b(WorkspacePathManager.q());
+            oBVar.b(WorkspacePathManager.s());
 
-            for (HashMap<String, Object> project : lC.a()) {
-                String sc_id = yB.c(project, "sc_id");
-                new DB(context, "D01_" + sc_id).a();
-                new DB(context, "D02_" + sc_id).a();
-                new DB(context, "D03_" + sc_id).a();
-                new DB(context, "D04_" + sc_id).a();
-                new DB(context, "D05_" + sc_id).a();
+            for (HashMap<String, Object> project : RecentProjectsRegistry.a()) {
+                String sc_id = MapValueUtils.c(project, "sc_id");
+                new PreferenceStore(context, "D01_" + sc_id).a();
+                new PreferenceStore(context, "D02_" + sc_id).a();
+                new PreferenceStore(context, "D03_" + sc_id).a();
+                new PreferenceStore(context, "D04_" + sc_id).a();
+                new PreferenceStore(context, "D05_" + sc_id).a();
             }
-            new DB(context, "P15").a();
+            new PreferenceStore(context, "P15").a();
         }
 
-        bB.a(context, Helper.getResString(R.string.program_information_reset_system_complete_initialize), bB.TOAST_NORMAL).show();
-        lC.a(context, true);
+        ToastFactory.a(context, Helper.getResString(R.string.program_information_reset_system_complete_initialize), ToastFactory.TOAST_NORMAL).show();
+        RecentProjectsRegistry.a(context, true);
 
         Intent intent = new Intent(context, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

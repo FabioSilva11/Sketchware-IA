@@ -17,9 +17,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
-import a.a.a.Kw;
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.PropertyPopupSelectorSingleBinding;
@@ -36,7 +36,7 @@ public class PropertyCustomViewItem extends RelativeLayout implements View.OnCli
     private int f;
     private View propertyItem;
     private View propertyMenuItem;
-    private Kw propertyValueChangeListener;
+    private ObjectChangeListener propertyValueChangeListener;
     private ArrayList<ProjectFileBean> customViews;
 
     public PropertyCustomViewItem(Context context, boolean idk) {
@@ -48,7 +48,7 @@ public class PropertyCustomViewItem extends RelativeLayout implements View.OnCli
         RadioButton radioButton = new RadioButton(getContext());
         radioButton.setText(fileName);
         radioButton.setTag(fileName);
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(-1, (int) (wB.a(getContext(), 1.0F) * 40.0F));
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(-1, (int) (ViewInflationUtils.a(getContext(), 1.0F) * 40.0F));
         radioButton.setGravity(19);
         radioButton.setLayoutParams(layoutParams);
         return radioButton;
@@ -95,16 +95,20 @@ public class PropertyCustomViewItem extends RelativeLayout implements View.OnCli
     }
 
     private void a(boolean var2) {
-        wB.a(getContext(), this, R.layout.property_selector_item);
+        ViewInflationUtils.a(getContext(), this, R.layout.property_selector_item);
         tvName = findViewById(R.id.tv_name);
         tvValue = findViewById(R.id.tv_value);
         propertyItem = findViewById(R.id.property_item);
         propertyMenuItem = findViewById(R.id.property_menu_item);
         imgLeftIcon = findViewById(R.id.img_left_icon);
 //        if (var2) {
+
 //            propertyMenuItem.setOnClickListener(this);
+
 //            propertyMenuItem.setSoundEffectsEnabled(true);
+
 //        }
+
     }
 
     public String getKey() {
@@ -143,7 +147,7 @@ public class PropertyCustomViewItem extends RelativeLayout implements View.OnCli
 
     @Override
     public void onClick(View var1) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             if ("property_custom_view_listview".equals(key)) {
                 a();
             }
@@ -154,7 +158,7 @@ public class PropertyCustomViewItem extends RelativeLayout implements View.OnCli
         customViews = customView;
     }
 
-    public void setOnPropertyValueChangeListener(Kw var1) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener var1) {
         propertyValueChangeListener = var1;
     }
 

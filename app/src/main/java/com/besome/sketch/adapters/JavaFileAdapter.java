@@ -9,7 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.besome.sketch.beans.ProjectFileBean;
 
-import a.a.a.jC;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
 import pro.sketchware.databinding.FileSelectorPopupSelectJavaListItemBinding;
 import pro.sketchware.listeners.ItemClickListener;
 
@@ -28,7 +28,7 @@ public class JavaFileAdapter extends RecyclerView.Adapter<JavaFileAdapter.ViewHo
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(jC.b(sc_id).b().get(position));
+        holder.bind(ProjectDataManagerRegistry.b(sc_id).b().get(position));
     }
 
     @Override
@@ -40,7 +40,7 @@ public class JavaFileAdapter extends RecyclerView.Adapter<JavaFileAdapter.ViewHo
 
     @Override
     public int getItemCount() {
-        return jC.b(sc_id).b().size();
+        return ProjectDataManagerRegistry.b(sc_id).b().size();
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {

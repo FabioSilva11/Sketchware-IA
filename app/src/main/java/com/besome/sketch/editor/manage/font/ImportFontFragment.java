@@ -22,9 +22,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
-import a.a.a.jC;
-import a.a.a.oB;
-import a.a.a.qA;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.editor.BaseEditorFragment;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.FrManageFontListBinding;
@@ -34,12 +34,12 @@ import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.TranslationFunction;
 
-public class ImportFontFragment extends qA {
+public class ImportFontFragment extends BaseEditorFragment {
 
     public String sc_id;
     public boolean isSelecting = false;
     public String dirPath = "";
-    public oB oB;
+    public FileCryptoUtils fileCryptoUtils;
     public ArrayList<ProjectResourceBean> projectResourceBeans;
     private FrManageFontListBinding binding;
     private fontAdapter adapter;
@@ -140,7 +140,7 @@ public class ImportFontFragment extends qA {
             if (resourceBean.isNew) {
                 try {
                     importFont(resourceBean.resFullName, getResourceFilePath(resourceBean));
-                    oB.c(resourceBean.resFullName);
+                    fileCryptoUtils.c(resourceBean.resFullName);
                 } catch (Exception ignored) {
                 }
             }
@@ -160,10 +160,10 @@ public class ImportFontFragment extends qA {
             }
         }
 
-        jC.d(sc_id).a(projectResourceBeans);
-        jC.d(sc_id).y();
-        jC.a(sc_id).a(jC.d(sc_id));
-        jC.a(sc_id).k();
+        ProjectDataManagerRegistry.d(sc_id).a(projectResourceBeans);
+        ProjectDataManagerRegistry.d(sc_id).y();
+        ProjectDataManagerRegistry.a(sc_id).a(ProjectDataManagerRegistry.d(sc_id));
+        ProjectDataManagerRegistry.a(sc_id).k();
     }
 
     public final void toggleEmptyStateVisibility() {
@@ -187,13 +187,13 @@ public class ImportFontFragment extends qA {
     @Override
     public void onActivityCreated(Bundle bundle) {
         super.onActivityCreated(bundle);
-        oB = new oB();
-        oB.f(dirPath);
+        fileCryptoUtils = new FileCryptoUtils();
+        fileCryptoUtils.f(dirPath);
         projectResourceBeans = new ArrayList<>();
         if (bundle == null) {
             sc_id = requireActivity().getIntent().getStringExtra("sc_id");
-            dirPath = jC.d(sc_id).j();
-            ArrayList<ProjectResourceBean> resourceBeans = jC.d(sc_id).d;
+            dirPath = ProjectDataManagerRegistry.d(sc_id).j();
+            ArrayList<ProjectResourceBean> resourceBeans = ProjectDataManagerRegistry.d(sc_id).d;
             if (resourceBeans != null) {
                 projectResourceBeans.addAll(resourceBeans);
             }

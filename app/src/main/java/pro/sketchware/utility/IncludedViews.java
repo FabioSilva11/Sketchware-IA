@@ -14,9 +14,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import a.a.a.eC;
-import a.a.a.hC;
-import a.a.a.jC;
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.workspace.ProjectFileManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
 import mod.agus.jcoderz.beans.ViewBeans;
 import mod.pranav.viewbinding.ViewBindingBuilder;
 
@@ -195,7 +195,7 @@ public final class IncludedViews {
 
     /** The widgets the screen {@code screenXml} reaches through its includes, from the project's own layouts. */
     @NonNull
-    public static Result resolve(@NonNull eC data, @NonNull String screenXml) {
+    public static Result resolve(@NonNull ProjectDataManager data, @NonNull String screenXml) {
         Set<String> layouts = layouts(data.a);
         return resolve(screenXml, data.d(screenXml), xml -> layouts.contains(xml) ? data.d(xml) : null);
     }
@@ -206,8 +206,8 @@ public final class IncludedViews {
      * the list gets the item clicks; in an included layout that leaves text fields nobody can type in. Android
      * Studio adds no such attribute: a layout's widgets keep their own focus.
      */
-    public static boolean isIncludedOnly(@NonNull eC data, @NonNull String scId, @NonNull String fileName) {
-        hC files = jC.b(scId);
+    public static boolean isIncludedOnly(@NonNull ProjectDataManager data, @NonNull String scId, @NonNull String fileName) {
+        ProjectFileManager files = ProjectDataManagerRegistry.b(scId);
         List<String> layouts = new ArrayList<>();
         for (ProjectFileBean file : files.b()) {
             layouts.add(file.getXmlName());
@@ -235,7 +235,7 @@ public final class IncludedViews {
     @NonNull
     public static Set<String> layouts(@NonNull String scId) {
         Set<String> layouts = new HashSet<>();
-        hC files = jC.b(scId);
+        ProjectFileManager files = ProjectDataManagerRegistry.b(scId);
         for (ProjectFileBean file : files.b()) layouts.add(file.getXmlName());
         for (ProjectFileBean file : files.c()) layouts.add(file.getXmlName());
         return layouts;
@@ -246,14 +246,14 @@ public final class IncludedViews {
      * them (an include, an include nested in an included layout, or the widget itself inside an included layout)
      * loses that widget's events and the blocks' references to it, as deleting one of its own widgets does.
      */
-    public static void forgetLogicReachedThrough(@NonNull eC data, @NonNull String scId, @NonNull String xml,
+    public static void forgetLogicReachedThrough(@NonNull ProjectDataManager data, @NonNull String scId, @NonNull String xml,
                                                  @NonNull List<ViewBean> removed) {
         Set<String> ids = new HashSet<>();
         for (ViewBean bean : removed) {
             if (bean != null && bean.id != null) ids.add(bean.id);
         }
         if (ids.isEmpty()) return;
-        for (ProjectFileBean screen : jC.b(scId).b()) {
+        for (ProjectFileBean screen : ProjectDataManagerRegistry.b(scId).b()) {
             for (Entry entry : resolve(data, screen.getXmlName()).entries) {
                 if (entry.reachedThrough(xml, ids)) forget(data, screen.getJavaName(), entry);
             }
@@ -264,7 +264,7 @@ public final class IncludedViews {
      * Call before the layouts {@code removedXmls} are deleted from the project, while they can still be resolved:
      * the screens {@code screens} lose the logic of the widgets they reached through them.
      */
-    public static void forgetLogicReachedThroughLayouts(@NonNull eC data, @NonNull List<ProjectFileBean> screens,
+    public static void forgetLogicReachedThroughLayouts(@NonNull ProjectDataManager data, @NonNull List<ProjectFileBean> screens,
                                                         @NonNull Set<String> removedXmls) {
         if (removedXmls.isEmpty()) return;
         for (ProjectFileBean screen : screens) {
@@ -276,7 +276,7 @@ public final class IncludedViews {
     }
 
     /** What eC does for a widget of the screen itself: its events with their blocks, and blocks pointing at it. */
-    private static void forget(eC data, String javaName, Entry entry) {
+    private static void forget(ProjectDataManager data, String javaName, Entry entry) {
         data.m(javaName, entry.id);
         data.a(javaName, entry.view.getClassInfo(), entry.id, true);
     }
@@ -286,7 +286,7 @@ public final class IncludedViews {
      * include. Null when there's none, e.g. after the widget was deleted.
      */
     @Nullable
-    public static ViewBean eventTarget(@NonNull eC data, @NonNull String screenXml, @NonNull String id) {
+    public static ViewBean eventTarget(@NonNull ProjectDataManager data, @NonNull String screenXml, @NonNull String id) {
         ViewBean view = data.c(screenXml, id);
         if (view == null) view = data.c("_drawer_" + screenXml, id);
         if (view == null) {

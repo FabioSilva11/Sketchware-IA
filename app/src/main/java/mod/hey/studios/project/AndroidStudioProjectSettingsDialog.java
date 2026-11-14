@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.wq;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.databinding.DialogProjectSettingsBinding;
 import pro.sketchware.utility.FileUtil;
@@ -37,7 +37,7 @@ public class AndroidStudioProjectSettingsDialog {
     public void show() {
         BottomSheetDialog dialog = new BottomSheetDialog(activity);
         DialogProjectSettingsBinding binding = DialogProjectSettingsBinding.inflate(activity.getLayoutInflater());
-        File projectRoot = new File(wq.getAndroidStudioProjectPath(scId));
+        File projectRoot = new File(WorkspacePathManager.getAndroidStudioProjectPath(scId));
         File buildFile = findAppBuildFile(projectRoot);
         String buildGradle = readText(buildFile);
 

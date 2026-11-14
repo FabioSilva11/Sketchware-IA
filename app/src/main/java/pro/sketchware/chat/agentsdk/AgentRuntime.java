@@ -35,6 +35,7 @@ public final class AgentRuntime {
 
     private static final long DIRECTORY_CACHE_TTL_MS = 5000L; // parity with ContextBuilder
 
+
     private final AgentLlmGateway gateway;
     private final EventStream events;
     private final PermissionLayer permissions;
@@ -44,11 +45,15 @@ public final class AgentRuntime {
     private final int maxOutputTokensPerTurn;
     private final boolean includeProjectInstructions;
     // The single canonical execution path: registry lookup → exposure →
+
     // permission → sandbox → executor (AxionToolRouter, Codex router.rs parity).
+
     private final AxionToolRouter router;
     private final AxionToolRegistry registry;
     // Removed: expectFileMutations (Codex alignment)
+
     // The runtime no longer assumes all chats require file mutations.
+
     private final AiOperationContext builderOperationContext;
     /** Único fluxo de Skills resolvido por execução (código-x). */
     private final SkillFlow skillFlow;
@@ -67,6 +72,7 @@ public final class AgentRuntime {
         this.maxOutputTokensPerTurn = builder.maxOutputTokensPerTurn;
         this.includeProjectInstructions = builder.includeProjectInstructions;
         // Removed: expectFileMutations assignment (Codex alignment)
+
         this.builderOperationContext = builder.operationContext;
         this.skillFlow = builder.skillFlow;
     }
@@ -99,8 +105,11 @@ public final class AgentRuntime {
         }
         cancelRequested = false;
         // Item 10 of the migration: the provider/model/mode identity of this
+
         // run is FROZEN now. Host preference changes mid-run affect the NEXT
+
         // run, never this one.
+
         final AiOperationContext runContextIdentity = operationContext != null
                 ? operationContext
                 : builderOperationContext != null ? builderOperationContext : captureOperationIdentity();
@@ -112,6 +121,7 @@ public final class AgentRuntime {
         emit(new AgentEvent.RunStarted(scId));
 
         // Input guardrails run before the first LLM call (openai-agents semantics).
+
         String latestUserText = latestUserText(history);
         for (Guardrail guardrail : inputGuardrails) {
             GuardrailResult result = guardrail.checkInput(latestUserText);
@@ -123,16 +133,25 @@ public final class AgentRuntime {
         }
 
         // Items (skills): the skill context (catalog → selector → loader →
+
         // renderer) is resolved ONCE per run from the run's scId and the
+
         // latest user text. A failure anywhere yields empty blocks — the
+
         // runtime NEVER breaks a conversation because of skills.
+
         final SkillPromptBlocks skillBlocks = skillBlocksFor(scId, latestUserText);
 
         // ---- Single execution identity (item 2/3 of the migration) ----
+
         // The workspace of this run is resolved ONCE from the scId — never
+
         // from the global active workspace, which is a UI selection that may
+
         // point anywhere. Prompt, AGENTS.md, snapshot, tools and mutations
+
         // all derive from this RunContext.
+
         final RunContextFactory.Resolved resolved = RunContextFactory.resolve(scId);
         RunContext context = new RunContext(
                 scId,
@@ -149,11 +168,17 @@ public final class AgentRuntime {
                 agent.name());
 
         // Pin the run's filesystem for the whole run under THIS run's id
+
         // (item 14): tools, ContextBuilder and ApplyPatchTool read
+
         // RuntimeFileContext instead of the global active workspace while
+
         // this run is in flight — and concurrent runs never share bindings.
+
         // Identity: the frozen operationContext's requestId when available,
+
         // else a unique id (tests/headless hosts without preferences).
+
         final String runId = runContextIdentity != null
                 ? "run_" + runContextIdentity.getRequestId()
                 : "run_" + java.util.UUID.randomUUID();
@@ -161,14 +186,19 @@ public final class AgentRuntime {
                 runId, resolved.workspace(), resolved.filesystem());
 
         // Compaction-proof handoff (item 7 of the migration): the previous
+
         // run's durable task state (objective, relevant files, progress) is
+
         // restored from the task store, so a compacted history never erases
+
         // where the task stands.
+
         TaskMemoryStore.restoreInto(scId, context.taskMemory());
 
         Agent activeAgent = agent;
         int turns = 0;
         // Removed: recoveryNudges - Codex alignment: no artificial recovery
+
         router.resetForNewRun();
         try {
             while (turns++ < maxTurns) {
@@ -183,6 +213,7 @@ public final class AgentRuntime {
                 emit(new AgentEvent.TurnStarted(scId, activeAgentName, turnNumber));
 
                 // M3: reserve the worst-case cost of this turn before the request.
+
                 RunBudget.Handle reservation = null;
                 if (budget != null) {
                     try {
@@ -201,19 +232,28 @@ public final class AgentRuntime {
                 final LlmTurnOutput turn;
                 try {
                     // Item 6: the runtime owns the streaming route for THIS
+
                     // turn. The listener is registered before the request and
+
                     // cleared in the finally — a previous run's listener can
+
                     // never contaminate this one.
+
                     gateway.setDeltaListener(delta -> {
                         if (delta != null && !delta.isEmpty()) {
                             emit(new AgentEvent.AssistantMessageDelta(scId, delta));
                         }
                     });
                     // Canonical catalog (single source of truth): the model
+
                     // sees exactly the registry's DIRECT tools, serialized by
+
                     // capability in the gateway. The catalog is never flattened
+
                     // by the runtime — freeform/namespace kinds stay faithful
+
                     // until the provider serializer.
+
                     turn = gateway.completeTurn(
                             resolveSystemPrompt(activeAgent, context, skillBlocks),
                             toolCatalogFor(),
@@ -229,13 +269,19 @@ public final class AgentRuntime {
                     gateway.setDeltaListener(null);
                 }
                 // Item 17: settle the reservation with REAL usage whenever the
+
                 // provider reported it; only an estimate when it did not.
+
                 if (budget != null && reservation != null) {
                     try {
                         // Without a provider report the reservation itself is
+
                         // the best-known cost: settling the FULL hold (never
+
                         // more) keeps spent honest and can never exceed what
+
                         // was reserved.
+
                         TokenUsage usage = turn.usage() != null
                                 ? turn.usage()
                                 : TokenUsage.estimated(reservation.reserved(), 0);
@@ -250,14 +296,20 @@ public final class AgentRuntime {
                     }
                 }
                 // Input as the model will see it on the NEXT turn: the
+
                 // history now includes this turn's tool results.
+
                 context.contextTracker().recordInputEstimate(estimatedInputTokens(history));
                 context.incrementLlmCalls();
 
                 // ---- Source of truth (Codex ResponseItem parity) ----------
+
                 // structuredToolCalls = executable facts from the provider
+
                 // envelope; assistantText = displayable message. The runtime
+
                 // NEVER re-derives tool calls from the text.
+
                 List<ToolCall> structuredCalls = turn.toolCalls() == null
                         ? Collections.emptyList()
                         : turn.toolCalls();
@@ -272,14 +324,23 @@ public final class AgentRuntime {
                         return RunResult.failure(reason);
                     }
                     // Codex alignment: plain text responses are VALID completion.
+
                     // The runtime does NOT fabricate tool calls or insert artificial
+
                     // messages into the user history. Text-only responses are a
+
                     // legitimate model decision, not an error condition.
+
                     // 
+
                     // Removed: expectFileMutations recovery logic that inserted
+
                     // RECOVERY_NUDGE as a fake user message. This violated the
+
                     // principle that the runtime should react to model behavior,
+
                     // not force specific outcomes.
+
                     emit(new AgentEvent.AssistantMessage(scId, assistantText));
                     for (Guardrail guardrail : activeAgent.outputGuardrails()) {
                         GuardrailResult result = guardrail.checkOutput(assistantText);
@@ -295,18 +356,26 @@ public final class AgentRuntime {
                 }
 
                 // Assistant text is display-only when tools also arrived: it
+
                 // stays OUT of the execution path (semantic separation).
+
                 // Item 7 (no duplicate AssistantMessageDelta): when the text
+
                 // was ALREADY delivered by streaming deltas, do NOT publish it
+
                 // again at turn end — the UI has it all. A non-streamed turn
+
                 // emits exactly one AssistantMessage so the UI still sees it.
+
                 if (!assistantText.isEmpty() && !turn.textStreamed()) {
                     emit(new AgentEvent.AssistantMessage(scId, assistantText));
                 }
 
                 if (registry == null) {
                     // Defensive: unreachable — the Builder makes the registry
+
                     // mandatory. Kept as a guard for misconstructed runtimes.
+
                     return RunResult.failure("Runtime has no tool registry.");
                 }
                 Agent next = executeTools(activeAgent, session, context, scId, structuredCalls, history);
@@ -315,6 +384,7 @@ public final class AgentRuntime {
                     activeAgent = next;
                 }
                 // With tools executed (or a handoff), loop for the next LLM turn.
+
             }
             session.setStatus(AgentSession.Status.FAILED);
             emit(new AgentEvent.RunCompleted(scId, false, "Max turns reached"));
@@ -322,7 +392,9 @@ public final class AgentRuntime {
         } finally {
             sessionSnapshot = session;
             // Durable task memory: the NEXT run (and process restart) starts
+
             // from this state even when the history gets compacted.
+
             TaskMemoryStore.save(scId, context.taskMemory());
             try {
                 pinned.close();
@@ -335,7 +407,9 @@ public final class AgentRuntime {
     public void cancel() {
         cancelRequested = true;
         // Item 33: a cancelled run must not leave a PENDING approval parked;
+
         // cancelling them resolves the parked run thread promptly.
+
         if (permissions != null) {
             permissions.cancelPendingApprovals();
         }
@@ -356,8 +430,11 @@ public final class AgentRuntime {
     }
 
     // ------------------------------------------------------------------
+
     // Host-visible pending approval (Codex ReviewDecision parity)
+
     // ------------------------------------------------------------------
+
 
     /**
      * A tool call currently parked waiting for a human decision. Host UIs
@@ -415,7 +492,9 @@ public final class AgentRuntime {
             return false;
         }
         // The layer owns the resolution channel — works with every handler
+
         // implementation (anonymous, resolver-based, test doubles).
+
         return permissions.resolve(requestId, decision);
     }
 
@@ -443,8 +522,11 @@ public final class AgentRuntime {
     }
 
     // ------------------------------------------------------------------
+
     // helpers
+
     // ------------------------------------------------------------------
+
 
     /**
      * Item 10: freezes THIS run's provider/model/mode from the host's
@@ -469,6 +551,7 @@ public final class AgentRuntime {
                     .build();
         } catch (Exception unavailable) {
             return null; // JVM tests / headless: no frozen identity available
+
         }
     }
 
@@ -591,6 +674,7 @@ public final class AgentRuntime {
             ToolRegistration registration = routed.registration();
             if (registration != null && registration.isHandoff()) {
                 // Handoff registrations transfer control to the named agent.
+
                 Agent target = findHandoffTargetByName(activeAgent, registration.handoffTarget());
                 if (target != null) {
                     handoffTarget = target;
@@ -627,11 +711,17 @@ public final class AgentRuntime {
     }
 
     // ------------------------------------------------------------------
+
     // ------------------------------------------------------------------
+
     // Removed: RECOVERY_NUDGE constant (Codex alignment)
+
     // ------------------------------------------------------------------
+
     // The runtime no longer inserts artificial user messages to force mutations.
+
     // Text-only responses are valid model decisions, not error conditions.
+
 
     private static Agent findHandoffTargetByName(Agent activeAgent, String targetName) {
         if (targetName == null || targetName.isEmpty()) {
@@ -675,8 +765,11 @@ public final class AgentRuntime {
                 return;
             }
             // Defensive fallback only: reached when nothing already created a
+
             // visual bubble for this call id (e.g. a headless/history-only
+
             // run with no HostBridge attached). Still keyed by the call id.
+
             ChatMessage toolMessage = new ChatMessage("", ChatMessage.TYPE_TOOL, System.currentTimeMillis());
             toolMessage.setToolName(call.getName());
             toolMessage.setToolArgs(call.getArguments());
@@ -741,6 +834,7 @@ public final class AgentRuntime {
         private int maxOutputTokensPerTurn = 2048;
         private boolean includeProjectInstructions = true;
         // Removed: expectFileMutations field (Codex alignment)
+
         private AxionToolRegistry registry;
         private SkillFlow skillFlow = SkillFlow.NOOP;
 

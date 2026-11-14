@@ -53,6 +53,7 @@ public class FileChangeTrackerWorkspaceTest {
         assertTrue(FileChangeTracker.acceptChange("sc_tracker", "src/App.kt"));
 
         // Accept is a review action: the applied content stays untouched.
+
         assertEquals("fun main() {\n    println(\"v2\")\n}\n", fs.readText("src/App.kt"));
         assertTrue("accept must clear the review entry",
                 FileChangeTracker.getAllRecentChanges("sc_tracker").isEmpty());
@@ -80,6 +81,7 @@ public class FileChangeTrackerWorkspaceTest {
     public void revert_restoresPreviousContent_throughTheActiveWorkspace() {
         String original = "class A\n";
         String modified = "class A\n// agent edit\n";
+
         fs.writeText("src/A.java", modified);
         FileChangeTracker.trackChange("sc_tracker", "src/A.java", original, modified);
 
@@ -95,12 +97,13 @@ public class FileChangeTrackerWorkspaceTest {
     @Test
     public void revert_deletion_removesTheFileThroughTheWorkspace() {
         // Real flow: the tool applied the mutation (file exists) and tracked it.
+
         fs.writeText("src/created.txt", "new content");
         FileChangeTracker.trackChange("sc_tracker", "src/created.txt", "", "new content", false);
 
         assertTrue(FileChangeTracker.rejectChange("sc_tracker", "src/created.txt"));
 
-        assertFalse("a file created by the agent must be removed on revert",
+        assertFalse("a file created ProjectFileActionListener the agent must be removed on revert",
                 fs.exists("src/created.txt"));
         assertTrue("removal must go through the workspace delete",
                 fs.deleteCalls.contains("src/created.txt"));
@@ -115,11 +118,14 @@ public class FileChangeTrackerWorkspaceTest {
         assertFalse("a failed revert must never be reported as success",
                 FileChangeTracker.rejectChange("sc_tracker", "src/created.txt"));
         // The entry stays tracked so the user can retry the revert.
+
         assertTrue(FileChangeTracker.getAllRecentChanges("sc_tracker").containsKey("src/created.txt"));
     }        @Test
         public void revert_whenWorkspaceWriteFails_reportsFailure() {
         fs.writeText("src/A.java", "class A\n// agent edit\n");
+
         FileChangeTracker.trackChange("sc_tracker", "src/A.java", "class A\n", "class A\n// agent edit\n");
+
         fs.failWrites = true;
 
         assertFalse(FileChangeTracker.rejectChange("sc_tracker", "src/A.java"));
@@ -127,6 +133,7 @@ public class FileChangeTrackerWorkspaceTest {
     }
 
     // ------------------------------------------------------------------
+
 
     private static Workspace fakeWorkspace() {
         return new Workspace("ws-test", "Test", "/", "/", false,

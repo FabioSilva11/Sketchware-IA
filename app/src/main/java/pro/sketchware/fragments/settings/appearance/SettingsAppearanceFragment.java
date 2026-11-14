@@ -12,11 +12,11 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.card.MaterialCardView;
 
-import a.a.a.qA;
+import pro.sketchware.editor.BaseEditorFragment;
 import pro.sketchware.databinding.FragmentSettingsAppearanceBinding;
 import pro.sketchware.utility.theme.ThemeManager;
 
-public class SettingsAppearanceFragment extends qA {
+public class SettingsAppearanceFragment extends BaseEditorFragment {
     private FragmentSettingsAppearanceBinding binding;
     private MaterialCardView selectedThemeCard;
 

@@ -1,6 +1,5 @@
 package pro.sketchware.activities.resourceseditor.components.adapters;
 
-import static com.besome.sketch.design.DesignActivity.sc_id;
 import static com.besome.sketch.editor.LogicEditorActivity.getAllJavaFileNames;
 import static com.besome.sketch.editor.LogicEditorActivity.getAllXmlFileNames;
 import static pro.sketchware.utility.UI.animateLayoutChanges;
@@ -17,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.besome.sketch.beans.BlockBean;
 import com.besome.sketch.beans.ViewBean;
+import com.besome.sketch.design.DesignActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
@@ -24,8 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import a.a.a.eC;
-import a.a.a.jC;
+import mod.hey.studios.project.ProjectTracker;
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.activities.resourceseditor.ResourcesEditorActivity;
@@ -160,18 +161,28 @@ public class StringsAdapter extends RecyclerView.Adapter<StringsAdapter.ViewHold
         notifyDataSetChanged();
     }
 
+    private String resolveScId() {
+        if (this.activity != null && this.activity.sc_id != null && !this.activity.sc_id.isEmpty()) {
+            return this.activity.sc_id;
+        }
+        if (DesignActivity.sc_id != null && !DesignActivity.sc_id.isEmpty()) {
+            return DesignActivity.sc_id;
+        }
+        return ProjectTracker.SC_ID;
+    }
+
     public boolean isXmlStringUsed(String key) {
-        if ("app_name".equals(key) || sc_id == null) {
+        String projectScId = resolveScId();
+        if ("app_name".equals(key) || projectScId == null || projectScId.isEmpty()) {
             return false;
         }
 
-        String projectScId = sc_id;
-        eC projectDataManager = jC.a(projectScId);
+        ProjectDataManager projectDataManager = ProjectDataManagerRegistry.a(projectScId);
 
         return isStringUsedInJavaFiles(projectScId, projectDataManager, key) || isStringUsedInXmlFiles(projectScId, projectDataManager, key);
     }
 
-    private boolean isStringUsedInJavaFiles(String projectScId, eC projectDataManager, String key) {
+    private boolean isStringUsedInJavaFiles(String projectScId, ProjectDataManager projectDataManager, String key) {
         for (String javaFileName : getAllJavaFileNames(projectScId)) {
             for (Map.Entry<String, ArrayList<BlockBean>> entry : projectDataManager.b(javaFileName).entrySet()) {
                 for (BlockBean block : entry.getValue()) {
@@ -184,7 +195,7 @@ public class StringsAdapter extends RecyclerView.Adapter<StringsAdapter.ViewHold
         return false;
     }
 
-    private boolean isStringUsedInXmlFiles(String projectScId, eC projectDataManager, String key) {
+    private boolean isStringUsedInXmlFiles(String projectScId, ProjectDataManager projectDataManager, String key) {
         for (String xmlFileName : getAllXmlFileNames(projectScId)) {
             for (ViewBean view : projectDataManager.d(xmlFileName)) {
                 if (view.text.text.equals("@string/" + key) || view.text.hint.equals("@string/" + key)) {

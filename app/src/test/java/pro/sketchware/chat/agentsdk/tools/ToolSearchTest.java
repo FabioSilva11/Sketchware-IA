@@ -46,9 +46,10 @@ public class ToolSearchTest {
                     .build());
         }
         // tool_search itself (auto-registered when deferred tools exist).
+
         try {
             registry.register(ToolRegistration.builder(ToolSpec.toolSearch(
-                            "Searches for a tool by name or description.",
+                            "Searches for a tool ProjectFileActionListener name or description.",
                             new JSONObject().put("type", "object")))
                     .executor(new ToolSearchTool(registry))
                     .build());
@@ -63,6 +64,7 @@ public class ToolSearchTest {
         AxionToolRegistry registry = buildRegistry();
         List<ToolRegistration> visible = registry.modelVisibleTools();
         assertEquals(DIRECT_TOOLS + 1, visible.size()); // + tool_search itself
+
         for (ToolRegistration reg : visible) {
             assertFalse("deferred tool must be absent from catalog: " + reg.spec().qualifiedName(),
                     reg.spec().name().name().startsWith("deferred_"));
@@ -102,6 +104,7 @@ public class ToolSearchTest {
         assertEquals("deferred_tool_3", tools.getJSONObject(0).getString("name"));
 
         // Activation: the tool is now callable via the router.
+
         assertTrue(registry.isDeferredActivated(ToolName.plain("deferred_tool_3")));
     }
 
@@ -123,12 +126,14 @@ public class ToolSearchTest {
         ToolRegistration search = registry.get("tool_search");
 
         // Query matching ALL deferred tools → default limit 10.
+
         ToolExecutionContext searchAll = execute(search, "{\"query\":\"deferred_tool\"}");
         AgentToolResult allResult = search.executor().execute(searchAll);
         JSONObject allBody = new JSONObject(allResult.output());
         assertEquals(10, allBody.getJSONArray("tools").length());
 
         // Explicit limit 25 (at the cap).
+
         ToolExecutionContext searchTwentyFive =
                 execute(search, "{\"query\":\"deferred_tool\",\"limit\":25}");
         AgentToolResult twentyFiveResult = search.executor().execute(searchTwentyFive);

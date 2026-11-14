@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.Rs;
+import pro.sketchware.editor.BlockView;
 import mod.hey.studios.util.Helper;
 import mod.hilal.saif.lib.PCP;
 import pro.sketchware.R;
@@ -461,7 +461,7 @@ public class BlocksManagerCreatorActivity extends BaseAppCompatActivity {
         binding.blockArea.removeAllViews();
         var blockType = specId.equalsIgnoreCase("regular") ? " " : specId;
         try {
-            var block = new Rs(this, -1, Helper.getText(binding.spec), blockType, Helper.getText(binding.name));
+            var block = new BlockView(this, -1, Helper.getText(binding.spec), blockType, Helper.getText(binding.name));
             block.e = PropertiesUtil.isHexColor(color) ? PropertiesUtil.parseColor(color) : Color.parseColor("#F0F0F0");
             binding.blockArea.addView(block);
         } catch (Exception e) {
@@ -472,6 +472,7 @@ public class BlocksManagerCreatorActivity extends BaseAppCompatActivity {
             if (matcher.find()) {
                 int position = matcher.end();
                 //Unable to resolve this error because the Rs class still undecompiled.
+
                 block.setText("Error: '%m' must be followed by '.param' at position " + position);
             } else {
                 block.setText(e.toString());

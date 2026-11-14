@@ -31,15 +31,15 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import a.a.a.By;
-import a.a.a.Fw;
-import a.a.a.MA;
-import a.a.a.bB;
-import a.a.a.eC;
-import a.a.a.jC;
-import a.a.a.mB;
-import a.a.a.wq;
-import a.a.a.xw;
+import pro.sketchware.beans.ProjectSettingsStore;
+import pro.sketchware.editor.ActivityViewManagerFragment;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.workspace.ProjectFilesFragment;
 import pro.sketchware.R;
 import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.TranslationFunction;
@@ -50,17 +50,18 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
     private static final int REQUEST_CODE_ADD_CUSTOM_VIEW = 266;
     private final int[] x = new int[19];
     // signature mustn't be changed: used in La/a/a/Bw;->a(Landroidx/recyclerview/widget/RecyclerView;II)V, La/a/a/tw;->a(Landroidx/recyclerview/widget/RecyclerView;II)V
+
     public FloatingActionButton s;
     private MaterialCardView actionButtonsContainer;
     private boolean selecting = false;
     private String isAppCompatEnabled = "N";
-    private Fw activitiesFragment;
-    private xw customViewsFragment;
+    private ActivityViewManagerFragment activitiesFragment;
+    private ProjectFilesFragment customViewsFragment;
     private ViewPager viewPager;
     private String sc_id;
 
     public final String a(int var1, String var2) {
-        String var3 = wq.b(var1);
+        String var3 = WorkspacePathManager.b(var1);
         StringBuilder var4 = new StringBuilder();
         var4.append(var3);
         int[] var5 = x;
@@ -68,7 +69,7 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
         var5[var1] = var6;
         var4.append(var6);
         String var9 = var4.toString();
-        ArrayList<ViewBean> var12 = jC.a(sc_id).d(var2);
+        ArrayList<ViewBean> var12 = ProjectDataManagerRegistry.a(sc_id).d(var2);
         var2 = var9;
 
         while (true) {
@@ -112,17 +113,18 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
     }
 
     public final void a(ProjectFileBean var1, ArrayList<ViewBean> var2) {
-        jC.a(sc_id);
+        ProjectDataManagerRegistry.a(sc_id);
         for (ViewBean viewBean : pro.sketchware.utility.ViewHierarchy.sorted(var2)) {
             viewBean.id = a(viewBean.type, var1.getXmlName());
-            jC.a(sc_id).a(var1.getXmlName(), viewBean);
+            ProjectDataManagerRegistry.a(sc_id).a(var1.getXmlName(), viewBean);
             if (viewBean.type == ViewBean.VIEW_TYPE_WIDGET_BUTTON && var1.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY) {
-                jC.a(sc_id).a(var1.getJavaName(), EventBean.EVENT_TYPE_VIEW, viewBean.type, viewBean.id, "onClick");
+                ProjectDataManagerRegistry.a(sc_id).a(var1.getJavaName(), EventBean.EVENT_TYPE_VIEW, viewBean.type, viewBean.id, "onClick");
             }
         }
     }
 
     // signature mustn't be changed: used in La/a/a/Dw;->onLongClick(Landroid/view/View;)Z, La/a/a/vw;->onLongClick(Landroid/view/View;)Z
+
     public void a(boolean var1) {
         selecting = var1;
         invalidateOptionsMenu();
@@ -148,12 +150,14 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
     }
 
     // signature mustn't be changed: used in La/a/a/Fw;->b(Lcom/besome/sketch/beans/ProjectFileBean;)V
+
     public void b(String var1) {
         customViewsFragment.a(var1);
         customViewsFragment.g();
     }
 
     // signature mustn't be changed: used in La/a/a/Fw;->b(Lcom/besome/sketch/beans/ProjectFileBean;)V, La/a/a/Fw;->f()V
+
     public void c(String var1) {
         customViewsFragment.b(var1);
         customViewsFragment.g();
@@ -165,11 +169,11 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
      */
     private void forgetLogicOfDeletedLayouts() {
         java.util.Set<String> removed = new java.util.HashSet<>();
-        for (ProjectFileBean file : jC.b(sc_id).b()) removed.add(file.getXmlName());
-        for (ProjectFileBean file : jC.b(sc_id).c()) removed.add(file.getXmlName());
+        for (ProjectFileBean file : ProjectDataManagerRegistry.b(sc_id).b()) removed.add(file.getXmlName());
+        for (ProjectFileBean file : ProjectDataManagerRegistry.b(sc_id).c()) removed.add(file.getXmlName());
         for (ProjectFileBean file : activitiesFragment.c()) removed.remove(file.getXmlName());
         for (ProjectFileBean file : customViewsFragment.c()) removed.remove(file.getXmlName());
-        pro.sketchware.utility.IncludedViews.forgetLogicReachedThroughLayouts(jC.a(sc_id), activitiesFragment.c(), removed);
+        pro.sketchware.utility.IncludedViews.forgetLogicReachedThroughLayouts(ProjectDataManagerRegistry.a(sc_id), activitiesFragment.c(), removed);
     }
 
     public ArrayList<String> l() {
@@ -191,11 +195,11 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
 
     public final void m() {
         forgetLogicOfDeletedLayouts();
-        jC.b(sc_id).a(activitiesFragment.c());
-        jC.b(sc_id).b(customViewsFragment.c());
-        jC.b(sc_id).l();
-        jC.b(sc_id).j();
-        jC.a(sc_id).a(jC.b(sc_id));
+        ProjectDataManagerRegistry.b(sc_id).a(activitiesFragment.c());
+        ProjectDataManagerRegistry.b(sc_id).b(customViewsFragment.c());
+        ProjectDataManagerRegistry.b(sc_id).l();
+        ProjectDataManagerRegistry.b(sc_id).j();
+        ProjectDataManagerRegistry.a(sc_id).a(ProjectDataManagerRegistry.b(sc_id));
     }
 
     @Override
@@ -211,7 +215,7 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
                 }
 
                 if (projectFileBean.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_DRAWER) || projectFileBean.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_FAB)) {
-                    jC.c(sc_id).c().useYn = "Y";
+                    ProjectDataManagerRegistry.c(sc_id).c().useYn = "Y";
                 }
 
                 if (data.hasExtra("preset_views")) {
@@ -246,7 +250,7 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             int viewId = v.getId();
             if (viewId == R.id.btn_cancel) {
                 if (selecting) {
@@ -259,7 +263,7 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
                     a(false);
                     activitiesFragment.g();
                     customViewsFragment.g();
-                    bB.a(getApplicationContext(), getString(R.string.common_message_complete_delete), bB.TOAST_WARNING).show();
+                    ToastFactory.a(getApplicationContext(), getString(R.string.common_message_complete_delete), ToastFactory.TOAST_WARNING).show();
                     s.show();
                 }
             } else if (viewId == R.id.fab) {
@@ -345,7 +349,7 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
         super.onSaveInstanceState(newState);
     }
 
-    private static class a extends MA {
+    private static class a extends BackgroundTask {
         private final WeakReference<ManageViewActivity> activity;
 
         public a(ManageViewActivity activity) {
@@ -368,14 +372,14 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
         }
 
         @Override
-        public void b() throws By {
+        public void b() throws ProjectSettingsStore {
             var activity = this.activity.get();
             try {
                 publishProgress(activity.getString(R.string.common_message_progress));
                 activity.m();
             } catch (Exception e) {
                 e.printStackTrace();
-                throw new By(activity.getString(R.string.common_error_unknown));
+                throw new ProjectSettingsStore(activity.getString(R.string.common_error_unknown));
             }
         }
 
@@ -404,9 +408,9 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
         public Object instantiateItem(@NonNull ViewGroup container, int position) {
             Fragment var3 = (Fragment) super.instantiateItem(container, position);
             if (position != 0) {
-                customViewsFragment = (xw) var3;
+                customViewsFragment = (ProjectFilesFragment) var3;
             } else {
-                activitiesFragment = (Fw) var3;
+                activitiesFragment = (ActivityViewManagerFragment) var3;
             }
 
             return var3;
@@ -415,7 +419,7 @@ public class ManageViewActivity extends BaseAppCompatActivity implements OnClick
         @Override
         @NonNull
         public Fragment getItem(int position) {
-            return position != 0 ? new xw() : new Fw();
+            return position != 0 ? new ProjectFilesFragment() : new ActivityViewManagerFragment();
         }
     }
 }

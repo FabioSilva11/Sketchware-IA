@@ -1,4 +1,5 @@
 // ImportIconActivity.java
+
 package pro.sketchware.activities.importicon;
 
 import android.app.Activity;
@@ -48,12 +49,12 @@ import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-import a.a.a.MA;
-import a.a.a.WB;
-import a.a.a.mB;
-import a.a.a.oB;
-import a.a.a.uq;
-import a.a.a.wq;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.lib.validator.SimpleNameInputValidator;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.activities.importicon.adapters.IconAdapter;
@@ -77,7 +78,7 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
     private static final int PAGE_OLD_ICONS = 1;
     private static final int ITEMS_PER_PAGE = 40;
     private String iconName;
-    private WB iconNameValidator;
+    private SimpleNameInputValidator iconNameValidator;
     private MenuItem search;
     private SearchView searchView;
     private final OnBackPressedCallback searchViewCloser = new OnBackPressedCallback(true) {
@@ -129,22 +130,22 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
     }
 
     private boolean doExtractedIconsExist() {
-        return new oB().e(wq.getExtractedIconPackStoreLocation());
+        return new FileCryptoUtils().e(WorkspacePathManager.getExtractedIconPackStoreLocation());
     }
 
     private boolean doExtractedLucideIconsExist() {
-        File iconsDirectory = new File(wq.getExtractedLucideIconPackStoreLocation(), "icons");
+        File iconsDirectory = new File(WorkspacePathManager.getExtractedLucideIconPackStoreLocation(), "icons");
         File[] svgFiles = iconsDirectory.listFiles((dir, name) -> name.endsWith(".svg"));
         return svgFiles != null && svgFiles.length > 0;
     }
 
     private void extractIcons() {
-        extractAssetZip("icons" + File.separator + "icon_pack.zip", wq.getExtractedIconPackStoreLocation());
+        extractAssetZip("icons" + File.separator + "icon_pack.zip", WorkspacePathManager.getExtractedIconPackStoreLocation());
     }
 
     private void extractLucideIcons() {
-        FileUtil.deleteFile(wq.getExtractedLucideIconPackStoreLocation());
-        extractAssetZip("icons" + File.separator + "lucide_icons.zip", wq.getExtractedLucideIconPackStoreLocation());
+        FileUtil.deleteFile(WorkspacePathManager.getExtractedLucideIconPackStoreLocation());
+        extractAssetZip("icons" + File.separator + "lucide_icons.zip", WorkspacePathManager.getExtractedLucideIconPackStoreLocation());
         if (!doExtractedLucideIconsExist()) {
             Log.e("icons", "Lucide icon pack extracted with no SVG files in icons/");
         }
@@ -202,7 +203,7 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
     }
 
     private void normalizeExtractedLucideIcons() {
-        File iconsDirectory = new File(wq.getExtractedLucideIconPackStoreLocation(), "icons");
+        File iconsDirectory = new File(WorkspacePathManager.getExtractedLucideIconPackStoreLocation(), "icons");
         if (!iconsDirectory.isDirectory()) {
             Log.e("icons", "Lucide icons directory is missing: " + iconsDirectory.getAbsolutePath());
             return;
@@ -255,7 +256,7 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(true);
         toolbar.setNavigationOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 onBackPressed();
             }
         });
@@ -332,7 +333,7 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
         newIconsPage.allIconPaths.clear();
         oldIconsPage.allIconPaths.clear();
 
-        String iconPackStoreLocation = wq.getExtractedIconPackStoreLocation() + File.separator + "svg/";
+        String iconPackStoreLocation = WorkspacePathManager.getExtractedIconPackStoreLocation() + File.separator + "svg/";
         try (Stream<Path> iconFiles = Files.list(Paths.get(iconPackStoreLocation))) {
             iconFiles.filter(Files::isDirectory)
                     .sorted()
@@ -345,7 +346,7 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
         } catch (IOException e) {
             Log.e("icons", "Failed to list old icons from " + iconPackStoreLocation, e);
         }
-        String lucideIconPackStoreLocation = wq.getExtractedLucideIconPackStoreLocation() + File.separator + "icons/";
+        String lucideIconPackStoreLocation = WorkspacePathManager.getExtractedLucideIconPackStoreLocation() + File.separator + "icons/";
         try (Stream<Path> iconFiles = Files.list(Paths.get(lucideIconPackStoreLocation))) {
             iconFiles.filter(path -> path.getFileName().toString().endsWith(".svg"))
                     .sorted()
@@ -659,9 +660,10 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
 
         svgUtils.loadImage(dialogBinding.icon, resolveIconFilePath(icon));
         dialogBinding.icon.setColorFilter(selected_color, PorterDuff.Mode.SRC_IN);
-        iconNameValidator = new WB(getApplicationContext(), dialogBinding.textInputLayout, uq.b, alreadyAddedImageNames);
+        iconNameValidator = new SimpleNameInputValidator(getApplicationContext(), dialogBinding.textInputLayout, ComponentNameRegistry.b, alreadyAddedImageNames);
         dialogBinding.licenceInfo.setOnClickListener(v -> {
             Uri webpage = Uri.parse("https://www.apache.org/licenses/LICENSE-2.0.txt");
+
             Intent intent = new Intent(Intent.ACTION_VIEW, webpage);
             if (intent.resolveActivity(getPackageManager()) != null) {
                 startActivity(intent);
@@ -686,7 +688,7 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
 
     @Override
     public void onIconSelected(Pair<String, String> icon, int position) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             selectedIconPosition = position;
             selectedIcon = icon;
             setIconName(icon);
@@ -694,7 +696,7 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
         }
     }
 
-    private static class InitialIconLoader extends MA {
+    private static class InitialIconLoader extends BackgroundTask {
         private final WeakReference<ImportIconActivity> activity;
 
         public InitialIconLoader(ImportIconActivity activity) {
@@ -729,7 +731,7 @@ public class ImportIconActivity extends BaseAppCompatActivity implements IconAda
 
     }
 
-    private static class IconColorChangedIconLoader extends MA {
+    private static class IconColorChangedIconLoader extends BackgroundTask {
         private final WeakReference<ImportIconActivity> activity;
 
         public IconColorChangedIconLoader(ImportIconActivity activity) {

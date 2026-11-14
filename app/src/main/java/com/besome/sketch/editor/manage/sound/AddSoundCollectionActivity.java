@@ -21,13 +21,13 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import a.a.a.HB;
-import a.a.a.Qp;
-import a.a.a.WB;
-import a.a.a.bB;
-import a.a.a.uq;
-import a.a.a.wq;
-import a.a.a.yy;
+import pro.sketchware.filemanagers.DocumentUriUtils;
+import pro.sketchware.filemanagers.AnimationResourceManager;
+import pro.sketchware.lib.validator.SimpleNameInputValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.StringListStore;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageSoundAddBinding;
@@ -37,7 +37,7 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
 
     public MediaPlayer G;
     public TimerTask I;
-    public WB M;
+    public SimpleNameInputValidator M;
     public ArrayList<ProjectResourceBean> N;
     public String t;
     public boolean u;
@@ -88,7 +88,7 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
                 return;
             }
             K = data;
-            if (HB.a(this, K) == null) {
+            if (DocumentUriUtils.a(this, K) == null) {
                 return;
             }
             a(data);
@@ -136,7 +136,7 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
         }
         binding.layoutControl.setVisibility(View.GONE);
         binding.tiInput.setHint(R.string.design_manager_sound_hint_enter_sound_name);
-        M = new WB(this, binding.tiInput, uq.b, getResourceNames());
+        M = new SimpleNameInputValidator(this, binding.tiInput, ComponentNameRegistry.b, getResourceNames());
         binding.play.setEnabled(false);
         binding.play.setOnClickListener(this);
         binding.seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -168,7 +168,7 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
         s.setOnClickListener(this);
         if (u) {
             e(getString(R.string.design_manager_sound_title_edit_sound_name));
-            M = new WB(this, binding.tiInput, uq.b, getResourceNames(), O.resName);
+            M = new SimpleNameInputValidator(this, binding.tiInput, ComponentNameRegistry.b, getResourceNames(), O.resName);
             binding.edInput.setText(O.resName);
             f(a(O));
         }
@@ -200,7 +200,7 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
         if (a(M)) {
             if (!u) {
                 String obj = Helper.getText(binding.edInput);
-                String a = HB.a(this, K);
+                String a = DocumentUriUtils.a(this, K);
                 if (a == null) {
                     return;
                 }
@@ -208,12 +208,12 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
                 projectResourceBean.savedPos = 1;
                 projectResourceBean.isNew = true;
                 try {
-                    Qp.g().a(t, projectResourceBean);
-                    bB.a(this, getApplicationContext().getString(R.string.design_manager_message_add_complete), 1).show();
+                    AnimationResourceManager.g().a(t, projectResourceBean);
+                    ToastFactory.a(this, getApplicationContext().getString(R.string.design_manager_message_add_complete), 1).show();
                 } catch (Exception e) {
                     // the bytecode's lying
                     // noinspection ConstantValue
-                    if (e instanceof yy) {
+                    if (e instanceof StringListStore) {
                         var messageId = switch (e.getMessage()) {
                             case "duplicate_name" -> R.string.collection_duplicated_name;
                             case "file_no_exist" -> R.string.collection_no_exist_file;
@@ -221,15 +221,15 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
                             default -> 0;
                         };
                         if (messageId != 0) {
-                            bB.a(this, getApplicationContext().getString(messageId), bB.TOAST_WARNING).show();
+                            ToastFactory.a(this, getApplicationContext().getString(messageId), ToastFactory.TOAST_WARNING).show();
                         }
                     } else {
                         throw e;
                     }
                 }
             } else {
-                Qp.g().a(O, Helper.getText(binding.edInput), true);
-                bB.a(this, getApplicationContext().getString(R.string.design_manager_message_edit_complete), 1).show();
+                AnimationResourceManager.g().a(O, Helper.getText(binding.edInput), true);
+                ToastFactory.a(this, getApplicationContext().getString(R.string.design_manager_message_edit_complete), 1).show();
             }
             finish();
         }
@@ -255,7 +255,7 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
     }
 
     private String a(ProjectResourceBean projectResourceBean) {
-        return wq.a() + File.separator + "sound" + File.separator + "data" + File.separator + O.resFullName;
+        return WorkspacePathManager.a() + File.separator + "sound" + File.separator + "data" + File.separator + O.resFullName;
     }
 
     private void f(String str) {
@@ -298,7 +298,7 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
     }
 
     private void a(Uri uri) {
-        String a = HB.a(this, uri);
+        String a = DocumentUriUtils.a(this, uri);
         K = uri;
         try {
             if (G != null) {
@@ -332,7 +332,7 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
             G.setDataSource(this, uri);
             G.prepare();
             L = true;
-            a(HB.a(this, K), binding.imgAlbum);
+            a(DocumentUriUtils.a(this, K), binding.imgAlbum);
             binding.layoutControl.setVisibility(View.VISIBLE);
             binding.layoutGuide.setVisibility(View.GONE);
             try {
@@ -369,7 +369,7 @@ public class AddSoundCollectionActivity extends BaseDialogActivity implements Vi
         }
     }
 
-    public boolean a(WB wb) {
+    public boolean a(SimpleNameInputValidator wb) {
         if (wb.b()) {
             if ((!L || K == null) && !u) {
                 binding.selectFile.startAnimation(AnimationUtils.loadAnimation(this, R.anim.ani_1));

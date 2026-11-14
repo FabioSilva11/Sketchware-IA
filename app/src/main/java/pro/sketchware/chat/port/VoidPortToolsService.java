@@ -80,6 +80,7 @@ public final class VoidPortToolsService {
                         status = pro.sketchware.chat.ChatPlanManager.STATUS_RUNNING;
                     } else if (!"pending".equals(statusToken)) {
                         // No recognised status prefix — treat the whole line as a title.
+
                         title = trimmed;
                     }
                 }
@@ -98,8 +99,11 @@ public final class VoidPortToolsService {
     }
 
     // ============================================
+
     // VALIDATION HELPERS
+
     // ============================================
+
 
     private static boolean isFalsy(Object value) {
         return value == null || "null".equals(String.valueOf(value)) || "undefined".equals(String.valueOf(value));
@@ -161,8 +165,11 @@ public final class VoidPortToolsService {
     }
 
     // ============================================
+
     // TOOL CALL RESULTS
+
     // ============================================
+
 
     public static class ToolCallResult {
         public final String result;
@@ -210,8 +217,11 @@ public final class VoidPortToolsService {
     }
 
     // ============================================
+
     // FILE TOOLS
+
     // ============================================
+
 
     public static ToolCallResult readFile(String scId, Object uriObj, Object startLineObj, Object endLineObj, Object pageNumberObj) {
         try {
@@ -385,8 +395,11 @@ public final class VoidPortToolsService {
     }
 
     // ============================================
+
     // SEARCH TOOLS
+
     // ============================================
+
 
     public static ToolCallResult searchPathnamesOnly(String scId, Object queryObj, Object includePatternObj, Object pageNumberObj) {
         try {
@@ -487,8 +500,11 @@ public final class VoidPortToolsService {
     }
 
     // ============================================
+
     // EDIT TOOLS
+
     // ============================================
+
 
     public static ToolCallResult rewriteFile(String scId, Object uriObj, Object newContentObj) {
         try {
@@ -558,9 +574,13 @@ public final class VoidPortToolsService {
             boolean isFolder = checkIfIsFolder(uriStr);
 
             // Single source of truth: creations go through the active
+
             // WorkspaceFileSystem (SAF or local folder), never through
+
             // java.io.File. ProjectPathResolver below is only a fallback for
+
             // sessions with no workspace open.
+
             WorkspaceFileSystem ws = pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveFileSystem();
             if (ws != null) {
                 return createThroughWorkspace(scId, ws, uriStr, isFolder);
@@ -586,6 +606,7 @@ public final class VoidPortToolsService {
                     return new ToolCallResult("Error: failed to create file: " + uriStr);
                 }
                 // existedBefore=false: rejecting this change must delete the file.
+
                 FileChangeTracker.trackChange(scId, uriStr, "", "", false);
             }
 
@@ -604,7 +625,9 @@ public final class VoidPortToolsService {
     private static ToolCallResult createThroughWorkspace(String scId, WorkspaceFileSystem ws,
                                                          String uriStr, boolean isFolder) {
         // The workspace filesystem only serves relative paths: absolute paths,
+
         // drive letters and backslashes never name a workspace entry.
+
         if (uriStr.startsWith("/") || uriStr.contains(":") || uriStr.contains("\\")) {
             return new ToolCallResult("Error: refusing to create an absolute or unsafe path: " + uriStr);
         }
@@ -617,6 +640,7 @@ public final class VoidPortToolsService {
         }
         if (ws.exists(path)) {
             // Already exists: idempotent success, nothing was mutated.
+
             return new ToolCallResult("{}");
         }
 
@@ -634,6 +658,7 @@ public final class VoidPortToolsService {
 
         if (!isFolder) {
             // existedBefore=false: reverting this change must delete the file.
+
             FileChangeTracker.trackChange(scId, uriStr, "", "", false);
         }
         return new ToolCallResult("{}");
@@ -645,17 +670,24 @@ public final class VoidPortToolsService {
             boolean isRecursive = validateBoolean(isRecursiveObj, false);
 
             // Single source of truth: mutations go through the active WorkspaceFileSystem
+
             // (SAF or local folder), never straight through java.io.File. The legacy
+
             // ProjectPathResolver path below is only a fallback for sessions with no
+
             // workspace open.
+
             WorkspaceFileSystem ws = pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveFileSystem();
             if (ws != null) {
                 return deleteThroughWorkspace(scId, ws, uriStr, isRecursive);
             }
 
             // Root aliases are useful for project discovery, but must never be accepted by
+
             // a destructive tool. In particular, "/" resolves to the active project root
+
             // for read-only tools such as get_dir_tree.
+
             if (isUnsafeMutationRoot(uriStr)) {
                 return new ToolCallResult("Error: refusing to delete the active project root: " + uriStr);
             }
@@ -709,7 +741,9 @@ public final class VoidPortToolsService {
     private static ToolCallResult deleteThroughWorkspace(String scId, WorkspaceFileSystem ws,
                                                          String uriStr, boolean isRecursive) {
         // The workspace filesystem only serves relative paths: absolute paths,
+
         // drive letters and backslashes never name a workspace entry.
+
         if (uriStr.startsWith("/") || uriStr.contains(":") || uriStr.contains("\\")) {
             return new ToolCallResult("Error: refusing to delete an absolute or unsafe path: " + uriStr);
         }
@@ -920,6 +954,7 @@ public final class VoidPortToolsService {
                     return new ToolCallResult(obj.toString());
                 }
                 // The run's workspace is the whole scope: no fallback that could reach another project
+
                 return new ToolCallResult("File not found or outside the project: " + uri);
             }
             ProjectPathResolver.ResolvedPath resolved = ProjectPathResolver.resolveForRead(scId, uri);
@@ -961,8 +996,11 @@ public final class VoidPortToolsService {
     }
 
     // ============================================
+
     // HELPER METHODS
+
     // ============================================
+
 
     private static String sliceLines(String content, Integer startLine, Integer endLine) {
         if (content == null || content.isEmpty()) {
@@ -1060,12 +1098,16 @@ public final class VoidPortToolsService {
     }
 
     // ============================================
+
     // TOOL REGISTRY FOR MCP
+
     // ============================================
+
 
     public static JSONArray getAllToolsAsMCP() {
         JSONArray array = new JSONArray();
         // File tools
+
         array.put(createToolMCP("read_file",
             "Returns full contents of a given file.",
             new String[]{"uri"}, new String[]{"start_line", "end_line", "page_number"}));
@@ -1079,6 +1121,7 @@ public final class VoidPortToolsService {
             new String[]{}, new String[]{"uri"}));
 
         // Search tools
+
         array.put(createToolMCP("search_pathnames_only",
             "Returns all pathnames that match a given query (searches ONLY file names). You should use this when looking for a file with a specific name or path.",
             new String[]{"query"}, new String[]{"include_pattern", "page_number"}));
@@ -1092,6 +1135,7 @@ public final class VoidPortToolsService {
             new String[]{"uri", "query"}, new String[]{"is_regex"}));
 
         // Edit tools
+
         array.put(createToolMCP("create_file_or_folder",
             "Create a file or folder at the given path. To create a folder, the path MUST end with a trailing slash.",
             new String[]{"uri"}, null));
@@ -1240,8 +1284,11 @@ public final class VoidPortToolsService {
     }
 
     // ============================================
+
     // MAIN TOOL EXECUTOR
+
     // ============================================
+
 
     /** What a tool call gives the model, and whether it failed (the chat shows failed calls as errors). */
     public static final class ToolOutcome {
@@ -1323,6 +1370,7 @@ public final class VoidPortToolsService {
                     Object includePattern = args.opt("include_pattern") != null ? args.opt("include_pattern") : args.opt("includePattern");
                     if (includePattern == null) {
                         includePattern = args.opt("search_in_folder"); // Fallback
+
                     }
                     result = searchPathnamesOnly(scId,
                         args.opt("query"),
@@ -1472,6 +1520,7 @@ public final class VoidPortToolsService {
                     
                     String uri = args.optString("uri");
                     String content = readFileDirect("", uri); // scId ignored if absolute
+
                     String[] allLines = content != null ? content.split("\n", -1) : new String[0];
                     
                     StringBuilder sb = new StringBuilder();
@@ -1492,6 +1541,7 @@ public final class VoidPortToolsService {
                 case "edit_file":
                 case "rewrite_file":
                     // No linter runs on the phone: errors only show up when the project is compiled
+
                     return String.format("Change successfully made to %s.", args.optString("uri"));
 
                 case "move_file":
@@ -1508,6 +1558,7 @@ public final class VoidPortToolsService {
             }
         } catch (Exception e) {
             return result.result; // Fallback to raw result if parsing fails
+
         }
     }
 

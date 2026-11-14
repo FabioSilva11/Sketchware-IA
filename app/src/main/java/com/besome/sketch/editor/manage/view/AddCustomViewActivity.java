@@ -15,10 +15,10 @@ import com.google.android.material.textfield.TextInputLayout;
 import java.util.ArrayList;
 import java.util.Objects;
 
-import a.a.a.YB;
-import a.a.a.bB;
-import a.a.a.rq;
-import a.a.a.uq;
+import pro.sketchware.editor.ViewNameValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectDataProvider;
+import pro.sketchware.editor.ComponentNameRegistry;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -27,7 +27,7 @@ public class AddCustomViewActivity extends BaseDialogActivity implements View.On
 
     public static final int REQ_CD_PRESET_ACTIVITY = 277;
     private TextInputEditText customViewName;
-    private YB viewNameValidator;
+    private ViewNameValidator viewNameValidator;
     private String presetName;
 
     @Override
@@ -44,7 +44,7 @@ public class AddCustomViewActivity extends BaseDialogActivity implements View.On
         ((TextInputLayout) findViewById(R.id.ti_input)).setHint(Helper.getResString(R.string.design_manager_view_hint_enter_view_name));
         TextView description = findViewById(R.id.tv_desc);
         description.setText(Helper.getResString(R.string.design_manager_view_description_guide_use_custom_view));
-        viewNameValidator = new YB(this, findViewById(R.id.ti_input), uq.b, alreadyInUseNames);
+        viewNameValidator = new ViewNameValidator(this, findViewById(R.id.ti_input), ComponentNameRegistry.b, alreadyInUseNames);
         super.r.setOnClickListener(this);
         super.s.setOnClickListener(this);
     }
@@ -72,7 +72,7 @@ public class AddCustomViewActivity extends BaseDialogActivity implements View.On
             }
 
             setResult(RESULT_OK, intent);
-            bB.a(getApplicationContext(), Helper.getResString(R.string.design_manager_message_add_complete), 0).show();
+            ToastFactory.a(getApplicationContext(), Helper.getResString(R.string.design_manager_message_add_complete), 0).show();
             finish();
         } else if (id == R.id.common_dialog_default_button) {
             Intent intent = new Intent(getApplicationContext(), PresetSettingActivity.class);
@@ -84,6 +84,6 @@ public class AddCustomViewActivity extends BaseDialogActivity implements View.On
     }
 
     private ArrayList<ViewBean> getPresetData(String presetName) {
-        return rq.b(presetName);
+        return ProjectDataProvider.b(presetName);
     }
 }

@@ -5,21 +5,22 @@ import org.json.JSONArray;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import a.a.a.Hx;
+import pro.sketchware.compiler.ActivityEventCodeGenerator;
 import pro.sketchware.utility.FileUtil;
 
 public class ComponentExtraCode {
 
     public final StringBuilder b;
-    public final Hx hx;
+    public final ActivityEventCodeGenerator hx;
 
-    public ComponentExtraCode(Hx h, StringBuilder st) {
+    public ComponentExtraCode(ActivityEventCodeGenerator h, StringBuilder st) {
         b = st;
         hx = h;
     }
 
     public void s(String str) {
         // Aldi's original Components
+
         if (str.contains("DatePickerFragment")) {
             hx.l = str;
             return;
@@ -44,6 +45,7 @@ public class ComponentExtraCode {
         }
 
         // Hilal's components
+
         String path = FileUtil.getExternalStorageDir().concat("/.sketchware/data/system/listeners.json");
         try {
             if (FileUtil.isExistFile(path) && !FileUtil.readFile(path).isEmpty() && !FileUtil.readFile(path).equals("[]")) {
@@ -78,6 +80,7 @@ public class ComponentExtraCode {
 
 
         ///others
+
         if (b.length() > 0 && !str.isEmpty()) {
             b.append("\r\n");
             b.append("\r\n");

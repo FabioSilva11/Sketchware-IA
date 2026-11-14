@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 
-import a.a.a.Vs;
+import pro.sketchware.editor.SizeChangeListener;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.PalettesSearchDialogBinding;
@@ -56,13 +56,14 @@ public class PaletteSelector extends RecyclerView {
     private String searchValue = "";
     private PaletteSelectorAdapter paletteAdapter;
     private List<paletteSelectorRecord> allPalettes;
+    private List<paletteSelectorRecord> customPalettes;
 
     public PaletteSelector(Context context, AttributeSet attrs) {
         super(context, attrs);
         this.context = context;
     }
 
-    private void initialize(Vs onBlockCategorySelectListener) {
+    private void initialize(SizeChangeListener onBlockCategorySelectListener) {
         paletteAdapter = new PaletteSelectorAdapter(this, onBlockCategorySelectListener);
         setAdapter(paletteAdapter);
 
@@ -71,8 +72,34 @@ public class PaletteSelector extends RecyclerView {
         );
     }
 
+    public void setCustomPalettes(int[] ids, String[] names, int[] colors) {
+        if (ids == null || names == null || colors == null) {
+            this.customPalettes = null;
+        } else {
+            int count = Math.min(ids.length, Math.min(names.length, colors.length));
+            List<paletteSelectorRecord> list = new ArrayList<>(count);
+            for (int i = 0; i < count; i++) {
+                list.add(new paletteSelectorRecord(ids[i], names[i], colors[i]));
+            }
+            this.customPalettes = list;
+        }
+        this.searchValue = "";
+        if (paletteAdapter != null) {
+            initializePalettes();
+        }
+    }
+
     private void initializePalettes() {
         allPalettes = new ArrayList<>();
+
+        if (customPalettes != null) {
+            allPalettes.addAll(customPalettes);
+            paletteAdapter.setPalettes(allPalettes);
+            if (paletteAdapter.getItemCount() > 0) {
+                paletteAdapter.selectPosition(0);
+            }
+            return;
+        }
 
         for (int i = 0; i < MainCategoriesNames.length; i++) {
             allPalettes.add(new paletteSelectorRecord(MainCategoriesIds[i], MainCategoriesNames[i], MainCategoriesColors[i]));
@@ -149,7 +176,7 @@ public class PaletteSelector extends RecyclerView {
         );
     }
 
-    public void setOnBlockCategorySelectListener(Vs listener) {
+    public void setOnBlockCategorySelectListener(SizeChangeListener listener) {
         initialize(listener);
     }
 

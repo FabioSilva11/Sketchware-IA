@@ -12,9 +12,9 @@ import android.widget.TextView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import a.a.a.Kw;
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.PropertyPopupInputIndentBinding;
@@ -48,7 +48,7 @@ public class PropertyIndentItem extends RelativeLayout implements View.OnClickLi
     private int icon;
     private TextView tvName;
     private TextView tvValue;
-    private Kw valueChangeListener;
+    private ObjectChangeListener valueChangeListener;
 
     public PropertyIndentItem(Context context, boolean z) {
         super(context);
@@ -88,7 +88,7 @@ public class PropertyIndentItem extends RelativeLayout implements View.OnClickLi
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             switch (key) {
                 case "property_padding":
                 case "property_margin":
@@ -98,7 +98,7 @@ public class PropertyIndentItem extends RelativeLayout implements View.OnClickLi
         }
     }
 
-    public void setOnPropertyValueChangeListener(Kw onPropertyValueChangeListener) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener onPropertyValueChangeListener) {
         valueChangeListener = onPropertyValueChangeListener;
     }
 
@@ -118,16 +118,20 @@ public class PropertyIndentItem extends RelativeLayout implements View.OnClickLi
 
     private void initialize(Context context, boolean z) {
         this.context = context;
-        wB.a(context, this, R.layout.property_input_item);
+        ViewInflationUtils.a(context, this, R.layout.property_input_item);
         tvName = findViewById(R.id.tv_name);
         tvValue = findViewById(R.id.tv_value);
         imgLeftIcon = findViewById(R.id.img_left_icon);
         propertyItem = findViewById(R.id.property_item);
         propertyMenuItem = findViewById(R.id.property_menu_item);
 //        if (z) {
+
 //            propertyMenuItem.setSoundEffectsEnabled(true);
+
 //            propertyMenuItem.setOnClickListener(this);
+
 //        }
+
     }
 
     public void a(int left, int top, int right, int bottom) {
@@ -163,6 +167,7 @@ public class PropertyIndentItem extends RelativeLayout implements View.OnClickLi
         ti_bottom.a(String.valueOf(m));
 
         if (j == k && k == l && l == m) { // All sides are equal
+
             ti_all.a(String.valueOf(j));
             binding.chkPtyAll.setChecked(true);
         } else {

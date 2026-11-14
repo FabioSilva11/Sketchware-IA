@@ -11,8 +11,8 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.besome.sketch.lib.ui.PropertyOneLineItem;
 import com.besome.sketch.lib.ui.PropertyTwoLineItem;
 
-import a.a.a.GB;
-import a.a.a.mB;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.EditorViewUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ActivitySystemInfoBinding;
@@ -48,7 +48,7 @@ public class SystemInfoActivity extends BaseAppCompatActivity {
 
     private void addAndroidVersionNameInfo() {
         addInfo(1, Helper.getResString(R.string.system_information_title_android_version),
-                GB.b() + "(" + VERSION.RELEASE + ")");
+                DeviceEnvironmentUtils.b() + "(" + VERSION.RELEASE + ")");
     }
 
     private void addApiLevelInfo() {
@@ -62,7 +62,7 @@ public class SystemInfoActivity extends BaseAppCompatActivity {
         propertyOneLineItem.setName(Helper.getResString(R.string.system_information_developer_options));
         binding.content.addView(propertyOneLineItem);
         propertyOneLineItem.setOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 try {
                     Intent intent = new Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS);
                     startActivity(intent);
@@ -73,7 +73,7 @@ public class SystemInfoActivity extends BaseAppCompatActivity {
     }
 
     private void addScreenDpiInfo() {
-        float[] dpiXY = GB.b(this);
+        float[] dpiXY = DeviceEnvironmentUtils.b(this);
         addInfo(3, Helper.getResString(R.string.system_information_dpi), String.valueOf(dpiXY[0]));
     }
 
@@ -82,7 +82,7 @@ public class SystemInfoActivity extends BaseAppCompatActivity {
     }
 
     private void addScreenResolutionInfo() {
-        int[] widthHeight = GB.c(this);
+        int[] widthHeight = DeviceEnvironmentUtils.c(this);
         addInfo(2, Helper.getResString(R.string.system_information_system_resolution),
                 widthHeight[0] + " x " + widthHeight[1]);
     }

@@ -29,9 +29,9 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
-import a.a.a.MA;
-import a.a.a.jC;
-import a.a.a.mB;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.EditorViewUtils;
 import dev.aldi.sayuti.editor.manage.ManageLocalLibraryActivity;
 import mod.hey.studios.activity.managers.nativelib.ManageNativelibsActivity;
 import mod.hey.studios.util.Helper;
@@ -85,6 +85,7 @@ public class ManageLibraryActivity extends BaseAppCompatActivity implements View
         libraryItemView = new LibraryItemView(this);
         libraryItemView.setTag(libraryBean != null ? libraryBean.libType : null);
         //noinspection ConstantConditions since the variant if it's nullable handles nulls correctly
+
         libraryItemView.setData(libraryBean);
         libraryItemView.setOnClickListener(this);
 
@@ -116,6 +117,7 @@ public class ManageLibraryActivity extends BaseAppCompatActivity implements View
         }
         libraryItemView.setTag(type);
         //noinspection ConstantConditions since the variant if it's nullable handles nulls correctly
+
         libraryItemView.setOnClickListener(this);
         parent.addLibraryItem(libraryItemView, addDivider);
         libraryItems.add(libraryItemView);
@@ -208,16 +210,16 @@ public class ManageLibraryActivity extends BaseAppCompatActivity implements View
     }
 
     private void saveLibraryConfiguration() {
-        jC.c(sc_id).b(compatLibraryBean);
-        jC.c(sc_id).c(firebaseLibraryBean);
-        jC.c(sc_id).a(admobLibraryBean);
-        jC.c(sc_id).d(googleMapLibraryBean);
-        jC.c(sc_id).k();
-        jC.b(sc_id).a(jC.c(sc_id));
-        jC.a(sc_id).a(jC.b(sc_id));
-        jC.a(sc_id).a(firebaseLibraryBean);
-        jC.a(sc_id).a(admobLibraryBean, jC.b(sc_id));
-        jC.a(sc_id).b(googleMapLibraryBean, jC.b(sc_id));
+        ProjectDataManagerRegistry.c(sc_id).b(compatLibraryBean);
+        ProjectDataManagerRegistry.c(sc_id).c(firebaseLibraryBean);
+        ProjectDataManagerRegistry.c(sc_id).a(admobLibraryBean);
+        ProjectDataManagerRegistry.c(sc_id).d(googleMapLibraryBean);
+        ProjectDataManagerRegistry.c(sc_id).k();
+        ProjectDataManagerRegistry.b(sc_id).a(ProjectDataManagerRegistry.c(sc_id));
+        ProjectDataManagerRegistry.a(sc_id).a(ProjectDataManagerRegistry.b(sc_id));
+        ProjectDataManagerRegistry.a(sc_id).a(firebaseLibraryBean);
+        ProjectDataManagerRegistry.a(sc_id).a(admobLibraryBean, ProjectDataManagerRegistry.b(sc_id));
+        ProjectDataManagerRegistry.a(sc_id).b(googleMapLibraryBean, ProjectDataManagerRegistry.b(sc_id));
     }
 
     @Override
@@ -270,7 +272,7 @@ public class ManageLibraryActivity extends BaseAppCompatActivity implements View
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             Object tag = v.getTag();
 
             if (tag != null) {
@@ -356,25 +358,25 @@ public class ManageLibraryActivity extends BaseAppCompatActivity implements View
         super.onPostCreate(savedInstanceState);
 
         if (savedInstanceState == null) {
-            compatLibraryBean = jC.c(sc_id).c();
+            compatLibraryBean = ProjectDataManagerRegistry.c(sc_id).c();
             if (compatLibraryBean == null) {
                 compatLibraryBean = new ProjectLibraryBean(ProjectLibraryBean.PROJECT_LIB_TYPE_COMPAT);
             }
             originalCompatUseYn = compatLibraryBean.useYn;
 
-            firebaseLibraryBean = jC.c(sc_id).d();
+            firebaseLibraryBean = ProjectDataManagerRegistry.c(sc_id).d();
             if (firebaseLibraryBean == null) {
                 firebaseLibraryBean = new ProjectLibraryBean(ProjectLibraryBean.PROJECT_LIB_TYPE_FIREBASE);
             }
             originalFirebaseUseYn = firebaseLibraryBean.useYn;
 
-            admobLibraryBean = jC.c(sc_id).b();
+            admobLibraryBean = ProjectDataManagerRegistry.c(sc_id).b();
             if (admobLibraryBean == null) {
                 admobLibraryBean = new ProjectLibraryBean(ProjectLibraryBean.PROJECT_LIB_TYPE_ADMOB);
             }
             originalAdmobUseYn = admobLibraryBean.useYn;
 
-            googleMapLibraryBean = jC.c(sc_id).e();
+            googleMapLibraryBean = ProjectDataManagerRegistry.c(sc_id).e();
             if (googleMapLibraryBean == null) {
                 googleMapLibraryBean = new ProjectLibraryBean(ProjectLibraryBean.PROJECT_LIB_TYPE_GOOGLE_MAP);
             }
@@ -438,7 +440,7 @@ public class ManageLibraryActivity extends BaseAppCompatActivity implements View
         dialog.show();
     }
 
-    private static class SaveLibraryTask extends MA {
+    private static class SaveLibraryTask extends BackgroundTask {
 
         private final WeakReference<ManageLibraryActivity> activity;
 

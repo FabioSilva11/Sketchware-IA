@@ -24,7 +24,7 @@ import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import a.a.a.Rs;
+import pro.sketchware.editor.BlockView;
 import mod.hey.studios.editor.manage.block.ExtraBlockInfo;
 import mod.hey.studios.editor.manage.block.v2.BlockLoader;
 import mod.hey.studios.util.Helper;
@@ -65,7 +65,7 @@ public class CustomBlocksDialog {
 
             if (!customBlocks.isEmpty()) {
 
-                HashMap<Integer, Rs> preloadedBlocks = new HashMap<>();
+                HashMap<Integer, BlockView> preloadedBlocks = new HashMap<>();
                 for (int i = 0; i < customBlocks.size(); i++) {
                     BlockBean block = customBlocks.get(i);
                     preloadedBlocks.put(i, createBlock(context, block));
@@ -278,8 +278,8 @@ public class CustomBlocksDialog {
         return String.format("#%06X", (0xFFFFFF & color));
     }
 
-    private Rs createBlock(Context context, BlockBean blockBean) {
-        Rs block = new Rs(
+    private BlockView createBlock(Context context, BlockBean blockBean) {
+        BlockView block = new BlockView(
                 context,
                 Integer.parseInt(blockBean.id),
                 blockBean.spec,
@@ -294,10 +294,10 @@ public class CustomBlocksDialog {
     public class BlocksAdapter extends RecyclerView.Adapter<BlocksAdapter.ViewHolder> {
 
         private final ArrayList<BlockBean> blockBeans;
-        private final HashMap<Integer, Rs> preloadedBlocks;
+        private final HashMap<Integer, BlockView> preloadedBlocks;
 
         public BlocksAdapter(ArrayList<BlockBean> blockBeans,
-                             HashMap<Integer, Rs> preloadedBlocks) {
+                             HashMap<Integer, BlockView> preloadedBlocks) {
             this.blockBeans = blockBeans;
             this.preloadedBlocks = preloadedBlocks;
         }

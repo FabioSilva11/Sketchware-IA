@@ -33,22 +33,28 @@ public class StringsTabFragment extends Fragment {
     private ResourcesEditorFragmentBinding binding;
 
     // Main list (public alias for compatibility with callers that expect `listmap`)
+
     private final ArrayList<HashMap<String, Object>> stringsList = new ArrayList<>();
     public final ArrayList<HashMap<String, Object>> listmap = stringsList;
 
     // notes: we keep a key-based map for runtime stability, and an index-based map only when saving/loading
+
     private final HashMap<Integer, String> notesIndexMap = new HashMap<>(); // used temporarily while reading
+
     private final HashMap<String, String> notesByKey = new HashMap<>(); // stable map keyed by string key
+
 
     public StringsEditorManager stringsEditorManager = new StringsEditorManager();
 
     // Exposed so Activity can check/save as needed (like ResourcesEditorActivity does)
+
     public boolean hasUnsavedChanges;
     public String filePath;
 
     private StringsListAdapter adapter;
 
     // The app name is managed in Project Settings: it's kept out of the list but written back untouched.
+
     private static final String APP_NAME_KEY = "app_name";
     private HashMap<String, Object> appNameEntry;
     private String appNameNote;
@@ -65,17 +71,21 @@ public class StringsTabFragment extends Fragment {
         binding = ResourcesEditorFragmentBinding.inflate(inflater, container, false);
 
         // Make sure manager knows project id
+
         stringsEditorManager.sc_id = DesignActivity.sc_id;
 
         // Setup adapter first so updateStringsList can just notify it
+
         adapter = new StringsListAdapter(stringsList);
         binding.recyclerView.setAdapter(adapter);
 
         // default path
-        String baseDir = a.a.a.wq.b(DesignActivity.sc_id) + "/files/resource/values/";
+
+        String baseDir = pro.sketchware.workspace.WorkspacePathManager.b(DesignActivity.sc_id) + "/files/resource/values/";
         filePath = baseDir + "strings.xml";
 
         // initial load
+
         updateStringsList(filePath, 0, false);
 
         binding.fabAddString.setOnClickListener(v -> showAddStringDialog());
@@ -114,6 +124,7 @@ public class StringsTabFragment extends Fragment {
         stringsEditorManager.convertXmlStringsToListMap(FileUtil.readFileIfExist(filePath), imported);
 
         // build imported notes keyed by key (manager provides notes by index)
+
         HashMap<String, String> importedNotesByKey = new HashMap<>();
         notesIndexMap.clear();
         notesIndexMap.putAll(stringsEditorManager.notesMap);
@@ -134,20 +145,24 @@ public class StringsTabFragment extends Fragment {
 
         if (!isImport) {
             // normal load (replace)
+
             stringsList.clear();
             stringsList.addAll(imported);
             notesByKey.clear();
             notesByKey.putAll(importedNotesByKey);
         } else {
             // import/merge flow
+
             switch (mergeMode) {
                 case 0: // replace
+
                     stringsList.clear();
                     stringsList.addAll(imported);
                     notesByKey.clear();
                     notesByKey.putAll(importedNotesByKey);
                     break;
                 case 1: // merge & skip existing
+
                     HashSet<String> existingKeys = new HashSet<>();
                     for (HashMap<String, Object> m : stringsList) {
                         existingKeys.add(Objects.toString(m.get("key"), ""));
@@ -159,6 +174,7 @@ public class StringsTabFragment extends Fragment {
                         }
                     }
                     // merge notes but keep existing notes untouched
+
                     for (String k : importedNotesByKey.keySet()) {
                         if (!notesByKey.containsKey(k)) {
                             notesByKey.put(k, importedNotesByKey.get(k));
@@ -166,6 +182,7 @@ public class StringsTabFragment extends Fragment {
                     }
                     break;
                 case 2: // merge & replace existing
+
                     HashMap<String, Integer> indexByKey = new HashMap<>();
                     for (int i = 0; i < stringsList.size(); i++) {
                         indexByKey.put(Objects.toString(stringsList.get(i).get("key"), ""), i);
@@ -175,16 +192,19 @@ public class StringsTabFragment extends Fragment {
                         if (indexByKey.containsKey(k)) {
                             int pos = indexByKey.get(k);
                             // replace text (keep same map object)
+
                             stringsList.get(pos).put("text", m.get("text"));
                         } else {
                             stringsList.add(m);
                         }
                     }
                     // imported notes overwrite existing for replaced keys
+
                     notesByKey.putAll(importedNotesByKey);
                     break;
                 default:
                     // unknown mode — fallback to replace
+
                     stringsList.clear();
                     stringsList.addAll(imported);
                     notesByKey.clear();
@@ -196,6 +216,7 @@ public class StringsTabFragment extends Fragment {
         updateNoContentLayout();
 
         // after load from disk, there's no unsaved change (until user edits)
+
         hasUnsavedChanges = false;
     }
 
@@ -250,6 +271,7 @@ public class StringsTabFragment extends Fragment {
         adapter.notifyItemInserted(position);
 
         // Immediately save so changes persist across tab switches
+
         saveStringsFile();
     }
 
@@ -275,33 +297,40 @@ public class StringsTabFragment extends Fragment {
             }
 
             // check duplicate among other items
+
             if (!oldKey.equals(keyInput) && isDuplicateKey(keyInput, position)) {
                 SketchwareUtil.toastError("\"" + keyInput + "\" is already exist");
                 return;
             }
 
             // apply changes
+
             currentItem.put("key", keyInput);
             currentItem.put("text", valueInput);
 
             String note = Objects.requireNonNull(dialogBinding.stringHeaderInput.getText()).toString().trim();
 
             // if key changed, transfer or remove old note as appropriate
+
             if (!oldKey.equals(keyInput)) {
                 // move note from oldKey to new key if user didn't supply a new note
+
                 String existingOldNote = notesByKey.remove(oldKey);
                 if (note.isEmpty()) {
                     // If user left note empty, remove any old note (we already removed)
+
                 } else {
                     notesByKey.put(keyInput, note);
                 }
 
                 // if there was an old note and user didn't input a new one, keep old note under new key
+
                 if (!notesByKey.containsKey(keyInput) && existingOldNote != null && note.isEmpty()) {
                     notesByKey.put(keyInput, existingOldNote);
                 }
             } else {
                 // key unchanged
+
                 if (note.isEmpty()) {
                     notesByKey.remove(keyInput);
                 } else {
@@ -313,11 +342,13 @@ public class StringsTabFragment extends Fragment {
             hasUnsavedChanges = true;
 
             // immediate save
+
             saveStringsFile();
         });
 
         dialog.setNeutralButton(getString(R.string.common_word_delete), (d, which) -> {
             // delete item and its note
+
             stringsList.remove(position);
             notesByKey.remove(oldKey);
             adapter.notifyItemRemoved(position);
@@ -325,6 +356,7 @@ public class StringsTabFragment extends Fragment {
             hasUnsavedChanges = true;
 
             // immediate save after delete
+
             saveStringsFile();
         });
         dialog.setNegativeButton(getString(R.string.cancel), null);

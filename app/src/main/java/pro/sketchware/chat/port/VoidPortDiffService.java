@@ -50,11 +50,11 @@ public final class VoidPortDiffService {
         REMOVE
     }
 
-    private static final class Op {
+    private static final class SoundResourceManager {
         final OpType type;
         final String line;
 
-        Op(OpType type, String line) {
+        SoundResourceManager(OpType type, String line) {
             this.type = type;
             this.line = line == null ? "" : line;
         }
@@ -74,8 +74,11 @@ public final class VoidPortDiffService {
         String[] newLines = splitLines(newText);
 
         // Trim the common prefix/suffix before running the O(n·m) LCS. Most
+
         // edits touch a small region, so this lets even huge files fall inside
+
         // MAX_LCS_LINES and produce precise hunks instead of one whole-file diff.
+
         int prefix = 0;
         while (prefix < oldLines.length && prefix < newLines.length
                 && oldLines[prefix].equals(newLines[prefix])) {
@@ -92,6 +95,7 @@ public final class VoidPortDiffService {
 
         if (oldCore.length > MAX_LCS_LINES || newCore.length > MAX_LCS_LINES) {
             // Still too large: one hunk covering only the differing region.
+
             return Collections.singletonList(new ComputedDiff(
                     "edit",
                     prefix + 1,
@@ -153,7 +157,7 @@ public final class VoidPortDiffService {
         return builder.toString().trim();
     }
 
-    private static List<Op> toOperations(String[] oldLines, String[] newLines) {
+    private static List<SoundResourceManager> toOperations(String[] oldLines, String[] newLines) {
         int[][] lcs = new int[oldLines.length + 1][newLines.length + 1];
         for (int i = oldLines.length - 1; i >= 0; i--) {
             for (int j = newLines.length - 1; j >= 0; j--) {
@@ -165,33 +169,33 @@ public final class VoidPortDiffService {
             }
         }
 
-        List<Op> ops = new ArrayList<>();
+        List<SoundResourceManager> ops = new ArrayList<>();
         int i = 0;
         int j = 0;
         while (i < oldLines.length && j < newLines.length) {
             if (oldLines[i].equals(newLines[j])) {
-                ops.add(new Op(OpType.EQUAL, oldLines[i]));
+                ops.add(new SoundResourceManager(OpType.EQUAL, oldLines[i]));
                 i++;
                 j++;
             } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
-                ops.add(new Op(OpType.REMOVE, oldLines[i]));
+                ops.add(new SoundResourceManager(OpType.REMOVE, oldLines[i]));
                 i++;
             } else {
-                ops.add(new Op(OpType.ADD, newLines[j]));
+                ops.add(new SoundResourceManager(OpType.ADD, newLines[j]));
                 j++;
             }
         }
         while (i < oldLines.length) {
-            ops.add(new Op(OpType.REMOVE, oldLines[i++]));
+            ops.add(new SoundResourceManager(OpType.REMOVE, oldLines[i++]));
         }
         while (j < newLines.length) {
-            ops.add(new Op(OpType.ADD, newLines[j++]));
+            ops.add(new SoundResourceManager(OpType.ADD, newLines[j++]));
         }
-        ops.add(new Op(OpType.EQUAL, ""));
+        ops.add(new SoundResourceManager(OpType.EQUAL, ""));
         return ops;
     }
 
-    private static List<ComputedDiff> collapseOperations(List<Op> operations, int startOldLine, int startNewLine) {
+    private static List<ComputedDiff> collapseOperations(List<SoundResourceManager> operations, int startOldLine, int startNewLine) {
         List<ComputedDiff> diffs = new ArrayList<>();
         int oldLineNum = startOldLine;
         int newLineNum = startNewLine;
@@ -200,7 +204,7 @@ public final class VoidPortDiffService {
         List<String> removed = new ArrayList<>();
         List<String> added = new ArrayList<>();
 
-        for (Op op : operations) {
+        for (SoundResourceManager op : operations) {
             if (op.type == OpType.EQUAL) {
                 if (streakNewStart > 0) {
                     int newEnd = newLineNum - 1;

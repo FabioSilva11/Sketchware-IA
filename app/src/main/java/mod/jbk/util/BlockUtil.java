@@ -5,15 +5,15 @@ import android.view.ViewGroup;
 
 import androidx.annotation.Nullable;
 
-import a.a.a.FB;
-import a.a.a.Rs;
-import a.a.a.Ts;
-import a.a.a.kq;
+import pro.sketchware.filemanagers.FileTextUtils;
+import pro.sketchware.editor.BlockView;
+import pro.sketchware.editor.BlockCanvasView;
+import pro.sketchware.editor.BlockOpcodeUtils;
 import mod.hey.studios.moreblock.ReturnMoreblockManager;
 
 public class BlockUtil {
     public static void loadMoreblockPreview(ViewGroup blockArea, String spec) {
-        var moreblock = new Rs(blockArea.getContext(), 0, ReturnMoreblockManager.getMbName(spec), ReturnMoreblockManager.getMoreblockType(spec), "definedFunc");
+        var moreblock = new BlockView(blockArea.getContext(), 0, ReturnMoreblockManager.getMbName(spec), ReturnMoreblockManager.getMoreblockType(spec), "definedFunc");
         blockArea.addView(moreblock);
 
         loadPreviewBlockVariables(blockArea, moreblock, spec);
@@ -23,9 +23,9 @@ public class BlockUtil {
     /**
      * Loads the Variable Blocks of a Block that's for preview only.
      */
-    public static void loadPreviewBlockVariables(ViewGroup blockArea, Rs previewBlock, String spec) {
+    public static void loadPreviewBlockVariables(ViewGroup blockArea, BlockView previewBlock, String spec) {
         int id = 0;
-        for (var specPart : FB.c(spec)) {
+        for (var specPart : FileTextUtils.c(spec)) {
             if (specPart.charAt(0) != '%') {
                 continue;
             }
@@ -33,7 +33,7 @@ public class BlockUtil {
             var variable = getVariableBlock(blockArea.getContext(), id + 1, specPart, "getVar");
             if (variable != null) {
                 blockArea.addView(variable);
-                previewBlock.a((Ts) previewBlock.V.get(id), variable);
+                previewBlock.a((BlockCanvasView) previewBlock.V.get(id), variable);
                 id++;
             }
         }
@@ -46,15 +46,15 @@ public class BlockUtil {
      * or <code>null</code> if its spec wasn't recognized.
      */
     @Nullable
-    public static Rs getVariableBlock(Context context, int id, String spec, String opCode) {
+    public static BlockView getVariableBlock(Context context, int id, String spec, String opCode) {
         var type = spec.charAt(1);
         return switch (type) {
             case 'b', 'd', 's' ->
-                    new Rs(context, id, spec.substring(3), Character.toString(type), opCode);
+                    new BlockView(context, id, spec.substring(3), Character.toString(type), opCode);
             case 'm' -> {
                 String specLast = spec.substring(spec.lastIndexOf(".") + 1);
                 String specFirst = spec.substring(spec.indexOf(".") + 1, spec.lastIndexOf("."));
-                yield new Rs(context, id, specLast, kq.a(specFirst), kq.b(specFirst), opCode);
+                yield new BlockView(context, id, specLast, BlockOpcodeUtils.a(specFirst), BlockOpcodeUtils.b(specFirst), opCode);
             }
             default -> null;
         };

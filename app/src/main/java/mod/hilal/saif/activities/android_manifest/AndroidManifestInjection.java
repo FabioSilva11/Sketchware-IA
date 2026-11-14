@@ -28,9 +28,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import a.a.a.jC;
-import a.a.a.wB;
-import a.a.a.yq;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.core.ViewInflationUtils;
+import pro.sketchware.workspace.ProjectWorkspaceManager;
 import mod.hey.studios.code.SrcCodeEditor;
 import mod.hey.studios.util.Helper;
 import mod.hilal.saif.android_manifest.AndroidManifestInjector;
@@ -104,7 +104,9 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
     }
 
     // ---------------------------------------------------------------------------------------------
+
     // Paths
+
 
     private String injectionDir() {
         return FileUtil.getExternalStorageDir() + "/.sketchware/data/" + sc_id + "/Injection/androidmanifest/";
@@ -123,7 +125,9 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
     }
 
     // ---------------------------------------------------------------------------------------------
+
     // Generated or custom manifest
+
 
     private void setupModeControls() {
         binding.modeGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
@@ -182,6 +186,7 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
     private void switchToCustom() {
         if (readCustomManifest().trim().isEmpty()) {
             // Start from the manifest Sketchware generates; custom mode is only enabled once that worked.
+
             generateIntoCustom(true);
         } else {
             setCustomMode(true);
@@ -198,7 +203,7 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
             String manifest = null;
             Exception failure = null;
             try {
-                manifest = new yq(getApplicationContext(), sc_id).getDefaultManifestSrc(jC.b(sc_id), jC.a(sc_id), jC.c(sc_id));
+                manifest = new ProjectWorkspaceManager(getApplicationContext(), sc_id).getDefaultManifestSrc(ProjectDataManagerRegistry.b(sc_id), ProjectDataManagerRegistry.a(sc_id), ProjectDataManagerRegistry.c(sc_id));
             } catch (Exception e) {
                 failure = e;
             }
@@ -280,7 +285,7 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
     private void showManifestSource() {
         k();
         new Thread(() -> {
-            String source = new yq(getApplicationContext(), sc_id).getFileSrc("AndroidManifest.xml", jC.b(sc_id), jC.a(sc_id), jC.c(sc_id));
+            String source = new ProjectWorkspaceManager(getApplicationContext(), sc_id).getFileSrc("AndroidManifest.xml", ProjectDataManagerRegistry.b(sc_id), ProjectDataManagerRegistry.a(sc_id), ProjectDataManagerRegistry.c(sc_id));
             runOnUiThread(() -> {
                 if (isFinishing()) return;
                 h();
@@ -294,7 +299,9 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
     }
 
     // ---------------------------------------------------------------------------------------------
+
     // Options for the generated manifest
+
 
     private void setupOptions() {
         binding.options.removeAllViews();
@@ -339,7 +346,7 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
     }
 
     private void showLauncherActivityDialog() {
-        View view = wB.a(this, R.layout.dialog_add_custom_activity);
+        View view = ViewInflationUtils.a(this, R.layout.dialog_add_custom_activity);
         TextInputLayout inputLayout = view.findViewById(R.id.activity_name_input_layout);
         TextInputEditText input = view.findViewById(R.id.activity_name_input);
         input.setText(AndroidManifestInjector.getLauncherActivity(sc_id));
@@ -382,7 +389,9 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
     }
 
     // ---------------------------------------------------------------------------------------------
+
     // Activities declared through the manifest manager
+
 
     private ArrayList<HashMap<String, Object>> readAttributes() {
         String path = attributesPath();
@@ -427,7 +436,7 @@ public class AndroidManifestInjection extends BaseAppCompatActivity {
     }
 
     private void showAddActivityDialog() {
-        View view = wB.a(this, R.layout.dialog_add_custom_activity);
+        View view = ViewInflationUtils.a(this, R.layout.dialog_add_custom_activity);
         TextInputLayout inputLayout = view.findViewById(R.id.activity_name_input_layout);
         TextInputEditText input = view.findViewById(R.id.activity_name_input);
         input.setText(currentActivityName);

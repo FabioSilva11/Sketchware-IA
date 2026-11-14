@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import a.a.a.wq;
+import pro.sketchware.workspace.WorkspacePathManager;
 import dev.pranav.filepicker.FilePickerCallback;
 import dev.pranav.filepicker.FilePickerDialogFragment;
 import dev.pranav.filepicker.FilePickerOptions;
@@ -53,8 +53,8 @@ import pro.sketchware.utility.TranslationFunction;
 
 public class ManageCustomComponentActivity extends BaseAppCompatActivity {
 
-    private static final String COMPONENT_EXPORT_DIR = wq.getExtraDataExport() + "/components/";
-    private static final String COMPONENT_DIR = wq.getCustomComponent();
+    private static final String COMPONENT_EXPORT_DIR = WorkspacePathManager.getExtraDataExport() + "/components/";
+    private static final String COMPONENT_DIR = WorkspacePathManager.getCustomComponent();
     private List<HashMap<String, Object>> componentsList = new ArrayList<>();
     private TextView tv_guide;
     private RecyclerView componentView;

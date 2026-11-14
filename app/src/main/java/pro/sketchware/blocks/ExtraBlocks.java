@@ -9,8 +9,8 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.eC;
-import a.a.a.jC;
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
 import mod.hilal.saif.activities.tools.ConfigActivity;
 
 public class ExtraBlocks {
@@ -18,13 +18,13 @@ public class ExtraBlocks {
     private final String eventName;
     private final String javaName;
     private final LogicEditorActivity logicEditor;
-    private final eC projectDataManager;
+    private final ProjectDataManager projectDataManager;
 
     public ExtraBlocks(LogicEditorActivity logicEditor) {
         eventName = logicEditor.eventName;
         this.logicEditor = logicEditor;
         javaName = logicEditor.M.getJavaName();
-        projectDataManager = jC.a(logicEditor.scId);
+        projectDataManager = ProjectDataManagerRegistry.a(logicEditor.scId);
     }
 
     public static void extraBlocks(ArrayList<HashMap<String, Object>> arrayList) {
@@ -48,6 +48,7 @@ public class ExtraBlocks {
         arrayList.add(addBlock("menuFindItem", "v", "MenuItem", "menu.findItem(%s)", "#4a6cd4", "MenuItem findItem %s.inputOnly"));
         arrayList.add(addBlock("listAddAll", " ", "", "%1$s.addAll(%2$s);", "#cc5b22", "%m.listStr addAll from %m.list"));
         // File Blocks
+
         arrayList.add(addBlock("fileCanExecute", "b", "", "%s.canExecute()", "#a1887f", "%m.File canExecute"));
         arrayList.add(addBlock("fileCanRead", "b", "", "%s.canRead()", "#a1887f", "%m.File canRead"));
         arrayList.add(addBlock("fileCanWrite", "b", "", "%s.canWrite()", "#a1887f", "%m.File canWrite"));
@@ -56,11 +57,13 @@ public class ExtraBlocks {
         arrayList.add(addBlock("fileGetPath", "s", "", "%s.getPath()", "#a1887f", "%m.File getPath"));
         arrayList.add(addBlock("fileIsHidden", "b", "", "%s.isHidden()", "#a1887f", "%m.File isHidden"));
         // Basically Command Block
+
         arrayList.add(addBlock("addPermission", " ", "", "", "#493F5A", "Permission Command Block: add %m.Permission"));
         arrayList.add(addBlock("removePermission", " ", "", "", "#493F5A", "Permission Command Block: remove %m.Permission"));
         arrayList.add(addBlock("addCustomVariable", " ", "", "", "#493F5A", "Custom Variable Block: add variable %s"));
         arrayList.add(addBlock("addInitializer", " ", "", "", "#493F5A", "Initializer Block: add initializer %s"));
         // Android hardware sensor components
+
         arrayList.add(addBlock("compassSensorStart", " ", "", "%1$s.registerListener(_%1$s_sensor_listener, %1$s.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR), SensorManager.SENSOR_DELAY_NORMAL);", "#607d8b", "%m.compass start listening"));
         arrayList.add(addBlock("compassSensorStop", " ", "", "%1$s.unregisterListener(_%1$s_sensor_listener);", "#607d8b", "%m.compass stop listening"));
         arrayList.add(addBlock("lightSensorStart", " ", "", "%1$s.registerListener(_%1$s_sensor_listener, %1$s.getDefaultSensor(Sensor.TYPE_LIGHT), SensorManager.SENSOR_DELAY_NORMAL);", "#607d8b", "%m.lightsensor start listening"));
@@ -72,6 +75,7 @@ public class ExtraBlocks {
         arrayList.add(addBlock("stepCounterSensorStart", " ", "", "%1$s.registerListener(_%1$s_sensor_listener, %1$s.getDefaultSensor(Sensor.TYPE_STEP_COUNTER), SensorManager.SENSOR_DELAY_NORMAL);", "#607d8b", "%m.stepcounter start listening"));
         arrayList.add(addBlock("stepCounterSensorStop", " ", "", "%1$s.unregisterListener(_%1$s_sensor_listener);", "#607d8b", "%m.stepcounter stop listening"));
         // Background, system and identity managers
+
         arrayList.add(addBlock("workManagerEnqueueOnce", " ", "", "try { Class<? extends ListenableWorker> _workerClass = (Class<? extends ListenableWorker>) Class.forName(%2$s); OneTimeWorkRequest _workRequest = new OneTimeWorkRequest.Builder(_workerClass).setInitialDelay((long)%3$s, TimeUnit.MINUTES).addTag(%4$s).build(); %1$s.enqueue(_workRequest); } catch (Exception _e) { SketchwareUtil.showMessage(getApplicationContext(), _e.getMessage()); }", "#607d8b", "%m.workmanager enqueue worker class %s after %d minutes tag %s"));
         arrayList.add(addBlock("workManagerEnqueuePeriodic", " ", "", "try { Class<? extends ListenableWorker> _workerClass = (Class<? extends ListenableWorker>) Class.forName(%2$s); PeriodicWorkRequest _workRequest = new PeriodicWorkRequest.Builder(_workerClass, Math.max(15L, (long)%3$s), TimeUnit.MINUTES).addTag(%4$s).build(); %1$s.enqueue(_workRequest); } catch (Exception _e) { SketchwareUtil.showMessage(getApplicationContext(), _e.getMessage()); }", "#607d8b", "%m.workmanager enqueue periodic worker class %s every %d minutes tag %s"));
         arrayList.add(addBlock("workManagerCancelTag", " ", "", "%1$s.cancelAllWorkByTag(%2$s);", "#607d8b", "%m.workmanager cancel work tag %s"));
@@ -86,6 +90,7 @@ public class ExtraBlocks {
         arrayList.add(addBlock("fusedLocationStop", " ", "", "_%1$s_stop_location_updates();", "#607d8b", "%m.fusedlocationmanager stop updates"));
         arrayList.add(addBlock("fusedLocationGetLast", " ", "", "if (checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED || checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) { %1$s.getLastLocation().addOnSuccessListener(new com.google.android.gms.tasks.OnSuccessListener<Location>() { @Override public void onSuccess(Location _lastLocation) { if (_lastLocation != null && _%1$s_location_callback != null) { _%1$s_location_callback.onLocationResult(LocationResult.create(java.util.Collections.singletonList(_lastLocation))); } } }); }", "#607d8b", "%m.fusedlocationmanager get last known location"));
         // Firebase Auth: account management through the listeners FirebaseAuth components declare
+
         arrayList.add(addBlock("firebaseauthGetDisplayName", "s", "", "(FirebaseAuth.getInstance().getCurrentUser() != null && FirebaseAuth.getInstance().getCurrentUser().getDisplayName() != null ? FirebaseAuth.getInstance().getCurrentUser().getDisplayName() : \"\")", "#2ca5e2", "%m.firebaseauth get display name"));
         arrayList.add(addBlock("firebaseauthGetPhotoUrl", "s", "", "(FirebaseAuth.getInstance().getCurrentUser() != null && FirebaseAuth.getInstance().getCurrentUser().getPhotoUrl() != null ? FirebaseAuth.getInstance().getCurrentUser().getPhotoUrl().toString() : \"\")", "#2ca5e2", "%m.firebaseauth get photo url"));
         arrayList.add(addBlock("firebaseauthGetPhoneNumber", "s", "", "(FirebaseAuth.getInstance().getCurrentUser() != null && FirebaseAuth.getInstance().getCurrentUser().getPhoneNumber() != null ? FirebaseAuth.getInstance().getCurrentUser().getPhoneNumber() : \"\")", "#2ca5e2", "%m.firebaseauth get phone number"));
@@ -96,16 +101,19 @@ public class ExtraBlocks {
         arrayList.add(addBlock("firebaseauthUpdateProfile", " ", "", "if (FirebaseAuth.getInstance().getCurrentUser() != null) { com.google.firebase.auth.UserProfileChangeRequest.Builder _profile = new com.google.firebase.auth.UserProfileChangeRequest.Builder().setDisplayName(%2$s); if (!%3$s.isEmpty()) _profile.setPhotoUri(android.net.Uri.parse(%3$s)); com.google.android.gms.tasks.Task<Void> _task = FirebaseAuth.getInstance().getCurrentUser().updateProfile(_profile.build()); if (%1$s_updateProfileListener != null) _task.addOnCompleteListener(%1$s_updateProfileListener); }", "#2ca5e2", "%m.firebaseauth update profile name %s photo url %s"));
         arrayList.add(addBlock("firebaseauthDeleteUser", " ", "", "if (FirebaseAuth.getInstance().getCurrentUser() != null) { com.google.android.gms.tasks.Task<Void> _task = FirebaseAuth.getInstance().getCurrentUser().delete(); if (%1$s_deleteUserListener != null) _task.addOnCompleteListener(%1$s_deleteUserListener); }", "#2ca5e2", "%m.firebaseauth delete current user"));
         // Firebase phone authentication
+
         arrayList.add(addBlock("phoneAuthSendCode", " ", "", "PhoneAuthProvider.verifyPhoneNumber(com.google.firebase.auth.PhoneAuthOptions.newBuilder(FirebaseAuth.getInstance()).setPhoneNumber(%2$s).setTimeout(60L, TimeUnit.SECONDS).setActivity(this).setCallbacks(%1$s).build());", "#2ca5e2", "%m.phoneauth send code to phone number %s"));
         arrayList.add(addBlock("phoneAuthResendCode", " ", "", "{ com.google.firebase.auth.PhoneAuthOptions.Builder _options = com.google.firebase.auth.PhoneAuthOptions.newBuilder(FirebaseAuth.getInstance()).setPhoneNumber(%2$s).setTimeout(60L, TimeUnit.SECONDS).setActivity(this).setCallbacks(%1$s); if (%1$s_resendToken != null) _options.setForceResendingToken(%1$s_resendToken); PhoneAuthProvider.verifyPhoneNumber(_options.build()); }", "#2ca5e2", "%m.phoneauth resend code to phone number %s"));
         arrayList.add(addBlock("phoneAuthSignInWithCode", " ", "", "{ com.google.android.gms.tasks.Task<AuthResult> _task = FirebaseAuth.getInstance().signInWithCredential(PhoneAuthProvider.getCredential(%2$s, %3$s)); if (%4$s_phoneAuthListener != null) _task.addOnCompleteListener(%4$s_phoneAuthListener); }", "#2ca5e2", "%m.phoneauth sign in with verification id %s code %s then %m.firebaseauth"));
         // Firebase Cloud Messaging
+
         arrayList.add(addBlock("fcmGetToken", " ", "", "if (%1$s_onCompleteListener != null) FirebaseMessaging.getInstance().getToken().addOnCompleteListener(%1$s_onCompleteListener);", "#2ca5e2", "%m.cloudmessage get registration token"));
         arrayList.add(addBlock("fcmSubscribeToTopic", " ", "", "FirebaseMessaging.getInstance().subscribeToTopic(%2$s);", "#2ca5e2", "%m.cloudmessage subscribe to topic %s"));
         arrayList.add(addBlock("fcmUnsubscribeFromTopic", " ", "", "FirebaseMessaging.getInstance().unsubscribeFromTopic(%2$s);", "#2ca5e2", "%m.cloudmessage unsubscribe from topic %s"));
         arrayList.add(addBlock("fcmDeleteToken", " ", "", "FirebaseMessaging.getInstance().deleteToken();", "#2ca5e2", "%m.cloudmessage delete registration token"));
         arrayList.add(addBlock("fcmRequestNotificationPermission", " ", "", "if (android.os.Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) { requestPermissions(new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 1002); }", "#2ca5e2", "%m.cloudmessage request notification permission"));
         // Google sign-in (GoogleSignInClient)
+
         arrayList.add(addBlock("googleLoginSetup", " ", "", "%1$s = GoogleSignIn.getClient(this, new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).requestIdToken(%2$s).requestEmail().requestProfile().build());", "#2ca5e2", "%m.googlelogin setup with web client id %s"));
         arrayList.add(addBlock("googleLoginSignIn", " ", "", "", "#2ca5e2", "%m.googlelogin sign in"));
         arrayList.add(addBlock("googleLoginSignOut", " ", "", "if (%1$s != null) %1$s.signOut();", "#2ca5e2", "%m.googlelogin sign out"));
@@ -118,6 +126,7 @@ public class ExtraBlocks {
         arrayList.add(addBlock("admobRequestConsent", " ", "", "{ final android.app.Activity _consentActivity = this; com.google.android.ump.ConsentRequestParameters _consentParams = new com.google.android.ump.ConsentRequestParameters.Builder().build(); com.google.android.ump.ConsentInformation _consentInfo = com.google.android.ump.UserMessagingPlatform.getConsentInformation(_consentActivity); _consentInfo.requestConsentInfoUpdate(_consentActivity, _consentParams, new com.google.android.ump.ConsentInformation.OnConsentInfoUpdateSuccessListener() { @Override public void onConsentInfoUpdateSuccess() { com.google.android.ump.UserMessagingPlatform.loadAndShowConsentFormIfRequired(_consentActivity, new com.google.android.ump.ConsentForm.OnConsentFormDismissedListener() { @Override public void onConsentFormDismissed(com.google.android.ump.FormError _formError) { if (_formError != null) SketchwareUtil.showMessage(getApplicationContext(), _formError.getMessage()); } }); } }, new com.google.android.ump.ConsentInformation.OnConsentInfoUpdateFailureListener() { @Override public void onConsentInfoUpdateFailure(com.google.android.ump.FormError _requestError) { SketchwareUtil.showMessage(getApplicationContext(), _requestError.getMessage()); } }); }", "#4a6cd4", "AdMob request consent update and show required form"));
         arrayList.add(addBlock("admobShowPrivacyOptions", " ", "", "{ final android.app.Activity _consentActivity = this; com.google.android.ump.UserMessagingPlatform.showPrivacyOptionsForm(_consentActivity, new com.google.android.ump.ConsentForm.OnConsentFormDismissedListener() { @Override public void onConsentFormDismissed(com.google.android.ump.FormError _formError) { if (_formError != null) SketchwareUtil.showMessage(getApplicationContext(), _formError.getMessage()); } }); }", "#4a6cd4", "AdMob show privacy options"));
         // Supabase: tables (PostgREST), users (Auth) and files (Storage), answered in the component's events
+
         arrayList.add(addBlock("supabaseDbSelect", " ", "", "%1$s.select(%2$s, %3$s, _%1$s_supabase_listener);", "#249361", "%m.supabasedatabase select %s tag %s"));
         arrayList.add(addBlock("supabaseDbInsert", " ", "", "%1$s.insert(%2$s, %3$s, _%1$s_supabase_listener);", "#249361", "%m.supabasedatabase insert row %m.varMap tag %s"));
         arrayList.add(addBlock("supabaseDbUpsert", " ", "", "%1$s.upsert(%2$s, %3$s, _%1$s_supabase_listener);", "#249361", "%m.supabasedatabase insert or update row %m.varMap tag %s"));
@@ -135,6 +144,7 @@ public class ExtraBlocks {
         arrayList.add(addBlock("supabaseStorageDelete", " ", "", "%1$s.delete(%2$s, _%1$s_supabase_listener);", "#249361", "%m.supabasestorage delete %s"));
         arrayList.add(addBlock("supabaseStorageGetPublicUrl", "s", "", "%1$s.getPublicUrl(%2$s)", "#249361", "%m.supabasestorage public url of %s"));
         // Unity Ads: UnityAdsClient (generated per app) answers in the component's events
+
         arrayList.add(addBlock("unityAdsSetUserConsent", " ", "", "com.unity3d.ads.UnityAds.setUserConsent(%1$s);", "#2aa4e2", "Unity Ads user gave consent (GDPR) %b"));
         arrayList.add(addBlock("unityAdsSetUserOptOut", " ", "", "com.unity3d.ads.UnityAds.setUserOptOut(%1$s);", "#2aa4e2", "Unity Ads user opted out of data sale (CCPA) %b"));
         arrayList.add(addBlock("unityAdsSetNonBehavioral", " ", "", "com.unity3d.ads.UnityAds.setNonBehavioral(%1$s);", "#2aa4e2", "Unity Ads only non-personalized ads (child user, COPPA) %b"));
@@ -150,21 +160,27 @@ public class ExtraBlocks {
         arrayList.add(addBlock("unityBannerViewIsLoaded", "b", "", "%1$s.isLoaded()", "#2aa4e2", "%m.unitybanner is loaded"));
         arrayList.add(addBlock("unityBannerViewSetPlacement", " ", "", "%1$s.setPlacementId(%2$s);", "#2aa4e2", "%m.unitybanner set placement ID %s"));
         //OtpView Blocks
+
         arrayList.add(addBlock("otpViewSetFieldCount", " ", "", "%1$s.setFieldCount((int)(%2$s));", "#4a6cd4", "%m.otpview setFieldCount %d"));
         arrayList.add(addBlock("otpViewSetOTPText", " ", "", "%1$s.setOTPText(%2$s);", "#4a6cd4", "%m.otpview setOTPText %s"));
         arrayList.add(addBlock("otpViewGetOTPText", "s", "", "%1$s.getOTPText()", "#4a6cd4", "%m.otpview getOTPText"));
         arrayList.add(addBlock("otpViewSetOTPListener", "c", "", "%1$s.setOTPListener(new OTPListener() {\r\npublic void onOTPEntered(String _otp) {\r\n%2$s\r\n}\r\n});", "#4a6cd4", "%m.otpview onOTPEntered -> _otp"));
         //SignInButton Blocks
+
         arrayList.add(addBlock("signInButtonSetColorScheme", " ", "", "%1$s.setColorScheme(SignInButton.%2$s);", "#4a6cd4", "%m.signinbutton setColorScheme %m.SignButtonColor"));
         arrayList.add(addBlock("signInButtonSetSize", " ", "", "%1$s.setSize(SignInButton.%2$s);", "#4a6cd4", "%m.signinbutton setSize %m.SignButtonSize"));
         //Admob's AdView Blocks
+
         arrayList.add(addBlock("bannerAdViewLoadAd", " ", "", "{\r\nAdRequest adRequest = new AdRequest.Builder().build();\r\n%1$s.loadAd(adRequest);\r\n}", "#4a6cd4", "%m.adview load"));
         //RewardedVideoAd
+
         arrayList.add(addBlock("rewardedVideoAdLoad", " ", "", "RewardedAd.load(%2$s.this, _reward_ad_unit_id, new AdRequest.Builder().build(), _%1$s_rewarded_ad_load_callback);", "#2ca5e2", "%m.videoad load in %m.activity"));
         arrayList.add(addBlock("rewardedVideoAdShow", " ", "", "%1$s.show(%2$s.this, _%1$s_on_user_earned_reward_listener);", "#2ca5e2", "%m.videoad show in %m.activity"));
         // Reyaansh's Custom Inbuilt Utility Blocks Library - 300 Blocks
+
                 
         // ─── DEVICE / SYSTEM ───────────────────────────────────────────────────────
+
         arrayList.add(addBlock("deviceVibrate", " ", "", "((android.os.Vibrator) getSystemService(Context.VIBRATOR_SERVICE)).vibrate(%s);", "#2ca5e2", "Vibrate device for %d ms"));
         arrayList.add(addBlock("deviceVibratePattern", " ", "", "((android.os.Vibrator) getSystemService(Context.VIBRATOR_SERVICE)).vibrate(new long[]{0,%1$s,%2$s,%3$s}, -1);", "#2ca5e2", "Vibrate pattern delay %d on %d off %d"));
         arrayList.add(addBlock("deviceCancelVibrate", " ", "", "((android.os.Vibrator) getSystemService(Context.VIBRATOR_SERVICE)).cancel();", "#2ca5e2", "Cancel vibration"));
@@ -197,12 +213,14 @@ public class ExtraBlocks {
         arrayList.add(addBlock("isTablet", "z", "", "(getResources().getConfiguration().screenLayout & android.content.res.Configuration.SCREENLAYOUT_SIZE_MASK) >= android.content.res.Configuration.SCREENLAYOUT_SIZE_LARGE", "#2ca5e2", "device is tablet"));
         
         // ─── CLIPBOARD ─────────────────────────────────────────────────────────────
+
         arrayList.add(addBlock("setClipboardText", " ", "", "((android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText(\"text\", %s));", "#2ca5e2", "Copy %s to clipboard"));
         arrayList.add(addBlock("getClipboardText", "s", "", "((android.content.ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE)).getPrimaryClip().getItemAt(0).getText().toString()", "#2ca5e2", "clipboard text"));
         arrayList.add(addBlock("clearClipboard", " ", "", "((android.content.ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE)).setPrimaryClip(android.content.ClipData.newPlainText(\"\",\"\"));", "#2ca5e2", "clear clipboard"));
         arrayList.add(addBlock("hasClipboardText", "z", "", "((android.content.ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE)).hasPrimaryClip()", "#2ca5e2", "clipboard has text"));
         
         // ─── MATH & RANDOM ─────────────────────────────────────────────────────────
+
         arrayList.add(addBlock("getRandomIntRange", "d", "", "new java.util.Random().nextInt((%2$s - %1$s) + 1) + %1$s", "#5cb722", "pick random number between %d and %d"));
         arrayList.add(addBlock("getRandomFloat", "f", "", "new java.util.Random().nextFloat()", "#5cb722", "random float 0 to 1"));
         arrayList.add(addBlock("getRandomBoolean", "z", "", "new java.util.Random().nextBoolean()", "#5cb722", "random boolean"));
@@ -234,6 +252,7 @@ public class ExtraBlocks {
         arrayList.add(addBlock("isPrime", "z", "", "new java.util.function.Supplier<Boolean>(){public Boolean get(){int n=%s;if(n<2)return false;for(int i=2;i<=Math.sqrt(n);i++)if(n%%i==0)return false;return true;}}.get()", "#5cb722", "%d is prime"));
         
         // ─── STRING UTILITIES ───────────────────────────────────────────────────────
+
         arrayList.add(addBlock("stringToUpperCase", "s", "", "%s.toUpperCase()", "#9c27b0", "uppercase of %s"));
         arrayList.add(addBlock("stringToLowerCase", "s", "", "%s.toLowerCase()", "#9c27b0", "lowercase of %s"));
         arrayList.add(addBlock("stringTrim", "s", "", "%s.trim()", "#9c27b0", "trim spaces from %s"));
@@ -274,6 +293,7 @@ public class ExtraBlocks {
         arrayList.add(addBlock("stringWordCount", "d", "", "%s.trim().isEmpty()?0:%s.trim().split(\"\\\\s+\").length", "#9c27b0", "word count of %s"));
         
         // ─── VIEW ANIMATIONS ────────────────────────────────────────────────────────
+
         arrayList.add(addBlock("viewSetAlphaAnimator", " ", "", "%1$s.animate().alpha(%2$sf).setDuration(%3$s).start();", "#4a6cd4", "Animate %m.view alpha to %f duration %d ms"));
         arrayList.add(addBlock("viewTranslateX", " ", "", "%1$s.animate().translationX(%2$sf).setDuration(%3$s).start();", "#4a6cd4", "Animate %m.view translateX to %f in %d ms"));
         arrayList.add(addBlock("viewTranslateY", " ", "", "%1$s.animate().translationY(%2$sf).setDuration(%3$s).start();", "#4a6cd4", "Animate %m.view translateY to %f in %d ms"));
@@ -296,6 +316,7 @@ public class ExtraBlocks {
         arrayList.add(addBlock("viewAnimateWithInterpolator", " ", "", "%1$s.animate().alpha(%2$sf).setDuration(%3$s).setInterpolator(new android.view.animation.BounceInterpolator()).start();", "#4a6cd4", "Animate %m.view alpha %f in %d ms with bounce"));
         
         // ─── VIEW PROPERTIES ────────────────────────────────────────────────────────
+
         arrayList.add(addBlock("viewSetVisible", " ", "", "%s.setVisibility(android.view.View.VISIBLE);", "#4a6cd4", "set %m.view visible"));
         arrayList.add(addBlock("viewSetGone", " ", "", "%s.setVisibility(android.view.View.GONE);", "#4a6cd4", "set %m.view gone"));
         arrayList.add(addBlock("viewSetInvisible", " ", "", "%s.setVisibility(android.view.View.INVISIBLE);", "#4a6cd4", "set %m.view invisible"));
@@ -332,6 +353,7 @@ public class ExtraBlocks {
         arrayList.add(addBlock("viewBringToFront", " ", "", "%s.bringToFront();", "#4a6cd4", "bring %m.view to front"));
         
         // ─── INTENT / NAVIGATION ─────────────────────────────────────────────────────
+
         arrayList.add(addBlock("openBrowser", " ", "", "startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(%s)));", "#e91e63", "open URL %s in browser"));
         arrayList.add(addBlock("openDialer", " ", "", "startActivity(new Intent(Intent.ACTION_DIAL, android.net.Uri.parse(\"tel:\"+%s)));", "#e91e63", "open dialer with number %s"));
         arrayList.add(addBlock("sendSMS", " ", "", "startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.fromParts(\"sms\",%1$s,null)).putExtra(\"sms_body\",%2$s));", "#e91e63", "open SMS to %s with body %s"));
@@ -340,7 +362,9 @@ public class ExtraBlocks {
         arrayList.add(addBlock("openMapsSearch", " ", "", "startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(\"geo:0,0?q=\"+android.net.Uri.encode(%s))));", "#e91e63", "open maps searching for %s"));
         arrayList.add(addBlock("shareText", " ", "", "{Intent i=new Intent(Intent.ACTION_SEND);i.setType(\"text/plain\");i.putExtra(Intent.EXTRA_TEXT,%s);startActivity(Intent.createChooser(i,\"Share via\"));}", "#e91e63", "share text %s"));
         arrayList.add(addBlock("openPlayStore", " ", "", "startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(\"market://details?id=\"+%s)));", "#e91e63", "open Play Store for package %s"));
+
         arrayList.add(addBlock("openPlayStoreThisApp", " ", "", "startActivity(new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(\"market://details?id=\"+getPackageName())));", "#e91e63", "open Play Store for this app"));
+
         arrayList.add(addBlock("openWifiSettings", " ", "", "startActivity(new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS));", "#e91e63", "open Wi-Fi settings"));
         arrayList.add(addBlock("openBluetoothSettings", " ", "", "startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS));", "#e91e63", "open Bluetooth settings"));
         arrayList.add(addBlock("openLocationSettings", " ", "", "startActivity(new Intent(android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS));", "#e91e63", "open location settings"));

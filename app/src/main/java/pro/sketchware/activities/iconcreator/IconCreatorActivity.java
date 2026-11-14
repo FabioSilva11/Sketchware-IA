@@ -37,9 +37,9 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.Objects;
 
-import a.a.a.HB;
-import a.a.a.iB;
-import a.a.a.wq;
+import pro.sketchware.filemanagers.DocumentUriUtils;
+import pro.sketchware.filemanagers.BitmapUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ActivityIconCreatorBinding;
@@ -355,12 +355,12 @@ public class IconCreatorActivity extends BaseAppCompatActivity {
         Uri uri = data != null ? data.getData() : null;
         if (requestCode == REQUEST_CODE_PICK_ICON) {
             if (resultCode == RESULT_OK && uri != null) {
-                iconFilePath = HB.a(getApplicationContext(), uri);
+                iconFilePath = DocumentUriUtils.a(getApplicationContext(), uri);
                 appIconBitmap = null;
-                Bitmap bitmap = iB.a(iconFilePath, 96, 96);
+                Bitmap bitmap = BitmapUtils.a(iconFilePath, 96, 96);
                 try {
                     int attributeInt = new ExifInterface(iconFilePath).getAttributeInt("Orientation", -1);
-                    Bitmap newBitmap = iB.a(bitmap, attributeInt != 3 ? attributeInt != 6 ? attributeInt != 8 ? 0 : 270 : 90 : 180);
+                    Bitmap newBitmap = BitmapUtils.a(bitmap, attributeInt != 3 ? attributeInt != 6 ? attributeInt != 8 ? 0 : 270 : 90 : 180);
                     BitmapDrawable bd = new BitmapDrawable(getResources(), newBitmap);
                     binding.appIcoImg.setBackground(bd);
                 } catch (Exception ignored) {
@@ -389,7 +389,7 @@ public class IconCreatorActivity extends BaseAppCompatActivity {
 
             if (requestCode == 712) {
                 if (resultCode == RESULT_OK && uri != null) {
-                    setAppIcoTexture(HB.a(getApplicationContext(), uri));
+                    setAppIcoTexture(DocumentUriUtils.a(getApplicationContext(), uri));
                 }
             }
         }
@@ -397,10 +397,10 @@ public class IconCreatorActivity extends BaseAppCompatActivity {
 
     private void setAppIcoTexture(String texturesFilePath) {
         this.texturesFilePath = texturesFilePath;
-        Bitmap bitmap = iB.a(texturesFilePath, 96, 96);
+        Bitmap bitmap = BitmapUtils.a(texturesFilePath, 96, 96);
         try {
             int attributeInt = new ExifInterface(texturesFilePath).getAttributeInt("Orientation", -1);
-            Bitmap newBitmap = iB.a(bitmap, attributeInt != 3 ? attributeInt != 6 ? attributeInt != 8 ? 0 : 270 : 90 : 180);
+            Bitmap newBitmap = BitmapUtils.a(bitmap, attributeInt != 3 ? attributeInt != 6 ? attributeInt != 8 ? 0 : 270 : 90 : 180);
             binding.appIcoTexture.setPattern(newBitmap);
             selectedTextureType = 3;
         } catch (Exception ignored) {
@@ -478,7 +478,7 @@ public class IconCreatorActivity extends BaseAppCompatActivity {
     }
 
     private String getCustomIconPath() {
-        return wq.e() + File.separator + sc_id + File.separator + "icon.png";
+        return WorkspacePathManager.e() + File.separator + sc_id + File.separator + "icon.png";
     }
 
     private void pickCustomIcon(int code) {
@@ -765,10 +765,10 @@ public class IconCreatorActivity extends BaseAppCompatActivity {
     }
 
     private String baseDir() {
-        return wq.b(sc_id) + File.separator + "files" + File.separator + "app-icon" + File.separator;
+        return WorkspacePathManager.b(sc_id) + File.separator + "files" + File.separator + "app-icon" + File.separator;
     }
 
     private String getIconPath(String folder, String fileName) {
-        return wq.e() + File.separator + sc_id + File.separator + "temp_icons" + File.separator + folder + File.separator + fileName;
+        return WorkspacePathManager.e() + File.separator + sc_id + File.separator + "temp_icons" + File.separator + folder + File.separator + fileName;
     }
 }

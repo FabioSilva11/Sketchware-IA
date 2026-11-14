@@ -15,11 +15,11 @@ import androidx.viewpager.widget.ViewPager;
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import java.lang.ref.WeakReference;
 
-import a.a.a.MA;
-import a.a.a.Op;
-import a.a.a.fu;
-import a.a.a.mB;
-import a.a.a.pu;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.filemanagers.SoundResourceManager;
+import pro.sketchware.filemanagers.ImageResourcePickerFragment;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.filemanagers.ImageResourceLibraryFragment;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageImageBinding;
@@ -27,8 +27,8 @@ import pro.sketchware.utility.TranslationFunction;
 
 public class ManageImageActivity extends BaseAppCompatActivity implements ViewPager.OnPageChangeListener {
     private String sc_id;
-    private pu projectImagesFragment;
-    private fu collectionImagesFragment;
+    private ImageResourceLibraryFragment projectImagesFragment;
+    private ImageResourcePickerFragment collectionImagesFragment;
     private ManageImageBinding binding;
 
 
@@ -39,6 +39,7 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
 
     private String getTranslatedString(int resId) {
         // Fallback to standard getString; replace with translation logic if available
+
         return getString(resId);
     }
 
@@ -54,11 +55,11 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
         binding.viewPager.setCurrentItem(i);
     }
 
-    public fu l() {
+    public ImageResourcePickerFragment l() {
         return collectionImagesFragment;
     }
 
-    public pu m() {
+    public ImageResourceLibraryFragment m() {
         return projectImagesFragment;
     }
 
@@ -88,7 +89,7 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
         setSupportActionBar(binding.topAppBar);
         binding.topAppBar.setTitle(Helper.getResString(R.string.design_actionbar_title_manager_image));
         binding.topAppBar.setNavigationOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 onBackPressed();
             }
         });
@@ -134,7 +135,7 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
         }
     }
 
-    private static class SaveImagesAsyncTask extends MA {
+    private static class SaveImagesAsyncTask extends BackgroundTask {
         private final WeakReference<ManageImageActivity> activity;
 
         public SaveImagesAsyncTask(ManageImageActivity activity) {
@@ -149,7 +150,7 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
             activity.h();
             activity.setResult(Activity.RESULT_OK);
             activity.finish();
-            Op.g().d();
+            SoundResourceManager.g().d();
         }
 
         @Override
@@ -183,9 +184,9 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
         public Object instantiateItem(@NonNull ViewGroup container, int position) {
             Fragment fragment = (Fragment) super.instantiateItem(container, position);
             if (position == 0) {
-                projectImagesFragment = (pu) fragment;
+                projectImagesFragment = (ImageResourceLibraryFragment) fragment;
             } else {
-                collectionImagesFragment = (fu) fragment;
+                collectionImagesFragment = (ImageResourcePickerFragment) fragment;
             }
             return fragment;
         }
@@ -194,9 +195,9 @@ public class ManageImageActivity extends BaseAppCompatActivity implements ViewPa
         @NonNull
         public Fragment getItem(int position) {
             if (position != 0) {
-                return new fu();
+                return new ImageResourcePickerFragment();
             }
-            return new pu();
+            return new ImageResourceLibraryFragment();
         }
 
         @Override

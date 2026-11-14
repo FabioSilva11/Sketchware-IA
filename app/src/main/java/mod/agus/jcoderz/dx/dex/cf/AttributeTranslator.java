@@ -59,6 +59,7 @@ import mod.agus.jcoderz.dx.util.Warning;
      */
     private AttributeTranslator() {
         // This space intentionally left blank.
+
     }
 
     /**
@@ -198,6 +199,7 @@ import mod.agus.jcoderz.dx.util.Warning;
         }
 
         // Both are non-null, so combine them.
+
 
         return mod.agus.jcoderz.dx.rop.annotation.Annotations.combine(visible.getAnnotations(),
                 invisible.getAnnotations());
@@ -397,6 +399,7 @@ import mod.agus.jcoderz.dx.util.Warning;
         }
 
         // Both are non-null, so combine them.
+
 
         return AnnotationsList.combine(visible.getParameterAnnotations(),
                 invisible.getParameterAnnotations());

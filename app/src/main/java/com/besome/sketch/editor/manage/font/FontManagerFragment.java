@@ -18,10 +18,10 @@ import com.besome.sketch.beans.ProjectResourceBean;
 import java.io.File;
 import java.util.ArrayList;
 
-import a.a.a.Np;
-import a.a.a.oB;
-import a.a.a.qA;
-import a.a.a.wq;
+import pro.sketchware.filemanagers.ImageResourceManager;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.editor.BaseEditorFragment;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.FrManageFontListBinding;
@@ -29,7 +29,7 @@ import pro.sketchware.databinding.ManageFontBinding;
 import pro.sketchware.databinding.ManageFontListItemBinding;
 import pro.sketchware.utility.TranslationFunction;
 
-public class FontManagerFragment extends qA {
+public class FontManagerFragment extends BaseEditorFragment {
 
     public String sc_id;
     public fontAdapter adapter;
@@ -61,7 +61,7 @@ public class FontManagerFragment extends qA {
     }
 
     public void loadProjectResources() {
-        projectResourceBeans = Np.g().f();
+        projectResourceBeans = ImageResourceManager.g().f();
         adapter.notifyDataSetChanged();
 
         if (projectResourceBeans.isEmpty()) {
@@ -101,7 +101,7 @@ public class FontManagerFragment extends qA {
 
         for (ProjectResourceBean resource : projectResourceBeans) {
             if (resource.isSelected) {
-                String path = wq.a() +
+                String path = WorkspacePathManager.a() +
                         File.separator +
                         "font" +
                         File.separator +
@@ -128,7 +128,7 @@ public class FontManagerFragment extends qA {
     public void onActivityCreated(Bundle bundle) {
         super.onActivityCreated(bundle);
 
-        new oB().f(dirPath);
+        new FileCryptoUtils().f(dirPath);
 
         if (bundle == null) {
             sc_id = requireActivity().getIntent().getStringExtra("sc_id");
@@ -168,7 +168,7 @@ public class FontManagerFragment extends qA {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Np.g().d();
+        ImageResourceManager.g().d();
     }
 
     @Override
@@ -190,7 +190,7 @@ public class FontManagerFragment extends qA {
         public void onBindViewHolder(fontHolder holder, int position) {
             ProjectResourceBean resource = projectResourceBeans.get(position);
 
-            String fontPath = wq.a() + File.separator + "font" + File.separator + "data" + File.separator + resource.resFullName;
+            String fontPath = WorkspacePathManager.a() + File.separator + "font" + File.separator + "data" + File.separator + resource.resFullName;
 
             holder.binding.chkSelect.setVisibility(View.VISIBLE);
             holder.binding.chkSelect.setChecked(resource.isSelected);

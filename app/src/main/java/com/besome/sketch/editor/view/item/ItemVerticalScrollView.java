@@ -16,7 +16,7 @@ import com.besome.sketch.editor.view.EditorChildren;
 import com.besome.sketch.editor.view.ItemView;
 import com.besome.sketch.editor.view.ScrollContainer;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 
 public class ItemVerticalScrollView extends FrameLayout implements ItemView, ScrollContainer {
 
@@ -94,10 +94,10 @@ public class ItemVerticalScrollView extends FrameLayout implements ItemView, Scr
 
     private void initialize(Context var1) {
         setDrawingCacheEnabled(true);
-        setMinimumWidth((int) wB.a(var1, 32.0F));
-        setMinimumHeight((int) wB.a(var1, 32.0F));
+        setMinimumWidth((int) ViewInflationUtils.a(var1, 32.0F));
+        setMinimumHeight((int) ViewInflationUtils.a(var1, 32.0F));
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setStrokeWidth(wB.a(getContext(), 2.0F));
+        paint.setStrokeWidth(ViewInflationUtils.a(getContext(), 2.0F));
     }
 
     private boolean a(View view, int var2, int var3) {
@@ -109,6 +109,7 @@ public class ItemVerticalScrollView extends FrameLayout implements ItemView, Scr
     @Override
     public void addView(View child, int index) {
         // index counts editor widgets, not raw children (see EditorChildren).
+
         super.addView(child, EditorChildren.insertionIndex(this, index));
     }
 
@@ -281,7 +282,7 @@ public class ItemVerticalScrollView extends FrameLayout implements ItemView, Scr
 
     @Override
     public void setPadding(int left, int top, int right, int bottom) {
-        super.setPadding((int) wB.a(getContext(), (float) left), (int) wB.a(getContext(), (float) top), (int) wB.a(getContext(), (float) right), (int) wB.a(getContext(), (float) bottom));
+        super.setPadding((int) ViewInflationUtils.a(getContext(), (float) left), (int) ViewInflationUtils.a(getContext(), (float) top), (int) ViewInflationUtils.a(getContext(), (float) right), (int) ViewInflationUtils.a(getContext(), (float) bottom));
     }
 
     public void setScrollEnabled(boolean isScrollEnabled) {

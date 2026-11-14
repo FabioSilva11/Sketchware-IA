@@ -26,8 +26,8 @@ import com.google.firebase.analytics.FirebaseAnalytics;
 
 import java.util.ArrayList;
 
-import a.a.a.MA;
-import a.a.a.lC;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.workspace.RecentProjectsRegistry;
 import dev.chrisbanes.insetter.Insetter;
 import pro.sketchware.dialogs.ProgressDialog;
 import pro.sketchware.utility.StoragePermission;
@@ -48,13 +48,13 @@ public abstract class BaseAppCompatActivity extends AppCompatActivity {
     public Activity parent;
     protected ProgressDialog progressDialog;
     private LoadingDialog lottieDialog;
-    private ArrayList<MA> taskList;
+    private ArrayList<BackgroundTask> taskList;
 
-    public void a(MA var1) {
+    public void a(BackgroundTask var1) {
         taskList.add(var1);
     }
 
-    public void addTask(MA task) {
+    public void addTask(BackgroundTask task) {
         taskList.add(task);
     }
 
@@ -72,7 +72,7 @@ public abstract class BaseAppCompatActivity extends AppCompatActivity {
     }
 
     public void g() {
-        for (MA task : taskList) {
+        for (BackgroundTask task : taskList) {
             if (task.getStatus() != Status.FINISHED && !task.isCancelled()) {
                 task.cancel(true);
             }
@@ -123,7 +123,7 @@ public abstract class BaseAppCompatActivity extends AppCompatActivity {
         e = getApplicationContext();
         taskList = new ArrayList<>();
         lottieDialog = new LoadingDialog(this);
-        lC.a(getApplicationContext(), false);
+        RecentProjectsRegistry.a(getApplicationContext(), false);
         progressDialog = new ProgressDialog(this);
         mAnalytics = FirebaseAnalytics.getInstance(this);
     }

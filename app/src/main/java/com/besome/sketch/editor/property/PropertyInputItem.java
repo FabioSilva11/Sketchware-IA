@@ -50,16 +50,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import a.a.a.Jx;
-import a.a.a.Kw;
-import a.a.a.OB;
-import a.a.a.SB;
-import a.a.a.jC;
-import a.a.a.lC;
-import a.a.a.mB;
-import a.a.a.uq;
-import a.a.a.wB;
-import a.a.a.yB;
+import pro.sketchware.compiler.ActivitySourceGenerator;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.lib.validator.FloatRangeInputValidator;
+import pro.sketchware.editor.LengthRangeValidator;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.core.ViewInflationUtils;
+import pro.sketchware.core.MapValueUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.activities.resourceseditor.components.utils.StringsEditorManager;
@@ -90,7 +90,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
     private View propertyMenuItem;
     private String sc_id;
     private ProjectFileBean projectFileBean;
-    private Kw valueChangeListener;
+    private ObjectChangeListener valueChangeListener;
     private List<String> keysList = new ArrayList<>();
     private ViewBean bean;
 
@@ -163,7 +163,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             switch (key) {
                 case "property_id" -> showViewIdDialog();
                 case "property_text", "property_hint" -> showTextInputDialog(9999, false);
@@ -443,7 +443,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
         };
     }
 
-    public void setOnPropertyValueChangeListener(Kw onPropertyValueChangeListener) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener onPropertyValueChangeListener) {
         valueChangeListener = onPropertyValueChangeListener;
     }
 
@@ -463,16 +463,20 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
 
     private void initialize(Context context, boolean z) {
         this.context = context;
-        wB.a(context, this, R.layout.property_input_item);
+        ViewInflationUtils.a(context, this, R.layout.property_input_item);
         tvName = findViewById(R.id.tv_name);
         tvValue = findViewById(R.id.tv_value);
         imgLeftIcon = findViewById(R.id.img_left_icon);
         propertyItem = findViewById(R.id.property_item);
         propertyMenuItem = findViewById(R.id.property_menu_item);
 //        if (z) {
+
 //            propertyMenuItem.setSoundEffectsEnabled(true);
+
 //            propertyMenuItem.setOnClickListener(this);
+
 //        }
+
     }
 
     private void showViewIdDialog() {
@@ -485,7 +489,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
         binding.tiInput.setHint(String.format(Helper.getResString(R.string.property_enter_value), "widget ID"));
 
         binding.edInput.setSingleLine();
-        PropertyNameValidator validator = new PropertyNameValidator(context, binding.tiInput, uq.b, uq.a(), jC.a(sc_id).a(projectFileBean), value);
+        PropertyNameValidator validator = new PropertyNameValidator(context, binding.tiInput, ComponentNameRegistry.b, ComponentNameRegistry.a(), ProjectDataManagerRegistry.a(sc_id).a(projectFileBean), value);
         validator.a(value);
         dialog.setView(binding.getRoot());
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_save), (v, which) -> {
@@ -541,17 +545,17 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
 
         binding.tiInput.setHint(String.format(Helper.getResString(R.string.property_enter_value), Helper.getText(tvName)));
 
-        SB lengthValidator;
+        LengthRangeValidator lengthValidator;
 
         if (isInject) {
-            lengthValidator = new SB(context, binding.tiInput, 0, maxValue);
+            lengthValidator = new LengthRangeValidator(context, binding.tiInput, 0, maxValue);
             binding.tiAutoCompleteInput.setVisibility(View.GONE);
             SyntaxScheme.setXMLHighlighter(binding.edInput);
         } else {
             loadStringsListMap();
             setupTextWatcher(binding.tiAutoCompleteInput, binding.edTiAutoCompleteInput);
 
-            lengthValidator = new SB(context, binding.tiAutoCompleteInput, 0, maxValue);
+            lengthValidator = new LengthRangeValidator(context, binding.tiAutoCompleteInput, 0, maxValue);
             binding.tiAutoCompleteInput.setVisibility(View.VISIBLE);
             binding.tiInput.setVisibility(View.GONE);
 
@@ -595,6 +599,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
         if (!value.startsWith(stringsStart)) return input;
 
         // Ensure list map is loaded
+
         if (stringsListMap.isEmpty()) {
             loadStringsListMap();
         }
@@ -630,7 +635,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
         });
     }
 
-    private void handleSave(SB lengthValidator, EditText input,
+    private void handleSave(LengthRangeValidator lengthValidator, EditText input,
                             MaterialAutoCompleteTextView autoCompleteTextView, TextInputLayout textAutoCompleteInput,
                             boolean isInject, DialogInterface dialog) {
         if (lengthValidator.b() && textAutoCompleteInput.getError() == null) {
@@ -667,7 +672,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 filePath != null) {
             HashMap<String, Object> map = new HashMap<>();
             map.put("key", "app_name");
-            map.put("text", yB.c(lC.b(sc_id), "my_app_name"));
+            map.put("text", MapValueUtils.c(RecentProjectsRegistry.b(sc_id), "my_app_name"));
             stringsListMap.add(0, map);
         }
     }
@@ -710,7 +715,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
 
         binding.edInput.setText(value);
 
-        OB validator = new OB(context, binding.tiInput, minValue, maxValue);
+        FloatRangeInputValidator validator = new FloatRangeInputValidator(context, binding.tiInput, minValue, maxValue);
 
         dialog.setView(binding.getRoot());
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_save), (v, which) -> {
@@ -736,7 +741,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
         input.setAdapter(adapter);
         binding.tiInput.setVisibility(View.GONE);
         binding.tiAutoCompleteInput.setVisibility(View.VISIBLE);
-        SB lengthValidator = new SB(context, binding.tiInput, 0, 99);
+        LengthRangeValidator lengthValidator = new LengthRangeValidator(context, binding.tiInput, 0, 99);
         lengthValidator.a(value);
         dialog.setView(binding.getRoot());
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_save), (v, which) -> {
@@ -755,6 +760,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
 
         switch (typeView) {
             case "0":  // LinearLayout
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "LinearLayout", "FrameLayout", "RelativeLayout",
                         "androidx.constraintlayout.widget.ConstraintLayout",
@@ -765,7 +771,9 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "2":  // HorizontalScrollView
+
             case "12": // VerticalScrollView
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "HorizontalScrollView", "VerticalScrollView", "ScrollView",
                         "androidx.core.widget.NestedScrollView"
@@ -773,8 +781,11 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "9":  // ListView
+
             case "25": // GridView
+
             case "48": // RecyclerView
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "ListView", "GridView", "androidx.recyclerview.widget.RecyclerView",
                         "ExpandableListView", "androidx.viewpager2.widget.ViewPager2"
@@ -782,7 +793,9 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "3":  // Button
+
             case "41": // MaterialButton
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "Button", "com.google.android.material.button.MaterialButton",
                         "ImageButton", "ToggleButton", "CompoundButton",
@@ -791,8 +804,11 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "4":  // TextView
+
             case "5":  // EditText
+
             case "38": // TextInputLayout
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "TextView", "EditText",
                         "com.google.android.material.textfield.TextInputLayout",
@@ -804,7 +820,9 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "21": // VideoView
+
             case "7":  // WebView
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "VideoView", "android.webkit.WebView",
                         "androidx.media.widget.VideoView",
@@ -813,7 +831,9 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "8":  // ProgressBar
+
             case "14": // SeekBar
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "ProgressBar", "SeekBar",
                         "HorizontalScrollBar", "VerticalSeekBar",
@@ -822,7 +842,9 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "11": // CheckBox
+
             case "19": // RadioButton
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "CheckBox", "RadioButton",
                         "androidx.appcompat.widget.AppCompatCheckBox",
@@ -831,7 +853,9 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "30": // TabLayout
+
             case "31": // ViewPager
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "com.google.android.material.tabs.TabLayout",
                         "androidx.viewpager.widget.ViewPager",
@@ -843,10 +867,12 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "32": // BottomNavigationView
+
                 prioritizedSuggestions.add("com.google.android.material.bottomnavigation.BottomNavigationView");
                 break;
 
             case "36": // CardView
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "androidx.cardview.widget.CardView",
                         "com.google.android.material.card.MaterialCardView"
@@ -854,6 +880,7 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
                 break;
 
             case "39": // SwipeRefreshLayout
+
                 prioritizedSuggestions.addAll(Arrays.asList(
                         "androidx.swiperefreshlayout.widget.SwipeRefreshLayout",
                         "com.google.android.material.progressindicator.CircularProgressIndicator",
@@ -923,11 +950,12 @@ public class PropertyInputItem extends RelativeLayout implements View.OnClickLis
             }
         }
         // Add more attributes here based on the view type
+
         return attrs;
     }
 
     private String getSimpleName(ViewBean bean) {
-        return Jx.WIDGET_NAME_PATTERN.matcher(bean.convert).replaceAll("");
+        return ActivitySourceGenerator.WIDGET_NAME_PATTERN.matcher(bean.convert).replaceAll("");
     }
 
     private void showInjectDialog() {

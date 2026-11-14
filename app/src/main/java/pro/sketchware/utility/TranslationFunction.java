@@ -20,7 +20,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.WeakHashMap;
 
-import a.a.a.wq;
+import pro.sketchware.workspace.WorkspacePathManager;
 
 public class TranslationFunction {
     private static final String TAG = "TranslationFunction";
@@ -132,7 +132,7 @@ public class TranslationFunction {
 
     private static void refreshProvidedStringsFile(Context context) {
         try {
-            File providedStringsFile = new File(wq.m());
+            File providedStringsFile = new File(WorkspacePathManager.m());
             ensureParentDirectoryExists(providedStringsFile);
 
             long assetSize = getAssetSize(context, ASSET_PATH);
@@ -146,7 +146,7 @@ public class TranslationFunction {
     }
 
     private static Map<String, String> loadExternalStrings() {
-        File externalStringsFile = new File(wq.l());
+        File externalStringsFile = new File(WorkspacePathManager.l());
         if (!externalStringsFile.isFile()) {
             return new HashMap<>();
         }

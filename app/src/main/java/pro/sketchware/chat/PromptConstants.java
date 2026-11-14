@@ -30,13 +30,17 @@ public final class PromptConstants {
     public static final String SEARCH_REPLACE_BLOCK_TEMPLATE =
             ORIGINAL + "\n"
                     + "// ... original code goes here\n"
+
                     + DIVIDER + "\n"
                     + "// ... final code goes here\n"
+
                     + FINAL + "\n\n"
                     + ORIGINAL + "\n"
                     + "// ... original code goes here\n"
+
                     + DIVIDER + "\n"
                     + "// ... final code goes here\n"
+
                     + FINAL;
 
     public static final String SEARCH_REPLACE_BLOCKS_TOOL_DESCRIPTION =
@@ -86,6 +90,7 @@ public final class PromptConstants {
         int totalLines = fullFileLines.length;
 
         // Sanitize and clamp line numbers to [1, totalLines]
+
         int s = Math.max(1, Math.min(startLine, totalLines));
         int e = Math.max(1, Math.min(endLine, totalLines));
         if (s > e) s = e;

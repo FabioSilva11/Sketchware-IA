@@ -19,11 +19,11 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
-import a.a.a.Qs;
-import a.a.a.bB;
-import a.a.a.jC;
-import a.a.a.oq;
-import a.a.a.wB;
+import pro.sketchware.editor.EventSelectionListener;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.ComponentEventRegistry;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.EventGridItemBinding;
@@ -35,7 +35,7 @@ public class ViewEvents extends LinearLayout {
 
     private String sc_id;
     private ProjectFileBean projectFileBean;
-    private Qs onEventClickListener;
+    private EventSelectionListener onEventClickListener;
 
     public ViewEvents(Context context) {
         this(context, null);
@@ -47,14 +47,14 @@ public class ViewEvents extends LinearLayout {
     }
 
     private void initialize(Context context) {
-        wB.a(context, this, R.layout.view_events);
+        ViewInflationUtils.a(context, this, R.layout.view_events);
         RecyclerView eventsList = findViewById(R.id.list_events);
         eventsList.setHasFixedSize(true);
         eventsList.setAdapter(eventAdapter);
         eventsList.setItemAnimator(new DefaultItemAnimator());
     }
 
-    public void setOnEventClickListener(Qs listener) {
+    public void setOnEventClickListener(EventSelectionListener listener) {
         onEventClickListener = listener;
     }
 
@@ -81,9 +81,9 @@ public class ViewEvents extends LinearLayout {
         EventBean eventBean = events.get(eventPosition);
         if (!eventBean.isSelected) {
             eventBean.isSelected = true;
-            jC.a(sc_id).a(projectFileBean.getJavaName(), eventBean);
+            ProjectDataManagerRegistry.a(sc_id).a(projectFileBean.getJavaName(), eventBean);
             eventAdapter.notifyItemChanged(eventPosition);
-            bB.a(getContext(), getContext().getString(R.string.event_message_new_event), 0).show();
+            ToastFactory.a(getContext(), getContext().getString(R.string.event_message_new_event), 0).show();
         }
         if (onEventClickListener != null) {
             onEventClickListener.a(eventBean);
@@ -120,7 +120,7 @@ public class ViewEvents extends LinearLayout {
 
             public void bind(EventBean event, int position) {
                 binding.container.setOnClickListener(v -> createEvent(getLayoutPosition()));
-                binding.imgIcon.setImageResource(oq.getEventIconResource(event.eventName));
+                binding.imgIcon.setImageResource(ComponentEventRegistry.getEventIconResource(event.eventName));
                 binding.tvTitle.setText(event.eventName);
                 int contentColor = MaterialColors.getColor(
                         binding.tvTitle,
@@ -141,7 +141,7 @@ public class ViewEvents extends LinearLayout {
                         dialog.setPositiveButton(Helper.getResString(R.string.common_word_delete), (view, which) -> {
                             view.dismiss();
                             EventBean.deleteEvent(sc_id, event, projectFileBean);
-                            bB.a(getContext(), getContext().getString(R.string.common_message_complete_delete), 0).show();
+                            ToastFactory.a(getContext(), getContext().getString(R.string.common_message_complete_delete), 0).show();
                             event.isSelected = false;
                             eventAdapter.notifyItemChanged(position);
                         });

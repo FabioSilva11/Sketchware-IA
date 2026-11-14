@@ -36,8 +36,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executors;
 
-import a.a.a.MA;
-import a.a.a.mB;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.editor.EditorViewUtils;
 import mod.hey.studios.build.BuildSettings;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
@@ -156,7 +156,7 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
         binding.searchList.setAdapter(searchAdapter);
 
         binding.searchBar.setNavigationOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 getOnBackPressedDispatcher().onBackPressed();
             }
         });
@@ -278,7 +278,9 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
     }
 
     // This method is running from the background thread.
+
     // So, every UI operation must be called inside `runOnUiThread`.
+
     private void loadLibraries() {
         var localLibraries = getAllLocalLibraries();
         if (!notAssociatedWithProject) {
@@ -286,6 +288,7 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
         }
 
         //This code helps in sorting the list of local libraries to display enabled libraries first.
+
         localLibraries.sort((lib1, lib2) -> {
             boolean isEnabled1 = isUsedLibrary(lib1.getName());
             boolean isEnabled2 = isUsedLibrary(lib2.getName());
@@ -313,7 +316,7 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
         void invoke(LocalLibrary library);
     }
 
-    private static class LoadLocalLibrariesTask extends MA {
+    private static class LoadLocalLibrariesTask extends BackgroundTask {
         private final WeakReference<ManageLocalLibraryActivity> activity;
 
         public LoadLocalLibrariesTask(ManageLocalLibraryActivity activity) {
@@ -439,6 +442,7 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
             HashMap<String, Object> localLibrary;
             if (!binding.materialSwitch.isChecked()) {
                 // Remove the library from the list
+
                 int indexToRemove = -1;
                 for (int i = 0; i < projectUsedLibs.size(); i++) {
                     Map<String, Object> libraryMap = projectUsedLibs.get(i);
@@ -452,7 +456,9 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
                 }
             } else {
                 // Add the library to the list
+
                 // Here, we need to find the dependency string if it exists
+
                 String dependency = null;
                 for (Map<String, Object> libraryMap : projectUsedLibs) {
                     if (name.equals(libraryMap.get("name").toString())) {
@@ -534,6 +540,7 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
             HashMap<String, Object> localLibrary;
             if (!binding.materialSwitch.isChecked()) {
                 // Remove the library from the list
+
                 int indexToRemove = -1;
                 for (int i = 0; i < projectUsedLibs.size(); i++) {
                     Map<String, Object> libraryMap = projectUsedLibs.get(i);
@@ -547,7 +554,9 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
                 }
             } else {
                 // Add the library to the list
+
                 // Here, we need to find the dependency string if it exists
+
                 String dependency = null;
                 for (Map<String, Object> libraryMap : projectUsedLibs) {
                     if (name.equals(libraryMap.get("name").toString())) {
@@ -573,6 +582,7 @@ public class ManageLocalLibraryActivity extends BaseAppCompatActivity {
                 }
             }
             // Sorts the filtered search results to ensure enabled libraries still appear at the top.
+
             filteredLocalLibraries.sort((lib1, lib2) -> {
                 boolean isEnabled1 = isUsedLibrary(lib1.getName());
                 boolean isEnabled2 = isUsedLibrary(lib2.getName());

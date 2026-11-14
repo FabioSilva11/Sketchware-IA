@@ -15,7 +15,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import a.a.a.wq;
+import pro.sketchware.workspace.WorkspacePathManager;
 import pro.sketchware.activities.resourceseditor.components.utils.StringsEditorManager;
 
 /**
@@ -65,7 +65,7 @@ public final class ProjectStrings {
 
     @NonNull
     public static String getStringsPath(@NonNull String scId) {
-        return wq.b(scId) + "/files/resource/values/strings.xml";
+        return WorkspacePathManager.b(scId) + "/files/resource/values/strings.xml";
     }
 
     public static boolean isReference(@Nullable String value) {
@@ -103,13 +103,16 @@ public final class ProjectStrings {
         synchronized (ProjectStrings.class) {
             Strings strings = Strings.load(scId);
             // Never rewrite a strings.xml we couldn't read; the widget keeps its literal text instead.
+
             if (strings.failed) return newValue;
             String owned = ownedKey(widgetId, field);
             String key = null;
             if (isReference(currentValue)) {
                 String currentKey = currentValue.trim().substring(REFERENCE_PREFIX.length());
                 // Update the widget's own string in place; a string the user picked (shared with other
+
                 // widgets) stays untouched and the widget gets a string of its own.
+
                 if (currentKey.equals(owned) || currentKey.startsWith(owned + "_")) {
                     key = currentKey;
                 }

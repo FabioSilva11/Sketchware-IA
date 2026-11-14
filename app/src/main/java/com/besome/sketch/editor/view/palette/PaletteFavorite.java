@@ -10,8 +10,8 @@ import com.besome.sketch.lib.ui.CustomScrollView;
 
 import java.util.ArrayList;
 
-import a.a.a.uy;
-import a.a.a.wB;
+import pro.sketchware.editor.PaletteWidgetItem;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.R;
 
 public class PaletteFavorite extends LinearLayout {
@@ -29,7 +29,7 @@ public class PaletteFavorite extends LinearLayout {
     }
 
     public View a(String name, ArrayList<ViewBean> viewBeans) {
-        uy favoriteWidget = new uy(getContext(), name, viewBeans);
+        PaletteWidgetItem favoriteWidget = new PaletteWidgetItem(getContext(), name, viewBeans);
         collectionWidgets.addView(favoriteWidget);
         return favoriteWidget;
     }
@@ -39,7 +39,7 @@ public class PaletteFavorite extends LinearLayout {
     }
 
     private void initialize(Context context) {
-        wB.a(context, this, R.layout.palette_favorite);
+        ViewInflationUtils.a(context, this, R.layout.palette_favorite);
         collectionWidgets = findViewById(R.id.widget);
         scrollView = findViewById(R.id.scv);
     }

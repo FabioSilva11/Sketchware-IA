@@ -18,9 +18,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
-import a.a.a.kq;
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.editor.BlockOpcodeUtils;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.VarTypeItemBinding;
@@ -63,7 +63,7 @@ public class VariableItemView extends LinearLayout {
                 break;
 
             default:
-                type = kq.b(name);
+                type = BlockOpcodeUtils.b(name);
         }
 
         switch (name) {
@@ -127,7 +127,7 @@ public class VariableItemView extends LinearLayout {
     }
 
     private void initialize(Activity activity) {
-        wB.a(activity, this, R.layout.var_type_spinner);
+        ViewInflationUtils.a(activity, this, R.layout.var_type_spinner);
         tvPreview = findViewById(R.id.tv_preview);
         variableItems = new ArrayList<>();
         viewsVariableList = new ArrayList<>();
@@ -138,13 +138,14 @@ public class VariableItemView extends LinearLayout {
         setPreview(variableItems.get(0));
 
         findViewById(R.id.container).setOnClickListener(view -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 showVarTypeSelectorDialog(activity);
             }
         });
     }
 
     // New Ui For Type Var Dialog
+
     private void showVarTypeSelectorDialog(Activity activity) {
 
         var builder = new MaterialAlertDialogBuilder(activity);
@@ -165,12 +166,15 @@ public class VariableItemView extends LinearLayout {
                     int itemId = item.getItemId();
                     if (itemId == R.id.variables) {
                         // variables list
+
                         adapter.setData(variableItems);
                     } else if (itemId == R.id.views) {
                         // views list
+
                         adapter.setData(viewsVariableList);
                     } else {
                         // components list
+
                         adapter.setData(componentsVariableList);
                     }
                     adapter.notifyDataSetChanged();

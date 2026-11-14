@@ -14,26 +14,26 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputLayout;
 
-import a.a.a.RB;
-import a.a.a.SB;
-import a.a.a.VB;
-import a.a.a.bB;
-import a.a.a.iI;
-import a.a.a.mB;
-import a.a.a.wq;
+import pro.sketchware.editor.LowercaseWordValidator;
+import pro.sketchware.editor.LengthRangeValidator;
+import pro.sketchware.editor.KeyAliasValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.compiler.ApkSigningManager;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
 public class NewKeyStoreActivity extends BaseAppCompatActivity implements OnClickListener {
     private final int validityInYears = 25;
-    private RB organizationValidator;
-    private RB localityValidator;
-    private RB stateValidator;
-    private RB countryValidator;
-    private RB commonNameValidator;
-    private RB organizationalUnitValidator;
-    private iI E;
+    private LowercaseWordValidator organizationValidator;
+    private LowercaseWordValidator localityValidator;
+    private LowercaseWordValidator stateValidator;
+    private LowercaseWordValidator countryValidator;
+    private LowercaseWordValidator commonNameValidator;
+    private LowercaseWordValidator organizationalUnitValidator;
+    private ApkSigningManager E;
     private EditText alias;
     private EditText password;
     private EditText passwordConfirm;
@@ -43,8 +43,8 @@ public class NewKeyStoreActivity extends BaseAppCompatActivity implements OnClic
     private EditText locality;
     private EditText state;
     private EditText country;
-    private VB aliasValidator;
-    private SB passwordValidator, passwordConfirmValidator;
+    private KeyAliasValidator aliasValidator;
+    private LengthRangeValidator passwordValidator, passwordConfirmValidator;
 
     private void showDoneDialog(boolean success, String password) {
         MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(this);
@@ -58,7 +58,7 @@ public class NewKeyStoreActivity extends BaseAppCompatActivity implements OnClic
         }
 
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_close), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 v.dismiss();
                 if (success) {
                     Intent intent = new Intent();
@@ -77,7 +77,7 @@ public class NewKeyStoreActivity extends BaseAppCompatActivity implements OnClic
         if (passwordValidator.b() && passwordConfirmValidator.b()) {
             String text = Helper.getText(password);
             if (!text.equals(Helper.getText(passwordConfirm))) {
-                bB.b(getApplicationContext(), Helper.getResString(R.string.myprojects_sign_apk_incorrect_password), 0).show();
+                ToastFactory.b(getApplicationContext(), Helper.getResString(R.string.myprojects_sign_apk_incorrect_password), 0).show();
                 password.setText("");
                 passwordConfirm.setText("");
                 return;
@@ -112,7 +112,7 @@ public class NewKeyStoreActivity extends BaseAppCompatActivity implements OnClic
             stringBuilder.append(Helper.getText(country));
 
             try {
-                E.a(wq.j(), stringBuilder.toString(), validityInYears, Helper.getText(alias), text);
+                E.a(WorkspacePathManager.j(), stringBuilder.toString(), validityInYears, Helper.getText(alias), text);
                 showDoneDialog(true, text);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -124,7 +124,7 @@ public class NewKeyStoreActivity extends BaseAppCompatActivity implements OnClic
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             int id = v.getId();
             if (id == R.id.btn_keystore_cancel) {
                 finish();
@@ -146,11 +146,11 @@ public class NewKeyStoreActivity extends BaseAppCompatActivity implements OnClic
         setSupportActionBar(toolbar);
         findViewById(R.id.layout_main_logo).setVisibility(View.GONE);
         getSupportActionBar().setTitle(Helper.getResString(R.string.myprojects_sign_apk_new_certificate_title_new_certificate));
-        getSupportActionBar().setSubtitle("Export path: " + wq.D);
+        getSupportActionBar().setSubtitle("Export path: " + WorkspacePathManager.D);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(true);
         toolbar.setNavigationOnClickListener(Helper.getBackPressedClickListener(this));
-        E = new iI();
+        E = new ApkSigningManager();
 
 
         Button var2 = findViewById(R.id.btn_keystore_save);
@@ -180,15 +180,15 @@ public class NewKeyStoreActivity extends BaseAppCompatActivity implements OnClic
         TextInputLayout tilCountry = findViewById(R.id.ti_dn_c);
 
 
-        aliasValidator = new VB(getApplicationContext(), tilAlias);
-        passwordValidator = new SB(getApplicationContext(), tilPassword, 4, 32);
-        passwordConfirmValidator = new SB(getApplicationContext(), tilPasswordConfirm, 4, 32);
-        commonNameValidator = new RB(getApplicationContext(), tilCommonName);
-        organizationalUnitValidator = new RB(getApplicationContext(), tilOrganizationalUnit);
-        organizationValidator = new RB(getApplicationContext(), tilOrganization);
-        localityValidator = new RB(getApplicationContext(), tilLocality);
-        stateValidator = new RB(getApplicationContext(), tilState);
-        countryValidator = new RB(getApplicationContext(), tilCountry);
+        aliasValidator = new KeyAliasValidator(getApplicationContext(), tilAlias);
+        passwordValidator = new LengthRangeValidator(getApplicationContext(), tilPassword, 4, 32);
+        passwordConfirmValidator = new LengthRangeValidator(getApplicationContext(), tilPasswordConfirm, 4, 32);
+        commonNameValidator = new LowercaseWordValidator(getApplicationContext(), tilCommonName);
+        organizationalUnitValidator = new LowercaseWordValidator(getApplicationContext(), tilOrganizationalUnit);
+        organizationValidator = new LowercaseWordValidator(getApplicationContext(), tilOrganization);
+        localityValidator = new LowercaseWordValidator(getApplicationContext(), tilLocality);
+        stateValidator = new LowercaseWordValidator(getApplicationContext(), tilState);
+        countryValidator = new LowercaseWordValidator(getApplicationContext(), tilCountry);
 
 
         alias.setPrivateImeOptions("defaultInputmode=english;");

@@ -15,14 +15,14 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 
 import java.util.ArrayList;
 
-import a.a.a.GB;
-import a.a.a.NB;
-import a.a.a.Op;
-import a.a.a.Rp;
-import a.a.a.bB;
-import a.a.a.kC;
-import a.a.a.mB;
-import a.a.a.wq;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.UniqueNameValidator;
+import pro.sketchware.filemanagers.SoundResourceManager;
+import pro.sketchware.editor.WidgetCollectionManager;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.filemanagers.ProjectResourceManager;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageCollectionShowWidgetBinding;
@@ -31,7 +31,7 @@ import pro.sketchware.utility.TranslationFunction;
 public class ShowWidgetCollectionActivity extends BaseAppCompatActivity implements View.OnClickListener {
     private String widgetName;
     private EditText widgetNameInput;
-    private NB widgetNameValidator;
+    private UniqueNameValidator widgetNameValidator;
     private ManageCollectionShowWidgetBinding binding;
 
     private ItemView loadViews(ArrayList<ViewBean> views) {
@@ -53,7 +53,7 @@ public class ShowWidgetCollectionActivity extends BaseAppCompatActivity implemen
     private void setActionContainerHeight() {
         binding.layoutButton.measure(0, 0);
         binding.scrollView.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                getResources().getDisplayMetrics().heightPixels - GB.a(getApplicationContext()) - GB.f(getApplicationContext()) - binding.layoutButton.getMeasuredHeight()));
+                getResources().getDisplayMetrics().heightPixels - DeviceEnvironmentUtils.a(getApplicationContext()) - DeviceEnvironmentUtils.f(getApplicationContext()) - binding.layoutButton.getMeasuredHeight()));
         binding.scrollView.requestLayout();
     }
 
@@ -63,8 +63,8 @@ public class ShowWidgetCollectionActivity extends BaseAppCompatActivity implemen
         if (id == R.id.img_back) {
             onBackPressed();
         } else if (id == R.id.save_button && widgetNameValidator.b()) {
-            Rp.h().a(widgetName, Helper.getText(widgetNameInput), true);
-            bB.a(getApplicationContext(), getString(R.string.design_manager_message_edit_complete), bB.TOAST_NORMAL).show();
+            WidgetCollectionManager.h().a(widgetName, Helper.getText(widgetNameInput), true);
+            ToastFactory.a(getApplicationContext(), getString(R.string.design_manager_message_edit_complete), ToastFactory.TOAST_NORMAL).show();
             finish();
         }
     }
@@ -86,7 +86,7 @@ public class ShowWidgetCollectionActivity extends BaseAppCompatActivity implemen
         getSupportActionBar().setDisplayShowTitleEnabled(true);
 
         binding.toolbar.setNavigationOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 onBackPressed();
             }
         });
@@ -95,21 +95,21 @@ public class ShowWidgetCollectionActivity extends BaseAppCompatActivity implemen
         String sc_id = getIntent().getStringExtra("sc_id");
         binding.pane.initialize(sc_id, true);
         binding.pane.setVerticalScrollBarEnabled(true);
-        kC kCVar = new kC("", wq.a() + "/image/data/", "", "");
-        kCVar.b(Op.g().f());
+        ProjectResourceManager kCVar = new ProjectResourceManager("", WorkspacePathManager.a() + "/image/data/", "", "");
+        kCVar.b(SoundResourceManager.g().f());
         binding.pane.setResourceManager(kCVar);
         widgetNameInput = binding.edInput.getEditText();
         widgetNameInput.setPrivateImeOptions("defaultInputmode=english;");
         widgetNameInput.setText(widgetName);
         binding.edInput.setHint(getString(R.string.design_manager_widget_hint_enter_widget_name));
         binding.saveButton.setOnClickListener(this);
-        widgetNameValidator = new NB(this, binding.edInput.getTextInputLayout(), Rp.h().g());
+        widgetNameValidator = new UniqueNameValidator(this, binding.edInput.getTextInputLayout(), WidgetCollectionManager.h().g());
     }
 
     @Override
     public void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        loadViews(Rp.h().a(widgetName).widgets);
+        loadViews(WidgetCollectionManager.h().a(widgetName).widgets);
         setActionContainerHeight();
     }
 

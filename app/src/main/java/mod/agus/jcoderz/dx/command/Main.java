@@ -72,6 +72,7 @@ public class Main {
      */
     private Main() {
         // This space intentionally left blank.
+
     }
 
     /**

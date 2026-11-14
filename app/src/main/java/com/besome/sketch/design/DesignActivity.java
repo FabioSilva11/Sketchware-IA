@@ -93,25 +93,25 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import a.a.a.DB;
-import a.a.a.GB;
-import a.a.a.Ox;
-import a.a.a.ProjectBuilder;
-import a.a.a.ViewEditorFragment;
-import a.a.a.bB;
-import a.a.a.bC;
-import a.a.a.br;
-import a.a.a.cC;
-import a.a.a.eC;
-import a.a.a.jC;
-import a.a.a.kC;
-import a.a.a.lC;
-import a.a.a.mB;
-import a.a.a.rs;
-import a.a.a.wq;
-import a.a.a.yB;
-import a.a.a.yq;
-import a.a.a.zy;
+import pro.sketchware.core.PreferenceStore;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.compiler.LayoutXmlGenerator;
+import pro.sketchware.compiler.ProjectBuilder;
+import pro.sketchware.editor.ViewEditorFragment;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.BlockHistoryManager;
+import pro.sketchware.editor.LogicComponentListFragment;
+import pro.sketchware.editor.ViewHistoryManager;
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.filemanagers.ProjectResourceManager;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.LogicEventEditorFragment;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.MapValueUtils;
+import pro.sketchware.workspace.ProjectWorkspaceManager;
+import pro.sketchware.filemanagers.ProjectResourceStore;
 import dev.chrisbanes.insetter.Insetter;
 import mod.agus.jcoderz.editor.manage.permission.ManagePermissionActivity;
 import mod.agus.jcoderz.editor.manage.resource.ManageResourceActivity;
@@ -163,9 +163,9 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
     private CustomViewPager viewPager;
     private CoordinatorLayout coordinatorLayout;
     private DrawerLayout drawer;
-    private yq q;
-    private DB r;
-    private DB t;
+    private ProjectWorkspaceManager q;
+    private PreferenceStore r;
+    private PreferenceStore t;
     private Menu bottomMenu;
     private PopupMenu bottomPopupMenu;
     private MaterialButton btnRun;
@@ -204,8 +204,8 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             }
         }
     });
-    private rs eventTabAdapter;
-    private br componentTabAdapter;
+    private LogicEventEditorFragment eventTabAdapter;
+    private LogicComponentListFragment componentTabAdapter;
     private final ActivityResultLauncher<Intent> openImageManager = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (result.getResultCode() == RESULT_OK) {
             refresh();
@@ -254,21 +254,21 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
      * Saves the app's version information to the currently opened Sketchware project file.
      */
     private void saveVersionCodeInformationToProject() {
-        HashMap<String, Object> projectMetadata = lC.b(sc_id);
+        HashMap<String, Object> projectMetadata = RecentProjectsRegistry.b(sc_id);
         if (projectMetadata != null) {
-            projectMetadata.put("sketchware_ver", GB.d(getApplicationContext()));
-            lC.b(sc_id, projectMetadata);
+            projectMetadata.put("sketchware_ver", DeviceEnvironmentUtils.d(getApplicationContext()));
+            RecentProjectsRegistry.b(sc_id, projectMetadata);
         }
     }
 
     private void loadProject(boolean haveSavedState) {
         projectFile = getDefaultProjectFile();
-        jC.a(sc_id, haveSavedState);
-        jC.b(sc_id, haveSavedState);
-        kC var2 = jC.d(sc_id, haveSavedState);
-        jC.c(sc_id, haveSavedState);
-        cC.c(sc_id);
-        bC.d(sc_id);
+        ProjectDataManagerRegistry.a(sc_id, haveSavedState);
+        ProjectDataManagerRegistry.b(sc_id, haveSavedState);
+        ProjectResourceManager var2 = ProjectDataManagerRegistry.d(sc_id, haveSavedState);
+        ProjectDataManagerRegistry.c(sc_id, haveSavedState);
+        ViewHistoryManager.c(sc_id);
+        BlockHistoryManager.d(sc_id);
         if (!haveSavedState) {
             var2.f();
             var2.g();
@@ -277,7 +277,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
     }
 
     private ProjectFileBean getDefaultProjectFile() {
-        return jC.b(sc_id).b(ProjectFileBean.DEFAULT_XML_NAME);
+        return ProjectDataManagerRegistry.b(sc_id).b(ProjectFileBean.DEFAULT_XML_NAME);
     }
 
     private void refreshFileSelector() {
@@ -293,13 +293,13 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         }
 
         if (viewPager.getCurrentItem() == 0) {
-            if (!ProjectFileBean.DEFAULT_XML_NAME.equals(xmlFileName) && jC.b(sc_id).b(xmlFileName) == null) {
+            if (!ProjectFileBean.DEFAULT_XML_NAME.equals(xmlFileName) && ProjectDataManagerRegistry.b(sc_id).b(xmlFileName) == null) {
                 projectFile = getDefaultProjectFile();
                 xmlFileName = ProjectFileBean.DEFAULT_XML_NAME;
             }
             fileName.setText(xmlFileName);
         } else if (viewPager.getCurrentItem() == 1 || viewPager.getCurrentItem() == 2) {
-            if (!ProjectFileBean.DEFAULT_JAVA_NAME.equals(currentJavaFileName) && jC.b(sc_id).a(currentJavaFileName) == null) {
+            if (!ProjectFileBean.DEFAULT_JAVA_NAME.equals(currentJavaFileName) && ProjectDataManagerRegistry.b(sc_id).a(currentJavaFileName) == null) {
                 projectFile = getDefaultProjectFile();
                 currentJavaFileName = ProjectFileBean.DEFAULT_JAVA_NAME;
             }
@@ -374,7 +374,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         new CompileErrorSaver(sc_id).writeLogsToFile(error);
         Snackbar snackbar = Snackbar.make(coordinatorLayout, "Show compile log", Snackbar.LENGTH_INDEFINITE);
         snackbar.setAction(Helper.getResString(R.string.common_word_show), v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 snackbar.dismiss();
                 Intent intent = new Intent(getApplicationContext(), CompileLogActivity.class);
                 intent.putExtra("sc_id", sc_id);
@@ -388,15 +388,15 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
 
     @Override
     public void finish() {
-        jC.a();
-        cC.a();
-        bC.a();
+        ProjectDataManagerRegistry.a();
+        ViewHistoryManager.a();
+        BlockHistoryManager.a();
         setResult(RESULT_CANCELED, getIntent());
         super.finish();
     }
 
     private void checkForUnsavedProjectData() {
-        if (jC.c(sc_id).g() || jC.b(sc_id).g() || jC.d(sc_id).q() || jC.a(sc_id).d() || jC.a(sc_id).c()) {
+        if (ProjectDataManagerRegistry.c(sc_id).g() || ProjectDataManagerRegistry.b(sc_id).g() || ProjectDataManagerRegistry.d(sc_id).q() || ProjectDataManagerRegistry.a(sc_id).d() || ProjectDataManagerRegistry.a(sc_id).c()) {
             askIfToRestoreOldUnsavedProjectData();
         }
     }
@@ -501,8 +501,8 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             sc_id = savedInstanceState.getString("sc_id");
         }
 
-        r = new DB(getApplicationContext(), "P1");
-        t = new DB(getApplicationContext(), "P12");
+        r = new PreferenceStore(getApplicationContext(), "P1");
+        t = new PreferenceStore(getApplicationContext(), "P12");
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setSubtitle(sc_id);
@@ -723,7 +723,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             selectReferenceImageButton.setOnClickListener(v -> selectAiLayoutReferenceImages.launch("image/*"));
 
             String xmlName = projectFile != null ? projectFile.getXmlName() : "layout";
-            boolean hasViews = projectFile != null && !jC.a(sc_id).d(xmlName).isEmpty();
+            boolean hasViews = projectFile != null && !ProjectDataManagerRegistry.a(sc_id).d(xmlName).isEmpty();
             modeGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
                 if (!isChecked) return;
                 modeHint.setText(getString(checkedId == R.id.mode_edit
@@ -734,7 +734,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             modeHint.setText(getString(hasViews ? R.string.ai_layout_generator_mode_edit_hint
                     : R.string.ai_layout_generator_mode_create_hint, xmlName));
 
-            boolean appCompat = jC.c(sc_id).c().isEnabled();
+            boolean appCompat = ProjectDataManagerRegistry.c(sc_id).c().isEnabled();
             boolean material3 = appCompat && new Material3LibraryManager(sc_id).isMaterial3Enabled();
             List<String> roots = new ArrayList<>();
             roots.add(getString(R.string.ai_layout_generator_root_auto));
@@ -767,8 +767,8 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             for (pro.sketchware.ia.layout.LayoutComponentRegistry.Component component : registry.all()) {
                 componentNames.add(component.name);
             }
-            int images = jC.d(sc_id).b == null ? 0 : jC.d(sc_id).b.size();
-            int layouts = jC.b(sc_id).b().size() + jC.b(sc_id).c().size() - 1;
+            int images = ProjectDataManagerRegistry.d(sc_id).b == null ? 0 : ProjectDataManagerRegistry.d(sc_id).b.size();
+            int layouts = ProjectDataManagerRegistry.b(sc_id).b().size() + ProjectDataManagerRegistry.b(sc_id).c().size() - 1;
             int colors = countColors();
             capabilities.setText(getString(R.string.ai_layout_generator_capabilities_body,
                     String.join(", ", componentNames), images, colors, Math.max(0, layouts)));
@@ -814,7 +814,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
     }
 
     private int countColors() {
-        String colors = FileUtil.readFileIfExist(wq.b(sc_id) + "/files/resource/values/colors.xml");
+        String colors = FileUtil.readFileIfExist(WorkspacePathManager.b(sc_id) + "/files/resource/values/colors.xml");
         int count = 0;
         int index = 0;
         while ((index = colors.indexOf("<color ", index)) >= 0) {
@@ -891,6 +891,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         menu.add(3, 6, 5, R.string.design_relations_clear).setIcon(R.drawable.ic_mtrl_link_off).setEnabled(relations);
         popup.setForceShowIcon(true);
         // The button stays highlighted while the canvas is in Blueprint mode.
+
         popup.setOnDismissListener(m -> btnCanvasTools.setChecked(editor.isBlueprint()));
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
@@ -936,8 +937,9 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         List<Uri> referenceImageUrisSnapshot = referenceImageUris == null ? new ArrayList<>() : new ArrayList<>(referenceImageUris);
         String xmlName = projectFile.getXmlName();
         // Snapshot of the editor state, taken on the main thread.
+
         ArrayList<ViewBean> currentViews = new ArrayList<>();
-        for (ViewBean bean : jC.a(sc_id).d(xmlName)) currentViews.add(bean.clone());
+        for (ViewBean bean : ProjectDataManagerRegistry.a(sc_id).d(xmlName)) currentViews.add(bean.clone());
         InjectRootLayoutManager.Root currentRoot = new InjectRootLayoutManager(sc_id).getLayoutByFileName(xmlName);
         new Thread(() -> {
             try {
@@ -965,6 +967,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                         prompt, editing, rootPreference, projectContext, registry, history).generate();
                 ParsedGeneratedLayout generatedLayout = prepareGeneratedLayout(generated.xml);
                 // Generated texts become string resources owned by each widget, exactly like dropped widgets.
+
                 ProjectStrings.externalize(sc_id, generatedLayout.parsedLayout, true);
 
                 updateAiLayoutLoadingDialog(getString(R.string.ai_layout_generator_loading_applying));
@@ -975,15 +978,15 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                         rootLayoutManager.set(xmlName, InjectRootLayoutManager.toRoot(generatedLayout.rootAttributes));
 
                         var bean = new HistoryViewBean();
-                        bean.actionOverride(generatedLayout.parsedLayout, jC.a(sc_id).d(xmlName));
-                        var cc = cC.c(sc_id);
+                        bean.actionOverride(generatedLayout.parsedLayout, ProjectDataManagerRegistry.a(sc_id).d(xmlName));
+                        var cc = ViewHistoryManager.c(sc_id);
                         if (!cc.c.containsKey(xmlName)) {
                             cc.e(xmlName);
                         }
                         cc.a(xmlName);
                         cc.a(xmlName, bean);
 
-                        jC.a(sc_id).c.put(xmlName, generatedLayout.parsedLayout);
+                        ProjectDataManagerRegistry.a(sc_id).c.put(xmlName, generatedLayout.parsedLayout);
 
                         if (viewTabAdapter != null) {
                             viewTabAdapter.i();
@@ -1182,9 +1185,9 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         super.onPostCreate(savedInstanceState);
         k();
 
-        HashMap<String, Object> projectInfo = lC.b(sc_id);
-        getSupportActionBar().setTitle(yB.c(projectInfo, "my_ws_name"));
-        q = new yq(getApplicationContext(), wq.d(sc_id), projectInfo);
+        HashMap<String, Object> projectInfo = RecentProjectsRegistry.b(sc_id);
+        getSupportActionBar().setTitle(MapValueUtils.c(projectInfo, "my_ws_name"));
+        q = new ProjectWorkspaceManager(getApplicationContext(), WorkspacePathManager.d(sc_id), projectInfo);
 
         try {
             ProjectLoader projectLoader = new ProjectLoader(this, savedInstanceState);
@@ -1204,7 +1207,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             finish();
         }
 
-        long freeMegabytes = GB.c();
+        long freeMegabytes = DeviceEnvironmentUtils.c();
         if (freeMegabytes < 100L && freeMegabytes > 0L) {
             warnAboutInsufficientStorageSpace();
         }
@@ -1244,7 +1247,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         dialog.setIcon(R.drawable.ic_mtrl_exit);
         dialog.setMessage(Helper.getResString(R.string.design_quit_message_confirm_save));
         dialog.setPositiveButton(Helper.getResString(R.string.design_quit_button_save_and_exit), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 v.dismiss();
                 try {
                     saveChangesAndCloseProject();
@@ -1255,7 +1258,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             }
         });
         dialog.setNegativeButton(Helper.getResString(R.string.common_word_exit), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 v.dismiss();
                 try {
                     k();
@@ -1311,37 +1314,37 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         dialog.setTitle(Helper.getResString(R.string.design_restore_data_title));
         dialog.setMessage(Helper.getResString(R.string.design_restore_data_message_confirm));
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_restore), (v, which) -> {
-            if (!mB.a()) {
-                boolean g = jC.c(sc_id).g();
-                boolean g2 = jC.b(sc_id).g();
-                boolean q = jC.d(sc_id).q();
-                boolean d = jC.a(sc_id).d();
-                boolean c = jC.a(sc_id).c();
+            if (!EditorViewUtils.a()) {
+                boolean g = ProjectDataManagerRegistry.c(sc_id).g();
+                boolean g2 = ProjectDataManagerRegistry.b(sc_id).g();
+                boolean q = ProjectDataManagerRegistry.d(sc_id).q();
+                boolean d = ProjectDataManagerRegistry.a(sc_id).d();
+                boolean c = ProjectDataManagerRegistry.a(sc_id).c();
                 if (g) {
-                    jC.c(sc_id).h();
+                    ProjectDataManagerRegistry.c(sc_id).h();
                 }
                 if (g2) {
-                    jC.b(sc_id).h();
+                    ProjectDataManagerRegistry.b(sc_id).h();
                 }
                 if (q) {
-                    jC.d(sc_id).r();
+                    ProjectDataManagerRegistry.d(sc_id).r();
                 }
                 if (d) {
-                    jC.a(sc_id).h();
+                    ProjectDataManagerRegistry.a(sc_id).h();
                 }
                 if (c) {
-                    jC.a(sc_id).f();
+                    ProjectDataManagerRegistry.a(sc_id).f();
                 }
                 if (g) {
-                    jC.b(sc_id).a(jC.c(sc_id));
-                    jC.a(sc_id).a(jC.c(sc_id).d());
+                    ProjectDataManagerRegistry.b(sc_id).a(ProjectDataManagerRegistry.c(sc_id));
+                    ProjectDataManagerRegistry.a(sc_id).a(ProjectDataManagerRegistry.c(sc_id).d());
                 }
                 if (g2 || g) {
-                    jC.a(sc_id).a(jC.b(sc_id));
+                    ProjectDataManagerRegistry.a(sc_id).a(ProjectDataManagerRegistry.b(sc_id));
                 }
                 if (q) {
-                    jC.a(sc_id).c(jC.d(sc_id));
-                    jC.a(sc_id).a(jC.d(sc_id));
+                    ProjectDataManagerRegistry.a(sc_id).c(ProjectDataManagerRegistry.d(sc_id));
+                    ProjectDataManagerRegistry.a(sc_id).a(ProjectDataManagerRegistry.d(sc_id));
                 }
                 refresh();
                 B = false;
@@ -1361,7 +1364,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         k();
         new Thread(() -> {
             var filename = Helper.getText(fileName);
-            var code = new yq(getApplicationContext(), sc_id).getFileSrc(filename, jC.b(sc_id), jC.a(sc_id), jC.c(sc_id));
+            var code = new ProjectWorkspaceManager(getApplicationContext(), sc_id).getFileSrc(filename, ProjectDataManagerRegistry.b(sc_id), ProjectDataManagerRegistry.a(sc_id), ProjectDataManagerRegistry.c(sc_id));
             runOnUiThread(() -> {
                 if (isFinishing()) return;
                 h();
@@ -1379,7 +1382,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         var dialog = new MaterialAlertDialogBuilder(this).create();
         dialog.setTitle(R.string.design_file_selector_title_java);
         dialog.setIcon(R.drawable.ic_mtrl_java);
-        View customView = a.a.a.wB.a(this, R.layout.file_selector_popup_select_java);
+        View customView = pro.sketchware.core.ViewInflationUtils.a(this, R.layout.file_selector_popup_select_java);
         RecyclerView recyclerView = customView.findViewById(R.id.file_list);
         recyclerView.setLayoutManager(new LinearLayoutManager(getApplicationContext(), RecyclerView.VERTICAL, false));
         var adapter = new JavaFileAdapter(sc_id);
@@ -1411,9 +1414,10 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         k();
         new Thread(() -> {
             String filename = Helper.getText(fileName);
-            // var yq = new yq(getApplicationContext(), sc_id);
-            var xmlGenerator = new Ox(q.N, projectFile);
-            var projectDataManager = jC.a(sc_id);
+            // var ProjectWorkspaceManager = new ProjectWorkspaceManager(getApplicationContext(), sc_id);
+
+            var xmlGenerator = new LayoutXmlGenerator(q.N, projectFile);
+            var projectDataManager = ProjectDataManagerRegistry.a(sc_id);
             var viewBeans = projectDataManager.d(filename);
             var viewFab = projectDataManager.h(filename);
             xmlGenerator.setExcludeAppCompat(true);
@@ -1659,35 +1663,36 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
 
                 q.c(activity.getApplicationContext());
                 q.a();
-                q.a(activity.getApplicationContext(), wq.e("600"));
-                if (ProjectMapUtils.getBoolean(lC.b(sc_id), "custom_icon")) {
-                    q.aa(wq.e() + File.separator + sc_id + File.separator + "mipmaps");
-                    if (ProjectMapUtils.getBoolean(lC.b(sc_id), "isIconAdaptive", false)) {
+                q.a(activity.getApplicationContext(), WorkspacePathManager.e("600"));
+                if (ProjectMapUtils.getBoolean(RecentProjectsRegistry.b(sc_id), "custom_icon")) {
+                    q.aa(WorkspacePathManager.e() + File.separator + sc_id + File.separator + "mipmaps");
+                    if (ProjectMapUtils.getBoolean(RecentProjectsRegistry.b(sc_id), "isIconAdaptive", false)) {
                         q.createLauncherIconXml("""
                                 <?xml version="1.0" encoding="utf-8"?>
                                 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android" >
+
                                 <background android:drawable="@mipmap/ic_launcher_background"/>
                                 <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
                                 <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
                                 </adaptive-icon>""");
                     } else {
-                        q.a(wq.e() + File.separator + sc_id + File.separator + "icon.png");
+                        q.a(WorkspacePathManager.e() + File.separator + sc_id + File.separator + "icon.png");
                     }
                 }
 
                 onProgress("Generating source code...", 2);
-                kC kC = jC.d(sc_id);
-                kC.b(q.resDirectoryPath + File.separator + "drawable-xhdpi");
-                kC = jC.d(sc_id);
-                kC.c(q.resDirectoryPath + File.separator + "raw");
-                kC = jC.d(sc_id);
-                kC.a(q.assetsPath + File.separator + "fonts");
+                ProjectResourceManager resourceManager = ProjectDataManagerRegistry.d(sc_id);
+                resourceManager.b(q.resDirectoryPath + File.separator + "drawable-xhdpi");
+                resourceManager = ProjectDataManagerRegistry.d(sc_id);
+                resourceManager.c(q.resDirectoryPath + File.separator + "raw");
+                resourceManager = ProjectDataManagerRegistry.d(sc_id);
+                resourceManager.a(q.assetsPath + File.separator + "fonts");
 
                 ProjectBuilder builder = new ProjectBuilder(this, activity.getApplicationContext(), q);
 
-                var fileManager = jC.b(sc_id);
-                var dataManager = jC.a(sc_id);
-                var libraryManager = jC.c(sc_id);
+                var fileManager = ProjectDataManagerRegistry.b(sc_id);
+                var dataManager = ProjectDataManagerRegistry.a(sc_id);
+                var libraryManager = ProjectDataManagerRegistry.c(sc_id);
                 q.a(libraryManager, fileManager, dataManager);
                 builder.buildBuiltInLibraryInformation();
                 q.b(fileManager, dataManager, libraryManager, builder.getBuiltInLibraryManager());
@@ -1792,9 +1797,9 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
                     dialog.setPositiveButton("Dismiss", null);
                     dialog.show();
                 });
-            } catch (zy zy) {
+            } catch (ProjectResourceStore ProjectResourceStore) {
                 isBuildFinished = true;
-                activity.indicateCompileErrorOccurred(zy.getMessage());
+                activity.indicateCompileErrorOccurred(ProjectResourceStore.getMessage());
             } catch (Throwable tr) {
                 isBuildFinished = true;
                 LogUtil.e("DesignActivity$BuildTask", "Failed to build project", tr);
@@ -1968,9 +1973,9 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             DesignActivity activity = getActivity();
             if (activity != null) {
                 var sc_id = DesignActivity.sc_id;
-                jC.d(sc_id).v();
-                jC.d(sc_id).w();
-                jC.d(sc_id).u();
+                ProjectDataManagerRegistry.d(sc_id).v();
+                ProjectDataManagerRegistry.d(sc_id).w();
+                ProjectDataManagerRegistry.d(sc_id).u();
                 activity.runOnUiThread(() -> {
                     activity.h();
                     activity.finish();
@@ -1995,18 +2000,18 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             DesignActivity activity = getActivity();
             if (activity != null) {
                 var sc_id = DesignActivity.sc_id;
-                jC.d(sc_id).a();
-                jC.b(sc_id).m();
-                jC.a(sc_id).j();
-                jC.d(sc_id).x();
-                jC.c(sc_id).l();
+                ProjectDataManagerRegistry.d(sc_id).a();
+                ProjectDataManagerRegistry.b(sc_id).m();
+                ProjectDataManagerRegistry.a(sc_id).j();
+                ProjectDataManagerRegistry.d(sc_id).x();
+                ProjectDataManagerRegistry.c(sc_id).l();
                 activity.runOnUiThread(() -> {
-                    bB.a(activity.getApplicationContext(), Helper.getResString(R.string.common_message_complete_save), bB.TOAST_NORMAL).show();
+                    ToastFactory.a(activity.getApplicationContext(), Helper.getResString(R.string.common_message_complete_save), ToastFactory.TOAST_NORMAL).show();
                     activity.saveVersionCodeInformationToProject();
                     activity.h();
-                    jC.d(sc_id).f();
-                    jC.d(sc_id).g();
-                    jC.d(sc_id).e();
+                    ProjectDataManagerRegistry.d(sc_id).f();
+                    ProjectDataManagerRegistry.d(sc_id).g();
+                    ProjectDataManagerRegistry.d(sc_id).e();
                 });
             }
         }
@@ -2028,14 +2033,14 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             DesignActivity activity = getActivity();
             if (activity != null) {
                 var sc_id = DesignActivity.sc_id;
-                jC.d(sc_id).a();
-                jC.b(sc_id).m();
-                jC.a(sc_id).j();
-                jC.d(sc_id).x();
-                jC.c(sc_id).l();
-                jC.d(sc_id).h();
+                ProjectDataManagerRegistry.d(sc_id).a();
+                ProjectDataManagerRegistry.b(sc_id).m();
+                ProjectDataManagerRegistry.a(sc_id).j();
+                ProjectDataManagerRegistry.d(sc_id).x();
+                ProjectDataManagerRegistry.c(sc_id).l();
+                ProjectDataManagerRegistry.d(sc_id).h();
                 activity.runOnUiThread(() -> {
-                    bB.a(activity.getApplicationContext(), Helper.getResString(R.string.common_message_complete_save), bB.TOAST_NORMAL).show();
+                    ToastFactory.a(activity.getApplicationContext(), Helper.getResString(R.string.common_message_complete_save), ToastFactory.TOAST_NORMAL).show();
                     activity.saveVersionCodeInformationToProject();
                     activity.h();
                     activity.finish();
@@ -2058,7 +2063,7 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
         private void doInBackground() {
             DesignActivity activity = getActivity();
             if (activity != null) {
-                eC ecInstance = jC.a(sc_id);
+                ProjectDataManager ecInstance = ProjectDataManagerRegistry.a(sc_id);
                 synchronized (ecInstance) {
                     ecInstance.k();
                 }
@@ -2095,9 +2100,9 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             if (position == 0) {
                 viewTabAdapter = (ViewEditorFragment) fragment;
             } else if (position == 1) {
-                eventTabAdapter = (rs) fragment;
+                eventTabAdapter = (LogicEventEditorFragment) fragment;
             } else if (position == 2) {
-                componentTabAdapter = (br) fragment;
+                componentTabAdapter = (LogicComponentListFragment) fragment;
             } else if (position == 3) {
                 stringsTabAdapter = (StringsTabFragment) fragment;
             }
@@ -2111,9 +2116,9 @@ public class DesignActivity extends BaseAppCompatActivity implements View.OnClic
             if (position == 0) {
                 return new ViewEditorFragment();
             } else if (position == 1) {
-                return new rs();
+                return new LogicEventEditorFragment();
             } else if (position == 2) {
-                return new br();
+                return new LogicComponentListFragment();
             } else {
                 return new StringsTabFragment();
             }

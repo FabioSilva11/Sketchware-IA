@@ -16,8 +16,8 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout;
 
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.R;
 
 public class BaseBottomSheetDialogActivity extends BaseAppCompatActivity {
@@ -31,7 +31,9 @@ public class BaseBottomSheetDialogActivity extends BaseAppCompatActivity {
     public ImageView dialogIcon;
     public TextView dialogDefaultButton;
     public TextView r; // dialogPositiveButton
+
     public TextView s; // dialogNegativeButton
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -75,7 +77,7 @@ public class BaseBottomSheetDialogActivity extends BaseAppCompatActivity {
         });
 
         dialogContainerView.setOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 finish();
             }
         });
@@ -84,13 +86,13 @@ public class BaseBottomSheetDialogActivity extends BaseAppCompatActivity {
 
     @Override
     public void setContentView(int layoutResID) {
-        wB.a(this, dialogContentView, layoutResID);
+        ViewInflationUtils.a(this, dialogContentView, layoutResID);
     }
 
     public void a(boolean var1) {
         if (var1) {
             dialogContainerView.setOnClickListener(v -> {
-                if (!mB.a()) {
+                if (!EditorViewUtils.a()) {
                     finish();
                 }
             });

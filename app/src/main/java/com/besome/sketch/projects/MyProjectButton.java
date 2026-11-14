@@ -9,7 +9,7 @@ import android.widget.TextView;
 
 import androidx.annotation.DrawableRes;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.R;
 
 public class MyProjectButton extends LinearLayout {
@@ -40,7 +40,7 @@ public class MyProjectButton extends LinearLayout {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 1.0f));
 
-        wB.a(context, this, R.layout.myproject_button);
+        ViewInflationUtils.a(context, this, R.layout.myproject_button);
         icon = findViewById(R.id.icon);
         name = findViewById(R.id.name);
     }

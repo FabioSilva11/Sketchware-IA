@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 
-import a.a.a.qA;
+import pro.sketchware.editor.BaseEditorFragment;
 import dev.pranav.filepicker.FilePickerCallback;
 import dev.pranav.filepicker.FilePickerDialogFragment;
 import dev.pranav.filepicker.FilePickerOptions;
@@ -38,7 +38,7 @@ import pro.sketchware.utility.FileUtil;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.UI;
 
-public class EventsManagerFragment extends qA {
+public class EventsManagerFragment extends BaseEditorFragment {
 
     private FragmentEventsManagerBinding binding;
     private ArrayList<HashMap<String, Object>> listMap = new ArrayList<>();
@@ -144,6 +144,7 @@ public class EventsManagerFragment extends qA {
             if ("true".equals(existingListener.get("s"))) {
                 listenerBinding.listenerIsIndependentClassOrMethod.setChecked(true);
                 listenerBinding.listenerCode.setText(existingListener.get("code").toString().replaceFirst("//" + Helper.getText(listenerBinding.listenerName) + "\n", ""));
+
             }
         }
 
@@ -157,6 +158,7 @@ public class EventsManagerFragment extends qA {
                         hashMap.put("name", listenerName);
                         hashMap.put("code", listenerBinding.listenerIsIndependentClassOrMethod.isChecked()
                                 ? "//" + listenerName + "\n" + Helper.getText(listenerBinding.listenerCode)
+
                                 : Helper.getText(listenerBinding.listenerCode));
                         hashMap.put("s", listenerBinding.listenerIsIndependentClassOrMethod.isChecked() ? "true" : "false");
                         hashMap.put("imports", Helper.getText(listenerBinding.listenerCustomImport));

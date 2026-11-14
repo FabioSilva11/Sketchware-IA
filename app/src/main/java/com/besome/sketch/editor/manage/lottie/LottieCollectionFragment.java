@@ -33,13 +33,13 @@ import pro.sketchware.R;
 import pro.sketchware.databinding.FrManageLottieListBinding;
 import pro.sketchware.databinding.ManageLottieListItemBinding;
 
-import a.a.a.mB;
-import a.a.a.Op;
-import a.a.a.wq;
-import a.a.a.qA;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.filemanagers.SoundResourceManager;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.editor.BaseEditorFragment;
 import pro.sketchware.utility.TranslationFunction;
 
-public class LottieCollectionFragment extends qA implements View.OnClickListener {
+public class LottieCollectionFragment extends BaseEditorFragment implements View.OnClickListener {
 
     private final ActivityResultLauncher<Intent> openImageImportDetails = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         var data = result.getData();
@@ -75,6 +75,7 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
         }
         try {
             // Verifica se o JSON contém elementos básicos de uma animação Lottie
+
             return json.contains("\"v\"") && 
                    (json.contains("\"assets\"") || json.contains("\"layers\""));
         } catch (Exception e) {
@@ -87,9 +88,11 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
         collectionLotties = new ArrayList<>();
 
         // Lista diretamente os arquivos .json dentro de .sketchware/collection/assets
-        File assetsDir = new File(wq.a() + File.separator + "assets");
+
+        File assetsDir = new File(WorkspacePathManager.a() + File.separator + "assets");
         if (!assetsDir.exists()) {
             // Caso a pasta não exista ainda, evita NullPointer e apenas atualiza a UI
+
             adapter.notifyDataSetChanged();
             updateGuideVisibility();
             return;
@@ -120,6 +123,7 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
                 baos.write(buffer, 0, read);
             }
             return baos.toString("UTF-8"); // Especifica UTF-8 para correta leitura de caracteres
+
         } catch (IOException e) {
             e.printStackTrace();
             return null;
@@ -150,7 +154,7 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
         ArrayList<ProjectResourceBean> selectedCollections = new ArrayList<>();
         for (ProjectResourceBean lottie : collectionLotties) {
             if (lottie.isSelected) {
-                selectedCollections.add(new ProjectResourceBean(ProjectResourceBean.PROJECT_RES_TYPE_FILE, lottie.resName, wq.a() + File.separator + "assets" + File.separator + lottie.resFullName));
+                selectedCollections.add(new ProjectResourceBean(ProjectResourceBean.PROJECT_RES_TYPE_FILE, lottie.resName, WorkspacePathManager.a() + File.separator + "assets" + File.separator + lottie.resFullName));
             }
         }
         if (!selectedCollections.isEmpty()) {
@@ -188,7 +192,7 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
 
     @Override
     public void onClick(View v) {
-        if (!mB.a() && v.getId() == R.id.btn_import) {
+        if (!EditorViewUtils.a() && v.getId() == R.id.btn_import) {
             layoutBtnImport.setVisibility(View.GONE);
             importLotties();
         }
@@ -232,13 +236,14 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
             holder.binding.chkSelect.setVisibility(View.VISIBLE);
             holder.binding.lottieAnimationIndicator.setVisibility(View.VISIBLE);
             
-            String jsonPath = wq.a() + File.separator + "assets" + File.separator + lottie.resFullName;
+            String jsonPath = WorkspacePathManager.a() + File.separator + "assets" + File.separator + lottie.resFullName;
             String json = readFileContents(jsonPath);
             
             try {
                 if (json != null && isValidLottieJson(json)) {
                     holder.binding.lottie.setAnimationFromJson(json, lottie.resFullName);
                     // Preview estático (sem autoplay) para evitar travamentos
+
                     holder.binding.lottie.setProgress(0f);
                     holder.binding.lottieAnimationIndicator.setVisibility(View.GONE);
                 } else {
@@ -271,6 +276,7 @@ public class LottieCollectionFragment extends qA implements View.OnClickListener
         @Override
         public void onViewRecycled(@NonNull ViewHolder holder) {
             // Garantir que nenhuma animação fique ativa ao reciclar itens
+
             holder.binding.lottie.cancelAnimation();
             holder.binding.lottie.setImageDrawable(null);
             holder.binding.lottie.setProgress(0f);

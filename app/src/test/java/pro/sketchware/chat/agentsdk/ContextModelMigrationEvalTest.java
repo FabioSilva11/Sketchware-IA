@@ -66,8 +66,11 @@ public class ContextModelMigrationEvalTest {
     }
 
     // ------------------------------------------------------------------
+
     // Test B — AGENTS.md per workspace: run A never sees B's instructions
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void agentsMd_isResolvedFromTheRunWorkspace_notTheGlobalOne() throws IOException {
@@ -75,12 +78,14 @@ public class ContextModelMigrationEvalTest {
         fsB.writeText("AGENTS.md", "# Regras B\nPadrao B.");
 
         // Run pinned on A: only A's instructions are visible.
+
         bindRun(SC_A, fsA);
         String instructionsA = ProjectInstructions.load(RuntimeFileContext.effectiveFileSystem(), "", 4000);
         assertTrue(instructionsA.contains("Regras A"));
         assertFalse("run A must NOT see workspace B instructions", instructionsA.contains("Regras B"));
 
         // Run pinned on B: only B's instructions are visible.
+
         bindRun(SC_B, fsB);
         String instructionsB = ProjectInstructions.load(RuntimeFileContext.effectiveFileSystem(), "", 4000);
         assertTrue(instructionsB.contains("Regras B"));
@@ -88,8 +93,11 @@ public class ContextModelMigrationEvalTest {
     }
 
     // ------------------------------------------------------------------
+
     // Test C — hierarchical AGENTS.md with Codex precedence
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void agentsMd_hierarchy_rootPlusNestedPlusOverride() throws IOException {
@@ -109,13 +117,17 @@ public class ContextModelMigrationEvalTest {
         assertTrue(atSrc.contains("APP-RULE"));
         assertTrue(atSrc.contains("OVERRIDE-RULE"));
         // Precedence order: root first, then deeper, override last on its dir.
+
         assertTrue(atSrc.indexOf("ROOT-RULE") < atSrc.indexOf("APP-RULE"));
         assertTrue(atSrc.indexOf("APP-RULE") < atSrc.indexOf("OVERRIDE-RULE"));
     }
 
     // ------------------------------------------------------------------
+
     // Test D — cache identity: instructions cache never leaks across runs
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void instructionsCache_identityIncludesTheRunFilesystem() throws IOException {
@@ -125,7 +137,9 @@ public class ContextModelMigrationEvalTest {
         assertTrue(first.contains("WS-A-ONLY"));
 
         // Run B pinned on its own fs: the cache key follows the run identity,
+
         // so cached[A] can never be served to a run pinned on B's filesystem.
+
         bindRun(SC_B, fsB);
         fsB.writeText("AGENTS.md", "WS-B-ONLY");
         String second = ProjectInstructions.load(RuntimeFileContext.effectiveFileSystem(), "", 4000);
@@ -134,8 +148,11 @@ public class ContextModelMigrationEvalTest {
     }
 
     // ------------------------------------------------------------------
+
     // Test F/G — honest snapshot: discovery never invents values
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void projectSnapshot_gradleDiscovery_realValuesAndUnknownElsewhere() throws IOException {
@@ -150,6 +167,7 @@ public class ContextModelMigrationEvalTest {
         assertEquals("com.example.appa", snapshot.applicationId());
         assertEquals(true, snapshot.modules().contains("app"));
         // Anti-hallucination contract: what was NOT verified stays UNKNOWN.
+
         assertTrue(snapshot.renderPromptBlock().contains("UNKNOWN"));
     }
 
@@ -162,8 +180,11 @@ public class ContextModelMigrationEvalTest {
     }
 
     // ------------------------------------------------------------------
+
     // Test E — task memory survives compaction-like state loss
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void taskMemory_persistsAcrossRuns_viaStore() {
@@ -174,6 +195,7 @@ public class ContextModelMigrationEvalTest {
         TaskMemoryStore.save(SC_A, first);
 
         // "Compaction"/process death: a brand-new memory restores from disk.
+
         TaskMemory second = new TaskMemory(SC_A, "ws-a", "");
         TaskMemoryStore.restoreInto(SC_A, second);
 
@@ -187,15 +209,20 @@ public class ContextModelMigrationEvalTest {
     }
 
     // ------------------------------------------------------------------
+
     // Tests A + H — run-scoped fs for tools and mutations
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void runPinnedFilesystem_toolsAndMutationsStayOnTheRunWorkspace() throws Exception {
         bindRun(SC_A, fsA);
 
         // The run's binding is what tools see (same resolution order the
+
         // VoidPortToolsService registry and ApplyPatchTool use).
+
         assertTrue("effective fs must be the run's fs",
                 RuntimeFileContext.effectiveFileSystem() == fsA);
         WorkspaceIdentity pinnedId = RuntimeFileContext.effectiveIdentity();
@@ -203,13 +230,14 @@ public class ContextModelMigrationEvalTest {
         assertEquals(SC_A, pinnedId.scId());
 
         // apply_patch with NO injected fs still mutates the RUN's workspace.
+
         fsA.writeText("src/A.java", "original A\n");
         ApplyPatchTool patch = new ApplyPatchTool(SC_A, events);
         AgentToolResult result = patch.apply(RunContext.bare(SC_A, "agent", null),
                 "*** Begin Patch\n*** Update File: src/A.java\n@@\n-original A\n+patched A\n*** End Patch");
         assertFalse(result.isError());
         assertEquals("patched A\n", fsA.readText("src/A.java"));
-        assertFalse("B untouched by the run pinned on A", fsB.exists("src/A.java"));
+        assertFalse("B untouched ProjectFileActionListener the run pinned on A", fsB.exists("src/A.java"));
     }
 
     @Test
@@ -219,6 +247,7 @@ public class ContextModelMigrationEvalTest {
 
         RunContextFactory.setOverrideForTest(new RunContextFactory.Resolved(
                 new WorkspaceIdentity(SC_A, "ws-ctx-a", "file:///ws-a", "wsA", ""), fsA));
+
 
         FakeAgentLlmGateway gateway = new FakeAgentLlmGateway(
                 FakeAgentLlmGateway.ScriptedTurn.text("done"));
@@ -234,18 +263,24 @@ public class ContextModelMigrationEvalTest {
         assertEquals(SC_A, result.context().scId());
         assertEquals("ws-ctx-a", result.context().workspace().workspaceId());
         // Prompt came from the RUN's workspace (not the global one).
+
         assertTrue(gateway.requestedSystemPrompts().get(0).contains("RUN-SCOPED-INSTRUCTION"));
         // Snapshot was discovered from the run's fs and is UNKNOWN-aware.
+
         assertTrue(gateway.requestedSystemPrompts().get(0).contains("workspace_snapshot"));
         assertTrue(gateway.requestedSystemPrompts().get(0).contains("Node.js"));
         // Task memory was persisted for the next run of this conversation.
+
         assertNotNull(TaskMemoryStore.load(SC_A));
         TaskMemoryStore.clear(SC_A);
     }
 
     // ------------------------------------------------------------------
+
     // helpers
+
     // ------------------------------------------------------------------
+
 
     private static Agent agent() {
         return Agent.Builder.forName("coordinator", "You are a helpful coding agent.").build();
@@ -255,7 +290,9 @@ public class ContextModelMigrationEvalTest {
     private static void bindRun(String scId, FakeWorkspaceFileSystem fs) {
         RunContextFactory.setOverrideForTest(new RunContextFactory.Resolved(
                 new WorkspaceIdentity(scId, "ws-" + scId, "fake://" + scId, scId, ""), fs));
+
         RuntimeFileContext.pin("test_" + scId,
                 new WorkspaceIdentity(scId, "ws-" + scId, "fake://" + scId, scId, ""), fs);
+
     }
 }

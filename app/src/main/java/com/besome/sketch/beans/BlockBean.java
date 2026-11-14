@@ -9,8 +9,8 @@ import com.google.gson.annotations.Expose;
 
 import java.util.ArrayList;
 
-import a.a.a.Gx;
-import a.a.a.mq;
+import pro.sketchware.editor.ComponentClassInfo;
+import pro.sketchware.editor.ComponentLibraryRegistry;
 
 public class BlockBean extends SelectableBean implements Parcelable {
     public static final Parcelable.Creator<BlockBean> CREATOR = new Parcelable.Creator<>() {
@@ -25,7 +25,7 @@ public class BlockBean extends SelectableBean implements Parcelable {
         }
     };
 
-    public Gx classInfo;
+    public ComponentClassInfo classInfo;
     @Expose
     public int color;
     @Expose
@@ -34,7 +34,7 @@ public class BlockBean extends SelectableBean implements Parcelable {
     public int nextBlock;
     @Expose
     public String opCode;
-    public ArrayList<Gx> paramClassInfo;
+    public ArrayList<ComponentClassInfo> paramClassInfo;
     @Expose
     public ArrayList<String> parameters;
     @Expose
@@ -94,8 +94,8 @@ public class BlockBean extends SelectableBean implements Parcelable {
     }
 
     private void buildClassInfo() {
-        classInfo = mq.a(type, typeName);
-        paramClassInfo = mq.a(spec);
+        classInfo = ComponentLibraryRegistry.a(type, typeName);
+        paramClassInfo = ComponentLibraryRegistry.a(spec);
     }
 
     public void copy(BlockBean other) {
@@ -117,14 +117,14 @@ public class BlockBean extends SelectableBean implements Parcelable {
         return 0;
     }
 
-    public Gx getClassInfo() {
+    public ComponentClassInfo getClassInfo() {
         if (classInfo == null) {
             buildClassInfo();
         }
         return classInfo;
     }
 
-    public ArrayList<Gx> getParamClassInfo() {
+    public ArrayList<ComponentClassInfo> getParamClassInfo() {
         if (paramClassInfo == null) {
             buildClassInfo();
         }

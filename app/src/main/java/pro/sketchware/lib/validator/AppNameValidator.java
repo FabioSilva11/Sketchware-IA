@@ -6,11 +6,11 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.regex.Pattern;
 
-import a.a.a.MB;
+import pro.sketchware.lib.validator.TextInputValidator;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
-public class AppNameValidator extends MB {
+public class AppNameValidator extends TextInputValidator {
 
     private static final Pattern APP_NAME_PATTERN = Pattern.compile(".*[&\"'<>].*");
 

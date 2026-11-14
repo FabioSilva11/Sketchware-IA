@@ -78,6 +78,7 @@ public class AgentRuntimeEvalTest {
 
     private Agent scriptedAgent() {
         // Registry-only: tools live in the registry, not on the agent.
+
         return Agent.Builder.forName("coordinator", "You fix workspace bugs.").build();
     }
 
@@ -88,7 +89,7 @@ public class AgentRuntimeEvalTest {
     private AxionToolRegistry evalRegistry() {
         AxionToolRegistry registry = new AxionToolRegistry();
         ToolRegistration search = ToolRegistration.function(
-                        "search_for_files", "Search files by name.", new org.json.JSONObject())
+                        "search_for_files", "Search files ProjectFileActionListener name.", new org.json.JSONObject())
                 .executor(context -> AgentToolResult.success("src/demo/UserRepository.kt"))
                 .source("test")
                 .build();
@@ -150,10 +151,13 @@ public class AgentRuntimeEvalTest {
         List<AgentEvent> events = runScripted(gateway);
 
         // Final state: the file on disk now contains the fix.
+
         assertEquals(PATCHED, fs.readText("src/demo/UserRepository.kt"));
 
         // The run narrated its completion.
+
         FakeAgentLlmGateway.ScriptedTurn last = null; // (script exhausted; checked via events below)
+
         boolean sawPatchCompleted = false;
         boolean sawAssistantFinal = false;
         boolean sawRunCompleted = false;
@@ -191,6 +195,7 @@ public class AgentRuntimeEvalTest {
         stream.subscribe(received::add);
 
         // Interactive policy with no handler => fail closed.
+
         AgentRuntime runtime = new AgentRuntime.Builder(gateway)
                 .events(stream)
                 .toolRegistry(evalRegistry())
@@ -203,7 +208,9 @@ public class AgentRuntimeEvalTest {
         RunResult result = runtime.run(scriptedAgent(), history, "sc_eval");
 
         // The policy blocked the mutation, the model fell back to an
+
         // explanation, and the run completed — but the file is untouched.
+
         assertEquals(ORIGINAL, fs.readText("src/demo/UserRepository.kt"));
         assertTrue(result.isSuccessful());
 

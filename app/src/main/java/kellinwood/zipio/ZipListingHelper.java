@@ -27,7 +27,7 @@ import kellinwood.logging.Logger;
 public class ZipListingHelper
 {
 
-    static DateFormat dateFormat = new SimpleDateFormat("MM-dd-yy HH:mm");
+    static DateFormat dateFormat = new SimpleDateFormat("MM-dd-yyyy HH:mm");
     
     public static void listHeader(Logger log)
     {

@@ -20,7 +20,7 @@ import com.besome.sketch.editor.view.ItemView;
 import java.util.ArrayList;
 import java.util.List;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.utility.PropertiesUtil;
 
 public class ItemRecyclerView extends RecyclerView implements ItemView, EditorListItem {
@@ -36,11 +36,11 @@ public class ItemRecyclerView extends RecyclerView implements ItemView, EditorLi
 
     public ItemRecyclerView(Context context) {
         super(context);
-        setMinimumWidth((int) wB.a(context, 32.0F));
-        setMinimumHeight((int) wB.a(context, 32.0F));
-        dip = wB.a(context, 1.0f);
+        setMinimumWidth((int) ViewInflationUtils.a(context, 32.0F));
+        setMinimumHeight((int) ViewInflationUtils.a(context, 32.0F));
+        dip = ViewInflationUtils.a(context, 1.0f);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setStrokeWidth(wB.a(getContext(), 2.0f));
+        paint.setStrokeWidth(ViewInflationUtils.a(getContext(), 2.0f));
         rect = new Rect();
         setDrawingCacheEnabled(true);
         setLayoutManager(new LinearLayoutManager(context));

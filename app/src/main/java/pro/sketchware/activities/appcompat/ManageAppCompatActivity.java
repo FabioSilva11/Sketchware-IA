@@ -22,8 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
-import a.a.a.jC;
-import a.a.a.mB;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.EditorViewUtils;
 import dev.aldi.sayuti.editor.injection.AppCompatInjection;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
@@ -69,7 +69,7 @@ public class ManageAppCompatActivity extends BaseAppCompatActivity {
         UI.addSystemWindowInsetToPadding(binding.list, false, false, false, true);
         binding.toolbar.setNavigationOnClickListener(
                 v -> {
-                    if (!mB.a()) {
+                    if (!EditorViewUtils.a()) {
                         onBackPressed();
                     }
                 });
@@ -231,8 +231,8 @@ public class ManageAppCompatActivity extends BaseAppCompatActivity {
     }
 
     private void initializeProjectBean() {
-        projectFile = jC.b(sc_id).b(filename);
-        projectLibrary = jC.c(sc_id).c();
+        projectFile = ProjectDataManagerRegistry.b(sc_id).b(filename);
+        projectLibrary = ProjectDataManagerRegistry.c(sc_id).c();
     }
 
     private void resetData() {

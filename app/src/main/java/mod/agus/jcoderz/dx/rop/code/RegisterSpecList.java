@@ -148,12 +148,12 @@ public final class RegisterSpecList
     public RegisterSpec specForRegister(int reg) {
         int sz = size();
         for (int i = 0; i < sz; i++) {
-            RegisterSpec rs;
+            RegisterSpec LogicEventEditorFragment;
 
-            rs = get(i);
+            LogicEventEditorFragment = get(i);
 
-            if (rs.getReg() == reg) {
-                return rs;
+            if (LogicEventEditorFragment.getReg() == reg) {
+                return LogicEventEditorFragment;
             }
         }
 
@@ -169,11 +169,11 @@ public final class RegisterSpecList
     public int indexOfRegister(int reg) {
         int sz = size();
         for (int i = 0; i < sz; i++) {
-            RegisterSpec rs;
+            RegisterSpec LogicEventEditorFragment;
 
-            rs = get(i);
+            LogicEventEditorFragment = get(i);
 
-            if (rs.getReg() == reg) {
+            if (LogicEventEditorFragment.getReg() == reg) {
                 return i;
             }
         }
@@ -340,6 +340,7 @@ public final class RegisterSpecList
 
         if (sz == 0) {
             // Don't bother making a new zero-element instance.
+
             return this;
         }
 
@@ -379,6 +380,7 @@ public final class RegisterSpecList
 
         if (sz == 0) {
             // Don't bother making a new zero-element instance.
+
             return this;
         }
 
@@ -425,6 +427,7 @@ public final class RegisterSpecList
         }
 
         // Reset duplicateFirst when the first register has been dealt with.
+
         duplicateFirst = false;
 
         result.set0(regIdx, expandedReg);

@@ -35,6 +35,7 @@ public class ZioEntry implements Cloneable {
     private ZipInput zipInput;
 
     // public int signature = 0x02014b50;
+
     private short versionMadeBy;
     private short versionRequired;
     private short generalPurposeBits;
@@ -90,6 +91,7 @@ public class ZioEntry implements Cloneable {
             log.debug(String.format("Computing CRC for %s, size=%d",sourceDataFile,size));
         
         // compute CRC
+
         CRC32 crc = new CRC32();
 
         byte[] buffer = new byte[8096];
@@ -129,6 +131,7 @@ public class ZioEntry implements Cloneable {
     }
     
     // Return a copy with a new name
+
     public ZioEntry getClonedEntry( String newName) 
     {
         
@@ -155,68 +158,87 @@ public class ZioEntry implements Cloneable {
         if (debug) log.debug( String.format("FILE POSITION: 0x%08x", input.getFilePointer()));
 
         // 0 	4 	Local file header signature = 0x04034b50
+
         int signature = input.readInt();
         if (signature != 0x04034b50) {
             throw new IllegalStateException( String.format("Local header not found at pos=0x%08x, file=%s", input.getFilePointer(), filename));
         }
 
         // This method is usually called just before the data read, so
+
         // its only purpose currently is to position the file pointer
+
         // for the data read.  The entry's attributes might also have
+
         // been changed since the central dir entry was read (e.g.,
+
         // filename), so throw away the values here.
+
 
         int tmpInt;
         short tmpShort;
         
         // 4 	2 	Version needed to extract (minimum)
+
         /* versionRequired */ tmpShort =  input.readShort();
         if (debug) log.debug(String.format("Version required: 0x%04x", tmpShort /*versionRequired*/));
 
         // 6 	2 	General purpose bit flag
+
         /* generalPurposeBits */ tmpShort = input.readShort();
         if (debug) log.debug(String.format("General purpose bits: 0x%04x", tmpShort /* generalPurposeBits */));
         
         // 8 	2 	Compression method
+
         /* compression */ tmpShort = input.readShort();
         if (debug) log.debug(String.format("Compression: 0x%04x", tmpShort /* compression */));
 
         // 10 	2 	File last modification time
+
         /* modificationTime */ tmpShort = input.readShort();
         if (debug) log.debug(String.format("Modification time: 0x%04x", tmpShort /* modificationTime */));
 
         // 12 	2 	File last modification date
+
         /* modificationDate */ tmpShort = input.readShort();
         if (debug) log.debug(String.format("Modification date: 0x%04x", tmpShort /* modificationDate */));
 
         // 14 	4 	CRC-32
+
         /* crc32 */ tmpInt = input.readInt();
         if (debug) log.debug(String.format("CRC-32: 0x%04x", tmpInt /*crc32*/));
 
         // 18 	4 	Compressed size
+
         /* compressedSize*/ tmpInt = input.readInt();
         if (debug) log.debug(String.format("Compressed size: 0x%04x", tmpInt /*compressedSize*/));
 
         // 22 	4 	Uncompressed size
+
         /* size */ tmpInt = input.readInt();
         if (debug) log.debug(String.format("Size: 0x%04x", tmpInt /*size*/ ));
 
         // 26 	2 	File name length (n)
+
         short fileNameLen = input.readShort();
         if (debug) log.debug(String.format("File name length: 0x%04x", fileNameLen));
 
         // 28 	2 	Extra field length (m)
+
         short extraLen = input.readShort();
         if (debug) log.debug(String.format("Extra length: 0x%04x", extraLen));
 
         // 30 	n 	File name      
+
         String filename = input.readString(fileNameLen);
         if (debug) log.debug("Filename: " + filename);
 
         // Extra data
+
         byte[] extra = input.readBytes( extraLen);
 
         // Record the file position of this entry's data.
+
         dataPosition = input.getFilePointer();
         if (debug) log.debug(String.format("Data position: 0x%08x",dataPosition));
 
@@ -258,12 +280,17 @@ public class ZioEntry implements Cloneable {
         numAlignBytes = 0;
 
         // Zipalign if the file is uncompressed, i.e., "Stored", and file size is not zero.
+
         if (compression == 0) {
 
             long dataPos = output.getFilePointer() + // current position
+
             2 +                                  // plus size of extra data length
+
             filename.length() +                  // plus filename
+
             extraData.length;                    // plus extra data
+
 
             short dataPosMod4 = (short)(dataPos % 4);
 
@@ -274,15 +301,19 @@ public class ZioEntry implements Cloneable {
 
         
         // 28 	2 	Extra field length (m)
+
         output.writeShort( (short)(extraData.length + numAlignBytes));
 
         // 30 	n 	File name
+
         output.writeString( filename);
 
         // Extra data
+
         output.writeBytes( extraData);
 
         // Zipalign bytes
+
         if (numAlignBytes > 0) {
             output.writeBytes( alignBytes, 0, numAlignBytes);
         }
@@ -317,9 +348,11 @@ public class ZioEntry implements Cloneable {
     {
 
         // 0    4   Central directory header signature = 0x02014b50
+
         int signature = input.readInt();
         if (signature != 0x02014b50) {
             // back up to the signature
+
             input.seek( input.getFilePointer() - 4);
             return null;
         }
@@ -336,50 +369,62 @@ public class ZioEntry implements Cloneable {
         boolean debug = log.isDebugEnabled();
 
         // 4    2   Version needed to extract (minimum)
+
         versionMadeBy = input.readShort();
         if (debug) log.debug(String.format("Version made by: 0x%04x", versionMadeBy));
 
         // 4    2   Version required
+
         versionRequired = input.readShort();
         if (debug) log.debug(String.format("Version required: 0x%04x", versionRequired));
 
         // 6    2   General purpose bit flag
+
         generalPurposeBits = input.readShort();
         if (debug) log.debug(String.format("General purpose bits: 0x%04x", generalPurposeBits));
         // Bits 1, 2, 3, and 11 are allowed to be set (first bit is bit zero).  Any others are a problem.
+
         if ((generalPurposeBits & 0xF7F1) != 0x0000) {
             throw new IllegalStateException("Can't handle general purpose bits == "+String.format("0x%04x",generalPurposeBits));
         }
 
         // 8    2   Compression method
+
         compression = input.readShort();
         if (debug) log.debug(String.format("Compression: 0x%04x", compression));
 
         // 10   2   File last modification time
+
         modificationTime = input.readShort();
         if (debug) log.debug(String.format("Modification time: 0x%04x", modificationTime));
 
         // 12   2   File last modification date
+
         modificationDate = input.readShort();
         if (debug) log.debug(String.format("Modification date: 0x%04x", modificationDate));
 
         // 14   4   CRC-32
+
         crc32 = input.readInt();
         if (debug) log.debug(String.format("CRC-32: 0x%04x", crc32));
 
         // 18   4   Compressed size
+
         compressedSize = input.readInt();
         if (debug) log.debug(String.format("Compressed size: 0x%04x", compressedSize));
 
         // 22   4   Uncompressed size
+
         size = input.readInt();
         if (debug) log.debug(String.format("Size: 0x%04x", size));
 
         // 26   2   File name length (n)
+
         short fileNameLen = input.readShort();
         if (debug) log.debug(String.format("File name length: 0x%04x", fileNameLen));
 
         // 28   2   Extra field length (m)
+
         short extraLen = input.readShort();
         if (debug) log.debug(String.format("Extra length: 0x%04x", extraLen));
 
@@ -399,6 +444,7 @@ public class ZioEntry implements Cloneable {
         if (debug) log.debug(String.format("Local header offset: 0x%08x", localHeaderOffset));
 
         // 30   n   File name      
+
         filename = input.readString(fileNameLen);
         if (debug) log.debug("Filename: " + filename);
 
@@ -408,8 +454,10 @@ public class ZioEntry implements Cloneable {
         if (debug) log.debug("File comment: " + fileComment);
 
         generalPurposeBits = (short)(generalPurposeBits & 0x0800); // Don't write a data descriptor, preserve UTF-8 encoded filename bit
+
         
         // Don't write zero-length entries with compression.
+
         if (size == 0) {
             compressedSize = 0;
             compression = 0;
@@ -437,11 +485,13 @@ public class ZioEntry implements Cloneable {
     }
 
     // Returns an input stream for reading the entry's data. 
+
     public InputStream getInputStream() throws IOException {
         return getInputStream(null);
     }
 
     // Returns an input stream for reading the entry's data. 
+
     public InputStream getInputStream(OutputStream monitorStream) throws IOException {
         
         if (entryOut != null) {
@@ -455,7 +505,9 @@ public class ZioEntry implements Cloneable {
             if (compression == 0) return rawis;
             else {
                 // Hacky, inflate using a sequence of input streams that returns 1 byte more than the actual length of the data.  
+
                 // This extra dummy byte is required by InflaterInputStream when the data doesn't have the header and crc fields (as it is in zip files). 
+
                 return new InflaterInputStream( new SequenceInputStream(rawis, new ByteArrayInputStream(new byte[1])), new Inflater( true));
             }
         }
@@ -465,8 +517,11 @@ public class ZioEntry implements Cloneable {
         if (monitorStream != null) dataStream.setMonitorStream( monitorStream);
         if (compression != 0)  {
             // Note: When using nowrap=true with Inflater it is also necessary to provide 
+
             // an extra "dummy" byte as input. This is required by the ZLIB native library 
+
             // in order to support certain optimizations.
+
             dataStream.setReturnDummyByte(true);
             return new InflaterInputStream( dataStream, new Inflater( true));
         }
@@ -474,6 +529,7 @@ public class ZioEntry implements Cloneable {
     }
 
     // Returns an output stream for writing an entry's data.
+
     public OutputStream getOutputStream() 
     {
         entryOut = new ZioEntryOutputStream( compression, new ByteArrayOutputStream());

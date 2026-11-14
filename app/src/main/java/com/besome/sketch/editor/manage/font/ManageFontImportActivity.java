@@ -22,10 +22,10 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 
 import java.util.ArrayList;
 
-import a.a.a.QB;
-import a.a.a.bB;
-import a.a.a.mB;
-import a.a.a.uq;
+import pro.sketchware.lib.validator.DualListNameInputValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ComponentNameRegistry;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageFontImportBinding;
@@ -39,7 +39,7 @@ public class ManageFontImportActivity extends BaseAppCompatActivity implements V
     private ArrayList<ProjectResourceBean> projectFonts;
     private ArrayList<ProjectResourceBean> selectedCollection;
     private int selectedItem;
-    private QB nameValidator;
+    private DualListNameInputValidator nameValidator;
     private ManageFontImportBinding binding;
 
     private boolean isNameInUseByProjectFont(String name) {
@@ -92,8 +92,8 @@ public class ManageFontImportActivity extends BaseAppCompatActivity implements V
                 names += name;
             }
 
-            bB.a(getApplicationContext(), getString(R.string.common_message_name_unavailable)
-                    + "\n[" + names + "]", bB.TOAST_WARNING).show();
+            ToastFactory.a(getApplicationContext(), getString(R.string.common_message_name_unavailable)
+                    + "\n[" + names + "]", ToastFactory.TOAST_WARNING).show();
             return true;
         } else {
             return false;
@@ -169,7 +169,7 @@ public class ManageFontImportActivity extends BaseAppCompatActivity implements V
         r.setText(selectedCollection.get(0).resName);
         r.setPrivateImeOptions("defaultInputmode=english;");
         binding.edInput.setHint(getString(R.string.design_manager_font_hint_enter_font_name));
-        nameValidator = new QB(getApplicationContext(), binding.edInput.getTextInputLayout(), uq.b, getReservedProjectImageNames(), getReservedSelectedCollectionNames());
+        nameValidator = new DualListNameInputValidator(getApplicationContext(), binding.edInput.getTextInputLayout(), ComponentNameRegistry.b, getReservedProjectImageNames(), getReservedSelectedCollectionNames());
         binding.chkSamename.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 nameValidator.c(null);
@@ -214,9 +214,9 @@ public class ManageFontImportActivity extends BaseAppCompatActivity implements V
         }
 
         if (!duplicateCollections.isEmpty()) {
-            bB.b(getApplicationContext(), getString(R.string.design_manager_message_collection_name_conflict), 1).show();
+            ToastFactory.b(getApplicationContext(), getString(R.string.design_manager_message_collection_name_conflict), 1).show();
         } else {
-            bB.a(getApplicationContext(), getString(R.string.design_manager_message_collection_name_no_conflict), 0).show();
+            ToastFactory.a(getApplicationContext(), getString(R.string.design_manager_message_collection_name_no_conflict), 0).show();
         }
 
         selectedCollection = new ArrayList<>();
@@ -270,7 +270,7 @@ public class ManageFontImportActivity extends BaseAppCompatActivity implements V
                 img = itemView.findViewById(R.id.img);
                 tvName = itemView.findViewById(R.id.tv_name);
                 img.setOnClickListener(view -> {
-                    if (!mB.a()) {
+                    if (!EditorViewUtils.a()) {
                         selectedItem = getLayoutPosition();
                         showPreview(selectedItem);
                         binding.tvCurrentnum.setText(String.valueOf(getLayoutPosition() + 1));

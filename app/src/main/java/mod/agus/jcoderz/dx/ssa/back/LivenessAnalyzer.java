@@ -160,6 +160,7 @@ public class LivenessAnalyzer {
 
             if (insn instanceof PhiInsn) {
                 // If s is a phi-function with V as it's ith argument.
+
                 PhiInsn phi = (PhiInsn) insn;
 
                 for (SsaBasicBlock pred :
@@ -206,6 +207,7 @@ public class LivenessAnalyzer {
             insns = blockN.getInsns();
 
             // Live out at last statement in blockN
+
             statementIndex = insns.size() - 1;
             nextFunction = NextFunction.LIVE_OUT_AT_STATEMENT;
         }
@@ -216,8 +218,10 @@ public class LivenessAnalyzer {
      */
     private void liveInAtStatement() {
         // if s is the first statement in block N
+
         if (statementIndex == 0) {
             // v is live-in at n
+
             blockN.addLiveIn(regV);
 
             BitSet preds = blockN.getPredecessors();
@@ -225,6 +229,7 @@ public class LivenessAnalyzer {
             liveOutBlocks.or(preds);
         } else {
             // Let s' be the statement preceeding s
+
             statementIndex -= 1;
             nextFunction = NextFunction.LIVE_OUT_AT_STATEMENT;
         }
@@ -235,11 +240,11 @@ public class LivenessAnalyzer {
      */
     private void liveOutAtStatement() {
         SsaInsn statement = blockN.getInsns().get(statementIndex);
-        mod.agus.jcoderz.dx.rop.code.RegisterSpec rs = statement.getResult();
+        mod.agus.jcoderz.dx.rop.code.RegisterSpec LogicEventEditorFragment = statement.getResult();
 
         if (!statement.isResultReg(regV)) {
-            if (rs != null) {
-                interference.add(regV, rs.getReg());
+            if (LogicEventEditorFragment != null) {
+                interference.add(regV, LogicEventEditorFragment.getReg());
             }
             nextFunction = NextFunction.LIVE_IN_AT_STATEMENT;
         }

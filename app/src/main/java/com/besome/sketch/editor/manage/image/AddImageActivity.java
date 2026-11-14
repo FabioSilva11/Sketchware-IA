@@ -23,17 +23,17 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
-import a.a.a.By;
-import a.a.a.HB;
-import a.a.a.MA;
-import a.a.a.Op;
-import a.a.a.PB;
-import a.a.a.bB;
-import a.a.a.iB;
-import a.a.a.oB;
-import a.a.a.uq;
-import a.a.a.xB;
-import a.a.a.yy;
+import pro.sketchware.beans.ProjectSettingsStore;
+import pro.sketchware.filemanagers.DocumentUriUtils;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.filemanagers.SoundResourceManager;
+import pro.sketchware.lib.validator.MultiSuffixNameInputValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.filemanagers.BitmapUtils;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.core.TranslationManager;
+import pro.sketchware.core.StringListStore;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -43,7 +43,7 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
     private TextView tv_add_photo;
     private ImageView preview;
     private ArrayList<Uri> pickedImageUris;
-    private PB O;
+    private MultiSuffixNameInputValidator O;
     private EditText ed_input_edittext;
     private EasyDeleteEditText ed_input;
     private ImageView tv_desc;
@@ -138,8 +138,8 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
     @Override
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
-        e(xB.b().a(this, R.string.design_manager_image_title_add_image));
-        d(xB.b().a(getApplicationContext(), R.string.common_word_save));
+        e(TranslationManager.b().a(this, R.string.design_manager_image_title_add_image));
+        d(TranslationManager.b().a(getApplicationContext(), R.string.common_word_save));
         setContentView(R.layout.manage_image_add);
         Intent intent = getIntent();
         existingImages = intent.getParcelableArrayListExtra("images");
@@ -162,11 +162,11 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
         ed_input = findViewById(R.id.ed_input);
         ed_input_edittext = ed_input.getEditText();
         ed_input_edittext.setPrivateImeOptions("defaultInputmode=english;");
-        ed_input.setHint(xB.b().a(this, R.string.design_manager_image_hint_enter_image_name));
-        O = new PB(this, ed_input.getTextInputLayout(), uq.b, getReservedImageNames());
+        ed_input.setHint(TranslationManager.b().a(this, R.string.design_manager_image_hint_enter_image_name));
+        O = new MultiSuffixNameInputValidator(this, ed_input.getTextInputLayout(), ComponentNameRegistry.b, getReservedImageNames());
         O.a(1);
-        chk_collection.setText(xB.b().a(getApplicationContext(), R.string.design_manager_title_add_to_collection));
-        tv_add_photo.setText(xB.b().a(getApplicationContext(), R.string.design_manager_image_title_add_image));
+        chk_collection.setText(TranslationManager.b().a(getApplicationContext(), R.string.design_manager_title_add_to_collection));
+        tv_add_photo.setText(TranslationManager.b().a(getApplicationContext(), R.string.design_manager_image_title_add_image));
         preview.setOnClickListener(this);
         img_rotate.setOnClickListener(this);
         img_vertical.setOnClickListener(this);
@@ -177,7 +177,8 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
         imageRotationDegrees = 0;
         imageScaleY = 1;
         imageScaleX = 1;
-        new oB().f(dir_path); // java.io.File.mkdirs
+        new FileCryptoUtils().f(dir_path); // java.io.File.mkdirs
+
         images = new ArrayList<>();
     }
 
@@ -186,11 +187,11 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
         super.onPostCreate(bundle);
         if (editing) {
             image.isEdited = true;
-            e(xB.b().a(this, R.string.design_manager_image_title_edit_image));
+            e(TranslationManager.b().a(this, R.string.design_manager_image_title_edit_image));
             imageRotationDegrees = image.rotate;
             imageScaleX = image.flipHorizontal;
             imageScaleY = image.flipVertical;
-            O = new PB(this, ed_input.getTextInputLayout(), uq.b, getReservedImageNames(), image.resName);
+            O = new MultiSuffixNameInputValidator(this, ed_input.getTextInputLayout(), ComponentNameRegistry.b, getReservedImageNames(), image.resName);
             O.a(1);
             ed_input_edittext.setText(image.resName);
             ed_input_edittext.setEnabled(false);
@@ -213,7 +214,7 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
     }
 
     private void refreshPreview() {
-        preview.setImageBitmap(iB.a(iB.a(iB.a(imageFilePath, 1024, 1024), imageExifOrientation), imageRotationDegrees, imageScaleX, imageScaleY));
+        preview.setImageBitmap(BitmapUtils.a(BitmapUtils.a(BitmapUtils.a(imageFilePath, 1024, 1024), imageExifOrientation), imageRotationDegrees, imageScaleX, imageScaleY));
     }
 
     private void save() {
@@ -243,15 +244,15 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
             if (allowMultiple) {
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             }
-            startActivityForResult(Intent.createChooser(intent, xB.b().a(this, R.string.common_word_choose)), 215);
+            startActivityForResult(Intent.createChooser(intent, TranslationManager.b().a(this, R.string.common_word_choose)), 215);
         } catch (ActivityNotFoundException unused) {
-            bB.b(this, xB.b().a(this, R.string.common_error_activity_not_found), bB.TOAST_NORMAL).show();
+            ToastFactory.b(this, TranslationManager.b().a(this, R.string.common_error_activity_not_found), ToastFactory.TOAST_NORMAL).show();
         }
     }
 
     private void setImageFromFile(String path) {
         imageFilePath = path;
-        preview.setImageBitmap(iB.a(path, 1024, 1024));
+        preview.setImageBitmap(BitmapUtils.a(path, 1024, 1024));
         int indexOfFilenameExtension = path.lastIndexOf(".");
         if (path.endsWith(".9.png")) {
             indexOfFilenameExtension = path.lastIndexOf(".9.png");
@@ -260,7 +261,7 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
             ed_input_edittext.setText(path.substring(path.lastIndexOf("/") + 1, indexOfFilenameExtension));
         }
         try {
-            imageExifOrientation = iB.a(path);
+            imageExifOrientation = BitmapUtils.a(path);
             refreshPreview();
         } catch (Exception e) {
             e.printStackTrace();
@@ -299,7 +300,7 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
         }
     }
 
-    private boolean a(PB pb) {
+    private boolean a(MultiSuffixNameInputValidator pb) {
         if (!pb.b()) {
             return false;
         }
@@ -312,7 +313,7 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
 
     private void setImageFromUri(Uri uri) {
         String filePath;
-        if (uri != null && (filePath = HB.a(this, uri)) != null) {
+        if (uri != null && (filePath = DocumentUriUtils.a(this, uri)) != null) {
             setImageFromFile(filePath);
         }
     }
@@ -334,7 +335,7 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
         return dir_path + File.separator + projectResourceBean.resFullName;
     }
 
-    private static class SaveAsyncTask extends MA {
+    private static class SaveAsyncTask extends BackgroundTask {
         private final WeakReference<AddImageActivity> activity;
 
         public SaveAsyncTask(AddImageActivity activity) {
@@ -359,7 +360,7 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
         }
 
         @Override
-        public void b() throws By {
+        public void b() throws ProjectSettingsStore {
             var activity = this.activity.get();
             try {
                 publishProgress("Now processing..");
@@ -373,7 +374,7 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
                         image.flipVertical = activity.imageScaleY;
                         image.flipHorizontal = activity.imageScaleX;
                         if (activity.chk_collection.isChecked()) {
-                            Op.g().a(activity.sc_id, image);
+                            SoundResourceManager.g().a(activity.sc_id, image);
                         }
                         activity.images.add(image);
                     } else if (!activity.B) {
@@ -397,7 +398,7 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
                     while (i < activity.pickedImageUris.size()) {
                         var uri = activity.pickedImageUris.get(i);
                         var imageName = Helper.getText(activity.ed_input_edittext).trim() + "_" + ++i;
-                        var imageFilePath = HB.a(activity.getApplicationContext(), uri);
+                        var imageFilePath = DocumentUriUtils.a(activity.getApplicationContext(), uri);
                         if (imageFilePath == null) {
                             return;
                         }
@@ -405,13 +406,13 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
                                 imageName, imageFilePath);
                         image.savedPos = 1;
                         image.isNew = true;
-                        image.rotate = iB.a(imageFilePath);
+                        image.rotate = BitmapUtils.a(imageFilePath);
                         image.flipVertical = 1;
                         image.flipHorizontal = 1;
                         toAdd.add(image);
                     }
                     if (activity.chk_collection.isChecked()) {
-                        Op.g().a(activity.sc_id, toAdd, true);
+                        SoundResourceManager.g().a(activity.sc_id, toAdd, true);
                     }
                     activity.multipleImagesPicked = false;
                     activity.images.addAll(toAdd);
@@ -419,17 +420,17 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
             } catch (Exception e) {
                 // the bytecode's lying
                 // noinspection ConstantValue
-                if (e instanceof yy yy) {
-                    var errorMessage = yy.getMessage();
+                if (e instanceof StringListStore StringListStore) {
+                    var errorMessage = StringListStore.getMessage();
                     var code = switch (errorMessage) {
                         case "fail_to_copy" -> R.string.collection_failed_to_copy;
                         case "file_no_exist" -> R.string.collection_no_exist_file;
                         case "duplicate_name" -> R.string.collection_duplicated_name;
                         default -> 0;
                     };
-                    var message = code != 0 ? xB.b().a(activity.getApplicationContext(), code) : null;
+                    var message = code != 0 ? TranslationManager.b().a(activity.getApplicationContext(), code) : null;
 
-                    var a = yy.a();
+                    var a = StringListStore.a();
                     if (a != null && !a.isEmpty()) {
                         var names = "";
                         for (String name : a) {
@@ -440,10 +441,10 @@ public class AddImageActivity extends BaseDialogActivity implements View.OnClick
                         }
                         message += "[" + names + "]";
                     }
-                    throw new By(message);
+                    throw new ProjectSettingsStore(message);
                 }
                 e.printStackTrace();
-                throw new By(e.getMessage());
+                throw new ProjectSettingsStore(e.getMessage());
             }
         }
 

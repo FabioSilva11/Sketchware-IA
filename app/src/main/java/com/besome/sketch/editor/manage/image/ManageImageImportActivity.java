@@ -26,11 +26,11 @@ import com.bumptech.glide.request.target.BitmapImageViewTarget;
 
 import java.util.ArrayList;
 
-import a.a.a.QB;
-import a.a.a.bB;
-import a.a.a.mB;
-import a.a.a.uq;
-import a.a.a.xB;
+import pro.sketchware.lib.validator.DualListNameInputValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.core.TranslationManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -44,7 +44,7 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
     private ArrayList<ProjectResourceBean> projectImages;
     private ArrayList<ProjectResourceBean> selectedCollections;
     private int selectedItem = 0;
-    private QB nameValidator;
+    private DualListNameInputValidator nameValidator;
 
     private ArrayList<String> getReservedSelectedCollectionNames() {
         ArrayList<String> names = new ArrayList<>();
@@ -82,8 +82,8 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
             }
             names = names + name;
         }
-        bB.a(getApplicationContext(), xB.b().a(getApplicationContext(),
-                R.string.common_message_name_unavailable) + "\n[" + names + "]", bB.TOAST_WARNING).show();
+        ToastFactory.a(getApplicationContext(), TranslationManager.b().a(getApplicationContext(),
+                R.string.common_message_name_unavailable) + "\n[" + names + "]", ToastFactory.TOAST_WARNING).show();
         return true;
     }
 
@@ -99,7 +99,7 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             int id = v.getId();
             if (id != R.id.btn_decide) {
                 if (id != R.id.img_backbtn) {
@@ -148,10 +148,10 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
         tv_currentnum = findViewById(R.id.tv_currentnum);
         TextView tv_totalnum = findViewById(R.id.tv_totalnum);
         TextView tv_sendbtn = findViewById(R.id.tv_sendbtn);
-        tv_sendbtn.setText(xB.b().a(getApplicationContext(), R.string.common_word_import).toUpperCase());
+        tv_sendbtn.setText(TranslationManager.b().a(getApplicationContext(), R.string.common_word_import).toUpperCase());
         tv_sendbtn.setOnClickListener(this);
         TextView tv_samename = findViewById(R.id.tv_samename);
-        tv_samename.setText(xB.b().a(getApplicationContext(), R.string.design_manager_image_title_apply_same_naming));
+        tv_samename.setText(TranslationManager.b().a(getApplicationContext(), R.string.design_manager_image_title_apply_same_naming));
         adapter = new ItemAdapter();
         RecyclerView recycler_list = findViewById(R.id.recycler_list);
         recycler_list.setAdapter(adapter);
@@ -165,8 +165,8 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
         ed_input_edittext = ed_input.getEditText();
         ed_input_edittext.setText(selectedCollections.get(0).resName);
         ed_input_edittext.setPrivateImeOptions("defaultInputmode=english;");
-        ed_input.setHint(xB.b().a(this, R.string.design_manager_image_hint_enter_image_name));
-        nameValidator = new QB(getApplicationContext(), ed_input.getTextInputLayout(), uq.b, getReservedProjectImageNames(), getReservedSelectedCollectionNames());
+        ed_input.setHint(TranslationManager.b().a(this, R.string.design_manager_image_hint_enter_image_name));
+        nameValidator = new DualListNameInputValidator(getApplicationContext(), ed_input.getTextInputLayout(), ComponentNameRegistry.b, getReservedProjectImageNames(), getReservedSelectedCollectionNames());
         chk_samename = findViewById(R.id.chk_samename);
         chk_samename.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
@@ -178,7 +178,7 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
             }
         });
         Button btn_decide = findViewById(R.id.btn_decide);
-        btn_decide.setText(xB.b().a(getApplicationContext(), R.string.design_manager_change_name_button));
+        btn_decide.setText(TranslationManager.b().a(getApplicationContext(), R.string.design_manager_change_name_button));
         btn_decide.setOnClickListener(this);
         img = findViewById(R.id.img);
     }
@@ -212,9 +212,9 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
             }
         }
         if (!duplicateCollections.isEmpty()) {
-            bB.b(getApplicationContext(), xB.b().a(getApplicationContext(), R.string.design_manager_message_collection_name_conflict), bB.TOAST_WARNING).show();
+            ToastFactory.b(getApplicationContext(), TranslationManager.b().a(getApplicationContext(), R.string.design_manager_message_collection_name_conflict), ToastFactory.TOAST_WARNING).show();
         } else {
-            bB.a(getApplicationContext(), xB.b().a(getApplicationContext(), R.string.design_manager_message_collection_name_no_conflict), bB.TOAST_NORMAL).show();
+            ToastFactory.a(getApplicationContext(), TranslationManager.b().a(getApplicationContext(), R.string.design_manager_message_collection_name_no_conflict), ToastFactory.TOAST_NORMAL).show();
         }
         selectedCollections = new ArrayList<>();
         selectedCollections.addAll(duplicateCollections);
@@ -259,6 +259,7 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
             Glide.with(getApplicationContext())
                     .load(projectResourceBean.resFullName)
                     //.asBitmap()
+
                     .centerCrop()
                     .error(R.drawable.ic_remove_grey600_24dp)
                     .into(new BitmapImageViewTarget(viewHolder.img).getView());
@@ -289,7 +290,7 @@ public class ManageImageImportActivity extends BaseAppCompatActivity implements 
                 img = itemView.findViewById(R.id.img);
                 tv_name = itemView.findViewById(R.id.tv_name);
                 img.setOnClickListener(v -> {
-                    if (!mB.a()) {
+                    if (!EditorViewUtils.a()) {
                         selectedItem = getLayoutPosition();
                         showPreview(selectedItem);
                         tv_currentnum.setText(String.valueOf(selectedItem + 1));

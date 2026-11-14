@@ -12,7 +12,7 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.LinkedList;
 
-import a.a.a.ProjectBuilder;
+import pro.sketchware.compiler.ProjectBuilder;
 import pro.sketchware.utility.FileUtil;
 
 public class DexCompiler {
@@ -21,9 +21,9 @@ public class DexCompiler {
 
         Collection<Path> programFiles = new LinkedList<>();
         if (builder.proguard.isShrinkingEnabled()) {
-            programFiles.add(Paths.get(builder.yq.proguardClassesPath));
+            programFiles.add(Paths.get(builder.workspace.proguardClassesPath));
         } else {
-            for (File file : FileUtil.listFilesRecursively(new File(builder.yq.compiledClassesPath), ".class")) {
+            for (File file : FileUtil.listFilesRecursively(new File(builder.workspace.compiledClassesPath), ".class")) {
                 programFiles.add(file.toPath());
             }
         }
@@ -38,7 +38,7 @@ public class DexCompiler {
                 .setIntermediate(true)
                 .setMinApiLevel(minApiLevel)
                 .addLibraryFiles(libraryFiles)
-                .setOutput(new File(builder.yq.binDirectoryPath, "dex").toPath(), OutputMode.DexIndexed)
+                .setOutput(new File(builder.workspace.binDirectoryPath, "dex").toPath(), OutputMode.DexIndexed)
                 .addProgramFiles(programFiles)
                 .build());
     }

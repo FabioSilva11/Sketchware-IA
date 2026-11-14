@@ -5,9 +5,9 @@ import android.os.Parcelable;
 
 import com.google.gson.annotations.Expose;
 
-import a.a.a.nA;
+import pro.sketchware.core.ComparisonResult;
 
-public class LayoutBean extends nA implements Parcelable {
+public class LayoutBean extends ComparisonResult implements Parcelable {
     public static final Parcelable.Creator<LayoutBean> CREATOR = new Parcelable.Creator<>() {
         @Override
         public LayoutBean createFromParcel(Parcel source) {

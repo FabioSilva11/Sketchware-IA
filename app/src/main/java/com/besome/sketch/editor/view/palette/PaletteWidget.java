@@ -15,7 +15,7 @@ import com.google.android.material.color.MaterialColors;
 
 import java.util.HashMap;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 import dev.aldi.sayuti.editor.view.palette.IconBadgeView;
 import dev.aldi.sayuti.editor.view.palette.IconBottomNavigationView;
 import dev.aldi.sayuti.editor.view.palette.IconCardView;
@@ -159,7 +159,7 @@ public class PaletteWidget extends LinearLayout {
     }
 
     private void initialize(Context context) {
-        wB.a(context, this, R.layout.palette_widget);
+        ViewInflationUtils.a(context, this, R.layout.palette_widget);
         layoutContainer = findViewById(R.id.layout);
         widgetsContainer = findViewById(R.id.widget);
         titleLayouts = findViewById(R.id.tv_layout);
@@ -269,26 +269,45 @@ public class PaletteWidget extends LinearLayout {
 
     public enum a {
         a, //eLinearHorizontal
+
         b, //eLinearVertical
+
         c, //eScrollHorizontal
+
         d //eScrollVertical
+
     }
 
     public enum b {
         a, //eButton
+
         b, //eTextView
+
         c, //eEditText
+
         d, //eImageView
+
         e, //eListView
+
         f, //eSpinner
+
         g, //eCheckBox
+
         h, //eWebView
+
         i, //eSwitch
+
         j, //eSeekBar
+
         k, //eCalenderView
+
         l, //eAddView
+
         m, //eProgressBar
+
         n, //eMapView
+
         o //eRadioButton
+
     }
 }

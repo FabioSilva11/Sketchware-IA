@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import a.a.a.jq;
+import pro.sketchware.compiler.ProjectBuildMetadata;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.utility.FileUtil;
 import pro.sketchware.xml.XmlBuilder;
@@ -21,13 +21,14 @@ import pro.sketchware.xml.XmlBuilder;
 public class AppCompatInjection {
 
     // maps sc_id to (activity filename mapped to (list of injections))
+
     private static final Map<String, Map<String, List<? extends Map<String, Object>>>> INJECTIONS = new HashMap<>();
 
     private final String sc_id;
     private final ProjectFileBean projectFile;
 
-    public AppCompatInjection(jq jq, ProjectFileBean projectFileBean) {
-        sc_id = jq.sc_id;
+    public AppCompatInjection(ProjectBuildMetadata ProjectBuildMetadata, ProjectFileBean projectFileBean) {
+        sc_id = ProjectBuildMetadata.sc_id;
         projectFile = projectFileBean;
     }
 

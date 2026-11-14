@@ -227,9 +227,13 @@ public class LogReaderActivity extends BaseAppCompatActivity {
                 Matcher matcher = logPattern.matcher(intent.getStringExtra("log"));
                 if (matcher.matches()) {
                     //group 1 = pid, time stuff & idk
+
                     //group 2 = log type (a,d,e,i,w)
+
                     //group 3 = log tag,headers
+
                     //group 4 = everything else
+
                     map.put("date", matcher.group(1).trim());
                     map.put("type", matcher.group(2).trim());
                     map.put("header", matcher.group(3));
@@ -323,6 +327,7 @@ public class LogReaderActivity extends BaseAppCompatActivity {
                 try {
                     if (data.get(position).get("date").toString().equals(data.get(position + 1).get("date").toString())) {
 //                        binding.divider.setVisibility(View.GONE);
+
                         try {
                             if (data.get(position).get("pkgName").toString().equals(data.get(position + 1).get("pkgName").toString())) {
                                 binding.pkgName.setVisibility(View.GONE);

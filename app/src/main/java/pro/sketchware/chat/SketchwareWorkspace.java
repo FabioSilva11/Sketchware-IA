@@ -7,7 +7,7 @@ import androidx.annotation.Nullable;
 import java.io.File;
 import java.util.HashMap;
 
-import a.a.a.wq;
+import pro.sketchware.workspace.WorkspacePathManager;
 import pro.sketchware.chat.workspace.LocalFolderWorkspaceFileSystem;
 import pro.sketchware.chat.workspace.SketchwareProjectFileSystem;
 import pro.sketchware.chat.workspace.Workspace;
@@ -70,13 +70,13 @@ public final class SketchwareWorkspace {
 
     private static File rootOf(String scId) {
         return ProjectManager.isAndroidStudioProject(scId)
-                ? new File(wq.getAndroidStudioProjectPath(scId))
+                ? new File(WorkspacePathManager.getAndroidStudioProjectPath(scId))
                 : sketchwareRoot();
     }
 
     private static String displayPathOf(String scId) {
         return ProjectManager.isAndroidStudioProject(scId)
-                ? wq.ANDROID_STUDIO_PROJECTS + "/" + scId
+                ? WorkspacePathManager.ANDROID_STUDIO_PROJECTS + "/" + scId
                 : ".sketchware (data/" + scId + ", mysc/" + scId + ", mysc/list/" + scId + ")";
     }
 }

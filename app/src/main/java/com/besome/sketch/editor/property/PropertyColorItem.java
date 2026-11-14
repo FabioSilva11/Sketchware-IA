@@ -13,9 +13,9 @@ import com.besome.sketch.lib.ui.ColorPickerDialog;
 
 import java.util.Objects;
 
-import a.a.a.Kw;
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -34,7 +34,7 @@ public class PropertyColorItem extends RelativeLayout implements View.OnClickLis
     private ImageView imgLeftIcon;
     private View propertyItem;
     private View propertyMenuItem;
-    private Kw valueChangeListener;
+    private ObjectChangeListener valueChangeListener;
 
     public PropertyColorItem(Context context, boolean z) {
         super(context);
@@ -107,12 +107,12 @@ public class PropertyColorItem extends RelativeLayout implements View.OnClickLis
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             showColorPicker(v);
         }
     }
 
-    public void setOnPropertyValueChangeListener(Kw onPropertyValueChangeListener) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener onPropertyValueChangeListener) {
         valueChangeListener = onPropertyValueChangeListener;
     }
 
@@ -132,7 +132,7 @@ public class PropertyColorItem extends RelativeLayout implements View.OnClickLis
 
     private void initialize(Context context, boolean z) {
         this.context = context;
-        wB.a(context, this, R.layout.property_color_item);
+        ViewInflationUtils.a(context, this, R.layout.property_color_item);
         tvName = findViewById(R.id.tv_name);
         tvValue = findViewById(R.id.tv_value);
         viewColor = findViewById(R.id.view_color);
@@ -140,9 +140,13 @@ public class PropertyColorItem extends RelativeLayout implements View.OnClickLis
         propertyItem = findViewById(R.id.property_item);
         propertyMenuItem = findViewById(R.id.property_menu_item);
 //        if (z) {
+
 //            propertyMenuItem.setOnClickListener(this);
+
 //            propertyMenuItem.setSoundEffectsEnabled(true);
+
 //        }
+
     }
 
     private void showColorPicker(View anchorView) {

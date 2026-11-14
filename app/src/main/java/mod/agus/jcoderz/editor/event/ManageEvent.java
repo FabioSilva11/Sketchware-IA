@@ -2,8 +2,8 @@ package mod.agus.jcoderz.editor.event;
 
 import java.util.ArrayList;
 
-import a.a.a.Gx;
-import a.a.a.Lx;
+import pro.sketchware.editor.ComponentClassInfo;
+import pro.sketchware.compiler.ComponentSourceGenerator;
 import mod.hilal.saif.events.EventsHandler;
 import pro.sketchware.R;
 import pro.sketchware.blocks.generator.components.analyzers.BlockReturnAnalyzer;
@@ -11,9 +11,9 @@ import pro.sketchware.blocks.generator.components.analyzers.BlockReturnAnalyzer;
 public class ManageEvent {
 
     /**
-     * Used in {@link a.a.a.oq#getEventsForClass(Gx)} to retrieve extra Events of Components.
+     * Used in {@link oq#getEventsForClass(Gx)} to retrieve extra Events of Components.
      */
-    public static void addExtraEvents(Gx gx, ArrayList<String> events) {
+    public static void addExtraEvents(ComponentClassInfo gx, ArrayList<String> events) {
         if (gx.a("RatingBar")) {
             events.add("onRatingChanged");
         }
@@ -76,10 +76,10 @@ public class ManageEvent {
     }
 
     /**
-     * Used in {@link a.a.a.oq#getListenersForClass(Gx)}
+     * Used in {@link oq#getListenersForClass(Gx)}
      * to get extra listeners for Components and Widgets.
      */
-    public static void addExtraListeners(Gx gx, ArrayList<String> listeners) {
+    public static void addExtraListeners(ComponentClassInfo gx, ArrayList<String> listeners) {
         if (gx.a("RatingBar")) {
             listeners.add("OnRatingBarChangeListener");
         }
@@ -156,7 +156,7 @@ public class ManageEvent {
     }
 
     /**
-     * Used in {@link a.a.a.oq#getEventsForListener(String)} to get extra listeners' Events.
+     * Used in {@link oq#getEventsForListener(String)} to get extra listeners' Events.
      */
     public static void addEventsForListener(String eventName, ArrayList<String> list) {
         switch (eventName) {
@@ -589,6 +589,7 @@ public class ManageEvent {
             case "onCodeSent" -> "@Override\r\n" +
                     "public void onCodeSent(String _verificationId, PhoneAuthProvider.ForceResendingToken _token) {\r\n" +
                     // Kept for the "resend code" block
+
                     (targetId.isEmpty() ? "" : targetId + "_resendToken = _token;\r\n") +
                     eventLogic + "\r\n" +
                     "}";
@@ -665,7 +666,7 @@ public class ManageEvent {
     }
 
     /**
-     * @return Code of extra listeners, used in {@link a.a.a.Lx#getListenerCode(String, String, String)}
+     * @return Code of extra listeners, used in {@link Lx#getListenerCode(String, String, String)}
      */
     public static String g(String listenerName, String targetId, String listenerLogic) {
         return switch (listenerName) {
@@ -702,10 +703,12 @@ public class ManageEvent {
                             listenerLogic + "\r\n" +
                             "};";
             case "FragmentStatePagerAdapter" -> {
-                String className = Lx.a(targetId + "Fragment", false);
+                String className = ComponentSourceGenerator.a(targetId + "Fragment", false);
                 yield "public class " + className + " extends FragmentStatePagerAdapter {\r\n" +
                         "// This class is deprecated, you should migrate to ViewPager2:\r\n" +
+
                         "// https://developer.android.com/reference/androidx/viewpager2/widget/ViewPager2\r\n" +
+
                         "Context context;\r\n" +
                         "int tabCount;\r\n" +
                         "\r\n" +
@@ -894,7 +897,7 @@ public class ManageEvent {
         };
     }
 
-    public static void addExtraComponentEvents(Gx gx, ArrayList<String> list) {
+    public static void addExtraComponentEvents(ComponentClassInfo gx, ArrayList<String> list) {
         if (gx.a("RewardedVideoAd")) {
             list.add("onRewardAdLoaded");
             list.add("onRewardAdFailedToLoad");

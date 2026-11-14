@@ -20,13 +20,13 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import a.a.a.GB;
-import a.a.a.Mp;
-import a.a.a.NB;
-import a.a.a.Rs;
-import a.a.a.Ss;
-import a.a.a.Ts;
-import a.a.a.bB;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.BlockCollectionManager;
+import pro.sketchware.editor.UniqueNameValidator;
+import pro.sketchware.editor.BlockView;
+import pro.sketchware.editor.BlockMenuItem;
+import pro.sketchware.editor.BlockCanvasView;
+import pro.sketchware.editor.ToastFactory;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageCollectionShowBlockBinding;
@@ -39,17 +39,17 @@ public class ShowBlockCollectionActivity extends BaseAppCompatActivity implement
     private String blockName;
     private BlockPane pane;
     private EditText blockNameEditorText;
-    private NB blockNameValidator;
+    private UniqueNameValidator blockNameValidator;
 
     private ManageCollectionShowBlockBinding binding;
 
     private void addBlocks(ArrayList<BlockBean> blocks) {
-        HashMap<Integer, Rs> blockIdsWithBlocks = new HashMap<>();
-        Rs firstBlock = null;
+        HashMap<Integer, BlockView> blockIdsWithBlocks = new HashMap<>();
+        BlockView firstBlock = null;
 
         boolean isFirstBlock = true;
         for (BlockBean blockBean : blocks) {
-            Rs block = getBlock(blockBean);
+            BlockView block = getBlock(blockBean);
             int blockId = (Integer) block.getTag();
 
             blockIdsWithBlocks.put(blockId, block);
@@ -63,23 +63,23 @@ public class ShowBlockCollectionActivity extends BaseAppCompatActivity implement
         }
 
         for (BlockBean blockBean : blocks) {
-            Rs block = blockIdsWithBlocks.get(Integer.valueOf(blockBean.id));
+            BlockView block = blockIdsWithBlocks.get(Integer.valueOf(blockBean.id));
 
             if (block != null) {
                 int subStack1Id = blockBean.subStack1;
-                Rs subStack1;
+                BlockView subStack1;
                 if (subStack1Id >= 0 && (subStack1 = blockIdsWithBlocks.get(subStack1Id)) != null) {
                     block.e(subStack1);
                 }
 
                 int subStack2Id = blockBean.subStack2;
-                Rs subStack2;
+                BlockView subStack2;
                 if (subStack2Id >= 0 && (subStack2 = blockIdsWithBlocks.get(subStack2Id)) != null) {
                     block.f(subStack2);
                 }
 
                 int nextBlockId = blockBean.nextBlock;
-                Rs nextBlock;
+                BlockView nextBlock;
                 if (nextBlockId >= 0 && (nextBlock = blockIdsWithBlocks.get(nextBlockId)) != null) {
                     block.b(nextBlock);
                 }
@@ -90,12 +90,12 @@ public class ShowBlockCollectionActivity extends BaseAppCompatActivity implement
 
                     if (parameter != null && !parameter.isEmpty()) {
                         if (parameter.charAt(0) == '@') {
-                            Rs parameterBlock = blockIdsWithBlocks.get(Integer.valueOf(parameter.substring(1)));
+                            BlockView parameterBlock = blockIdsWithBlocks.get(Integer.valueOf(parameter.substring(1)));
                             if (parameterBlock != null) {
-                                block.a((Ts) block.V.get(i), parameterBlock);
+                                block.a((BlockCanvasView) block.V.get(i), parameterBlock);
                             }
                         } else {
-                            ((Ss) block.V.get(i)).setArgValue(parameter);
+                            ((BlockMenuItem) block.V.get(i)).setArgValue(parameter);
                             block.m();
                         }
                     }
@@ -111,15 +111,15 @@ public class ShowBlockCollectionActivity extends BaseAppCompatActivity implement
         binding.layoutButton.measure(0, 0);
         binding.editor.setLayoutParams(new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                ((i - GB.a((Context) this)) - GB.f(this)) - binding.layoutButton.getMeasuredHeight()));
+                ((i - DeviceEnvironmentUtils.a((Context) this)) - DeviceEnvironmentUtils.f(this)) - binding.layoutButton.getMeasuredHeight()));
         binding.editor.requestLayout();
     }
 
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.save_button && blockNameValidator.b()) {
-            Mp.h().a(blockName, Helper.getText(blockNameEditorText), true);
-            bB.a(getApplicationContext(), Helper.getResString(R.string.design_manager_message_edit_complete), bB.TOAST_NORMAL).show();
+            BlockCollectionManager.h().a(blockName, Helper.getText(blockNameEditorText), true);
+            ToastFactory.a(getApplicationContext(), Helper.getResString(R.string.design_manager_message_edit_complete), ToastFactory.TOAST_NORMAL).show();
             finish();
         }
     }
@@ -152,7 +152,7 @@ public class ShowBlockCollectionActivity extends BaseAppCompatActivity implement
 
         binding.saveButton.setText(Helper.getResString(R.string.common_word_save));
         binding.saveButton.setOnClickListener(this);
-        blockNameValidator = new NB(this, binding.edInput.getTextInputLayout(), Mp.h().g());
+        blockNameValidator = new UniqueNameValidator(this, binding.edInput.getTextInputLayout(), BlockCollectionManager.h().g());
     }
 
     @Override
@@ -165,7 +165,7 @@ public class ShowBlockCollectionActivity extends BaseAppCompatActivity implement
     public void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
 
-        BlockCollectionBean block = Mp.h().a(blockName);
+        BlockCollectionBean block = BlockCollectionManager.h().a(blockName);
         if (block != null) {
             addBlocks(block.blocks);
             resizeBottomViews();
@@ -175,8 +175,8 @@ public class ShowBlockCollectionActivity extends BaseAppCompatActivity implement
         }
     }
 
-    private Rs getBlock(BlockBean blockBean) {
-        return new Rs(this, Integer.parseInt(blockBean.id), blockBean.spec, blockBean.type, blockBean.typeName, blockBean.opCode);
+    private BlockView getBlock(BlockBean blockBean) {
+        return new BlockView(this, Integer.parseInt(blockBean.id), blockBean.spec, blockBean.type, blockBean.typeName, blockBean.opCode);
     }
 
     @Override

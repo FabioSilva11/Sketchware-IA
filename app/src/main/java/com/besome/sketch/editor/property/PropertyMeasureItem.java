@@ -10,10 +10,10 @@ import android.widget.TextView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import a.a.a.Kw;
-import a.a.a.mB;
-import a.a.a.sq;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ViewPropertyValueMapper;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.PropertyPopupMeasurementBinding;
@@ -30,7 +30,7 @@ public class PropertyMeasureItem extends RelativeLayout implements View.OnClickL
     private ImageView imgLeftIcon;
     private View propertyItem;
     private View propertyMenuItem;
-    private Kw valueChangeListener;
+    private ObjectChangeListener valueChangeListener;
     private boolean isWrapContent = true;
     private boolean isCustomValue = true;
     private int imgLeftIconDrawableResId;
@@ -74,17 +74,17 @@ public class PropertyMeasureItem extends RelativeLayout implements View.OnClickL
     public void setValue(int value) {
         measureValue = value;
         if (!isWrapContent && value == LayoutParams.WRAP_CONTENT) {
-            tvValue.setText(sq.a(key, LayoutParams.MATCH_PARENT));
+            tvValue.setText(ViewPropertyValueMapper.a(key, LayoutParams.MATCH_PARENT));
         } else if (isCustomValue || value < 0) {
-            tvValue.setText(sq.a(key, value));
+            tvValue.setText(ViewPropertyValueMapper.a(key, value));
         } else {
-            tvValue.setText(sq.a(key, LayoutParams.WRAP_CONTENT));
+            tvValue.setText(ViewPropertyValueMapper.a(key, LayoutParams.WRAP_CONTENT));
         }
     }
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             showDialog();
         }
     }
@@ -95,7 +95,7 @@ public class PropertyMeasureItem extends RelativeLayout implements View.OnClickL
         isCustomValue = (itemEnabled & 4) == 4;
     }
 
-    public void setOnPropertyValueChangeListener(Kw onPropertyValueChangeListener) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener onPropertyValueChangeListener) {
         valueChangeListener = onPropertyValueChangeListener;
     }
 
@@ -114,16 +114,20 @@ public class PropertyMeasureItem extends RelativeLayout implements View.OnClickL
     }
 
     private void initialize(Context context, boolean z) {
-        wB.a(context, this, R.layout.property_selector_item);
+        ViewInflationUtils.a(context, this, R.layout.property_selector_item);
         tvName = findViewById(R.id.tv_name);
         tvValue = findViewById(R.id.tv_value);
         imgLeftIcon = findViewById(R.id.img_left_icon);
         propertyItem = findViewById(R.id.property_item);
         propertyMenuItem = findViewById(R.id.property_menu_item);
 //        if (z) {
+
 //            propertyMenuItem.setOnClickListener(this);
+
 //            propertyMenuItem.setSoundEffectsEnabled(true);
+
 //        }
+
     }
 
     private void showDialog() {

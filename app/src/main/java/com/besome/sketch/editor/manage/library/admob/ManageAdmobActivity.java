@@ -25,10 +25,10 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
-import a.a.a.DB;
-import a.a.a.GB;
-import a.a.a.bB;
-import a.a.a.mB;
+import pro.sketchware.core.PreferenceStore;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.EditorViewUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageLibraryManageAdmobBinding;
@@ -38,7 +38,7 @@ public class ManageAdmobActivity extends BaseAppCompatActivity implements View.O
 
     private static final int REQUEST_CODE_ENABLE_ADMOB = 8001;
     private static final int REQUEST_CODE_ADMOB_SETTINGS = 8002;
-    private DB A;
+    private PreferenceStore A;
     private TestDeviceAdapter testDeviceAdapter;
     private ArrayList<AdTestDeviceBean> testDeviceList = new ArrayList<>();
     private ProjectLibraryBean admobLibraryBean;
@@ -96,11 +96,12 @@ public class ManageAdmobActivity extends BaseAppCompatActivity implements View.O
     }
 
     private void n() {
-        if (GB.h(getApplicationContext())) {
+        if (DeviceEnvironmentUtils.h(getApplicationContext())) {
             try {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 intent.setData(Uri.parse("https://apps.admob.com/v2/home"));
+
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                 intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -110,7 +111,7 @@ public class ManageAdmobActivity extends BaseAppCompatActivity implements View.O
                 downloadChromeDialog();
             }
         } else {
-            bB.a(getApplicationContext(), Helper.getResString(R.string.common_message_check_network), bB.TOAST_NORMAL).show();
+            ToastFactory.a(getApplicationContext(), Helper.getResString(R.string.common_message_check_network), ToastFactory.TOAST_NORMAL).show();
         }
     }
 
@@ -120,6 +121,7 @@ public class ManageAdmobActivity extends BaseAppCompatActivity implements View.O
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.setData(Uri.parse("https://docs.sketchware.io/docs/admob-getting-started.html"));
+
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -159,7 +161,7 @@ public class ManageAdmobActivity extends BaseAppCompatActivity implements View.O
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             int id = v.getId();
             if (id == binding.btnConsole.getId()) {
                 n();
@@ -198,7 +200,7 @@ public class ManageAdmobActivity extends BaseAppCompatActivity implements View.O
         getSupportActionBar().setDisplayShowTitleEnabled(true);
         binding.toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
-        A = new DB(getApplicationContext(), "P1");
+        A = new PreferenceStore(getApplicationContext(), "P1");
         admobLibraryBean = getIntent().getParcelableExtra("admob");
         binding.tvEnable.setText(Helper.getResString(R.string.design_library_settings_title_enabled));
         binding.tvTitleBanner.setText(Helper.getResString(R.string.design_library_admob_title_banner));
@@ -254,7 +256,7 @@ public class ManageAdmobActivity extends BaseAppCompatActivity implements View.O
         dialog.setMessage(Helper.getResString(R.string.design_library_admob_dialog_description_confirm_uncheck));
         dialog.setCancelable(false);
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_delete), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 admobLibraryBean.useYn = "N";
                 binding.libSwitch.setChecked(false);
                 v.dismiss();
@@ -270,9 +272,10 @@ public class ManageAdmobActivity extends BaseAppCompatActivity implements View.O
         dialog.setTitle(Helper.getResString(R.string.title_compatible_chrome_browser));
         dialog.setMessage(Helper.getResString(R.string.message_compatible_chrome_brower));
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_ok), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse("market://details?id=com.android.chrome"));
+
                 startActivity(intent);
                 v.dismiss();
             }

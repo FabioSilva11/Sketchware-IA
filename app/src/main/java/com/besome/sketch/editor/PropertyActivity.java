@@ -35,17 +35,17 @@ import com.besome.sketch.lib.ui.CustomScrollView;
 import java.util.ArrayList;
 import java.util.Map;
 
-import a.a.a.Kw;
-import a.a.a.cC;
-import a.a.a.jC;
-import a.a.a.mB;
-import a.a.a.ro;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.ViewHistoryManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.DialogFactory;
 import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
-public class PropertyActivity extends BaseAppCompatActivity implements Kw {
+public class PropertyActivity extends BaseAppCompatActivity implements ObjectChangeListener {
 
     private final ArrayList<Integer> propertyGroups = new ArrayList<>();
     private ProjectFileBean projectFileBean;
@@ -68,7 +68,7 @@ public class PropertyActivity extends BaseAppCompatActivity implements Kw {
     }
 
     private void m() {
-        ArrayList<String> var1 = jC.d(sc_id).m();
+        ArrayList<String> var1 = ProjectDataManagerRegistry.d(sc_id).m();
         PropertyResourceItem resourceProperty;
         if (!var1.contains(viewBean.layout.backgroundResource)) {
             viewBean.layout.backgroundResource = null;
@@ -86,8 +86,8 @@ public class PropertyActivity extends BaseAppCompatActivity implements Kw {
             }
         }
 
-        for (String fileName : jC.b(sc_id).e()) {
-            for (ViewBean bean : jC.a(sc_id).d(fileName)) {
+        for (String fileName : ProjectDataManagerRegistry.b(sc_id).e()) {
+            for (ViewBean bean : ProjectDataManagerRegistry.a(sc_id).d(fileName)) {
                 if (bean.type == 6 && !var1.contains(bean.image.resName)) {
                     bean.image.resName = "default_image";
                     p = true;
@@ -100,8 +100,8 @@ public class PropertyActivity extends BaseAppCompatActivity implements Kw {
             }
         }
 
-        for (String fileName : jC.b(sc_id).d()) {
-            for (Map.Entry<String, ArrayList<BlockBean>> var4 : jC.a(sc_id).b(fileName).entrySet()) {
+        for (String fileName : ProjectDataManagerRegistry.b(sc_id).d()) {
+            for (Map.Entry<String, ArrayList<BlockBean>> var4 : ProjectDataManagerRegistry.a(sc_id).b(fileName).entrySet()) {
                 for (BlockBean bean : var4.getValue()) {
                     if ("setImage".equals(bean.opCode)) {
                         if (!var1.contains(bean.parameters.get(1))) {
@@ -118,12 +118,12 @@ public class PropertyActivity extends BaseAppCompatActivity implements Kw {
     public void o() {
         ViewBean viewBean;
         if (this.viewBean.id.equals("_fab")) {
-            viewBean = jC.a(sc_id).h(projectFileBean.getXmlName());
+            viewBean = ProjectDataManagerRegistry.a(sc_id).h(projectFileBean.getXmlName());
         } else {
-            viewBean = jC.a(sc_id).c(projectFileBean.getXmlName(), this.viewBean.preId);
+            viewBean = ProjectDataManagerRegistry.a(sc_id).c(projectFileBean.getXmlName(), this.viewBean.preId);
         }
 
-        cC.c(sc_id).a(projectFileBean.getXmlName(), viewBean.clone(), this.viewBean);
+        ViewHistoryManager.c(sc_id).a(projectFileBean.getXmlName(), viewBean.clone(), this.viewBean);
         viewBean.copy(this.viewBean);
         Intent var2 = new Intent();
         var2.putExtra("view_id", this.viewBean.id);
@@ -136,11 +136,11 @@ public class PropertyActivity extends BaseAppCompatActivity implements Kw {
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 209 && resultCode == -1 && jC.d(sc_id) != null && data != null) {
+        if (requestCode == 209 && resultCode == -1 && ProjectDataManagerRegistry.d(sc_id) != null && data != null) {
             String var4 = data.getStringExtra("sc_id");
             ArrayList<ProjectResourceBean> result = data.getParcelableArrayListExtra("result");
-            if (jC.d(var4) != null) {
-                jC.d(var4).b(result);
+            if (ProjectDataManagerRegistry.d(var4) != null) {
+                ProjectDataManagerRegistry.d(var4).b(result);
                 m();
             }
         }
@@ -166,7 +166,7 @@ public class PropertyActivity extends BaseAppCompatActivity implements Kw {
             finish();
         }
 
-        ro w = new ro(getApplicationContext());
+        DialogFactory w = new DialogFactory(getApplicationContext());
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -323,7 +323,7 @@ public class PropertyActivity extends BaseAppCompatActivity implements Kw {
 
             @Override
             public void onClick(View var1) {
-                if (!mB.a()) {
+                if (!EditorViewUtils.a()) {
                     if (getLayoutPosition() != -1) {
                         if (getLayoutPosition() != layoutPosition) {
                             notifyItemChanged(layoutPosition);

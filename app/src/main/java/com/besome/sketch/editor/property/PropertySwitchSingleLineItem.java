@@ -9,9 +9,9 @@ import android.widget.TextView;
 
 import com.google.android.material.materialswitch.MaterialSwitch;
 
-import a.a.a.Kw;
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -27,7 +27,7 @@ public class PropertySwitchSingleLineItem extends LinearLayout implements View.O
     private int icon;
     private View propertyItem;
     private View propertyMenuItem;
-    private Kw valueChangeListener;
+    private ObjectChangeListener valueChangeListener;
 
     public PropertySwitchSingleLineItem(Context context, boolean z) {
         super(context);
@@ -35,16 +35,20 @@ public class PropertySwitchSingleLineItem extends LinearLayout implements View.O
     }
 
     private void initialize(Context context, boolean z) {
-        wB.a(context, this, R.layout.property_switch_item_singleline);
+        ViewInflationUtils.a(context, this, R.layout.property_switch_item_singleline);
         tvName = findViewById(R.id.tv_name);
         switchValue = findViewById(R.id.switch_value);
         imgLeftIcon = findViewById(R.id.img_left_icon);
         propertyItem = findViewById(R.id.property_item);
         propertyMenuItem = findViewById(R.id.property_menu_item);
 //        if (z) {
+
 //            propertyMenuItem.setOnClickListener(this);
+
 //            propertyMenuItem.setSoundEffectsEnabled(true);
+
 //        }
+
     }
 
     public String getKey() {
@@ -52,7 +56,7 @@ public class PropertySwitchSingleLineItem extends LinearLayout implements View.O
     }
 
     public void setKey(String key) {
-        mB.a(this);
+        EditorViewUtils.a(this);
         this.key = key;
         int identifier = getResources().getIdentifier(key, "string", getContext().getPackageName());
         if (identifier > 0) {
@@ -99,7 +103,7 @@ public class PropertySwitchSingleLineItem extends LinearLayout implements View.O
         }
     }
 
-    public void setOnPropertyValueChangeListener(Kw onPropertyValueChangeListener) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener onPropertyValueChangeListener) {
         valueChangeListener = onPropertyValueChangeListener;
     }
 

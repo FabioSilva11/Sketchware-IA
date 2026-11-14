@@ -21,10 +21,13 @@ public final class ChatFlowLogger {
     private static final Pattern SECRET = Pattern.compile(
             "(?i)(\\\"?(?:authorization|api[_-]?key|token|password|secret|cookie|set-cookie)\\\"?\\s*[:=]\\s*\\\"?(?:bearer\\s+)?)[^\\s,;\\\"}]+"
     );
-    private static final SimpleDateFormat FILE_DATE = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
-    private static final SimpleDateFormat LINE_DATE = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US);
-    private static Handler writer;
-    private static File directory;
+    // SimpleDateFormats are not thread-safe: keep one per thread (logging happens from many threads).
+    private static final ThreadLocal<SimpleDateFormat> FILE_DATE = ThreadLocal.withInitial(
+            () -> new SimpleDateFormat("yyyy-MM-dd", Locale.US));
+    private static final ThreadLocal<SimpleDateFormat> LINE_DATE = ThreadLocal.withInitial(
+            () -> new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US));
+    private static volatile Handler writer;
+    private static volatile File directory;
 
     private ChatFlowLogger() { }
 
@@ -44,9 +47,13 @@ public final class ChatFlowLogger {
     public static void event(String scope, String event, String detail) {
         Handler handler = writer;
         if (handler == null) return;
-        String line = LINE_DATE.format(new Date()) + " | " + clean(scope) + " | "
-                + clean(event) + " | " + clean(detail) + "\n";
-        handler.post(() -> append(line));
+        String safeScope = clean(scope);
+        String safeEvent = clean(event);
+        String safeDetail = clean(detail);
+        // Format on the writer thread only, so the shared formatter is never touched concurrently.
+        handler.post(() -> append(
+                LINE_DATE.get().format(new Date()) + " | " + safeScope + " | "
+                        + safeEvent + " | " + safeDetail + "\n"));
     }
 
     public static void error(String scope, String event, Throwable error) {
@@ -63,9 +70,9 @@ public final class ChatFlowLogger {
     private static void append(String line) {
         try {
             if (directory == null) return;
-            File file = new File(directory, "chat-flow-" + FILE_DATE.format(new Date()) + ".txt");
+            File file = new File(directory, "chat-flow-" + FILE_DATE.get().format(new Date()) + ".txt");
             if (file.exists() && file.length() >= MAX_FILE_BYTES) {
-                file = new File(directory, "chat-flow-" + FILE_DATE.format(new Date()) + "-overflow.txt");
+                file = new File(directory, "chat-flow-" + FILE_DATE.get().format(new Date()) + "-overflow.txt");
             }
             try (FileOutputStream output = new FileOutputStream(file, true)) {
                 output.write(line.getBytes(StandardCharsets.UTF_8));

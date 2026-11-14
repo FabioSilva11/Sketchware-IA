@@ -124,6 +124,7 @@ public class MainDexListBuilder {
                 jarOfRoots.close();
             } catch (IOException e) {
                 // ignore
+
             }
             if (path != null) {
                 for (ClassPathElement element : path.elements) {
@@ -131,6 +132,7 @@ public class MainDexListBuilder {
                         element.close();
                     } catch (IOException e) {
                         // keep going, lets do our best.
+
                     }
                 }
             }

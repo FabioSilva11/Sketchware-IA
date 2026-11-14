@@ -31,11 +31,11 @@ import java.util.StringJoiner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.Ss;
-import a.a.a.eC;
-import a.a.a.jC;
-import a.a.a.uq;
-import a.a.a.wB;
+import pro.sketchware.editor.BlockMenuItem;
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.core.ViewInflationUtils;
 import dev.pranav.filepicker.FilePickerCallback;
 import dev.pranav.filepicker.FilePickerDialogFragment;
 import dev.pranav.filepicker.FilePickerOptions;
@@ -77,7 +77,7 @@ public class ExtraMenuBean {
         private final FileResConfig frc;
         private final LogicEditorActivity logicEditor;
         private final FilePickerOptions mOptions = new FilePickerOptions();
-        private final eC projectDataManager;
+        private final ProjectDataManager projectDataManager;
         private final String sc_id;
         private final String javaName;
 
@@ -87,7 +87,7 @@ public class ExtraMenuBean {
                 fpu = new FilePathUtil();
                 frc = new FileResConfig(logicA.scId);
                 defaultExtraMenu = new DefaultExtraMenuBean(logicA);
-                projectDataManager = jC.a(logicA.scId);
+                projectDataManager = ProjectDataManagerRegistry.a(logicA.scId);
                 javaName = logicA.M.getJavaName();
         }
 
@@ -117,7 +117,7 @@ public class ExtraMenuBean {
                 });
         }
 
-        private void codeMenu(Ss menu) {
+        private void codeMenu(BlockMenuItem menu) {
                 AsdDialog asdDialog = new AsdDialog(logicEditor);
                 asdDialog.setContent(menu.getArgValue().toString());
                 asdDialog.show();
@@ -125,7 +125,7 @@ public class ExtraMenuBean {
                 asdDialog.setOnCancelClickListener(asdDialog);
         }
 
-        public void defineMenuSelector(Ss ss) {
+        public void defineMenuSelector(BlockMenuItem ss) {
                 String menuType = ss.b;
                 String menuName = ss.getMenuName();
 
@@ -246,7 +246,7 @@ public class ExtraMenuBean {
                 }
         }
 
-        private void multiSelectMenu(@NonNull Ss menu) {
+        private void multiSelectMenu(@NonNull BlockMenuItem menu) {
                 MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(logicEditor);
 
                 String currentVal = menu.getArgValue().toString();
@@ -280,10 +280,10 @@ public class ExtraMenuBean {
         }
 
         @SuppressLint("SetTextI18n")
-        private void defaultMenus(Ss menu) {
+        private void defaultMenus(BlockMenuItem menu) {
                 String menuName = menu.getMenuName();
                 MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(logicEditor);
-                View rootView = wB.a(logicEditor, R.layout.property_popup_selector_single);
+                View rootView = ViewInflationUtils.a(logicEditor, R.layout.property_popup_selector_single);
                 ViewGroup viewGroup = rootView.findViewById(R.id.rg_content);
                 ArrayList<String> menus = new ArrayList<>();
                 String title;
@@ -344,12 +344,12 @@ public class ExtraMenuBean {
 
                         case "intentAction":
                         title = logicEditor.getString(R.string.logic_editor_title_select_component_intent_action);
-                        menus = new ArrayList<>(Arrays.asList(uq.b()));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.b()));
                         break;
 
                         case "intentFlags":
                         title = logicEditor.getString(R.string.logic_editor_title_select_component_intent_flags);
-                        menus = new ArrayList<>(Arrays.asList(uq.c()));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.c()));
                         break;
 
                         case "calendar":
@@ -359,7 +359,7 @@ public class ExtraMenuBean {
 
                         case "calendarField":
                         title = logicEditor.getString(R.string.logic_editor_title_select_component_calendar_field);
-                        menus = new ArrayList<>(Arrays.asList(uq.e));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.e));
                         break;
 
                         case "vibrator":
@@ -409,27 +409,27 @@ public class ExtraMenuBean {
 
                         case "aniRepeatMode":
                         title = logicEditor.getString(R.string.logic_editor_title_select_animator_repeat_mode);
-                        menus = new ArrayList<>(Arrays.asList(uq.j));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.j));
                         break;
 
                         case "aniInterpolator":
                         title = logicEditor.getString(R.string.logic_editor_title_select_animator_interpolator);
-                        menus = new ArrayList<>(Arrays.asList(uq.k));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.k));
                         break;
 
                         case "visible":
                         title = logicEditor.getString(R.string.logic_editor_title_select_visibility);
-                        menus = new ArrayList<>(Arrays.asList(uq.g));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.g));
                         break;
 
                         case "cacheMode":
                         title = logicEditor.getString(R.string.logic_editor_title_select_cache_mode);
-                        menus = new ArrayList<>(Arrays.asList(uq.h));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.h));
                         break;
 
                         case "animatorproperty":
                         title = logicEditor.getString(R.string.logic_editor_title_select_animator_target_property);
-                        menus = new ArrayList<>(Arrays.asList(uq.i));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.i));
                         break;
 
                         case "gyroscope":
@@ -524,7 +524,7 @@ public class ExtraMenuBean {
 
                         case "directoryType":
                         title = logicEditor.getString(R.string.logic_editor_title_select_directory_type);
-                        menus = new ArrayList<>(Arrays.asList(uq.l));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.l));
                         break;
 
                         case "requestnetwork":
@@ -534,12 +534,12 @@ public class ExtraMenuBean {
 
                         case "method":
                         title = logicEditor.getString(R.string.logic_editor_title_request_network_method);
-                        menus = new ArrayList<>(Arrays.asList(uq.n));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.n));
                         break;
 
                         case "requestType":
                         title = logicEditor.getString(R.string.logic_editor_title_request_network_request_type);
-                        menus = new ArrayList<>(Arrays.asList(uq.o));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.o));
                         break;
 
                         case "texttospeech":
@@ -614,17 +614,17 @@ public class ExtraMenuBean {
 
                         case "providerType":
                         title = logicEditor.getString(R.string.logic_editor_title_location_manager_provider_type);
-                        menus = new ArrayList<>(Arrays.asList(uq.p));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.p));
                         break;
 
                         case "mapType":
                         title = logicEditor.getString(R.string.logic_editor_title_mapview_map_type);
-                        menus = new ArrayList<>(Arrays.asList(uq.q));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.q));
                         break;
 
                         case "markerColor":
                         title = logicEditor.getString(R.string.logic_editor_title_mapview_marker_color);
-                        menus = new ArrayList<>(Arrays.asList(uq.r));
+                        menus = new ArrayList<>(Arrays.asList(ComponentNameRegistry.r));
                         break;
 
                         case "service":
@@ -644,7 +644,7 @@ public class ExtraMenuBean {
                         case "activity":
                         ArrayList<String> activityMenu = new ArrayList<>();
                         title = logicEditor.getString(R.string.logic_editor_title_select_activity);
-                        for (ProjectFileBean projectFileBean : jC.b(sc_id).b()) {
+                        for (ProjectFileBean projectFileBean : ProjectDataManagerRegistry.b(sc_id).b()) {
                                 activityMenu.add(projectFileBean.getActivityName());
                         }
                         for (String activity : activityMenu) {
@@ -673,7 +673,7 @@ public class ExtraMenuBean {
 
                         case "customViews":
                         title = "Select a Custom View";
-                        for (ProjectFileBean projectFileBean : jC.b(sc_id).c()) {
+                        for (ProjectFileBean projectFileBean : ProjectDataManagerRegistry.b(sc_id).c()) {
                                 menus.add(projectFileBean.fileName);
                         }
                         break;
@@ -723,7 +723,7 @@ public class ExtraMenuBean {
                         case "AdUnit":
                         dialog.setIcon(R.drawable.unit_96);
                         title = "Select an Ad Unit";
-                        for (AdUnitBean bean : jC.c(sc_id).e.adUnits) {
+                        for (AdUnitBean bean : ProjectDataManagerRegistry.c(sc_id).e.adUnits) {
                                 menus.add(bean.id);
                         }
                         break;
@@ -731,7 +731,7 @@ public class ExtraMenuBean {
                         case "TestDevice":
                         dialog.setIcon(R.drawable.ic_test_device_48dp);
                         title = "Select a Test device";
-                        for (AdTestDeviceBean testDevice : jC.c(sc_id).e.testDevices) {
+                        for (AdTestDeviceBean testDevice : ProjectDataManagerRegistry.c(sc_id).e.testDevices) {
                                 menus.add(testDevice.deviceId);
                         }
                         break;
@@ -856,6 +856,7 @@ public class ExtraMenuBean {
                         line = line.replace(";", "").trim();
 
                         // normalize spacing
+
                         line = line.replaceAll("\\s+", " ");
 
                         String[] parts = line.split(" ");
@@ -866,6 +867,7 @@ public class ExtraMenuBean {
                         String name = parts[2];
 
                         // handle generics (HashMap<String, Object>)
+
                         if (parts.length > 3 && parts[2].contains("<")) {
                                 type = parts[1] + " " + parts[2];
                                 name = parts[3];
@@ -885,13 +887,13 @@ public class ExtraMenuBean {
                 return projectDataManager.b(javaName, type);
         }
 
-        private void asdDialog(Ss ss, String message) {
+        private void asdDialog(BlockMenuItem ss, String message) {
                 MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(logicEditor);
                 dialog.setTitle(R.string.logic_editor_title_enter_string_value);
 
                 if (!isEmpty(message)) dialog.setMessage(message);
 
-                View root = wB.a(logicEditor, R.layout.property_popup_input_text);
+                View root = ViewInflationUtils.a(logicEditor, R.layout.property_popup_input_text);
                 EditText edittext = root.findViewById(R.id.ed_input);
                 edittext.setImeOptions(EditorInfo.IME_ACTION_NONE);
 
@@ -921,7 +923,7 @@ public class ExtraMenuBean {
                 dialog.show();
         }
 
-        private void pathSelectorMenu(Ss ss) {
+        private void pathSelectorMenu(BlockMenuItem ss) {
                 String menuName = ss.getMenuName();
                 ArrayList<String> markedPath = new ArrayList<>();
 
@@ -1009,7 +1011,7 @@ public class ExtraMenuBean {
 
 
         @NonNull
-        public ArrayList<String> getDynamicMenus(String mode, String javaName, eC projectDataManager) {
+        public ArrayList<String> getDynamicMenus(String mode, String javaName, ProjectDataManager projectDataManager) {
 
                 LinkedHashSet<String> menus = new LinkedHashSet<>();
 
@@ -1072,8 +1074,11 @@ public class ExtraMenuBean {
         }
 
         // =========================
+
         // ✅ LIST TYPE MATCHER
+
         // =========================
+
         private static boolean matchesListType(String type, int listType) {
 
                 if (!isRealList(type)) return false;

@@ -3,9 +3,9 @@ package com.besome.sketch.beans;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import a.a.a.nA;
+import pro.sketchware.core.ComparisonResult;
 
-public class SelectableItemBean extends nA implements Parcelable {
+public class SelectableItemBean extends ComparisonResult implements Parcelable {
     public static final Parcelable.Creator<SelectableItemBean> CREATOR = new Parcelable.Creator<>() {
         @Override
         public SelectableItemBean createFromParcel(Parcel source) {

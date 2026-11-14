@@ -20,7 +20,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.io.File;
 
-import a.a.a.GB;
+import pro.sketchware.core.DeviceEnvironmentUtils;
 import pro.sketchware.R;
 import pro.sketchware.utility.SketchwareUtil;
 import pro.sketchware.utility.TranslationFunction;
@@ -43,6 +43,7 @@ public class CollectErrorActivity extends BaseAppCompatActivity {
                     .setPositiveButton("Copy", null)
                     .setNegativeButton("Cancel", (dialogInterface, which) -> finish())
                     .setNeutralButton("Show error", null) // null to set proper onClick listeners later without dismissing the AlertDialog
+
                     .setCancelable(false)
                     .show();
 
@@ -67,7 +68,7 @@ public class CollectErrorActivity extends BaseAppCompatActivity {
 
                 String deviceInfo = "Sketchware IA " + info.versionName + " (" + info.versionCode + ")\n"
                         + "base.apk size: " + Formatter.formatFileSize(this, fileSizeInBytes) + " (" + fileSizeInBytes + " B)\n"
-                        + "Locale: " + GB.g(getApplicationContext()) + "\n"
+                        + "Locale: " + DeviceEnvironmentUtils.g(getApplicationContext()) + "\n"
                         + "SDK version: " + Build.VERSION.SDK_INT + "\n"
                         + "Brand: " + Build.BRAND + "\n"
                         + "Manufacturer: " + Build.MANUFACTURER + "\n"

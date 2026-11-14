@@ -48,20 +48,20 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import a.a.a.DB;
-import a.a.a.GB;
-import a.a.a.Iw;
-import a.a.a.Op;
-import a.a.a.Rp;
-import a.a.a.ay;
-import a.a.a.bB;
-import a.a.a.cC;
-import a.a.a.cy;
-import a.a.a.jC;
-import a.a.a.oB;
-import a.a.a.uy;
-import a.a.a.wB;
-import a.a.a.wq;
+import pro.sketchware.core.PreferenceStore;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.ViewActionListener;
+import pro.sketchware.filemanagers.SoundResourceManager;
+import pro.sketchware.editor.WidgetCollectionManager;
+import pro.sketchware.editor.ActionCallback;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.ViewHistoryManager;
+import pro.sketchware.editor.EditorActionListener;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.editor.PaletteWidgetItem;
+import pro.sketchware.core.ViewInflationUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.agus.jcoderz.beans.ViewBeans;
 import mod.hey.studios.util.ProjectFile;
 import mod.jbk.util.LogUtil;
@@ -90,10 +90,10 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     private int defaultIconWidth = 50;
     private int defaultIconHeight = 30;
     private boolean useVibrate;
-    private cy widgetSelectedListener;
-    private Iw propertyClickListener;
+    private EditorActionListener widgetSelectedListener;
+    private ViewActionListener propertyClickListener;
     private DraggingListener draggingListener;
-    private ay historyChangeListener;
+    private ActionCallback historyChangeListener;
     private ProjectFileBean projectFileBean;
     private boolean S = true;
     private boolean T = false;
@@ -202,7 +202,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     }
 
     public void h() {
-        viewPane.setResourceManager(jC.d(a));
+        viewPane.setResourceManager(ProjectDataManagerRegistry.d(a));
     }
 
     public void i() {
@@ -226,7 +226,9 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     }
 
     // ---------------------------------------------------------------------------------------------
+
     // Visual editing of RelativeLayout / ConstraintLayout relations
+
 
     /**
      * Changes the position rules of a widget from the canvas, with undo history. RelativeLayout
@@ -237,10 +239,12 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         change.accept(bean);
         if (LayoutRelations.isRelative(bean.parentType)) {
             // Only the rule that would close a circular dependency is refused; cycles that were
+
             // already in the layout (e.g. typed in the XML) don't block other edits.
+
             ArrayList<ViewBean> siblingsBefore = new ArrayList<>();
             ArrayList<ViewBean> siblingsAfter = new ArrayList<>();
-            for (ViewBean view : jC.a(a).d(b)) {
+            for (ViewBean view : ProjectDataManagerRegistry.a(a).d(b)) {
                 if (!java.util.Objects.equals(view.parent, bean.parent)) continue;
                 boolean self = java.util.Objects.equals(view.id, bean.id);
                 siblingsBefore.add(self ? before : view);
@@ -248,12 +252,12 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
             }
             if (!LayoutRelations.cyclicRules(siblingsBefore).containsAll(LayoutRelations.cyclicRules(siblingsAfter))) {
                 bean.copy(before);
-                bB.b(getContext(), getString(R.string.design_relations_circular), bB.TOAST_NORMAL).show();
+                ToastFactory.b(getContext(), getString(R.string.design_relations_circular), ToastFactory.TOAST_NORMAL).show();
                 viewPane.getRelationsOverlay().invalidate();
                 return false;
             }
         }
-        cC.c(a).a(b, before, bean.clone());
+        ViewHistoryManager.c(a).a(b, before, bean.clone());
         if (historyChangeListener != null) historyChangeListener.a();
         e(bean);
         onSelectionChanged();
@@ -304,6 +308,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     // Canvas tools, shown from the tools menu next to Run.
 
+
     public boolean isBlueprint() {
         return viewPane.getRelationsOverlay().isBlueprint();
     }
@@ -337,7 +342,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     private void applyToSelection(java.util.function.Consumer<ViewBean> change) {
         if (selectedItem == null || !LayoutRelations.supports(selectedItem.getBean())) {
-            bB.b(getContext(), getString(R.string.design_relations_select_child), bB.TOAST_NORMAL).show();
+            ToastFactory.b(getContext(), getString(R.string.design_relations_select_child), ToastFactory.TOAST_NORMAL).show();
             return;
         }
         applyRelationChange(selectedItem.getBean(), change);
@@ -346,7 +351,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     /** Redraws widgets whose text or hint comes from strings.xml. */
     public void refreshStringTexts() {
         if (a == null || b == null) return;
-        for (ViewBean bean : jC.a(a).d(b)) {
+        for (ViewBean bean : ProjectDataManagerRegistry.a(a).d(b)) {
             if (bean.text == null) continue;
             if (ProjectStrings.isReference(bean.text.text) || ProjectStrings.isReference(bean.text.hint)) {
                 if (viewPane.findItemViewByTag(bean.id) != null) {
@@ -452,6 +457,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                     }
                     if (isDragged && currentTouchedView instanceof ItemView) {
                         // The widget was hidden while dragged; a cancelled drag leaves it where it was.
+
                         currentTouchedView.setVisibility(View.VISIBLE);
                     }
                     paletteWidget.setScrollEnabled(true);
@@ -476,6 +482,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                     handler.removeCallbacks(longPressRunnable);
                     if (canFreeMove(view)) {
                         // Dragging the selected widget of a RelativeLayout/ConstraintLayout moves it in place.
+
                         freeMoving = true;
                         if (view.getParent() != null) view.getParent().requestDisallowInterceptTouchEvent(true);
                         updateFreeMove(view, motionEvent);
@@ -534,7 +541,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                     deleteWidget(widget.getBean());
                     break lol;
                 }
-                if (D && currentTouchedView instanceof uy collectionWidget) {
+                if (D && currentTouchedView instanceof PaletteWidgetItem collectionWidget) {
                     deleteWidgetFromCollection(collectionWidget.getName());
                     break lol;
                 }
@@ -543,43 +550,43 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                     break lol;
                 }
                 viewPane.resetView(false);
-                if (currentTouchedView instanceof uy uyVar) {
+                if (currentTouchedView instanceof PaletteWidgetItem uyVar) {
                     ArrayList<ViewBean> arrayList = new ArrayList<>();
-                    oB oBVar = new oB();
+                    FileCryptoUtils oBVar = new FileCryptoUtils();
                     boolean areImagesAdded = false;
                     for (int i3 = 0; i3 < uyVar.getData().size(); i3++) {
                         ViewBean viewBean = uyVar.getData().get(i3);
                         arrayList.add(viewBean.clone());
                         String backgroundResource = viewBean.layout.backgroundResource;
                         String resName = viewBean.image.resName;
-                        if (!jC.d(a).l(backgroundResource) && Op.g().b(backgroundResource)) {
-                            ProjectResourceBean a2 = Op.g().a(backgroundResource);
+                        if (!ProjectDataManagerRegistry.d(a).l(backgroundResource) && SoundResourceManager.g().b(backgroundResource)) {
+                            ProjectResourceBean a2 = SoundResourceManager.g().a(backgroundResource);
                             try {
-                                oBVar.a(wq.a() + File.separator + "image" + File.separator + "data" + File.separator + a2.resFullName, wq.g() + File.separator + a + File.separator + a2.resFullName);
+                                oBVar.a(WorkspacePathManager.a() + File.separator + "image" + File.separator + "data" + File.separator + a2.resFullName, WorkspacePathManager.g() + File.separator + a + File.separator + a2.resFullName);
                             } catch (Exception e) {
                                 LogUtil.e("ViewEditor", "", e);
                             }
-                            jC.d(a).b.add(a2);
+                            ProjectDataManagerRegistry.d(a).b.add(a2);
                             areImagesAdded = true;
                         }
-                        if (!jC.d(a).l(resName) && Op.g().b(resName)) {
-                            ProjectResourceBean a3 = Op.g().a(resName);
+                        if (!ProjectDataManagerRegistry.d(a).l(resName) && SoundResourceManager.g().b(resName)) {
+                            ProjectResourceBean a3 = SoundResourceManager.g().a(resName);
                             try {
-                                oBVar.a(wq.a() + File.separator + "image" + File.separator + "data" + File.separator + a3.resFullName, wq.g() + File.separator + a + File.separator + a3.resFullName);
+                                oBVar.a(WorkspacePathManager.a() + File.separator + "image" + File.separator + "data" + File.separator + a3.resFullName, WorkspacePathManager.g() + File.separator + a + File.separator + a3.resFullName);
                             } catch (Exception e2) {
                                 LogUtil.e("ViewEditor", "", e2);
                             }
-                            jC.d(a).b.add(a3);
+                            ProjectDataManagerRegistry.d(a).b.add(a3);
                             areImagesAdded = true;
                         }
                     }
                     if (areImagesAdded) {
-                        bB.a(getContext(), getString(R.string.view_widget_favorites_image_auto_added), bB.TOAST_NORMAL).show();
+                        ToastFactory.a(getContext(), getString(R.string.view_widget_favorites_image_auto_added), ToastFactory.TOAST_NORMAL).show();
                     }
                     if (!arrayList.isEmpty() && viewPane.updateViewBeanProperties(arrayList.get(0), (int) motionEvent.getRawX(), (int) motionEvent.getRawY())) {
                         HashMap<String, String> idMappings = new HashMap<>();
                         for (ViewBean next : arrayList) {
-                            if (jC.a(a).h(projectFileBean.getXmlName(), next.id)) {
+                            if (ProjectDataManagerRegistry.a(a).h(projectFileBean.getXmlName(), next.id)) {
                                 idMappings.put(next.id, generateWidgetId(next));
                             } else {
                                 idMappings.put(next.id, next.id);
@@ -589,7 +596,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                                 next.parent = idMappings.get(next.parent);
                             }
                             ProjectStrings.externalize(a, next);
-                            jC.a(a).a(b, next);
+                            ProjectDataManagerRegistry.a(a).a(b, next);
                         }
                         a(a(arrayList, true), true);
                     }
@@ -602,9 +609,9 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                         break lol;
                     }
                     ProjectStrings.externalize(a, bean);
-                    jC.a(a).a(b, bean);
+                    ProjectDataManagerRegistry.a(a).a(b, bean);
                     if (bean.type == 3 && projectFileBean.fileType == ProjectFileBean.PROJECT_FILE_TYPE_ACTIVITY) {
-                        jC.a(a).a(projectFileBean.getJavaName(), 1, bean.type, bean.id, "onClick");
+                        ProjectDataManagerRegistry.a(a).a(projectFileBean.getJavaName(), 1, bean.type, bean.id, "onClick");
                     }
                     a(a(bean, true), true);
                     if (bean.type == ViewBeans.VIEW_TYPE_LAYOUT_INCLUDE) {
@@ -641,11 +648,13 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     public void deleteWidget(ViewBean viewBean) {
         // The widget and everything inside it, whatever kind of container it is.
-        ArrayList<ViewBean> b2 = pro.sketchware.utility.ViewHierarchy.withDescendants(jC.a(a).d(b), viewBean);
+
+        ArrayList<ViewBean> b2 = pro.sketchware.utility.ViewHierarchy.withDescendants(ProjectDataManagerRegistry.a(a).d(b), viewBean);
         // Widgets other screens reached through these (an include, or a widget of an included layout) go too
-        pro.sketchware.utility.IncludedViews.forgetLogicReachedThrough(jC.a(a), a, b, b2);
+
+        pro.sketchware.utility.IncludedViews.forgetLogicReachedThrough(ProjectDataManagerRegistry.a(a), a, b, b2);
         for (int size = b2.size() - 1; size >= 0; size--) {
-            jC.a(a).a(projectFileBean, b2.get(size));
+            ProjectDataManagerRegistry.a(a).a(projectFileBean, b2.get(size));
         }
         b(b2, true);
     }
@@ -665,15 +674,15 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         draggingListener = dragListener;
     }
 
-    public void setOnHistoryChangeListener(ay ayVar) {
+    public void setOnHistoryChangeListener(ActionCallback ayVar) {
         historyChangeListener = ayVar;
     }
 
-    public void setOnPropertyClickListener(Iw iw) {
+    public void setOnPropertyClickListener(ViewActionListener iw) {
         propertyClickListener = iw;
     }
 
-    public void setOnWidgetSelectedListener(cy cyVar) {
+    public void setOnWidgetSelectedListener(EditorActionListener cyVar) {
         widgetSelectedListener = cyVar;
     }
 
@@ -690,7 +699,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     }
 
     private void initialize(Context context) {
-        wB.a(context, this, R.layout.view_editor);
+        ViewInflationUtils.a(context, this, R.layout.view_editor);
 
         paletteWidget = findViewById(R.id.palette_widget);
         paletteFavorite = findViewById(R.id.palette_favorite);
@@ -706,7 +715,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         findViewById(R.id.btn_editproperties).setOnClickListener(this);
         findViewById(R.id.img_close).setOnClickListener(this);
 
-        dip = wB.a(context, 1.0f);
+        dip = ViewInflationUtils.a(context, 1.0f);
         defaultIconWidth = (int) (defaultIconWidth * dip);
         defaultIconHeight = (int) (defaultIconHeight * dip);
         displayWidth = getResources().getDisplayMetrics().widthPixels;
@@ -765,7 +774,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         viewPane.getRelationsOverlay().setCallback(this::applyRelationChange);
 
         vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
-        useVibrate = new DB(context, "P12").a("P12I0", true);
+        useVibrate = new PreferenceStore(context, "P12").a("P12I0", true);
         minDist = ViewConfiguration.get(context).getScaledTouchSlop();
 
         paletteWidget.cardView.setOnClickListener(view -> widgetsCreatorManager.showWidgetsCreatorDialog(-1));
@@ -781,7 +790,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     public void b(ArrayList<ViewBean> arrayList, boolean z) {
         if (z) {
-            cC.c(a).b(projectFileBean.getXmlName(), arrayList);
+            ViewHistoryManager.c(a).b(projectFileBean.getXmlName(), arrayList);
             if (historyChangeListener != null) {
                 historyChangeListener.a();
             }
@@ -819,8 +828,8 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     private void e() {
         if (currentTouchedView == null) return;
         if (isViewAnIconBase(currentTouchedView)) {
-            boolean isAppCompatEnabled = jC.c(a).c().isEnabled();
-            if (currentTouchedView instanceof uy collectionWidget) {
+            boolean isAppCompatEnabled = ProjectDataManagerRegistry.c(a).c().isEnabled();
+            if (currentTouchedView instanceof PaletteWidgetItem collectionWidget) {
                 var collectionData = collectionWidget.getData();
                 boolean isAdViewUsed = false;
                 for (ViewBean view : collectionData) {
@@ -830,7 +839,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                     }
                 }
                 if (isAdViewUsed && !draggingListener.isAdmobEnabled()) {
-                    bB.b(getContext(), getString(R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
+                    ToastFactory.b(getContext(), getString(R.string.design_library_guide_setup_first), ToastFactory.TOAST_NORMAL).show();
                     return;
                 }
 
@@ -842,7 +851,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                     }
                 }
                 if (isMapViewUsed && !draggingListener.isGoogleMapEnabled()) {
-                    bB.b(getContext(), getString(R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
+                    ToastFactory.b(getContext(), getString(R.string.design_library_guide_setup_first), ToastFactory.TOAST_NORMAL).show();
                     return;
                 }
                 boolean isAppCompatViewUsed = false;
@@ -864,28 +873,28 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                 }
 
                 if (isAppCompatViewUsed && !isAppCompatEnabled) {
-                    bB.b(getContext(), getString(R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
+                    ToastFactory.b(getContext(), getString(R.string.design_library_guide_setup_first), ToastFactory.TOAST_NORMAL).show();
                     return;
                 }
             } else if (currentTouchedView instanceof IconAdView && !draggingListener.isAdmobEnabled()) {
-                bB.b(getContext(), getString(R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
+                ToastFactory.b(getContext(), getString(R.string.design_library_guide_setup_first), ToastFactory.TOAST_NORMAL).show();
                 return;
             } else if (currentTouchedView instanceof IconUnityBanner && !UnityAdsSettings.isConfigured(a)) {
-                bB.b(getContext(), getString(R.string.unity_ads_component_setup_first), bB.TOAST_NORMAL).show();
+                ToastFactory.b(getContext(), getString(R.string.unity_ads_component_setup_first), ToastFactory.TOAST_NORMAL).show();
                 return;
             } else if (currentTouchedView instanceof IconMapView && !draggingListener.isGoogleMapEnabled()) {
-                bB.b(getContext(), getString(R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
+                ToastFactory.b(getContext(), getString(R.string.design_library_guide_setup_first), ToastFactory.TOAST_NORMAL).show();
                 return;
             } else if (currentTouchedView instanceof AndroidxOrMaterialView && !isAppCompatEnabled) {
-                bB.b(getContext(), getString(R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
+                ToastFactory.b(getContext(), getString(R.string.design_library_guide_setup_first), ToastFactory.TOAST_NORMAL).show();
                 return;
             } else if (currentTouchedView instanceof IconPreset presetIcon) {
                 BuiltInWidgets.Preset preset = presetIcon.getPreset();
                 boolean material3 = new Material3LibraryManager(a).isMaterial3Enabled();
                 if (!preset.isAvailable(isAppCompatEnabled, material3)) {
-                    bB.b(getContext(), getString(preset.requirement == BuiltInWidgets.Requirement.MATERIAL3
+                    ToastFactory.b(getContext(), getString(preset.requirement == BuiltInWidgets.Requirement.MATERIAL3
                             ? R.string.design_preset_needs_material3
-                            : R.string.design_library_guide_setup_first), bB.TOAST_NORMAL).show();
+                            : R.string.design_library_guide_setup_first), ToastFactory.TOAST_NORMAL).show();
                     return;
                 }
             }
@@ -901,7 +910,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         dummyView.a(currentTouchedView, posInitX, posInitY, posInitX, posInitY);
         dummyView.a(posDummy);
         if (isViewAnIconBase(currentTouchedView)) {
-            if (currentTouchedView instanceof uy || currentTouchedView instanceof IconCustomWidget) {
+            if (currentTouchedView instanceof PaletteWidgetItem || currentTouchedView instanceof IconCustomWidget) {
                 b(true, currentTouchedView instanceof IconCustomWidget);
                 viewPane.addRootLayout(null);
             } else {
@@ -929,7 +938,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     public ItemView b(ViewBean viewBean, boolean z) {
         if (z) {
-            cC.c(a).b(projectFileBean.getXmlName(), viewBean);
+            ViewHistoryManager.c(a).b(projectFileBean.getXmlName(), viewBean);
             if (historyChangeListener != null) {
                 historyChangeListener.a();
             }
@@ -940,7 +949,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     public ItemView createAndAddView(ViewBean viewBean) {
         View itemView = viewPane.createItemView(viewBean);
         viewPane.addViewAndUpdateIndex(itemView);
-        String generatedId = wq.b(viewBean.type);
+        String generatedId = WorkspacePathManager.b(viewBean.type);
         if (viewBean.id.indexOf(generatedId) == 0 && viewBean.id.length() > generatedId.length()) {
             try {
                 int intValue = Integer.parseInt(viewBean.id.substring(generatedId.length()));
@@ -978,8 +987,8 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         dialog.setIcon(R.drawable.ic_mtrl_delete);
         dialog.setMessage(getString(R.string.view_widget_favorites_delete_message));
         dialog.setPositiveButton(getString(R.string.common_word_delete), (v, which) -> {
-            Rp.h().a(str, true);
-            setFavoriteData(Rp.h().f());
+            WidgetCollectionManager.h().a(str, true);
+            setFavoriteData(WidgetCollectionManager.h().f());
             v.dismiss();
         });
         dialog.setNegativeButton(getString(R.string.common_word_cancel), null);
@@ -1042,7 +1051,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
             S = projectFileBean.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_TOOLBAR);
             T = projectFileBean.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_FULLSCREEN);
             if (projectFileBean.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_FAB)) {
-                addFab(jC.a(str).h(projectFileBean.getXmlName()));
+                addFab(ProjectDataManagerRegistry.a(str).h(projectFileBean.getXmlName()));
             }
         } else {
             S = false;
@@ -1075,8 +1084,8 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         boolean isLandscapeMode = displayWidth > displayHeight;
         int var4 = (int) (dip * (!isLandscapeMode ? 12.0F : 24.0F));
         int var5 = (int) (dip * (!isLandscapeMode ? 20.0F : 10.0F));
-        int statusBarHeight = GB.f(getContext());
-        int toolBarHeight = GB.a(getContext());
+        int statusBarHeight = DeviceEnvironmentUtils.f(getContext());
+        int toolBarHeight = DeviceEnvironmentUtils.a(getContext());
         int var9 = displayWidth - (int) (120.0F * dip);
         int var8 = displayHeight - statusBarHeight - toolBarHeight - (int) (dip * 48.0F) - (int) (dip * 48.0F);
         if (screenType == 0 && da) {
@@ -1177,7 +1186,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     /** Next free id with a fixed prefix, e.g. imagebutton1, used by palette presets. */
     private String generateWidgetId(String prefix) {
-        ArrayList<ViewBean> beans = jC.a(a).d(b);
+        ArrayList<ViewBean> beans = ProjectDataManagerRegistry.a(a).d(b);
         int count = presetCounts.getOrDefault(prefix, 0);
         while (true) {
             count++;
@@ -1199,14 +1208,14 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
     /** Asks which layout a freshly dropped include should show. */
     private void showIncludeLayoutPicker(ViewBean bean) {
         ArrayList<String> layouts = new ArrayList<>();
-        for (ProjectFileBean file : jC.b(a).b()) {
+        for (ProjectFileBean file : ProjectDataManagerRegistry.b(a).b()) {
             if (!file.getXmlName().equals(b)) layouts.add(file.getXmlName().replace(".xml", ""));
         }
-        for (ProjectFileBean file : jC.b(a).c()) {
+        for (ProjectFileBean file : ProjectDataManagerRegistry.b(a).c()) {
             if (!file.getXmlName().equals(b)) layouts.add(file.getXmlName().replace(".xml", ""));
         }
         if (layouts.isEmpty()) {
-            bB.b(getContext(), getString(R.string.design_include_no_layouts), bB.TOAST_NORMAL).show();
+            ToastFactory.b(getContext(), getString(R.string.design_include_no_layouts), ToastFactory.TOAST_NORMAL).show();
             return;
         }
         String[] items = layouts.toArray(new String[0]);
@@ -1215,7 +1224,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
                 .setItems(items, (dialog, which) -> {
                     ViewBean before = bean.clone();
                     InjectAttributes.set(bean, "layout", "@layout/" + items[which]);
-                    cC.c(a).a(b, before, bean.clone());
+                    ViewHistoryManager.c(a).a(b, before, bean.clone());
                     if (historyChangeListener != null) historyChangeListener.a();
                     e(bean);
                 })
@@ -1225,14 +1234,14 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     private String generateWidgetId(ViewBean bean) {
         int type = bean.type;
-        String b2 = !bean.isCustomWidget ? wq.b(type) : widgetsCreatorManager.generateCustomWidgetId(bean.convert);
+        String b2 = !bean.isCustomWidget ? WorkspacePathManager.b(type) : widgetsCreatorManager.generateCustomWidgetId(bean.convert);
         StringBuilder sb = new StringBuilder();
         sb.append(b2);
         int i2 = countItems[type] + 1;
         countItems[type] = i2;
         sb.append(i2);
         String sb2 = sb.toString();
-        ArrayList<ViewBean> d = jC.a(a).d(b);
+        ArrayList<ViewBean> d = ProjectDataManagerRegistry.a(a).d(b);
         while (true) {
             boolean isIdUsed = false;
             for (ViewBean view : d) {
@@ -1255,7 +1264,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     public ItemView a(ArrayList<ViewBean> arrayList, boolean z) {
         if (z) {
-            cC.c(a).a(projectFileBean.getXmlName(), arrayList);
+            ViewHistoryManager.c(a).a(projectFileBean.getXmlName(), arrayList);
             if (historyChangeListener != null) {
                 historyChangeListener.a();
             }
@@ -1273,7 +1282,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
 
     public ItemView a(ViewBean viewBean, boolean isInHistory) {
         if (isInHistory) {
-            cC.c(a).a(projectFileBean.getXmlName(), viewBean);
+            ViewHistoryManager.c(a).a(projectFileBean.getXmlName(), viewBean);
             if (historyChangeListener != null) {
                 historyChangeListener.a();
             }
@@ -1379,7 +1388,7 @@ public class ViewEditor extends RelativeLayout implements View.OnClickListener, 
         public PaletteGroupItem(Context context) {
             super(context);
 
-            wB.a(context, this, R.layout.palette_group_item);
+            ViewInflationUtils.a(context, this, R.layout.palette_group_item);
             imgGroup = findViewById(R.id.img_group);
         }
 

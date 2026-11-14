@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import a.a.a.Gx;
-import a.a.a.oq;
+import pro.sketchware.editor.ComponentClassInfo;
+import pro.sketchware.editor.ComponentEventRegistry;
 import mod.hey.studios.util.Helper;
 import mod.jbk.util.LogUtil;
 import mod.jbk.util.OldResourceIdMapper;
@@ -87,7 +87,7 @@ public class EventsHandler {
      * Used in {@link mod.agus.jcoderz.editor.event.ManageEvent#addExtraEvents(Gx, ArrayList)} to retrieve extra
      * Events for Components, such as custom ones.
      */
-    public static void addEvents(Gx gx, ArrayList<String> list) {
+    public static void addEvents(ComponentClassInfo gx, ArrayList<String> list) {
         if (gx.a("Clickable")) {
             list.add(" onLongClick");
         }
@@ -129,7 +129,7 @@ public class EventsHandler {
      * Used in {@link mod.agus.jcoderz.editor.event.ManageEvent#addExtraListeners(Gx, ArrayList)} to get extra
      * listeners for Components and Widgets, such as custom ones.
      */
-    public static void addListeners(Gx gx, ArrayList<String> list) {
+    public static void addListeners(ComponentClassInfo gx, ArrayList<String> list) {
         if (gx.a("Clickable")) {
             list.add(" onLongClickListener");
         }
@@ -308,18 +308,23 @@ public class EventsHandler {
         return switch (name) {
             case "Import" ->
                 // Changed from: "...vF\n${param}\n//3b..."
+
                     "//Ul5kmZqmO867OV0QTGOpjwX7MXmgzxzQBSZTf0Y16PnDXkhLsZfvF\r\n" +
+
                             param + "\r\n" +
                             "//3b5IqsVG57gNqLi7FBO2MeOW6iI7tOustUGwcA7HKXm0o7lovZ";
+
             case "onActivityResult", "initializeLogic" -> "";
             case "onSwipeRefreshLayout" ->
                 // Changed from: "@Override \npublic void..."
+
                     "@Override\r\n" +
                             "public void onRefresh() {\n" +
                             param + "\r\n" +
                             "}";
             case " onLongClick" ->
                 // Changed from: "@Override\r\n public boolean..."
+
                     "@Override\r\n" +
                             "public boolean onLongClick(View _view) {\r\n" +
                             param + "\r\n" +
@@ -327,6 +332,7 @@ public class EventsHandler {
                             "}";
             case "onTabLayoutNewTabAdded" ->
                 // Changed from: "public  CharSequence  onTabLayoutNewTabAdded( int   _position ){..."
+
                     "public CharSequence onTabLayoutNewTabAdded(int _position) {\r\n" +
                             (param.isEmpty() ? "return \"\";\r\n" :
                                     param + "\r\n"
@@ -374,6 +380,7 @@ public class EventsHandler {
                 }
 
                 yield "//no code";
+
             }
         };
     }
@@ -457,6 +464,7 @@ public class EventsHandler {
     }
 
     /// listeners codes
+
     public static String getListenerCode(String name, String var, String param) {
         return switch (name) {
             case " onLongClickListener" ->
@@ -492,6 +500,7 @@ public class EventsHandler {
                 }
 
                 yield "//no listener code";
+
             }
         };
     }

@@ -7,11 +7,11 @@ import com.google.android.material.textfield.TextInputLayout;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
-import a.a.a.MB;
+import pro.sketchware.lib.validator.TextInputValidator;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
-public class PropertyNameValidator extends MB {
+public class PropertyNameValidator extends TextInputValidator {
 
     private final String[] reservedNames;
     private final String[] reservedMethodNames;

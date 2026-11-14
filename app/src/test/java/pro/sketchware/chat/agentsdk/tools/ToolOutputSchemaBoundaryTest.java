@@ -55,8 +55,11 @@ public class ToolOutputSchemaBoundaryTest {
     }
 
     // ------------------------------------------------------------------
+
     // Case A — internal schema preserved
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void outputSchemaStaysOnTheInternalSpec() {
@@ -81,7 +84,9 @@ public class ToolOutputSchemaBoundaryTest {
     @Test
     public void modelCatalogStillCarriesOutputSchema() {
         // The model-facing catalog (NOT the provider payload) keeps the Codex
+
         // output_schema contract for tools that declare one.
+
         JSONArray catalog = ToolSpecSerializer.toCatalog(
                 coreRegistry().modelVisibleTools());
         JSONObject fn = functionByName(catalog, "get_context_remaining");
@@ -91,8 +96,11 @@ public class ToolOutputSchemaBoundaryTest {
     }
 
     // ------------------------------------------------------------------
+
     // Case B — FUNCTION_ONLY never carries output_schema
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void functionOnlyPayloadNeverContainsOutputSchema() {
@@ -105,14 +113,18 @@ public class ToolOutputSchemaBoundaryTest {
     @Test
     public void nullCapabilitiesDefaultToFunctionOnlyWithoutOutputSchema() {
         // toProviderPayload(..., null) falls back to the FUNCTION_ONLY profile.
+
         JSONArray payload = ToolSpecSerializer.toProviderPayload(
                 ToolCatalog.from(coreRegistry()), null).payload();
         assertFalse(wireContains(payload, "output_schema"));
     }
 
     // ------------------------------------------------------------------
+
     // Case C — get_context_remaining
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void contextRemainingWireShape() {
@@ -154,8 +166,11 @@ public class ToolOutputSchemaBoundaryTest {
     }
 
     // ------------------------------------------------------------------
+
     // Case D — other tools survive the wire change
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void coreToolsetSerializesWithoutOutputSchema() {
@@ -174,6 +189,7 @@ public class ToolOutputSchemaBoundaryTest {
     @Test
     public void applyPatchStaysFreeformOnNativeWireAndFunctionOnFunctionOnly() {
         // Native wire: FREEFORM preserved (never an artificial JSON envelope).
+
         JSONArray nativeWire = ToolSpecSerializer.toProviderPayload(
                 ToolCatalog.from(coreRegistry()), ProviderToolCapabilities.NATIVE_ALL).payload();
         JSONObject ff = null;
@@ -193,6 +209,7 @@ public class ToolOutputSchemaBoundaryTest {
                 nativeWire.toString().contains("apply_patch-envelope"));
 
         // FUNCTION_ONLY wire: explicit function fallback, still no output_schema.
+
         JSONArray payload = functionOnly(coreRegistry().modelVisibleTools());
         JSONObject function = functionByName(payload, "apply_patch");
         assertNotNull("apply_patch reached the function-only transport via the declared fallback",
@@ -217,10 +234,12 @@ public class ToolOutputSchemaBoundaryTest {
     public void mcpToolsSerializeOnFunctionOnly() throws Exception {
         AxionToolRegistry registry = coreRegistry();
         // MCP servers surface their tools as plain FUNCTION registrations whose
+
         // names live under the mcp_ namespace.
+
         registry.register(ToolRegistration.builder(ToolSpec.function(
                         ToolName.plain("mcp__server_a_call_tool"),
-                        "Call an MCP tool exposed by server_a.",
+                        "Call an MCP tool exposed ProjectFileActionListener server_a.",
                         new JSONObject()
                                 .put("type", "object")
                                 .put("properties", new JSONObject()
@@ -239,8 +258,11 @@ public class ToolOutputSchemaBoundaryTest {
     @Test
     public void nativeAllWireMayKeepOutputSchema() {
         // NATIVE_ALL declares the transport can carry output_schema: the field
+
         // is preserved on the wire for tools that declare it, proving the
+
         // internal contract was not deleted — only stripped on FUNCTION_ONLY.
+
         JSONArray payload = ToolSpecSerializer.toProviderPayload(
                 ToolCatalog.from(coreRegistry()), ProviderToolCapabilities.NATIVE_ALL).payload();
         JSONObject function = functionByName(payload, "get_context_remaining");

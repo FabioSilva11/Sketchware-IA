@@ -16,8 +16,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
-import a.a.a.Pp;
-import a.a.a.bB;
+import pro.sketchware.editor.MoreBlockCollectionManager;
+import pro.sketchware.editor.ToastFactory;
 import mod.hey.studios.util.Helper;
 import mod.jbk.util.BlockUtil;
 import pro.sketchware.R;
@@ -151,10 +151,12 @@ public class MoreblockImporterDialog extends MaterialAlertDialogBuilder {
                             MoreBlockCollectionBean toDelete = collectionList.get(adapterPosition);
 
                             // Persist deletion in collections
-                            Pp.h().a(toDelete.name, false);
-                            Pp.h().e();
+
+                            MoreBlockCollectionManager.h().a(toDelete.name, false);
+                            MoreBlockCollectionManager.h().e();
 
                             // Update lists in this dialog
+
                             collectionList.remove(adapterPosition);
                             originalBeanList.removeIf(b -> b.name.equals(toDelete.name));
                             if (selectedPosition == adapterPosition) {
@@ -166,7 +168,7 @@ public class MoreblockImporterDialog extends MaterialAlertDialogBuilder {
                             notifyItemRemoved(adapterPosition);
                             notifyItemRangeChanged(adapterPosition, getItemCount());
 
-                            bB.a(getContext(), Helper.getResString(R.string.common_message_complete_delete), 0).show();
+                            ToastFactory.a(getContext(), Helper.getResString(R.string.common_message_complete_delete), 0).show();
                         })
                         .setNegativeButton(R.string.common_word_cancel, null)
                         .show();

@@ -40,9 +40,9 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import a.a.a.lC;
-import a.a.a.wq;
-import a.a.a.yB;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.MapValueUtils;
 import mod.hey.studios.editor.manage.block.ExtraBlockInfo;
 import mod.hey.studios.editor.manage.block.v2.BlockLoader;
 import mod.hey.studios.project.custom_blocks.CustomBlocksManager;
@@ -130,6 +130,7 @@ public class BackupFactory {
         ArrayList<String> list = new ArrayList<>();
         FileUtil.listDir(myscList.getAbsolutePath(), list);
         //noinspection Java8ListSort
+
         Collections.sort(list, String.CASE_INSENSITIVE_ORDER);
 
         int id = list.isEmpty() ? 600 : Integer.parseInt(new File(list.get(list.size() - 1)).getName());
@@ -149,7 +150,9 @@ public class BackupFactory {
                 String entryName = entry.getName();
                 File destFile = new File(destinationDir, entryName);
                 // Backups can come from anyone (opened from other apps, the store): an entry
+
                 // like "../x" must not write outside the folder
+
                 String destFilePath = destFile.getCanonicalPath();
                 if (!destFilePath.equals(destinationDir.getCanonicalPath()) && !destFilePath.startsWith(destinationPath)) {
                     return false;
@@ -216,11 +219,13 @@ public class BackupFactory {
     }
 
     //6.3.0 fix1
+
     public static void createNomediaFileIn(File dir) {
         FileUtil.writeFile(new File(dir, ".nomedia").getAbsolutePath(), "");
     }
 
     //6.3.0 fix1
+
     public static void copySafe(File source, File destination) {
         if (!source.exists()) {
             destination.mkdirs();
@@ -246,6 +251,7 @@ public class BackupFactory {
             }
         } else {
             //skip .nomedia files
+
             if (source.getName().equals(".nomedia")) return;
 
             try (InputStream in = new FileInputStream(source);
@@ -290,9 +296,9 @@ public class BackupFactory {
     public void backup(Context context, String project_name) {
         String customFileName = ConfigActivity.getBackupFileName();
 
-        String versionName = yB.c(lC.b(sc_id), "sc_ver_name");
-        String versionCode = yB.c(lC.b(sc_id), "sc_ver_code");
-        String pkgName = yB.c(lC.b(sc_id), "my_sc_pkg_name");
+        String versionName = MapValueUtils.c(RecentProjectsRegistry.b(sc_id), "sc_ver_name");
+        String versionCode = MapValueUtils.c(RecentProjectsRegistry.b(sc_id), "sc_ver_code");
+        String pkgName = MapValueUtils.c(RecentProjectsRegistry.b(sc_id), "my_sc_pkg_name");
         String projectNameOnly = project_name.replace("_d", "").replace(File.separator, "");
         String finalFileName;
 
@@ -311,40 +317,50 @@ public class BackupFactory {
         } catch (Exception ignored) {
             SketchwareUtil.toastError("Failed To Parse Custom Filename For Backup. Using default");
             // Example name: InternalDemo v1.0 (com.jbk.internal.demo, 1) 2021-12-31T125827
+
             finalFileName = projectNameOnly + " v" + versionName + " (" + pkgName + ", " + versionCode + ") " + getFormattedDateFrom("yyyy-M-dd'T'HHmmss");
         }
         createBackupsFolder();
 
         // Init temporary backup folder
+
         File outFolder = new File(getBackupDir(),
                 project_name + "_temp");
 
         // Init output zip file
+
         File outZip = new File(getBackupDir() + File.separator + projectNameOnly, finalFileName +
                 //Adds all the _d if exists. Otherwise its possible that there'll be an infinite loop
+
                 (project_name.contains("_d") ? project_name.replace(projectNameOnly, "") : "") + "." + EXTENSION);
 
         // Create a duplicate if already exists (impossible now :3)
+
         if (outZip.exists()) {
             backup(context, project_name + "_d");
             return;
         }
         //delete temp dir if exist
+
         if (outFolder.exists()) {
             FileUtil.deleteFile(outFolder.getAbsolutePath());
         }
 
         // Create necessary folders
+
         FileUtil.makeDir(outFolder.getAbsolutePath());
         FileUtil.makeDir(new File(getBackupDir() + File.separator + projectNameOnly).getAbsolutePath());
 
         // Copy data
+
         File dataF = new File(outFolder, "data");
         FileUtil.makeDir(dataF.getAbsolutePath());
         //6.3.0 fix1
+
         copySafe(getDataDir(), dataF);
 
         // Copy res
+
         File resF = new File(outFolder, "resources");
         FileUtil.makeDir(resF.getAbsolutePath());
 
@@ -353,21 +369,27 @@ public class BackupFactory {
             FileUtil.makeDir(resSubf.getAbsolutePath());
 
             //6.3.0 fix1
+
             copySafe(getResDir(subfolder), resSubf);
 
             // Write an empty file inside each folder (except icons)
+
             if (!subfolder.equals("icons")) {
                 //6.3.0 fix1
+
                 createNomediaFileIn(resSubf);
                 //FileUtil.writeFile(new File(resSubf, ".nomedia").getAbsolutePath(), "");
+
             }
         }
 
         // Copy project
+
         File projectF = new File(outFolder, "project");
         copy(getProjectPath(), projectF);
 
         // Find local libs used and include them in the backup
+
         if (backupLocalLibs) {
             File localLibs = getLocalLibsPath();
 
@@ -392,6 +414,7 @@ public class BackupFactory {
         }
 
         // Find custom blocks used and include them in the backup
+
         if (backupCustomBlocks) {
             CustomBlocksManager cbm = new CustomBlocksManager(context, sc_id);
 
@@ -416,16 +439,23 @@ public class BackupFactory {
         }
 
         // Zip final folder
+
         try {
             zipFolder(outFolder, outZip);
         } catch (Exception e) {
             // An error occurred
 
+
 //            StringBuilder sb = new StringBuilder();
+
 //            for (StackTraceElement el : e.getStackTrace()) {
+
 //                sb.append(el.toString());
+
 //                sb.append("\n");
+
 //            }
+
 
             error = Log.getStackTraceString(e);
             outPath = null;
@@ -434,9 +464,11 @@ public class BackupFactory {
         }
 
         // Delete the temporary folder
+
         FileUtil.deleteFile(outFolder.getAbsolutePath());
 
         // Put outZip to global variable
+
         outPath = outZip;
     }
 
@@ -451,7 +483,7 @@ public class BackupFactory {
     public void backupAndroidStudioProject(String project_name) {
         String projectNameOnly = sanitizeFileName(project_name);
         String finalFileName = projectNameOnly + "-" + sc_id + "-" + getFormattedDateFrom("yyyyMMdd-HHmmss");
-        File sourceFolder = new File(wq.getAndroidStudioProjectPath(sc_id));
+        File sourceFolder = new File(WorkspacePathManager.getAndroidStudioProjectPath(sc_id));
         File outputFolder = new File(getBackupDir(), projectNameOnly);
         File outZip = createUniqueZipFile(outputFolder, finalFileName);
 
@@ -501,7 +533,7 @@ public class BackupFactory {
             FileUtil.deleteFile(tempFolder.getAbsolutePath());
         }
 
-        File targetFolder = new File(wq.getAndroidStudioProjectPath(sc_id));
+        File targetFolder = new File(WorkspacePathManager.getAndroidStudioProjectPath(sc_id));
         if (targetFolder.exists()) {
             error = "project id already exists";
             restoreSuccess = false;
@@ -524,7 +556,7 @@ public class BackupFactory {
 
         HashMap<String, Object> metadata = readAndroidStudioProjectMetadata(sourceFolder);
         metadata.put("sc_id", sc_id);
-        metadata.put(lC.PROJECT_KIND_KEY, lC.PROJECT_KIND_ANDROID_STUDIO);
+        metadata.put(RecentProjectsRegistry.PROJECT_KIND_KEY, RecentProjectsRegistry.PROJECT_KIND_ANDROID_STUDIO);
         metadata.put("proj_type", 2);
         metadata.put("studio_path", targetFolder.getAbsolutePath());
 
@@ -533,7 +565,7 @@ public class BackupFactory {
             parent.mkdirs();
         }
         copy(sourceFolder, targetFolder);
-        lC.saveAndroidStudioProject(sc_id, metadata);
+        RecentProjectsRegistry.saveAndroidStudioProject(sc_id, metadata);
         FileUtil.deleteFile(tempFolder.getAbsolutePath());
         restoreSuccess = true;
     }
@@ -543,16 +575,19 @@ public class BackupFactory {
         createBackupsFolder();
 
         // Init temporary restore folder for unzipping
+
         File outFolder = new File(getBackupDir(),
                 name);
 
         // Create a duplicate if already exists
+
         if (outFolder.exists()) {
             restore(swbPath, name + "_d");
             return;
         }
 
         // Unzip
+
         if (!unzip(swbPath, outFolder)) {
             error = "couldn't unzip the backup";
             restoreSuccess = false;
@@ -560,6 +595,7 @@ public class BackupFactory {
         }
 
         // Init files
+
         File project = new File(outFolder, "project");
         File data = new File(outFolder, "data");
         File res = new File(outFolder, "resources");
@@ -573,9 +609,11 @@ public class BackupFactory {
         }
 
         // Put new sc_id
+
         map.put("sc_id", sc_id);
 
         // Write new file
+
         if (!writeEncrypted(project, new Gson().toJson(map))) {
             error = "couldn't write to the project file";
             restoreSuccess = false;
@@ -583,9 +621,11 @@ public class BackupFactory {
         }
 
         // Copy data
+
         copy(data, getDataDir());
 
         // Copy res
+
         for (String subfolder : resSubfolders) {
             File subf = new File(res, subfolder);
 
@@ -593,12 +633,15 @@ public class BackupFactory {
         }
 
         // Create parent folder
+
         getProjectPath().getParentFile().mkdirs();
 
         // Copy project
+
         copy(project, getProjectPath());
 
         // Copy local libs if they do not exist
+
         if (backupLocalLibs) {
             File local_libs = new File(outFolder, "local_libs");
 
@@ -620,6 +663,7 @@ public class BackupFactory {
         }
 
         // Delete temp folder
+
         FileUtil.deleteFile(outFolder.getAbsolutePath());
 
         restoreSuccess = true;
@@ -637,6 +681,7 @@ public class BackupFactory {
 
     private void createBackupsFolder() {
         // Create the backups folder if it doesn't exist
+
         String backupsPath = getBackupDir();
 
         FileUtil.makeDir(backupsPath);

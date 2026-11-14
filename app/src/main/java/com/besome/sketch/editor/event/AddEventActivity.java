@@ -31,15 +31,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 
-import a.a.a.Ox;
-import a.a.a.bB;
-import a.a.a.gB;
-import a.a.a.jC;
-import a.a.a.jq;
-import a.a.a.mB;
-import a.a.a.oq;
-import a.a.a.rs;
-import a.a.a.wB;
+import pro.sketchware.compiler.LayoutXmlGenerator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.ViewAnimationUtils;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.compiler.ProjectBuildMetadata;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ComponentEventRegistry;
+import pro.sketchware.editor.LogicEventEditorFragment;
+import pro.sketchware.core.ViewInflationUtils;
 import dev.chrisbanes.insetter.Insetter;
 import pro.sketchware.R;
 import pro.sketchware.databinding.LogicPopupAddEventBinding;
@@ -74,7 +74,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
     private void l() {
         if (eventsToAdd.isEmpty() && !C) {
             C = true;
-            gB.a(binding.eventsPreview, 300, new Animator.AnimatorListener() {
+            ViewAnimationUtils.a(binding.eventsPreview, 300, new Animator.AnimatorListener() {
                 @Override
                 public void onAnimationStart(@NonNull Animator animation) {
                 }
@@ -95,7 +95,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
         } else if (!eventsToAdd.isEmpty() && C) {
             C = false;
             binding.eventsPreview.setVisibility(View.VISIBLE);
-            gB.b(binding.eventsPreview, 300, null);
+            ViewAnimationUtils.b(binding.eventsPreview, 300, null);
         }
     }
 
@@ -107,9 +107,9 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
         addableViewEvents.clear();
         eventsToAdd.clear();
 
-        for (var activityEvent : oq.getAllActivityEvents()) {
+        for (var activityEvent : ComponentEventRegistry.getAllActivityEvents()) {
             boolean exists = false;
-            for (var existingEvent : jC.a(sc_id).g(projectFile.getJavaName())) {
+            for (var existingEvent : ProjectDataManagerRegistry.a(sc_id).g(projectFile.getJavaName())) {
                 if (existingEvent.eventType == EventBean.EVENT_TYPE_ACTIVITY
                         && activityEvent.equals(existingEvent.eventName)) {
                     exists = true;
@@ -121,21 +121,21 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
                 addableActivityEvents.add(new EventBean(EventBean.EVENT_TYPE_ACTIVITY, 0, activityEvent, activityEvent));
             }
         }
-        ArrayList<ViewBean> views = jC.a(sc_id).d(projectFile.getXmlName());
-        ArrayList<ComponentBean> components = jC.a(sc_id).e(projectFile.getJavaName());
+        ArrayList<ViewBean> views = ProjectDataManagerRegistry.a(sc_id).d(projectFile.getXmlName());
+        ArrayList<ComponentBean> components = ProjectDataManagerRegistry.a(sc_id).e(projectFile.getJavaName());
         if (views != null) {
             for (ViewBean view : views) {
                 addableViewEvents.addAll(ViewEventCatalog.addable(sc_id, projectFile, view, EventBean.EVENT_TYPE_VIEW));
             }
         }
-        for (IncludedViews.Entry entry : IncludedViews.resolve(jC.a(sc_id), projectFile.getXmlName()).entries) {
+        for (IncludedViews.Entry entry : IncludedViews.resolve(ProjectDataManagerRegistry.a(sc_id), projectFile.getXmlName()).entries) {
             addableViewEvents.addAll(ViewEventCatalog.addable(sc_id, projectFile, entry.view, EventBean.EVENT_TYPE_VIEW));
         }
         if (components != null) {
             for (ComponentBean component : components) {
-                for (String componentEvent : oq.getComponentEventsForClass(component.getClassInfo())) {
+                for (String componentEvent : ComponentEventRegistry.getComponentEventsForClass(component.getClassInfo())) {
                     boolean exists = false;
-                    for (var existingEvent : jC.a(sc_id).g(projectFile.getJavaName())) {
+                    for (var existingEvent : ProjectDataManagerRegistry.a(sc_id).g(projectFile.getJavaName())) {
                         if (existingEvent.eventType == EventBean.EVENT_TYPE_COMPONENT
                                 && component.componentId.equals(existingEvent.targetId)
                                 && componentEvent.equals(existingEvent.eventName)) {
@@ -150,11 +150,11 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
             }
         }
         ViewBean fab;
-        if (projectFile.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_FAB) && (fab = jC.a(sc_id).h(projectFile.getXmlName())) != null) {
+        if (projectFile.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_FAB) && (fab = ProjectDataManagerRegistry.a(sc_id).h(projectFile.getXmlName())) != null) {
             addableViewEvents.addAll(ViewEventCatalog.addable(sc_id, projectFile, fab, EventBean.EVENT_TYPE_VIEW));
         }
         if (projectFile.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_DRAWER)) {
-            ArrayList<ViewBean> drawerViews = jC.a(sc_id).d(projectFile.getDrawerXmlName());
+            ArrayList<ViewBean> drawerViews = ProjectDataManagerRegistry.a(sc_id).d(projectFile.getDrawerXmlName());
             if (drawerViews != null) {
                 for (ViewBean drawerView : drawerViews) {
                     addableDrawerViewEvents.addAll(ViewEventCatalog.addable(sc_id, projectFile, drawerView, EventBean.EVENT_TYPE_DRAWER_VIEW));
@@ -164,7 +164,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
         if (categoryAdapter.lastSelectedCategory == -1) {
             eventAdapter.setEvents(categories.get(categoryIndex));
             categoryAdapter.lastSelectedCategory = categoryIndex;
-            binding.tvCategory.setText(rs.a(getApplicationContext(), categoryIndex));
+            binding.tvCategory.setText(LogicEventEditorFragment.a(getApplicationContext(), categoryIndex));
             if (categoryAdapter != null) {
                 categoryAdapter.notifyItemChanged(categoryIndex);
             }
@@ -185,7 +185,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
     @Override
     public void onClick(View v) {
         boolean finished = false;
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             int id = v.getId();
             if (id == R.id.add_button) {
                 if (!eventsToAdd.isEmpty() || !moreBlockView.a()) {
@@ -193,26 +193,26 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
                         if (!moreBlockView.b()) {
                             eventAdapter.setEvents(categories.get(4));
                             categoryAdapter.lastSelectedCategory = 4;
-                            binding.tvCategory.setText(rs.a(getApplicationContext(), 4));
+                            binding.tvCategory.setText(LogicEventEditorFragment.a(getApplicationContext(), 4));
                             binding.emptyMessage.setVisibility(View.GONE);
                             binding.moreblockLayout.setVisibility(View.VISIBLE);
                             categoryAdapter.notifyDataSetChanged();
                             finished = true;
                         } else {
                             Pair<String, String> blockInformation = moreBlockView.getBlockInformation();
-                            jC.a(sc_id).a(projectFile.getJavaName(), blockInformation.first, blockInformation.second);
+                            ProjectDataManagerRegistry.a(sc_id).a(projectFile.getJavaName(), blockInformation.first, blockInformation.second);
                         }
                     }
                     if (!finished) {
                         for (EventBean eventBean : eventsToAdd) {
-                            jC.a(sc_id).a(projectFile.getJavaName(), eventBean);
+                            ProjectDataManagerRegistry.a(sc_id).a(projectFile.getJavaName(), eventBean);
                         }
                         if (eventsToAdd.size() == 1) {
-                            bB.a(getApplicationContext(), getApplicationContext().getString(R.string.event_message_new_event), bB.TOAST_NORMAL).show();
+                            ToastFactory.a(getApplicationContext(), getApplicationContext().getString(R.string.event_message_new_event), ToastFactory.TOAST_NORMAL).show();
                         } else if (eventsToAdd.size() > 1) {
-                            bB.a(getApplicationContext(), getApplicationContext().getString(R.string.event_message_new_events), bB.TOAST_NORMAL).show();
+                            ToastFactory.a(getApplicationContext(), getApplicationContext().getString(R.string.event_message_new_events), ToastFactory.TOAST_NORMAL).show();
                         }
-                        jC.a(sc_id).k();
+                        ProjectDataManagerRegistry.a(sc_id).k();
                         setResult(RESULT_OK);
                         finish();
                     }
@@ -282,13 +282,13 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
     @Override
     public void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
-        moreBlockView.setFuncNameValidator(jC.a(sc_id).a(projectFile));
+        moreBlockView.setFuncNameValidator(ProjectDataManagerRegistry.a(sc_id).a(projectFile));
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        gB.a(binding.container, 500);
+        ViewAnimationUtils.a(binding.container, 500);
         if (projectFile != null) {
             initialize();
         }
@@ -318,12 +318,12 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
             EventBean event = categories.get(categoryAdapter.lastSelectedCategory).get(position);
             ImageView imageView = new ImageView(holder.itemView.getContext());
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-            layoutParams.setMargins(0, 0, (int) wB.a(getApplicationContext(), 2.0f), 0);
-            int a = (int) wB.a(getApplicationContext(), 16.0f);
+            layoutParams.setMargins(0, 0, (int) ViewInflationUtils.a(getApplicationContext(), 2.0f), 0);
+            int a = (int) ViewInflationUtils.a(getApplicationContext(), 16.0f);
             layoutParams.width = a;
             layoutParams.height = a;
             imageView.setLayoutParams(layoutParams);
-            imageView.setImageResource(oq.getEventIconResource(event.eventName));
+            imageView.setImageResource(ComponentEventRegistry.getEventIconResource(event.eventName));
             imageView.setColorFilter(MaterialColors.getColor(imageView, com.google.android.material.R.attr.colorOutline));
             holder.events_preview.addView(imageView);
             holder.img_icon.setImageResource(EventBean.getEventIconResource(event.eventType, event.targetType));
@@ -345,7 +345,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
             } else {
                 holder.tv_target_id.setText(event.targetId);
             }
-            holder.tv_event_name.setText(oq.getEventName(event.eventName));
+            holder.tv_event_name.setText(ComponentEventRegistry.getEventName(event.eventName));
             holder.checkbox.setChecked(event.isSelected);
             e = false;
         }
@@ -389,7 +389,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
                 tv_event_name = itemView.findViewById(R.id.tv_event_name);
                 checkbox = itemView.findViewById(R.id.checkbox);
                 itemView.setOnClickListener(v -> {
-                    if (!mB.a()) {
+                    if (!EditorViewUtils.a()) {
                         lastSelectedEvent = getLayoutPosition();
                         EventBean event = categories.get(categoryAdapter.lastSelectedCategory).get(lastSelectedEvent);
                         if (event.isSelected) {
@@ -438,7 +438,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
 
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-            holder.img_icon.setImageResource(rs.a(position));
+            holder.img_icon.setImageResource(LogicEventEditorFragment.a(position));
             if (lastSelectedCategory == position) {
                 holder.container.setBackgroundResource(R.drawable.border_top_corner_white_no_stroke);
                 holder.img_icon.animate().scaleX(1.0f).scaleY(1.0f).alpha(1.0f).start();
@@ -446,7 +446,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
             } else {
                 holder.container.setBackgroundResource(R.drawable.border_top_corner_grey_no_stroke);
                 holder.img_icon.animate().scaleX(0.8f).scaleY(0.8f).alpha(0.6f).start();
-                holder.container.setTranslationY(wB.a(getApplicationContext(), 12.0f));
+                holder.container.setTranslationY(ViewInflationUtils.a(getApplicationContext(), 12.0f));
             }
         }
 
@@ -454,8 +454,8 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
         @NonNull
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View inflate = LayoutInflater.from(parent.getContext()).inflate(R.layout.fr_logic_list_category_icon_item, parent, false);
-            inflate.setLayoutParams(new RecyclerView.LayoutParams(parent.getMeasuredWidth() / getItemCount(), (int) wB.a(getApplicationContext(), 44.0f)));
-            inflate.setTranslationY(wB.a(getApplicationContext(), 12.0f));
+            inflate.setLayoutParams(new RecyclerView.LayoutParams(parent.getMeasuredWidth() / getItemCount(), (int) ViewInflationUtils.a(getApplicationContext(), 44.0f)));
+            inflate.setTranslationY(ViewInflationUtils.a(getApplicationContext(), 12.0f));
             inflate.findViewById(R.id.img_icon).setAlpha(0.6f);
             inflate.findViewById(R.id.img_icon).setScaleX(0.8f);
             inflate.findViewById(R.id.img_icon).setScaleY(0.8f);
@@ -485,7 +485,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
                     if (layoutPosition != lastSelectedCategory) {
                         lastSelectedCategory = getLayoutPosition();
                         notifyDataSetChanged();
-                        binding.tvCategory.setText(rs.a(getApplicationContext(), lastSelectedCategory));
+                        binding.tvCategory.setText(LogicEventEditorFragment.a(getApplicationContext(), lastSelectedCategory));
                         if (lastSelectedCategory == 4) {
                             binding.moreblockLayout.setVisibility(View.VISIBLE);
                             binding.emptyMessage.setVisibility(View.GONE);
@@ -515,7 +515,7 @@ public class AddEventActivity extends BaseAppCompatActivity implements View.OnCl
                 holder.ll_img_event.setVisibility(View.GONE);
             }
             holder.img_icon.setImageResource(EventBean.getEventIconResource(event.eventType, event.targetType));
-            holder.img_event.setImageResource(oq.getEventIconResource(event.eventName));
+            holder.img_event.setImageResource(ComponentEventRegistry.getEventIconResource(event.eventName));
         }
 
         @Override

@@ -6,8 +6,8 @@ import androidx.annotation.NonNull;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import a.a.a.Sp;
-import a.a.a.mB;
+import pro.sketchware.editor.BlockTypeUtils;
+import pro.sketchware.editor.EditorViewUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.StoragePermission;
@@ -35,13 +35,13 @@ public abstract class BasePermissionAppCompatActivity extends BaseAppCompatActiv
     public abstract void h(int i);
 
     public void i(int i) {
-        if (!Sp.a) {
+        if (!BlockTypeUtils.a) {
             MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(this);
             dialog.setTitle(Helper.getResString(R.string.common_message_permission_title_storage));
             dialog.setIcon(R.drawable.break_warning_96_red);
             dialog.setMessage(Helper.getResString(R.string.common_message_permission_storage));
             dialog.setPositiveButton(Helper.getResString(R.string.common_word_ok), (v, which) -> {
-                if (!mB.a()) {
+                if (!EditorViewUtils.a()) {
                     requestStoragePermission(i);
                     v.dismiss();
                 }
@@ -50,11 +50,12 @@ public abstract class BasePermissionAppCompatActivity extends BaseAppCompatActiv
                 l();
                 v.dismiss();
             });
-            dialog.setOnDismissListener(dialog1 -> Sp.a = false);
+            dialog.setOnDismissListener(dialog1 -> BlockTypeUtils.a = false);
             dialog.setCancelable(false);
             // dialog.setCanceledOnTouchOutside(false);
+
             dialog.show();
-            Sp.a = true;
+            BlockTypeUtils.a = true;
         }
     }
 
@@ -102,13 +103,13 @@ public abstract class BasePermissionAppCompatActivity extends BaseAppCompatActiv
     }
 
     public void j(int i) {
-        if (!Sp.a) {
+        if (!BlockTypeUtils.a) {
             MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(this);
             dialog.setTitle(Helper.getResString(R.string.common_message_permission_title_storage));
             dialog.setIcon(R.drawable.break_warning_96_red);
             dialog.setMessage(Helper.getResString(R.string.common_message_permission_storage1));
             dialog.setPositiveButton(Helper.getResString(R.string.common_word_settings), (v, which) -> {
-                if (!mB.a()) {
+                if (!EditorViewUtils.a()) {
                     if (StoragePermission.usesAllFilesAccess()) {
                         requestStoragePermission(i);
                     } else {
@@ -121,11 +122,12 @@ public abstract class BasePermissionAppCompatActivity extends BaseAppCompatActiv
                 m();
                 v.dismiss();
             });
-            dialog.setOnDismissListener(dialog1 -> Sp.a = false);
+            dialog.setOnDismissListener(dialog1 -> BlockTypeUtils.a = false);
             dialog.setCancelable(false);
             // dialog.setCanceledOnTouchOutside(false);
+
             dialog.show();
-            Sp.a = true;
+            BlockTypeUtils.a = true;
         }
     }
 }

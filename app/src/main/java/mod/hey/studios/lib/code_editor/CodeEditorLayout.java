@@ -30,8 +30,8 @@ import android.widget.ScrollView;
 import java.util.List;
 import java.util.regex.Matcher;
 
-import a.a.a.Lx;
-import a.a.a.wB;
+import pro.sketchware.compiler.ComponentSourceGenerator;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.SketchwareUtil;
@@ -65,6 +65,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
     private CodeEditorEditText editText;
     private ScrollView scrollView;
     //SharedPref start
+
     private SharedPreferences sharedpref;
     private boolean exit_confirmation_dialog;
     private boolean word_wrap;
@@ -75,6 +76,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
 
 
     //Options menu start
+
 
 
     public CodeEditorLayout(Context context) {
@@ -206,7 +208,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
                     String prettifiedString = string.toString();
 
                     try {
-                        prettifiedString = Lx.j(Lx.j(prettifiedString, false), false);
+                        prettifiedString = ComponentSourceGenerator.j(ComponentSourceGenerator.j(prettifiedString, false), false);
                     } catch (Exception e) {
                         SketchwareUtil.toastError("Error: Your code contains incorrectly nested parentheses");
                         break;
@@ -254,15 +256,17 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
     }
 
     private void initialize(int res) {
-        View convertView = wB.a(context, this, res);
+        View convertView = ViewInflationUtils.a(context, this, res);
 
         editText = convertView.findViewById(EDITTEXT_RES);
         scrollView = convertView.findViewById(SCROLLVIEW_RES);
 
         //hide suggestions in edittext
+
         editText.setRawInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
 
         //hide keyboard
+
         if (context instanceof Activity) {
             ((Activity) context).getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN);
         }
@@ -296,7 +300,9 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
 
     public void start(List<ColorScheme> list) {
         //this method might look nonsense, don't worry it's just for
+
         //backwards compatibility. use startHighlighting(int) instead
+
 
         int color = list.get(0).color;
         startHighlighting(color);
@@ -367,6 +373,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
 
         for (char c : chars) {
             if (!String.valueOf(c).equals(" ") && !String.valueOf(c).equals("   ")) //" ", "   "
+
                 return false;
         }
 
@@ -394,11 +401,13 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
     @Override
     public void onTextChanged(CharSequence s, int start, int before, int count) {
         //Indentation
+
         if (INDENTABLE) {
 
             String charSeq = s.toString();
 
             // if the last character entered is a line break:
+
             String substring = charSeq.substring(start, start + count);
             if (substring.equals("\n")) {
 
@@ -408,15 +417,20 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
 
                 if (strOnlyContainsSpaces(previousLine)) {
                     // if the previous line only contains spaces,
+
                     // get all of it and indent the next line.
+
                     spacesToInsert = previousLine;
                 } else {
                     // if not, get the spaces from the previous line using trim
+
                     // and use it to indent the next line.
+
                     spacesToInsert = previousLine.substring(0, previousLine.indexOf(previousLine.trim()));
                 }
 
                 // auto indent when user clicks enter inside {} or ()
+
                 int selection = editText.getSelectionStart();
                 if (
                         (safeSubstring(charSeq, selection - 2, selection - 1).equals("{")
@@ -426,20 +440,24 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
                                         && safeSubstring(charSeq, selection, selection + 1).equals(")"))
                 ) {
                     // indent :)
+
                     insert(spacesToInsert + INDENT_STR + "\n" + spacesToInsert);
 
                     // restore cursor position
+
                     editText.setSelection(editText.getSelectionStart() - "\n".length() - spacesToInsert.length());
 
                     return;
                 }
 
                 // if the previous line ends with a { or (, increase the indentation
+
                 if (previousLine.endsWith("{") || previousLine.endsWith("(")) {
                     spacesToInsert += INDENT_STR;
                 }
 
                 // insert the final indentation
+
                 if (!TextUtils.isEmpty(spacesToInsert)) {
                     insert(spacesToInsert);
                 }
@@ -448,9 +466,11 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
 
             //Complete brackets
 
+
             if (complete_brackets) {
 
                 // checks the latest character entered to complete it:
+
                 switch (substring) {
                     case "{":
                         insert("}");
@@ -469,6 +489,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
                 }
 
                 // Prevents user from closing a bracket that is already closed
+
                 int selection = editText.getSelectionStart();
                 switch (substring) {
                     case "}":
@@ -503,6 +524,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
     @Override
     public void afterTextChanged(Editable s) {
         //Indentation with Backspace
+
         if (beforeInfo.backspaceClicked) {
 
             int selection = editText.getSelectionStart();
@@ -526,6 +548,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
         }
 
         //Syntax highlighting (new, relatively optimized)
+
         EditText textView = editText;
 
         if (updateHighlight != null) {
@@ -540,9 +563,11 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
         if (textView != null) {
 
             // onFocusChange
+
             textView.setOnFocusChangeListener((v, hasFocus) -> {
 
                 // Hide keyboard
+
                 InputMethodManager imm = (InputMethodManager)
                         context.getSystemService(Context.INPUT_METHOD_SERVICE);
                 if (!hasFocus)
@@ -559,6 +584,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
                         private boolean keyboard;
 
                         // onGlobalLayout
+
                         @Override
                         public void onGlobalLayout() {
                             if (updateHighlight != null) {
@@ -585,6 +611,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
 
         if (scrollView != null) {
             // onScrollChange
+
             scrollView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
                 if (updateHighlight != null) {
                     textView.removeCallbacks(updateHighlight);
@@ -610,10 +637,12 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
     }
 
     //Optimized highlighting by Editor in Github
+
     private void highlightText() {
         EditText textView = editText;
 
         // Get visible extent
+
         int top = scrollView.getScrollY();
         int height = scrollView.getHeight();
 
@@ -627,6 +656,7 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
                 textView.getLayout().getLineStart(line - 1);
 
         // Move selection if outside range
+
         if (textView.getSelectionStart() < start)
             textView.setSelection(first);
 
@@ -634,18 +664,22 @@ public class CodeEditorLayout extends LinearLayout implements TextWatcher {
             textView.setSelection(last);
 
         // Get editable
+
         Editable editable = textView.getEditableText();
 
         // Get current spans
+
         ForegroundColorSpan[] spans =
                 editable.getSpans(0, editable.length(),/*start, end,*/ ForegroundColorSpan.class);
         // Remove spans
+
         for (ForegroundColorSpan span : spans)
             editable.removeSpan(span);
 
         Matcher matcher;
 
         // Highlight it
+
         for (ColorScheme colorScheme : highlightList) {
 
             matcher = colorScheme.pattern.matcher(editable);

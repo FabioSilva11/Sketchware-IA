@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
 
-import a.a.a.wq;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.agus.jcoderz.beans.ViewBeans;
 import pro.sketchware.utility.InvokeUtil;
 
@@ -57,15 +57,20 @@ public class ViewBeanParser {
     }
 
     public static String generateUniqueId(Set<String> ids, int type, String className) {
-        String prefix = wq.b(type);
+        String prefix = WorkspacePathManager.b(type);
         var name = ViewBean.getViewTypeName(type);
         // Skip these types as they're the only ones with a different view type name: VScrollView
+
         // (ScrollView) and HScrollView (HorizontalScrollView).
+
         //noinspection ConstantValue
+
         if (type != ViewBean.VIEW_TYPE_LAYOUT_VSCROLLVIEW
                 || type != ViewBean.VIEW_TYPE_LAYOUT_HSCROLLVIEW) {
             // If the prefix is "linear" and the name is different from the className,
+
             // update the prefix to the lowercase version of className.
+
             if (prefix.equals("linear")
                     && type == ViewBean.VIEW_TYPE_LAYOUT_LINEAR
                     && !name.equals(className)) {
@@ -112,7 +117,9 @@ public class ViewBeanParser {
     public static int getViewTypeByClassName(String name) {
         var className = getNameFromTag(name);
         // Special case for HorizontalScrollView, as ViewBean refers to it as
+
         // HScrollView
+
         if (className.equals("HorizontalScrollView")) {
             className = "HScrollView";
         }
@@ -123,6 +130,7 @@ public class ViewBeanParser {
 
     public static int getViewTypeByTag(String tag, int defaultType) {
         // Special case for other views that can be considered built-in views by type
+
         var type = ViewBeanFactory.getConsideredTypeViewByName(getNameFromTag(tag), defaultType);
         if (type == ViewBean.VIEW_TYPE_LAYOUT_LINEAR) {
             var view = InvokeUtil.createView(getContext(), tag);
@@ -159,6 +167,7 @@ public class ViewBeanParser {
         Map<String, Map<String, String>> beansAttributes = new HashMap<>();
         Stack<ViewBean> viewStack = new Stack<>();
         // Position of each view inside its own parent; the editor adds children at these indexes.
+
         Map<String, Integer> childCounts = new HashMap<>();
         boolean isRootSkipped = !skipRoot;
 
@@ -188,6 +197,7 @@ public class ViewBeanParser {
                             : getViewTypeByClassName(name);
 
                     // Get view ID, either from attributes or generate a unique ID
+
                     String attrId = parser.getAttributeValue(null, "android:id");
                     String id =
                             attrId != null && !ids.contains(parseReferName(attrId, "/"))
@@ -200,6 +210,7 @@ public class ViewBeanParser {
 
                     ViewBean parent = viewStack.isEmpty() ? null : viewStack.peek();
                     // Set parent ID (or root if no parent)
+
                     int parentType = rootAttributes != null ? getViewTypeByClassName(rootAttributes.first) : ViewBean.VIEW_TYPE_LAYOUT_LINEAR;
                     bean.parent = parent != null ? parent.id : "root";
                     bean.parentType =

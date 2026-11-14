@@ -131,16 +131,20 @@ public final class AxionToolRouter {
      */
     public Routed route(Route call, String scId, RunContext context, LoopHooks loopHooks) {
         // ---- 1) Deduplication by callId (never by name) -------------------
+
         Routed previous = processedByCallId.get(call.callId());
         if (previous != null) {
             return new Routed(call, previous.result(), true, previous.registration());
         }
 
         // ---- 2) Registry lookup by fully-qualified name -------------------
+
         ToolRegistration registration = registry.get(ToolName.parse(call.toolName()));
         if (registration == null) {
             // Namespace child calls use the plain child name in some providers:
+
             // last-chance resolution against the namespace children registry.
+
             registration = resolveChildAcrossNamespaces(call.toolName());
         }
         if (registration == null) {
@@ -156,6 +160,7 @@ public final class AxionToolRouter {
         }
 
         // ---- 3) Exposure validation --------------------------------------
+
         ToolExposure exposure = registration.exposure();
         if (exposure.isHidden()) {
             Routed hidden = new Routed(call,
@@ -183,6 +188,7 @@ public final class AxionToolRouter {
         }
 
         // ---- 4) Permission layer -----------------------------------------
+
         if (permissions != null) {
             PermissionLayer.Outcome outcome = permissions.check(
                     registration, new ToolCall(call.toolName(), call.arguments(), call.callId()), scId);
@@ -201,6 +207,7 @@ public final class AxionToolRouter {
         }
 
         // ---- 5) Sandbox pre-check ----------------------------------------
+
         AgentToolResult sandboxBlock = null;
         if (registration.sandbox() != null) {
             sandboxBlock = registration.sandbox().preExecute(call.callId(), scId);
@@ -216,6 +223,7 @@ public final class AxionToolRouter {
         }
 
         // ---- 6) Execution ------------------------------------------------
+
         if (loopHooks != null) {
             loopHooks.onToolCallStarted(call, registration);
         }
@@ -253,6 +261,7 @@ public final class AxionToolRouter {
             ToolExecutionContext ctx;
             if (type == ToolSpec.Type.FREEFORM) {
                 // Freeform tools receive the RAW wire input, never JSON args.
+
                 ctx = new ToolExecutionContext(registration, scId, call.callId(), context,
                         null, call.arguments(), call.arguments(), events);
             } else {

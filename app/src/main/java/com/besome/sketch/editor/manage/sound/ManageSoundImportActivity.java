@@ -28,16 +28,16 @@ import com.bumptech.glide.Glide;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import a.a.a.QB;
-import a.a.a.bB;
-import a.a.a.mB;
-import a.a.a.uq;
+import pro.sketchware.lib.validator.DualListNameInputValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ComponentNameRegistry;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
 public class ManageSoundImportActivity extends BaseAppCompatActivity implements View.OnClickListener {
-    private QB nameValidator;
+    private DualListNameInputValidator nameValidator;
     private boolean mediaPlayerIsPrepared;
     private ImageView img_album;
     private ImageView img_play;
@@ -84,7 +84,7 @@ public class ManageSoundImportActivity extends BaseAppCompatActivity implements 
                 }
                 names = names + str2;
             }
-            bB.a(getApplicationContext(), message + "\n[" + names + "]", bB.TOAST_WARNING).show();
+            ToastFactory.a(getApplicationContext(), message + "\n[" + names + "]", ToastFactory.TOAST_WARNING).show();
             return true;
         }
         return false;
@@ -102,7 +102,7 @@ public class ManageSoundImportActivity extends BaseAppCompatActivity implements 
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             int id = v.getId();
             if (id == R.id.btn_decide) {
                 String name = Helper.getText(ed_input_edittext);
@@ -179,7 +179,7 @@ public class ManageSoundImportActivity extends BaseAppCompatActivity implements 
         ed_input_edittext.setText(selectedCollections.get(0).resName);
         ed_input_edittext.setPrivateImeOptions("defaultInputmode=english;");
         ed_input.setHint(getString(R.string.design_manager_sound_hint_enter_sound_name));
-        nameValidator = new QB(getApplicationContext(), ed_input.getTextInputLayout(), uq.b, getReservedProjectSoundNames(), getReservedSelectedCollectionNames());
+        nameValidator = new DualListNameInputValidator(getApplicationContext(), ed_input.getTextInputLayout(), ComponentNameRegistry.b, getReservedProjectSoundNames(), getReservedSelectedCollectionNames());
         chk_samename = findViewById(R.id.chk_samename);
         chk_samename.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
@@ -242,9 +242,9 @@ public class ManageSoundImportActivity extends BaseAppCompatActivity implements 
             }
         }
         if (!duplicateCollections.isEmpty()) {
-            bB.b(getApplicationContext(), getString(R.string.design_manager_message_collection_name_conflict), bB.TOAST_WARNING).show();
+            ToastFactory.b(getApplicationContext(), getString(R.string.design_manager_message_collection_name_conflict), ToastFactory.TOAST_WARNING).show();
         } else {
-            bB.a(getApplicationContext(), getString(R.string.design_manager_message_collection_name_no_conflict), bB.TOAST_NORMAL).show();
+            ToastFactory.a(getApplicationContext(), getString(R.string.design_manager_message_collection_name_no_conflict), ToastFactory.TOAST_NORMAL).show();
         }
         selectedCollections = new ArrayList<>();
         selectedCollections.addAll(duplicateCollections);
@@ -355,7 +355,7 @@ public class ManageSoundImportActivity extends BaseAppCompatActivity implements 
                 img = itemView.findViewById(R.id.img);
                 tv_name = itemView.findViewById(R.id.tv_name);
                 img.setOnClickListener(v -> {
-                    if (!mB.a()) {
+                    if (!EditorViewUtils.a()) {
                         pausePlayback();
                         selectedItem = getLayoutPosition();
                         showPreview(selectedItem);

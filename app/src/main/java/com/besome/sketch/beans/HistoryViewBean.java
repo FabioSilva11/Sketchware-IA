@@ -4,9 +4,9 @@ import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 
-import a.a.a.nA;
+import pro.sketchware.core.ComparisonResult;
 
-public class HistoryViewBean extends nA {
+public class HistoryViewBean extends ComparisonResult {
     public static final int ACTION_TYPE_ADD = 0;
     public static final int ACTION_TYPE_MOVE = 3;
     public static final int ACTION_TYPE_REMOVE = 2;

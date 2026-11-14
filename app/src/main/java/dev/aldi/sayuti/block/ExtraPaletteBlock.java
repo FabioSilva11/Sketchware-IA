@@ -17,10 +17,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 
-import a.a.a.Ox;
-import a.a.a.jC;
-import a.a.a.jq;
-import a.a.a.kq;
+import pro.sketchware.compiler.LayoutXmlGenerator;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.compiler.ProjectBuildMetadata;
+import pro.sketchware.editor.BlockOpcodeUtils;
 import mod.agus.jcoderz.beans.ViewBeans;
 import mod.hey.studios.editor.view.IdGenerator;
 import mod.hey.studios.moreblock.ReturnMoreblockManager;
@@ -82,21 +82,21 @@ public class ExtraPaletteBlock {
             }
         }
         if (eventName.equals("onBindCustomView")) {
-            var view = IncludedViews.eventTarget(jC.a(sc_id), xmlName, logicEditor.id);
+            var view = IncludedViews.eventTarget(ProjectDataManagerRegistry.a(sc_id), xmlName, logicEditor.id);
             String customView = view == null ? null : view.customView;
             if (customView != null && !customView.isEmpty()) {
-                for (ViewBean viewBean : jC.a(sc_id).d(ProjectFileBean.getXmlName(customView))) {
+                for (ViewBean viewBean : ProjectDataManagerRegistry.a(sc_id).d(ProjectFileBean.getXmlName(customView))) {
                     if (viewBean.getClassInfo().a(str)) {
                         mapSave.put(str, true);
                         return true;
                     }
                 }
             }
-        } else if (jC.a(sc_id).y(xmlName, str)) {
+        } else if (ProjectDataManagerRegistry.a(sc_id).y(xmlName, str)) {
             mapSave.put(str, true);
             return true;
         } else {
-            for (IncludedViews.Entry entry : IncludedViews.resolve(jC.a(sc_id), xmlName).entries) {
+            for (IncludedViews.Entry entry : IncludedViews.resolve(ProjectDataManagerRegistry.a(sc_id), xmlName).entries) {
                 if (entry.view.getClassInfo().a(str)) {
                     mapSave.put(str, true);
                     return true;
@@ -115,38 +115,38 @@ public class ExtraPaletteBlock {
     public boolean e(String str, String str2) {
         return switch (str) {
             case "circleimageview" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_CIRCLEIMAGEVIEW, str2);
-            case "asynctask" -> jC.a(sc_id).d(javaName, 36, str2);
-            case "otpview" -> jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_OTPVIEW, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_CIRCLEIMAGEVIEW, str2);
+            case "asynctask" -> ProjectDataManagerRegistry.a(sc_id).d(javaName, 36, str2);
+            case "otpview" -> ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_OTPVIEW, str2);
             case "lottie" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_LOTTIEANIMATIONVIEW, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_LOTTIEANIMATIONVIEW, str2);
             case "phoneauth" ->
-                    jC.a(sc_id).d(javaName, ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_PHONE, str2);
-            case "codeview" -> jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_CODEVIEW, str2);
+                    ProjectDataManagerRegistry.a(sc_id).d(javaName, ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_PHONE, str2);
+            case "codeview" -> ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_CODEVIEW, str2);
             case "recyclerview" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_RECYCLERVIEW, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_RECYCLERVIEW, str2);
             case "googlelogin" ->
-                    jC.a(sc_id).d(javaName, ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN, str2);
+                    ProjectDataManagerRegistry.a(sc_id).d(javaName, ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN, str2);
             case "youtubeview" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_YOUTUBEPLAYERVIEW, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_YOUTUBEPLAYERVIEW, str2);
             case "signinbutton" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_SIGNINBUTTON, str2);
-            case "cardview" -> jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_CARDVIEW, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_SIGNINBUTTON, str2);
+            case "cardview" -> ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_CARDVIEW, str2);
             case "radiogroup" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_RADIOGROUP, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_RADIOGROUP, str2);
             case "textinputlayout" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_TEXTINPUTLAYOUT, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_TEXTINPUTLAYOUT, str2);
             case "collapsingtoolbar" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_COLLAPSINGTOOLBARLAYOUT, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_COLLAPSINGTOOLBARLAYOUT, str2);
             case "cloudmessage" ->
-                    jC.a(sc_id).d(javaName, ComponentBean.COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE, str2);
+                    ProjectDataManagerRegistry.a(sc_id).d(javaName, ComponentBean.COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE, str2);
             case "datepicker" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_DATEPICKER, str2);
-            case "customVar" -> jC.a(sc_id).f(xmlName, 5, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_DATEPICKER, str2);
+            case "customVar" -> ProjectDataManagerRegistry.a(sc_id).f(xmlName, 5, str2);
             case "timepicker" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_TIMEPICKER, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_WIDGET_TIMEPICKER, str2);
             case "swiperefreshlayout" ->
-                    jC.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_SWIPEREFRESHLAYOUT, str2);
+                    ProjectDataManagerRegistry.a(sc_id).g(xmlName, ViewBeans.VIEW_TYPE_LAYOUT_SWIPEREFRESHLAYOUT, str2);
             default -> true;
         };
     }
@@ -155,39 +155,39 @@ public class ExtraPaletteBlock {
      * @see ReturnMoreblockManager#listMoreblocks(Iterator, LogicEditorActivity)
      */
     private void moreBlocks() {
-        ReturnMoreblockManager.listMoreblocks(jC.a(sc_id).i(javaName).iterator(), logicEditor);
+        ReturnMoreblockManager.listMoreblocks(ProjectDataManagerRegistry.a(sc_id).i(javaName).iterator(), logicEditor);
     }
 
     private void variables() {
-        ArrayList<String> booleanVariables = jC.a(sc_id).e(javaName, 0);
+        ArrayList<String> booleanVariables = ProjectDataManagerRegistry.a(sc_id).e(javaName, 0);
         for (int i = 0; i < booleanVariables.size(); i++) {
             if (i == 0) logicEditor.a("Boolean", getTitleBgColor());
 
             logicEditor.a(booleanVariables.get(i), "b", "getVar").setTag(booleanVariables.get(i));
         }
 
-        ArrayList<String> numberVariables = jC.a(sc_id).e(javaName, 1);
+        ArrayList<String> numberVariables = ProjectDataManagerRegistry.a(sc_id).e(javaName, 1);
         for (int i = 0; i < numberVariables.size(); i++) {
             if (i == 0) logicEditor.a("Number", getTitleBgColor());
 
             logicEditor.a(numberVariables.get(i), "d", "getVar").setTag(numberVariables.get(i));
         }
 
-        ArrayList<String> stringVariables = jC.a(sc_id).e(javaName, 2);
+        ArrayList<String> stringVariables = ProjectDataManagerRegistry.a(sc_id).e(javaName, 2);
         for (int i = 0; i < stringVariables.size(); i++) {
             if (i == 0) logicEditor.a("String", getTitleBgColor());
 
             logicEditor.a(stringVariables.get(i), "s", "getVar").setTag(stringVariables.get(i));
         }
 
-        ArrayList<String> mapVariables = jC.a(sc_id).e(javaName, 3);
+        ArrayList<String> mapVariables = ProjectDataManagerRegistry.a(sc_id).e(javaName, 3);
         for (int i = 0; i < mapVariables.size(); i++) {
             if (i == 0) logicEditor.a("Map", getTitleBgColor());
 
             logicEditor.a(mapVariables.get(i), "a", "getVar").setTag(mapVariables.get(i));
         }
 
-        ArrayList<String> customVariables = jC.a(sc_id).e(javaName, 5);
+        ArrayList<String> customVariables = ProjectDataManagerRegistry.a(sc_id).e(javaName, 5);
         for (int i = 0; i < customVariables.size(); i++) {
             if (i == 0) logicEditor.a("Custom Variable", getTitleBgColor());
 
@@ -199,7 +199,7 @@ public class ExtraPaletteBlock {
             }
         }
 
-        ArrayList<String> customVariables2 = jC.a(sc_id).e(javaName, 6);
+        ArrayList<String> customVariables2 = ProjectDataManagerRegistry.a(sc_id).e(javaName, 6);
         for (int i = 0; i < customVariables2.size(); i++) {
             if (i == 0) logicEditor.a("Custom Variable", getTitleBgColor());
 
@@ -234,7 +234,7 @@ public class ExtraPaletteBlock {
     }
 
     private void blockComponents() {
-        ArrayList<ComponentBean> components = jC.a(sc_id).e(javaName);
+        ArrayList<ComponentBean> components = ProjectDataManagerRegistry.a(sc_id).e(javaName);
         for (int i = 0, componentsSize = components.size(); i < componentsSize; i++) {
             ComponentBean component = components.get(i);
 
@@ -251,13 +251,14 @@ public class ExtraPaletteBlock {
     private void blockCustomViews() {
         if (eventName.equals("onBindCustomView")) {
             // The list can be the screen's own, of its drawer, or reached through an include
-            ViewBean viewBean = IncludedViews.eventTarget(jC.a(sc_id), xmlName, logicEditor.id);
+
+            ViewBean viewBean = IncludedViews.eventTarget(ProjectDataManagerRegistry.a(sc_id), xmlName, logicEditor.id);
             if (viewBean == null) {
                 return;
             }
             String viewBeanCustomView = viewBean.customView;
             if (viewBeanCustomView != null && !viewBeanCustomView.isEmpty()) {
-                ArrayList<ViewBean> customViews = jC.a(sc_id).d(ProjectFileBean.getXmlName(viewBeanCustomView));
+                ArrayList<ViewBean> customViews = ProjectDataManagerRegistry.a(sc_id).d(ProjectFileBean.getXmlName(viewBeanCustomView));
                 for (int i = 0, customViewsSize = customViews.size(); i < customViewsSize; i++) {
                     ViewBean customView = customViews.get(i);
 
@@ -279,10 +280,10 @@ public class ExtraPaletteBlock {
             logicEditor.a("b", "checkboxIsChecked");
             return;
         }
-        ArrayList<ViewBean> views = jC.a(sc_id).d(xmlName);
+        ArrayList<ViewBean> views = ProjectDataManagerRegistry.a(sc_id).d(xmlName);
         for (int i = 0, viewsSize = views.size(); i < viewsSize; i++) {
             ViewBean view = views.get(i);
-            Set<String> toNotAdd = new Ox(new jq(), projectFile).readAttributesToReplace(view);
+            Set<String> toNotAdd = new LayoutXmlGenerator(new ProjectBuildMetadata(), projectFile).readAttributesToReplace(view);
 
             if (i == 0) {
                 logicEditor.a("Views", getTitleBgColor());
@@ -295,7 +296,7 @@ public class ExtraPaletteBlock {
                 }
             }
         }
-        IncludedViews.Result includes = IncludedViews.resolve(jC.a(sc_id), xmlName);
+        IncludedViews.Result includes = IncludedViews.resolve(ProjectDataManagerRegistry.a(sc_id), xmlName);
         for (int i = 0; i < includes.entries.size(); i++) {
             IncludedViews.Entry entry = includes.entries.get(i);
             if (i == 0) {
@@ -304,6 +305,7 @@ public class ExtraPaletteBlock {
             ViewBean view = entry.view;
             String typeName = view.convert.isEmpty() ? ViewBean.getViewTypeName(view.type) : IdGenerator.getLastPath(view.convert);
             // Each include instance has its own widgets: include1_button1 and include2_button1
+
             String reference = includes.reference(entry.id, isViewBindingEnabled);
             logicEditor.a(reference, "v", typeName, "getVar").setTag(reference);
         }
@@ -311,7 +313,7 @@ public class ExtraPaletteBlock {
 
     private void blockDrawer() {
         if (projectFile.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_DRAWER)) {
-            ArrayList<ViewBean> drawerViews = jC.a(sc_id).d(projectFile.getDrawerXmlName());
+            ArrayList<ViewBean> drawerViews = ProjectDataManagerRegistry.a(sc_id).d(projectFile.getDrawerXmlName());
             if (drawerViews != null) {
                 for (int i = 0, drawerViewsSize = drawerViews.size(); i < drawerViewsSize; i++) {
                     ViewBean drawerView = drawerViews.get(i);
@@ -367,12 +369,12 @@ public class ExtraPaletteBlock {
     }
 
     private void list() {
-        for (Pair<Integer, String> list : jC.a(sc_id).j(javaName)) {
+        for (Pair<Integer, String> list : ProjectDataManagerRegistry.a(sc_id).j(javaName)) {
             int type = list.first;
             String name = list.second;
 
             switch (type) {
-                case 1, 2, 3 -> logicEditor.a(name, "l", kq.a(type), "getVar").setTag(name);
+                case 1, 2, 3 -> logicEditor.a(name, "l", BlockOpcodeUtils.a(type), "getVar").setTag(name);
                 default -> {
                     String variableName = CustomVariableUtil.getVariableName(name);
                     if (variableName != null) {
@@ -394,6 +396,7 @@ public class ExtraPaletteBlock {
 
     public void setBlock(int paletteId, int paletteColor) {
         // Remove previous palette's blocks
+
         logicEditor.m.a();
 
         if (eventName.equals("Import")) {
@@ -884,7 +887,7 @@ public class ExtraPaletteBlock {
             {
                 boolean signInButtonUsed = isWidgetUsed("SignInButton");
                 boolean youtubePlayerViewUsed = isWidgetUsed("YoutubePlayerView");
-                boolean adMobUsed = "Y".equals(jC.c(sc_id).b().useYn);
+                boolean adMobUsed = "Y".equals(ProjectDataManagerRegistry.c(sc_id).b().useYn);
                 boolean mapViewUsed = isWidgetUsed("MapView");
                 boolean unityBannerViewUsed = isWidgetUsed("UnityBannerView");
 
@@ -895,7 +898,9 @@ public class ExtraPaletteBlock {
                     logicEditor.a("b", "unityBannerViewIsLoaded");
                     logicEditor.a(" ", "unityBannerViewSetPlacement");
                     // Privacy choices go before the first load, which starts the SDK. With a Unity Interstitial or
+
                     // Rewarded component they're in the Component palette instead, so they show up once.
+
                     if (!extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD)
                             && !extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD)) {
                         logicEditor.a(" ", "unityAdsSetUserConsent");
@@ -1232,6 +1237,7 @@ public class ExtraPaletteBlock {
                 boolean unityRewarded = extraBlocks.isComponentUsed(ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD);
                 if (unityInterstitial || unityRewarded) {
                     // Privacy choices go before the first load, which starts the SDK
+
                     logicEditor.a("Unity Ads", getTitleBgColor());
                     logicEditor.a(" ", "unityAdsSetUserConsent");
                     logicEditor.a(" ", "unityAdsSetUserOptOut");

@@ -246,6 +246,7 @@ public class SCCP {
         boolean constantSuccessor = false;
 
         // Check if the insn is a branch with a constant condition
+
         if (opcode.getBranchingness() == mod.agus.jcoderz.dx.rop.code.Rop.BRANCH_IF) {
             mod.agus.jcoderz.dx.rop.cst.Constant cA = null;
             mod.agus.jcoderz.dx.rop.cst.Constant cB = null;
@@ -267,6 +268,7 @@ public class SCCP {
             }
 
             // Calculate the result of the condition
+
             if (cA != null && sources.size() == 1) {
                 switch (((mod.agus.jcoderz.dx.rop.cst.TypedConstant) cA).getBasicType()) {
                     case mod.agus.jcoderz.dx.rop.type.Type.BT_INT:
@@ -284,25 +286,27 @@ public class SCCP {
                         break;
                     default:
                         // not yet supported
+
                 }
             } else if (cA != null && cB != null) {
                 switch (((mod.agus.jcoderz.dx.rop.cst.TypedConstant) cA).getBasicType()) {
                     case mod.agus.jcoderz.dx.rop.type.Type.BT_INT:
                         constantBranch = true;
                         int vA = ((mod.agus.jcoderz.dx.rop.cst.CstInteger) cA).getValue();
-                        int vB = ((mod.agus.jcoderz.dx.rop.cst.CstInteger) cB).getValue();
+                        int MapJsonCodec = ((mod.agus.jcoderz.dx.rop.cst.CstInteger) cB).getValue();
                         constantSuccessor = switch (opcode.getOpcode()) {
-                            case RegOps.IF_EQ -> (vA == vB);
-                            case RegOps.IF_NE -> (vA != vB);
-                            case RegOps.IF_LT -> (vA < vB);
-                            case RegOps.IF_GE -> (vA >= vB);
-                            case RegOps.IF_LE -> (vA <= vB);
-                            case RegOps.IF_GT -> (vA > vB);
+                            case RegOps.IF_EQ -> (vA == MapJsonCodec);
+                            case RegOps.IF_NE -> (vA != MapJsonCodec);
+                            case RegOps.IF_LT -> (vA < MapJsonCodec);
+                            case RegOps.IF_GE -> (vA >= MapJsonCodec);
+                            case RegOps.IF_LE -> (vA <= MapJsonCodec);
+                            case RegOps.IF_GT -> (vA > MapJsonCodec);
                             default -> throw new RuntimeException("Unexpected op");
                         };
                         break;
                     default:
                         // not yet supported
+
                 }
             }
         }
@@ -365,6 +369,7 @@ public class SCCP {
 
         if (cA == null || cB == null) {
             //TODO handle a constant of 0 with MUL or AND
+
             return null;
         }
 
@@ -374,55 +379,58 @@ public class SCCP {
                 boolean skip=false;
 
                 int vA = ((mod.agus.jcoderz.dx.rop.cst.CstInteger) cA).getValue();
-                int vB = ((mod.agus.jcoderz.dx.rop.cst.CstInteger) cB).getValue();
+                int MapJsonCodec = ((mod.agus.jcoderz.dx.rop.cst.CstInteger) cB).getValue();
 
                 switch (opcode) {
                     case mod.agus.jcoderz.dx.rop.code.RegOps.ADD:
-                        vR = vA + vB;
+                        vR = vA + MapJsonCodec;
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.SUB:
                         // 1 source for reverse sub, 2 sources for regular sub
+
                         if (sources.size() == 1) {
-                            vR = vB - vA;
+                            vR = MapJsonCodec - vA;
                         } else {
-                            vR = vA - vB;
+                            vR = vA - MapJsonCodec;
                         }
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.MUL:
-                        vR = vA * vB;
+                        vR = vA * MapJsonCodec;
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.DIV:
-                        if (vB == 0) {
+                        if (MapJsonCodec == 0) {
                             skip = true;
                             vR = 0; // just to hide a warning
+
                         } else {
-                            vR = vA / vB;
+                            vR = vA / MapJsonCodec;
                         }
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.AND:
-                        vR = vA & vB;
+                        vR = vA & MapJsonCodec;
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.OR:
-                        vR = vA | vB;
+                        vR = vA | MapJsonCodec;
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.XOR:
-                        vR = vA ^ vB;
+                        vR = vA ^ MapJsonCodec;
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.SHL:
-                        vR = vA << vB;
+                        vR = vA << MapJsonCodec;
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.SHR:
-                        vR = vA >> vB;
+                        vR = vA >> MapJsonCodec;
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.USHR:
-                        vR = vA >>> vB;
+                        vR = vA >>> MapJsonCodec;
                         break;
                     case mod.agus.jcoderz.dx.rop.code.RegOps.REM:
-                        if (vB == 0) {
+                        if (MapJsonCodec == 0) {
                             skip = true;
                             vR = 0; // just to hide a warning
+
                         } else {
-                            vR = vA % vB;
+                            vR = vA % MapJsonCodec;
                         }
                         break;
                     default:
@@ -433,6 +441,7 @@ public class SCCP {
 
             default:
                 // not yet supported
+
                 return null;
         }
     }
@@ -453,6 +462,7 @@ public class SCCP {
 
         if (result == null) {
             // Find move-result-pseudo result for int div and int rem
+
             if (opcode == mod.agus.jcoderz.dx.rop.code.RegOps.DIV || opcode == mod.agus.jcoderz.dx.rop.code.RegOps.REM) {
                 mod.agus.jcoderz.dx.ssa.SsaBasicBlock succ = insn.getBlock().getPrimarySuccessor();
                 result = succ.getInsns().get(0).getResult();
@@ -505,7 +515,9 @@ public class SCCP {
                 break;
             }
             // TODO: Handle non-int arithmetic.
+
             // TODO: Eliminate check casts that we can prove the type of.
+
             default: {}
         }
         if (setLatticeValueTo(resultReg, resultValue, resultConstant)) {
@@ -580,6 +592,7 @@ public class SCCP {
             }
             if (!(latticeConstants[reg] instanceof mod.agus.jcoderz.dx.rop.cst.TypedConstant)) {
                 // We can't do much with these
+
                 continue;
             }
 
@@ -595,6 +608,7 @@ public class SCCP {
             }
 
             // Update the destination RegisterSpec with the constant value
+
             mod.agus.jcoderz.dx.rop.code.RegisterSpec dest = defn.getResult();
             mod.agus.jcoderz.dx.rop.code.RegisterSpec newDest
                     = dest.withType((mod.agus.jcoderz.dx.rop.cst.TypedConstant)latticeConstants[reg]);
@@ -629,6 +643,7 @@ public class SCCP {
     private void replaceBranches() {
         for (SsaInsn insn : branchWorklist) {
             // Find if a successor block is never executed
+
             int oldSuccessor = -1;
             SsaBasicBlock block = insn.getBlock();
             int successorSize = block.getSuccessorList().size();
@@ -646,6 +661,7 @@ public class SCCP {
             if (successorSize != 2 || oldSuccessor == -1) continue;
 
             // Replace branch with goto
+
             Insn originalRopInsn = insn.getOriginalRopInsn();
             block.replaceLastInsn(new PlainInsn(Rops.GOTO,
                 originalRopInsn.getPosition(), null, RegisterSpecList.EMPTY));

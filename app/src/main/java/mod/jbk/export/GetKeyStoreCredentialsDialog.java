@@ -11,7 +11,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.io.File;
 import java.util.LinkedList;
 
-import a.a.a.wq;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.DialogKeystoreCredentialsBinding;
@@ -67,7 +67,7 @@ public class GetKeyStoreCredentialsDialog {
 
     private void onNextButtonClick(DialogInterface dialogInterface) {
         if (mode == SigningMode.OWN_KEY_STORE) {
-            if (new File(wq.j()).exists()) {
+            if (new File(WorkspacePathManager.j()).exists()) {
                 if (validateInputs()) {
                     dialogInterface.dismiss();
                     receiver.gotCredentials(new Credentials(

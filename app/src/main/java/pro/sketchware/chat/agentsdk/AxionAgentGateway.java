@@ -86,9 +86,13 @@ public final class AxionAgentGateway implements AgentLlmGateway, AgentLlmGateway
     @Override
     public void setDeltaListener(java.util.function.Consumer<String> listener) {
         // The runtime's listener REPLACES any previous one; setting null
+
         // clears it. No listener from a previous run can contaminate a new
+
         // one: the runtime sets it before every turn and clears it in the
+
         // turn's finally.
+
         this.turnDeltaListener = listener;
     }
 
@@ -148,6 +152,7 @@ public final class AxionAgentGateway implements AgentLlmGateway, AgentLlmGateway
             builder.setExternalSystemPrompt(systemPrompt);
         }
         // Item 11: the run's frozen identity wins over global preferences.
+
         String chatMode = fallbackChatMode;
         String providerId = "";
         String modelName = "";
@@ -160,7 +165,9 @@ public final class AxionAgentGateway implements AgentLlmGateway, AgentLlmGateway
             builder.setFrozenModelName(modelName);
         } else {
             // Fallback BEFORE the run starts (single-turn convenience paths):
+
             // read the global selection once — never refreshed per turn.
+
             android.content.SharedPreferences prefs =
                     pro.sketchware.SketchApplication.getContext()
                             .getSharedPreferences(pro.sketchware.chat.port.VoidPortSettings.PREFS_NAME,
@@ -189,7 +196,9 @@ public final class AxionAgentGateway implements AgentLlmGateway, AgentLlmGateway
                 }
                 content.append(delta);
                 // Item 6: the RUNTIME's listener is the streaming route; the
+
                 // constructor hook (if any) is a legacy secondary bridge.
+
                 java.util.function.Consumer<String> runtime = turnDeltaListener;
                 if (runtime != null) {
                     runtime.accept(delta);
@@ -223,6 +232,7 @@ public final class AxionAgentGateway implements AgentLlmGateway, AgentLlmGateway
             public void onFinalMessage(String fullContent, String fullReasoning, String msgFinishReason) {
                 if (fullContent != null && fullContent.length() > content.length()) {
                     // Providers that deliver one final message instead of deltas.
+
                     content.setLength(0);
                     content.append(fullContent);
                 }
@@ -242,8 +252,11 @@ public final class AxionAgentGateway implements AgentLlmGateway, AgentLlmGateway
         };
 
         // Tool-call execution contract: this listener declares the
+
         // NATIVE_TOOL_CALLS_ONLY protocol and this call carries the run's
+
         // FROZEN operationContext — the provider/model cannot change mid-run.
+
         aiService.sendStreamingMessage(request, tools, chatMode, operationContext, listener);
         try {
             if (!done.await(10, TimeUnit.MINUTES)) {
@@ -261,8 +274,11 @@ public final class AxionAgentGateway implements AgentLlmGateway, AgentLlmGateway
         }
 
         // Provider-structured calls only (tool-call execution contract):
+
         // deduplicated by callId (never by name). A JSON/XML/DSML block in
+
         // the text is text, and stays text.
+
         List<ToolCall> structured = new ArrayList<>();
         for (ToolCall call : toolCalls) {
             if (call != null && call.isValid() && !containsCallId(structured, call)) {

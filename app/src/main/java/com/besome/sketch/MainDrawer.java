@@ -23,7 +23,7 @@ import com.besome.sketch.help.ProgramInfoActivity;
 import com.besome.sketch.tools.NewKeyStoreActivity;
 import com.google.android.material.navigation.NavigationView;
 
-import a.a.a.mB;
+import pro.sketchware.editor.EditorViewUtils;
 import dev.chrisbanes.insetter.Insetter;
 import dev.chrisbanes.insetter.Side;
 import mod.hilal.saif.activities.tools.AppSettings;
@@ -68,12 +68,13 @@ public class MainDrawer extends NavigationView {
             initializeDrawerItems(item.getItemId());
 
             // Return false to prevent selection
+
             return false;
         });
     }
 
     private void initializeSocialLinks(@IdRes int id) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             @StringRes int url = -1;
             if (id == R.id.social_telegram) {
                 url = R.string.link_telegram_invite;

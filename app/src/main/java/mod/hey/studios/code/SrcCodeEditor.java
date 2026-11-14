@@ -43,7 +43,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 
-import a.a.a.Lx;
+import pro.sketchware.compiler.ComponentSourceGenerator;
 import io.github.rosemoe.sora.langs.java.JavaLanguage;
 import io.github.rosemoe.sora.lang.Language;
 import io.github.rosemoe.sora.langs.textmate.TextMateColorScheme;
@@ -156,6 +156,7 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
             XPath xPath = XPathFactory.newInstance().newXPath();
             NodeList nodeList = (NodeList) xPath.evaluate(
                     "//text()[normalize-space()='']", document, XPathConstants.NODESET);
+
             for (int i = 0; i < nodeList.getLength(); ++i) {
                 Node node = nodeList.item(i);
                 node.getParentNode().removeChild(node);
@@ -165,6 +166,7 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
             transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
             transformer.setOutputProperty(OutputKeys.INDENT, "yes");
             transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount",
+
                     String.valueOf(indentAmount));
 
             boolean omitXmlDecl = extras != null && extras.hasExtra("disableHeader");
@@ -197,6 +199,7 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
                     int indentBase = line.indexOf('<');
                     String baseIndent = " ".repeat(Math.max(0, indentBase));
                     String attrIndent = baseIndent + "    "; // 4-space attribute indent
+
 
                     boolean selfClosing = trimmed.endsWith("/>");
                     int tagEnd = trimmed.indexOf(' ');
@@ -442,7 +445,7 @@ public class SrcCodeEditor extends BaseAppCompatActivity {
                             String ss = b.toString();
 
                             try {
-                                ss = Lx.j(ss, true);
+                                ss = ComponentSourceGenerator.j(ss, true);
                             } catch (Exception e) {
                                 err = true;
                                 SketchwareUtil.toastError("Your code contains incorrectly nested parentheses");

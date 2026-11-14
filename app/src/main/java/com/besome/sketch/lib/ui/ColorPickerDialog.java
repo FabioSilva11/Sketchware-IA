@@ -26,13 +26,13 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import a.a.a.DB;
-import a.a.a.GB;
-import a.a.a.bB;
-import a.a.a.jC;
-import a.a.a.sq;
-import a.a.a.wq;
-import a.a.a.yq;
+import pro.sketchware.core.PreferenceStore;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.ViewPropertyValueMapper;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.workspace.ProjectWorkspaceManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.activities.resourceseditor.components.models.ColorModel;
@@ -63,10 +63,10 @@ public class ColorPickerDialog extends PopupWindow {
     private int k;
     private int l;
     private int m = -1;
-    private DB colorPref;
+    private PreferenceStore colorPref;
     private boolean hasMaterialColors;
     private Material3LibraryManager material3LibraryManager;
-    private yq yq;
+    private ProjectWorkspaceManager workspace;
     private ColorsEditorManager colorsEditorManager;
 
     public ColorPickerDialog(Activity activity, int var3, boolean isTransparentColor, boolean isNoneColor) {
@@ -79,8 +79,8 @@ public class ColorPickerDialog extends PopupWindow {
         super(activity);
         binding = ColorPickerBinding.inflate(activity.getLayoutInflater());
         sc_id = scId;
-        yq = new yq(activity, sc_id);
-        yq.a(jC.c(sc_id), jC.b(sc_id), jC.a(sc_id), a.a.a.yq.ExportType.SOURCE_CODE_VIEWING);
+        workspace = new ProjectWorkspaceManager(activity, sc_id);
+        workspace.a(ProjectDataManagerRegistry.c(sc_id), ProjectDataManagerRegistry.b(sc_id), ProjectDataManagerRegistry.a(sc_id), pro.sketchware.workspace.ProjectWorkspaceManager.ExportType.SOURCE_CODE_VIEWING);
         material3LibraryManager = new Material3LibraryManager(scId);
         colorsEditorManager = new ColorsEditorManager();
         hasMaterialColors = true;
@@ -116,7 +116,7 @@ public class ColorPickerDialog extends PopupWindow {
 
     public void initialize(Activity activity, String color, boolean isTransparentColor, boolean isNoneColor) {
         this.activity = activity;
-        colorPref = new DB(activity, "P24");
+        colorPref = new PreferenceStore(activity, "P24");
         initializeColorData(isTransparentColor, isNoneColor);
         initializeResColors();
         initializeAttrsList();
@@ -174,7 +174,7 @@ public class ColorPickerDialog extends PopupWindow {
         super.setFocusable(true);
         super.setOutsideTouchable(true);
         super.setContentView(binding.getRoot());
-        int[] widthAndHeight = GB.c(activity);
+        int[] widthAndHeight = DeviceEnvironmentUtils.c(activity);
         super.setWidth(widthAndHeight[0]);
         super.setHeight(widthAndHeight[1]);
         binding.colorList.setHasFixedSize(true);
@@ -201,11 +201,11 @@ public class ColorPickerDialog extends PopupWindow {
             colorGroupItem.tvColorName.setOnClickListener(v -> {
                 l = finalJ;
                 if (finalJ == 0 && colorGroups.get(finalJ).length == 0) {
-                    bB.b(activity, activity.getString(R.string.picker_color_custom_color_not_found), 1).show();
+                    ToastFactory.b(activity, activity.getString(R.string.picker_color_custom_color_not_found), 1).show();
                     return;
                 }
                 if (finalJ == 1 && colorGroups.get(finalJ).length == 0) {
-                    bB.b(activity, activity.getString(R.string.picker_color_xml_is_empty), 1).show();
+                    ToastFactory.b(activity, activity.getString(R.string.picker_color_xml_is_empty), 1).show();
                     return;
                 }
                 if (sc_id != null && finalJ == 2 && !material3LibraryManager.isMaterial3Enabled()) {
@@ -314,6 +314,7 @@ public class ColorPickerDialog extends PopupWindow {
                 int darkColor = PropertiesUtil.parseColor(colorsEditorManager.getColorValueFromAttrs(activity, input, 1, true));
 
                 // viewBinding don't support include , so here we should use findViewById
+
                 dialogBinding.getRoot().findViewById(R.id.dark_container).setBackgroundColor(darkColor);
                 dialogBinding.getRoot().findViewById(R.id.light_container).setBackgroundColor(lightColor);
                 ((TextView) dialogBinding.getRoot().findViewById(R.id.tvAttrName)).setText(input);
@@ -385,60 +386,60 @@ public class ColorPickerDialog extends PopupWindow {
             colorList.add(new ColorBean("#FFF6F6F6", "colors.xml", "#212121", R.drawable.checked_grey_32));
         if (hasMaterialColors)
             colorList.add(new ColorBean("#FFF6F6F6", "Material 3 Colors", "#212121", R.drawable.checked_grey_32));
-        colorList.add(sq.p[0]);
-        colorList.add(sq.q[0]);
-        colorList.add(sq.r[0]);
-        colorList.add(sq.s[0]);
-        colorList.add(sq.t[0]);
-        colorList.add(sq.u[0]);
-        colorList.add(sq.v[0]);
-        colorList.add(sq.w[0]);
-        colorList.add(sq.x[0]);
-        colorList.add(sq.y[0]);
-        colorList.add(sq.z[0]);
-        colorList.add(sq.A[0]);
-        colorList.add(sq.B[0]);
-        colorList.add(sq.C[0]);
-        colorList.add(sq.D[0]);
-        colorList.add(sq.E[0]);
-        colorList.add(sq.F[0]);
-        colorList.add(sq.G[0]);
-        colorList.add(sq.H[0]);
-        colorList.add(sq.I[0]);
-        colorList.add(sq.J[0]);
+        colorList.add(ViewPropertyValueMapper.p[0]);
+        colorList.add(ViewPropertyValueMapper.q[0]);
+        colorList.add(ViewPropertyValueMapper.r[0]);
+        colorList.add(ViewPropertyValueMapper.s[0]);
+        colorList.add(ViewPropertyValueMapper.t[0]);
+        colorList.add(ViewPropertyValueMapper.u[0]);
+        colorList.add(ViewPropertyValueMapper.v[0]);
+        colorList.add(ViewPropertyValueMapper.w[0]);
+        colorList.add(ViewPropertyValueMapper.x[0]);
+        colorList.add(ViewPropertyValueMapper.y[0]);
+        colorList.add(ViewPropertyValueMapper.z[0]);
+        colorList.add(ViewPropertyValueMapper.A[0]);
+        colorList.add(ViewPropertyValueMapper.B[0]);
+        colorList.add(ViewPropertyValueMapper.C[0]);
+        colorList.add(ViewPropertyValueMapper.D[0]);
+        colorList.add(ViewPropertyValueMapper.E[0]);
+        colorList.add(ViewPropertyValueMapper.F[0]);
+        colorList.add(ViewPropertyValueMapper.G[0]);
+        colorList.add(ViewPropertyValueMapper.H[0]);
+        colorList.add(ViewPropertyValueMapper.I[0]);
+        colorList.add(ViewPropertyValueMapper.J[0]);
         colorGroups.add(getSavedColorBeans());
         if (sc_id != null)
-            colorGroups.add(sq.p);
+            colorGroups.add(ViewPropertyValueMapper.p);
         if (hasMaterialColors)
-            colorGroups.add(sq.p);
-        colorGroups.add(sq.p);
-        colorGroups.add(sq.q);
-        colorGroups.add(sq.r);
-        colorGroups.add(sq.s);
-        colorGroups.add(sq.t);
-        colorGroups.add(sq.u);
-        colorGroups.add(sq.v);
-        colorGroups.add(sq.w);
-        colorGroups.add(sq.x);
-        colorGroups.add(sq.y);
-        colorGroups.add(sq.z);
-        colorGroups.add(sq.A);
-        colorGroups.add(sq.B);
-        colorGroups.add(sq.C);
-        colorGroups.add(sq.D);
-        colorGroups.add(sq.E);
-        colorGroups.add(sq.F);
-        colorGroups.add(sq.G);
-        colorGroups.add(sq.H);
-        colorGroups.add(sq.I);
-        colorGroups.add(sq.J);
+            colorGroups.add(ViewPropertyValueMapper.p);
+        colorGroups.add(ViewPropertyValueMapper.p);
+        colorGroups.add(ViewPropertyValueMapper.q);
+        colorGroups.add(ViewPropertyValueMapper.r);
+        colorGroups.add(ViewPropertyValueMapper.s);
+        colorGroups.add(ViewPropertyValueMapper.t);
+        colorGroups.add(ViewPropertyValueMapper.u);
+        colorGroups.add(ViewPropertyValueMapper.v);
+        colorGroups.add(ViewPropertyValueMapper.w);
+        colorGroups.add(ViewPropertyValueMapper.x);
+        colorGroups.add(ViewPropertyValueMapper.y);
+        colorGroups.add(ViewPropertyValueMapper.z);
+        colorGroups.add(ViewPropertyValueMapper.A);
+        colorGroups.add(ViewPropertyValueMapper.B);
+        colorGroups.add(ViewPropertyValueMapper.C);
+        colorGroups.add(ViewPropertyValueMapper.D);
+        colorGroups.add(ViewPropertyValueMapper.E);
+        colorGroups.add(ViewPropertyValueMapper.F);
+        colorGroups.add(ViewPropertyValueMapper.G);
+        colorGroups.add(ViewPropertyValueMapper.H);
+        colorGroups.add(ViewPropertyValueMapper.I);
+        colorGroups.add(ViewPropertyValueMapper.J);
         if (isColorTransparent) {
-            colorList.add(sq.K[0]);
-            colorGroups.add(sq.K);
+            colorList.add(ViewPropertyValueMapper.K[0]);
+            colorGroups.add(ViewPropertyValueMapper.K);
         }
         if (isColorNone) {
-            colorList.add(sq.L[0]);
-            colorGroups.add(sq.L);
+            colorList.add(ViewPropertyValueMapper.L[0]);
+            colorGroups.add(ViewPropertyValueMapper.L);
         }
     }
 
@@ -503,7 +504,7 @@ public class ColorPickerDialog extends PopupWindow {
     private void savePickedColor(String color) {
         String savedColors = colorPref.f("P24I1");
         if (savedColors.contains(color)) {
-            bB.b(activity, activity.getString(R.string.picker_color_already_exist), 0).show();
+            ToastFactory.b(activity, activity.getString(R.string.picker_color_already_exist), 0).show();
         } else {
             String colorsToSave = color + "," + savedColors;
             colorPref.a("P24I1", (Object) colorsToSave);
@@ -606,14 +607,14 @@ public class ColorPickerDialog extends PopupWindow {
     }
 
     private void initializeResColors() {
-        if (sc_id == null || yq == null)
+        if (sc_id == null || workspace == null)
             return;
-        String fileNightPath = wq.b(sc_id) + "/files/resource/values-night/colors.xml";
+        String fileNightPath = WorkspacePathManager.b(sc_id) + "/files/resource/values-night/colors.xml";
 
         ArrayList<ColorModel> colorList = new ArrayList<>();
         ArrayList<ColorModel> colorNightList = new ArrayList<>();
 
-        colorsEditorManager.parseColorsXML(colorList, yq.getXMLColor());
+        colorsEditorManager.parseColorsXML(colorList, workspace.getXMLColor());
         colorsEditorManager.parseColorsXML(colorNightList, FileUtil.readFileIfExist(fileNightPath));
 
         HashMap<String, String> nightColorsMap = new HashMap<>();

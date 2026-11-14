@@ -113,6 +113,20 @@
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.SketchwarePro" />
         <activity
+            android:name="pro.sketchware.activities.game.GameEngineActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard"
+            android:windowSoftInputMode="stateHidden|adjustResize"
+            android:theme="@style/Theme.SketchwarePro.SmallToolbar" />
+        <activity
+            android:name="pro.sketchware.activities.game.GameLogicEditorActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard"
+            android:windowSoftInputMode="stateHidden|adjustResize"
+            android:theme="@style/Theme.SketchwarePro.SmallToolbar" />
+        <activity
+            android:name="pro.sketchware.activities.game.runtime.GamePreviewActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|keyboard"
+            android:theme="@style/Theme.SketchwarePro" />
+        <activity
             android:name="pro.sketchware.activities.splash.SplashActivity"
             android:exported="true"
             android:theme="@style/Theme.SketchwarePro">

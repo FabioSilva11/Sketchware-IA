@@ -1,6 +1,5 @@
 package pro.sketchware.activities.resourceseditor.components.utils;
 
-import static com.besome.sketch.design.DesignActivity.sc_id;
 import static mod.hey.studios.util.ProjectFile.getDefaultColor;
 
 import android.annotation.SuppressLint;
@@ -9,6 +8,7 @@ import android.view.ContextThemeWrapper;
 
 import androidx.core.content.ContextCompat;
 
+import com.besome.sketch.design.DesignActivity;
 import com.besome.sketch.editor.manage.library.material3.Material3LibraryManager;
 import com.google.android.material.color.MaterialColors;
 
@@ -27,9 +27,10 @@ import java.util.Set;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import a.a.a.lC;
-import a.a.a.wq;
-import a.a.a.yB;
+import mod.hey.studios.project.ProjectTracker;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.MapValueUtils;
 import pro.sketchware.R;
 import pro.sketchware.SketchApplication;
 import pro.sketchware.activities.resourceseditor.components.models.ColorModel;
@@ -51,15 +52,28 @@ public class ColorsEditorManager {
     private final ArrayList<ColorModel> resColorsNightList = new ArrayList<>();
 
     private final Material3LibraryManager material3LibraryManager;
+    private final String scId;
 
     public ColorsEditorManager() {
-        material3LibraryManager = new Material3LibraryManager(sc_id);
+        scId = resolveScId();
+        material3LibraryManager = new Material3LibraryManager(scId);
         initialize();
     }
 
+    private static String resolveScId() {
+        if (DesignActivity.sc_id != null && !DesignActivity.sc_id.isEmpty()) {
+            return DesignActivity.sc_id;
+        }
+        return ProjectTracker.SC_ID;
+    }
+
     public void initialize() {
-        String filePath = wq.b(sc_id) + "/files/resource/values/colors.xml";
-        String filePathNight = wq.b(sc_id) + "/files/resource/values-night/colors.xml";
+        String activeScId = (scId != null && !scId.isEmpty()) ? scId : resolveScId();
+        if (activeScId == null || activeScId.isEmpty()) {
+            return;
+        }
+        String filePath = WorkspacePathManager.b(activeScId) + "/files/resource/values/colors.xml";
+        String filePathNight = WorkspacePathManager.b(activeScId) + "/files/resource/values-night/colors.xml";
         parseColorsXML(resColorsList, FileUtil.readFileIfExist(filePath));
         parseColorsXML(resColorsNightList, FileUtil.readFileIfExist(filePathNight));
     }
@@ -161,10 +175,12 @@ public class ColorsEditorManager {
         ArrayList<ColorModel> otherColors = new ArrayList<>();
         boolean hasChanges = false; // Flag to track changes
 
+
         try {
             colorList.clear();
             notesMap.clear();
             // Parse the XML using DocumentBuilder
+
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document document = builder.parse(new InputSource(new StringReader(colorXml)));
@@ -177,6 +193,7 @@ public class ColorsEditorManager {
 
                 if (node.getNodeType() == Node.COMMENT_NODE) {
                     // Save comments in notesMap
+
                     notesMap.put(colorList.size(), node.getNodeValue().trim());
                 } else if (node.getNodeType() == Node.ELEMENT_NODE && node.getNodeName().equals("color")) {
                     Element element = (Element) node;
@@ -197,14 +214,15 @@ public class ColorsEditorManager {
                 }
             }
 
-            if (isDefaultVariant && defaultColors != null && sc_id != null) {
-                HashMap<String, Object> metadata = lC.b(sc_id);
+            String activeScId = (scId != null && !scId.isEmpty()) ? scId : resolveScId();
+            if (isDefaultVariant && defaultColors != null && activeScId != null && !activeScId.isEmpty()) {
+                HashMap<String, Object> metadata = RecentProjectsRegistry.b(activeScId);
                 Set<String> missingKeys = new HashSet<>(defaultColors.keySet());
                 foundPrimaryColors.forEach(missingKeys::remove);
 
                 if (!missingKeys.isEmpty()) {
                     for (String missingColor : missingKeys) {
-                        String colorHex = String.format("#%06X", yB.a(metadata, defaultColors.get(missingColor), getDefaultColor(defaultColors.get(missingColor))) & 0xffffff);
+                        String colorHex = String.format("#%06X", MapValueUtils.a(metadata, defaultColors.get(missingColor), getDefaultColor(defaultColors.get(missingColor))) & 0xffffff);
                         ColorModel missingColorModel = new ColorModel(missingColor, colorHex);
                         colorOrderList.add(missingColorModel);
                         hasChanges = true;
@@ -213,7 +231,9 @@ public class ColorsEditorManager {
             }
 
             // Reorder colors
+
             ArrayList<ColorModel> previousColorList = new ArrayList<>(colorList); // Save the original list for comparison
+
             colorList.clear();
             colorList.addAll(colorOrderList);
             colorList.addAll(otherColors);
@@ -223,8 +243,9 @@ public class ColorsEditorManager {
             }
 
             // Save the updated XML if changes are detected
-            if (hasChanges) {
-                XmlUtil.saveXml(wq.b(sc_id) + "/files/resource/values/colors.xml", convertListToXml(colorList, notesMap));
+
+            if (hasChanges && activeScId != null && !activeScId.isEmpty()) {
+                XmlUtil.saveXml(WorkspacePathManager.b(activeScId) + "/files/resource/values/colors.xml", convertListToXml(colorList, notesMap));
             }
 
         } catch (Exception e) {

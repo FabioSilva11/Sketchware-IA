@@ -42,13 +42,14 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import com.besome.sketch.beans.ProjectResourceBean;
-import a.a.a.wq;
+import pro.sketchware.workspace.WorkspacePathManager;
 import pro.sketchware.utility.TranslationFunction;
 
 public class ManageImageWebSearchActivity extends AppCompatActivity {
 
     private static final String PINTEREST_HOST = "br.pinterest.com";
     private static final String PINTEREST_BASE_URL = "https://" + PINTEREST_HOST;
+
     private static final String USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
                     "(KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
@@ -160,6 +161,7 @@ public class ManageImageWebSearchActivity extends AppCompatActivity {
 
     private void setLoading(boolean loading) {
         // Sem indicador visual de loading; apenas desativa a SearchView
+
         if (searchView != null) {
             searchView.setEnabled(!loading);
         }
@@ -220,7 +222,7 @@ public class ManageImageWebSearchActivity extends AppCompatActivity {
                     bytes = body.bytes();
                 }
                 String ext = guessImageExtension(imageUrl);
-                File dir = new File(wq.v());
+                File dir = new File(WorkspacePathManager.v());
                 if (!dir.exists()) dir.mkdirs();
                 String base = "pinterest_" + System.currentTimeMillis();
                 File out = new File(dir, base + ext);
@@ -229,7 +231,9 @@ public class ManageImageWebSearchActivity extends AppCompatActivity {
                 ArrayList<ProjectResourceBean> list = new ArrayList<>();
                 ProjectResourceBean bean = new ProjectResourceBean(ProjectResourceBean.PROJECT_RES_TYPE_FILE, base, out.getAbsolutePath());
                 bean.savedPos = 1; // from external path
+
                 bean.isNew = true; // ensure project save picks it up
+
                 list.add(bean);
 
                 runOnUiThread(() -> {

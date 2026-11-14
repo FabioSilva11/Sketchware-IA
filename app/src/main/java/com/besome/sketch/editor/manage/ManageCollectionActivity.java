@@ -48,15 +48,15 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Objects;
 
-import a.a.a.Mp;
-import a.a.a.Np;
-import a.a.a.Op;
-import a.a.a.Pp;
-import a.a.a.Qp;
-import a.a.a.Rp;
-import a.a.a.bB;
-import a.a.a.mB;
-import a.a.a.wq;
+import pro.sketchware.editor.BlockCollectionManager;
+import pro.sketchware.filemanagers.ImageResourceManager;
+import pro.sketchware.filemanagers.SoundResourceManager;
+import pro.sketchware.editor.MoreBlockCollectionManager;
+import pro.sketchware.filemanagers.AnimationResourceManager;
+import pro.sketchware.editor.WidgetCollectionManager;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.hey.studios.util.Helper;
 import mod.jbk.util.AudioMetadata;
 import mod.jbk.util.BlockUtil;
@@ -183,7 +183,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void openWidgetDetails(int position) {
-        String widgetName = Rp.h().g().get(position);
+        String widgetName = WidgetCollectionManager.h().g().get(position);
         Intent intent = new Intent(getApplicationContext(), ShowWidgetCollectionActivity.class);
         intent.putExtra("sc_id", sc_id);
         intent.putExtra("widget_name", widgetName);
@@ -191,14 +191,14 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void openBlockDetails(int position) {
-        String blockName = Mp.h().g().get(position);
+        String blockName = BlockCollectionManager.h().g().get(position);
         Intent intent = new Intent(getApplicationContext(), ShowBlockCollectionActivity.class);
         intent.putExtra("block_name", blockName);
         startActivityForResult(intent, REQUEST_CODE_SHOW_BLOCK_DETAILS);
     }
 
     private void openMoreBlockDetails(int position) {
-        String blockName = Pp.h().g().get(position);
+        String blockName = MoreBlockCollectionManager.h().g().get(position);
         Intent intent = new Intent(getApplicationContext(), ShowMoreBlockCollectionActivity.class);
         intent.putExtra("block_name", blockName);
         startActivityForResult(intent, REQUEST_CODE_SHOW_MORE_BLOCK_DETAILS);
@@ -222,7 +222,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void setSelectedIndex(int item) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             if (item != -1 && item != currentItemId) {
                 if (currentItemId == 1) {
                     collectionAdapter.stopPlayback();
@@ -263,28 +263,28 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
                 case 0 -> {
                     for (ProjectResourceBean bean : images) {
                         if (bean.isSelected) {
-                            Op.g().a(bean.resName, false);
+                            SoundResourceManager.g().a(bean.resName, false);
                         }
                     }
-                    Op.g().e();
+                    SoundResourceManager.g().e();
                     loadImages();
                 }
                 case 1 -> {
                     for (ProjectResourceBean bean : sounds) {
                         if (bean.isSelected) {
-                            Qp.g().a(bean.resName, false);
+                            AnimationResourceManager.g().a(bean.resName, false);
                         }
                     }
-                    Qp.g().e();
+                    AnimationResourceManager.g().e();
                     loadSounds();
                 }
                 case 2 -> {
                     for (ProjectResourceBean bean : fonts) {
                         if (bean.isSelected) {
-                            Np.g().a(bean.resName, false);
+                            ImageResourceManager.g().a(bean.resName, false);
                         }
                     }
-                    Np.g().e();
+                    ImageResourceManager.g().e();
                     loadFonts();
                 }
                 case 3 -> {
@@ -294,28 +294,28 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
                                 hasDeletedWidget = true;
                             }
 
-                            Rp.h().a(bean.name, false);
+                            WidgetCollectionManager.h().a(bean.name, false);
                         }
                     }
-                    Rp.h().e();
+                    WidgetCollectionManager.h().e();
                     loadWidgets();
                 }
                 case 4 -> {
                     for (BlockCollectionBean bean : blocks) {
                         if (bean.isSelected) {
-                            Mp.h().a(bean.name, false);
+                            BlockCollectionManager.h().a(bean.name, false);
                         }
                     }
-                    Mp.h().e();
+                    BlockCollectionManager.h().e();
                     loadBlocks();
                 }
                 default -> {
                     for (MoreBlockCollectionBean bean : moreBlocks) {
                         if (bean.isSelected) {
-                            Pp.h().a(bean.name, false);
+                            MoreBlockCollectionManager.h().a(bean.name, false);
                         }
                     }
-                    Pp.h().e();
+                    MoreBlockCollectionManager.h().e();
                     loadMoreBlocks();
                 }
             }
@@ -328,7 +328,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
             fab.show();
         }
 
-        bB.a(getApplicationContext(), Helper.getResString(R.string.common_message_complete_delete), 1).show();
+        ToastFactory.a(getApplicationContext(), Helper.getResString(R.string.common_message_complete_delete), 1).show();
         collectionAdapter.notifyDataSetChanged();
     }
 
@@ -354,7 +354,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(true);
         toolbar.setNavigationOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 onBackPressed();
             }
         });
@@ -494,12 +494,12 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void loadAllCollectionItems() {
-        images = Op.g().f();
-        sounds = Qp.g().f();
-        fonts = Np.g().f();
-        widgets = Rp.h().f();
-        blocks = Mp.h().f();
-        moreBlocks = Pp.h().f();
+        images = SoundResourceManager.g().f();
+        sounds = AnimationResourceManager.g().f();
+        fonts = ImageResourceManager.g().f();
+        widgets = WidgetCollectionManager.h().f();
+        blocks = BlockCollectionManager.h().f();
+        moreBlocks = MoreBlockCollectionManager.h().f();
 
         if (currentItemId == -1) {
             collectionAdapter.currentViewType = 0;
@@ -514,7 +514,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void loadImages() {
-        images = Op.g().f();
+        images = SoundResourceManager.g().f();
         if (currentItemId == 0) {
             collectionAdapter.setData(images);
             collectionAdapter.currentViewType = 0;
@@ -524,7 +524,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void loadSounds() {
-        sounds = Qp.g().f();
+        sounds = AnimationResourceManager.g().f();
         if (currentItemId == 1) {
             collectionAdapter.setData(sounds);
             collectionAdapter.currentViewType = 1;
@@ -534,7 +534,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void loadFonts() {
-        fonts = Np.g().f();
+        fonts = ImageResourceManager.g().f();
         if (currentItemId == 2) {
             collectionAdapter.setData(fonts);
             collectionAdapter.currentViewType = 2;
@@ -544,7 +544,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void loadWidgets() {
-        widgets = Rp.h().f();
+        widgets = WidgetCollectionManager.h().f();
         if (currentItemId == 3) {
             collectionAdapter.setData(widgets);
             collectionAdapter.currentViewType = 3;
@@ -554,7 +554,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void loadBlocks() {
-        blocks = Mp.h().f();
+        blocks = BlockCollectionManager.h().f();
         if (currentItemId == 4) {
             collectionAdapter.setData(blocks);
             collectionAdapter.currentViewType = 4;
@@ -564,7 +564,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
     }
 
     private void loadMoreBlocks() {
-        moreBlocks = Pp.h().f();
+        moreBlocks = MoreBlockCollectionManager.h().f();
         if (currentItemId == 5) {
             collectionAdapter.setData(moreBlocks);
             collectionAdapter.currentViewType = 5;
@@ -666,7 +666,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
 
             Glide.with(getApplicationContext())
                     .asBitmap()
-                    .load(wq.a() + File.separator + "image" + File.separator + "data" + File.separator + bean.resFullName)
+                    .load(WorkspacePathManager.a() + File.separator + "image" + File.separator + "data" + File.separator + bean.resFullName)
                     .centerCrop()
                     .error(R.drawable.ic_remove_grey600_24dp)
                     .into(new BitmapImageViewTarget(holder.image).getView());
@@ -729,7 +729,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
             holder.name.setText(bean.resName + ".ttf");
 
             try {
-                holder.preview.setTypeface(Typeface.createFromFile(wq.a() + File.separator + "font" + File.separator + "data" + File.separator + bean.resFullName));
+                holder.preview.setTypeface(Typeface.createFromFile(WorkspacePathManager.a() + File.separator + "font" + File.separator + "data" + File.separator + bean.resFullName));
                 holder.preview.setText(Helper.getResString(R.string.design_manager_font_description_example_sentence));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -866,7 +866,7 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
 
         @Override
         public Path getAudio(int position) {
-            return Paths.get(wq.a(), "sound", "data", getData(position).resFullName);
+            return Paths.get(WorkspacePathManager.a(), "sound", "data", getData(position).resFullName);
         }
 
         private class BlockCollectionViewHolder extends SoundlessViewHolder {
@@ -908,10 +908,10 @@ public class ManageCollectionActivity extends BaseAppCompatActivity implements V
                     new MaterialAlertDialogBuilder(ManageCollectionActivity.this)
                             .setTitle("Excluir " + bean.name + "?")
                             .setPositiveButton(R.string.common_word_delete, (dialog, which) -> {
-                                Pp.h().a(bean.name, false);
-                                Pp.h().e();
+                                MoreBlockCollectionManager.h().a(bean.name, false);
+                                MoreBlockCollectionManager.h().e();
                                 loadMoreBlocks();
-                                bB.a(getApplicationContext(), Helper.getResString(R.string.common_message_complete_delete), 1).show();
+                                ToastFactory.a(getApplicationContext(), Helper.getResString(R.string.common_message_complete_delete), 1).show();
                                 collectionAdapter.notifyDataSetChanged();
                             })
                             .setNegativeButton(R.string.common_word_cancel, null)

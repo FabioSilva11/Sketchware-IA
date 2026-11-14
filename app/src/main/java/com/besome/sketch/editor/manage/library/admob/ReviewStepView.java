@@ -17,8 +17,8 @@ import androidx.viewbinding.ViewBinding;
 import com.besome.sketch.beans.AdTestDeviceBean;
 import com.besome.sketch.beans.ProjectLibraryBean;
 
-import a.a.a.Uu;
-import a.a.a.gB;
+import pro.sketchware.beans.ProjectLibraryDataProvider;
+import pro.sketchware.editor.ViewAnimationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ManageLibraryAdmobPreviewBinding;
@@ -26,7 +26,7 @@ import pro.sketchware.databinding.ManageLibrarySettingAdmobTestDeviceItemBinding
 import pro.sketchware.lib.base.BaseViewBindingAdapter;
 import pro.sketchware.utility.TranslationFunction;
 
-public class ReviewStepView extends LinearLayout implements Uu {
+public class ReviewStepView extends LinearLayout implements ProjectLibraryDataProvider {
 
     private TestDevicesAdapter adapter;
     private ManageLibraryAdmobPreviewBinding binding;
@@ -39,7 +39,7 @@ public class ReviewStepView extends LinearLayout implements Uu {
     @SuppressLint("SetTextI18n")
     private void initialize(Context context) {
         binding = ManageLibraryAdmobPreviewBinding.inflate(LayoutInflater.from(context), this, true);
-        gB.b(this, 600, 200, null);
+        ViewAnimationUtils.b(this, 600, 200, null);
         binding.tvEnable.setText(Helper.getResString(R.string.design_library_settings_title_enabled));
         binding.tvTitleBanner.setText(Helper.getResString(R.string.design_library_admob_title_banner));
 

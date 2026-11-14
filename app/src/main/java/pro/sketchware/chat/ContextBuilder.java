@@ -138,7 +138,9 @@ public class ContextBuilder {
     private final String scId;
     private final List<ChatMessage> messages;
     // Item 19 of the migration: budgets come from ContextBudget (single
+
     // source of truth) — no second set of independent constants here.
+
     private pro.sketchware.chat.agentsdk.ContextBudget budget =
             pro.sketchware.chat.agentsdk.ContextBudget.defaults();
     /** Unused placeholder kept for binary compatibility; budgets live in ContextBudget. */
@@ -236,8 +238,11 @@ public class ContextBuilder {
     public Result build(String latestUserMessage, String chatMode, String providerId) {
         SharedPreferences prefs = VoidPortSettings.prefs(SketchApplication.getContext());
         // Item 11 of the migration: when a run freezes its model identity, the
+
         // builder resolves capabilities from the FROZEN model — never from the
+
         // mutable global preference (which may already point to another model).
+
         if (frozenModelName != null && !frozenModelName.isEmpty()) {
             currentModelName = frozenModelName;
         } else {
@@ -274,6 +279,7 @@ public class ContextBuilder {
         }
 
         // Single calculator (item 19): the same formula ContextBudget owns.
+
         boolean reasoningEnabled = capabilities.reasoningCapabilities.supportsReasoning
                 && !capabilities.reasoningCapabilities.canTurnOffReasoning;
         int reservedOutput = Math.max(1024, capabilities.effectiveReservedOutputTokenSpace(reasoningEnabled));
@@ -333,6 +339,7 @@ public class ContextBuilder {
                         : buildVoidImportantDetails(safeChatMode, providerFormat),
                 760);
         // A native Sketchware project needs its file formats explained whatever the prompt settings say.
+
         String projectId = runProjectId();
         String projectKindGuidance = ProjectPathResolver.nativeProject(projectId) != null
                 ? trimToTokens(buildSketchwareProjectGuidance(projectId), 900)
@@ -368,7 +375,9 @@ public class ContextBuilder {
         requiredSections.add(trimToTokens(header, headerTokenCap));
         requiredSections.add(importantDetails);
         // Volatile termination/finish feedback is more important than stable
+
         // project and filesystem context and therefore receives budget first.
+
         requiredSections.add(agentState);
         requiredSections.add(projectKindGuidance);
         requiredSections.add(userInstructions);
@@ -464,8 +473,11 @@ public class ContextBuilder {
         builder.append("<system_info>\n");
         builder.append("- Android Host\n\n");
         // Single execution identity (items 12/13): when a run binding is in
+
         // flight, the RUN's workspace is the authoritative one — the UI's
+
         // active workspace is only a display fallback for host-only paths.
+
         pro.sketchware.chat.agentsdk.WorkspaceIdentity runIdentity =
                 pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveIdentity();
         String wsName = null;
@@ -509,9 +521,13 @@ public class ContextBuilder {
         String result = "NO FOLDERS OPEN";
         try {
             // Context-model migration (item 10): when a run is in flight the
+
             // cache key and the filesystem BOTH come from the run's identity,
+
             // so cache[A] can never be backed by filesystem[B]. The legacy
+
             // scId key is kept for non-run callers (host-only assembly).
+
             pro.sketchware.chat.agentsdk.WorkspaceIdentity runIdentity =
                     pro.sketchware.chat.agentsdk.RuntimeFileContext.effectiveIdentity();
             pro.sketchware.chat.workspace.WorkspaceFileSystem fs =
@@ -721,16 +737,24 @@ public class ContextBuilder {
                     + "- The remaining contents should be a code description of the change to make to the file.\n"
                     + "Your description is the only context that will be given to another LLM to apply the suggested edit, so it must be accurate and complete.\n"
                     + "Always bias towards writing as little as possible - NEVER write the whole file. Use comments like \"// ... existing code ...\" to condense your writing.\n"
+
                     + "Here's an example of a good code block:\n"
                     + "```typescript\n"
                     + "/Users/username/Dekstop/my_project/app.ts\n"
                     + "// ... existing code ...\n"
+
                     + "// {{change 1}}\n"
+
                     + "// ... existing code ...\n"
+
                     + "// {{change 2}}\n"
+
                     + "// ... existing code ...\n"
+
                     + "// {{change 3}}\n"
+
                     + "// ... existing code ...\n"
+
                     + "```");
         }
 
@@ -852,7 +876,9 @@ public class ContextBuilder {
                     String content = trimToTokens(safe(original.getLlmContent()), userMessageBudget);
                     if (!content.isEmpty()) {
                         // Compacted/older turns retain their bounded text history,
+
                         // but must not re-upload old binary attachments every loop.
+
                         simpleMessages.add(SimpleMessage.user(content, null));
                     }
                     break;
@@ -919,9 +945,13 @@ public class ContextBuilder {
         }
         if (finalResponseOnly) {
             // A tool result is normally the last history item and encourages
+
             // some providers to continue the tool protocol even when the native
+
             // catalog is empty. End the request with an explicit host directive
+
             // in every provider format.
+
             simpleMessages.add(SimpleMessage.user(
                     "[Host termination directive]\n"
                             + "The tool phase is complete and no tools are available. "
@@ -1021,8 +1051,11 @@ public class ContextBuilder {
             return message == null ? "" : safe(message.getLlmContent());
         }
         // This method is reached from AgentManager's chat-context-builder thread.
+
         // Text-like external files are converted to bounded plain text here, which
+
         // works with every OpenAI-compatible Chat Completions endpoint.
+
         String contextPayload = ChatReferenceManager.buildContextPayload(
                 SketchApplication.getContext(), references);
         return ChatReferenceManager.buildLlmUserContent(
@@ -1259,8 +1292,11 @@ public class ContextBuilder {
                     SimpleMessage previous = i > 0 ? simpleMessages.get(i - 1) : null;
                     if (previous == null || previous.role != SimpleMessage.ROLE_ASSISTANT) {
                         // Tool-only assistant turns have no visible ChatMessage because the
+
                         // streaming placeholder is removed. Rebuild the missing assistant
+
                         // XML call so the next model turn sees request -> call -> result.
+
                         if (pendingUser != null) {
                             array.put(pendingUser);
                             pendingUser = null;
@@ -1308,8 +1344,11 @@ public class ContextBuilder {
         JSONArray attachments = ChatReferenceManager.buildOpenAiImageContentParts(
                 SketchApplication.getContext(), message.references);
         // Generic OpenAI-compatible servers do not consistently implement the
+
         // Chat Completions file block. Keep them on the universal text-context
+
         // fallback while enabling native files for the official provider.
+
         if (ChatReferenceManager.supportsNativeOpenAiFileBlocks(providerId)) {
             appendAll(attachments, ChatReferenceManager.buildOpenAiFileContentParts(
                     SketchApplication.getContext(), message.references));
@@ -1432,7 +1471,9 @@ public class ContextBuilder {
     private JSONArray trimProviderMessages(JSONArray providerMessages, int historyBudgetTokens) {
         JSONArray trimmed = cloneArray(providerMessages);
         // Memory of Intent: the original user request must survive history pruning,
+
         // even when a compacted assistant summary precedes it.
+
         JSONObject firstUserMessage = findFirstMessageWithRole(trimmed, "user");
         JSONObject compactedSummary = findCompactedSummaryMessage(trimmed);
 
@@ -1513,7 +1554,9 @@ public class ContextBuilder {
     private int findOldestRemovableMessageIndex(JSONArray messages, JSONObject protectedMessage,
                                                 JSONObject protectedSummary) {
         // Preserve the newest message as well: it contains the request currently
+
         // being answered or the latest tool result required to continue the turn.
+
         for (int i = 0; i < messages.length() - 1; i++) {
             JSONObject candidate = messages.optJSONObject(i);
             if (candidate != protectedMessage && candidate != protectedSummary

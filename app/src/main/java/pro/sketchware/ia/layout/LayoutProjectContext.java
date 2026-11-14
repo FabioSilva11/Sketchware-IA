@@ -14,8 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 
-import a.a.a.jC;
-import a.a.a.wq;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.workspace.WorkspacePathManager;
 import pro.sketchware.activities.resourceseditor.components.utils.StringsEditorManager;
 import pro.sketchware.utility.FileUtil;
 
@@ -64,15 +64,15 @@ public final class LayoutProjectContext {
         String current = xmlName.endsWith(".xml") ? xmlName.substring(0, xmlName.length() - 4) : xmlName;
         TreeSet<String> layouts = new TreeSet<>();
         try {
-            for (ProjectFileBean file : jC.b(scId).b()) layouts.add(file.getXmlName().replace(".xml", ""));
-            for (ProjectFileBean file : jC.b(scId).c()) layouts.add(file.getXmlName().replace(".xml", ""));
+            for (ProjectFileBean file : ProjectDataManagerRegistry.b(scId).b()) layouts.add(file.getXmlName().replace(".xml", ""));
+            for (ProjectFileBean file : ProjectDataManagerRegistry.b(scId).c()) layouts.add(file.getXmlName().replace(".xml", ""));
         } catch (Exception ignored) {
         }
         layouts.remove(current);
 
         TreeSet<String> drawables = new TreeSet<>();
         try {
-            ArrayList<ProjectResourceBean> images = jC.d(scId).b;
+            ArrayList<ProjectResourceBean> images = ProjectDataManagerRegistry.d(scId).b;
             if (images != null) {
                 for (ProjectResourceBean image : images) {
                     if (image != null && image.resName != null && !image.resName.isBlank()) {
@@ -82,7 +82,7 @@ public final class LayoutProjectContext {
             }
         } catch (Exception ignored) {
         }
-        String resources = wq.b(scId) + "/files/resource/";
+        String resources = WorkspacePathManager.b(scId) + "/files/resource/";
         for (String folder : new String[]{"drawable", "drawable-xhdpi"}) {
             ArrayList<String> files = new ArrayList<>();
             FileUtil.listDir(resources + folder, files);
@@ -112,7 +112,7 @@ public final class LayoutProjectContext {
         boolean appCompat = false;
         boolean material3 = false;
         try {
-            appCompat = jC.c(scId).c().isEnabled();
+            appCompat = ProjectDataManagerRegistry.c(scId).c().isEnabled();
             material3 = appCompat && new Material3LibraryManager(scId).isMaterial3Enabled();
         } catch (Exception ignored) {
         }

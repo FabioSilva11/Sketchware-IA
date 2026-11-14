@@ -102,8 +102,11 @@ public final class WorkspaceToolProvider {
     }
 
     // ------------------------------------------------------------------
+
     // workspace read/search tools backed by VoidPortToolsService
+
     // ------------------------------------------------------------------
+
 
     /**
      * Legacy void tools that still have no newer contract (the six remaining
@@ -196,8 +199,11 @@ public final class WorkspaceToolProvider {
             new java.util.HashSet<>(Arrays.asList("delete_file_or_folder"));
 
     // WorkspaceMutationExecutor now lives in its own file (see
+
     // WorkspaceMutationExecutor.java): ToolRegistration -> WorkspaceMutationExecutor
+
     // -> VoidPortToolsService.executeTool(...).
+
 
     /** Executes one workspace read tool through the VoidToolsService bridge. */
     private static final class WorkspaceReadExecutor implements ToolExecutor {
@@ -217,8 +223,11 @@ public final class WorkspaceToolProvider {
     }
 
     // ------------------------------------------------------------------
+
     // apply_patch (FREEFORM)
+
     // ------------------------------------------------------------------
+
 
     private static void registerApplyPatch(AxionToolRegistry registry,
                                            ApplyPatchExecutor.PatchToolFactory factory) {
@@ -235,8 +244,11 @@ public final class WorkspaceToolProvider {
     }
 
     // ------------------------------------------------------------------
+
     // update_plan / request_user_input (FUNCTION)
+
     // ------------------------------------------------------------------
+
 
     private static void registerUpdatePlan(AxionToolRegistry registry) {
         Map<String, ToolJsonSchema> planItemProps = ToolJsonSchema.properties()
@@ -298,8 +310,11 @@ public final class WorkspaceToolProvider {
     }
 
     // ------------------------------------------------------------------
+
     // get_context_remaining (FUNCTION, Codex output contract)
+
     // ------------------------------------------------------------------
+
 
     private static void registerContextTools(AxionToolRegistry registry) {
         JSONObject emptyParams = ToolJsonSchema.object(
@@ -355,13 +370,18 @@ public final class WorkspaceToolProvider {
     }
 
     // ------------------------------------------------------------------
+
     // clock namespace
+
     // ------------------------------------------------------------------
+
 
     private static void registerClock(AxionToolRegistry registry) {
         Map<String, ToolJsonSchema> noProps = ToolJsonSchema.properties().build();
         // clock namespace declaration — namespaced tools are emitted in the
+
         // catalog only when a NAMESPACE container groups them (Codex parity).
+
         registry.register(ToolRegistration.builder(ToolSpec.namespace(
                         ToolName.plain(ClockTools.NAMESPACE),
                         "Tools for reading the time.",
@@ -369,6 +389,7 @@ public final class WorkspaceToolProvider {
                 .source("core")
                 .build());
         // clock.curr_time
+
         ToolRegistration currTime = ToolRegistration.builder(ToolSpec.function(
                         ToolName.namespaced(ClockTools.NAMESPACE, ClockTools.CURRENT_TIME_TOOL),
                         "Return the current time in UTC.",
@@ -381,8 +402,11 @@ public final class WorkspaceToolProvider {
     }
 
     // ------------------------------------------------------------------
+
     // tool_search (TOOL_SEARCH) — its catalog entry only matters when deferred tools exist
+
     // ------------------------------------------------------------------
+
 
     private static void registerToolSearch(AxionToolRegistry registry) {
         Map<String, ToolJsonSchema> props = ToolJsonSchema.properties()

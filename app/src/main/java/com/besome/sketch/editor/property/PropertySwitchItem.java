@@ -8,7 +8,7 @@ import android.widget.TextView;
 
 import com.google.android.material.materialswitch.MaterialSwitch;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.R;
 
 public class PropertySwitchItem extends RelativeLayout implements View.OnClickListener {
@@ -25,7 +25,7 @@ public class PropertySwitchItem extends RelativeLayout implements View.OnClickLi
     }
 
     private void initialize(Context context) {
-        wB.a(context, this, R.layout.property_switch_item);
+        ViewInflationUtils.a(context, this, R.layout.property_switch_item);
         tvName = findViewById(R.id.tv_name);
         tvDesc = findViewById(R.id.tv_desc);
         switchValue = findViewById(R.id.switch_value);

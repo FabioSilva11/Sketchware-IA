@@ -27,9 +27,9 @@ import java.io.File;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.DB;
-import a.a.a.GB;
-import a.a.a.bB;
+import pro.sketchware.core.PreferenceStore;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.ToastFactory;
 import dev.pranav.filepicker.FilePickerCallback;
 import dev.pranav.filepicker.FilePickerDialogFragment;
 import dev.pranav.filepicker.FilePickerOptions;
@@ -49,7 +49,7 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
     private TextView tvAppId;
     private TextView tvApiKey;
     private TextView tvStorageUrl;
-    private DB s = null;
+    private PreferenceStore s = null;
     private ProjectLibraryBean firebaseLibraryBean;
     private final ActivityResultLauncher<Intent> openSettings = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (result.getResultCode() == Activity.RESULT_OK) {
@@ -65,9 +65,10 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
     }
 
     private void goToConsole() {
-        if (GB.h(getApplicationContext())) {
+        if (DeviceEnvironmentUtils.h(getApplicationContext())) {
             try {
                 Uri consoleUrl = Uri.parse("https://console.firebase.google.com");
+
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 intent.setData(consoleUrl);
@@ -77,7 +78,7 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
                 downloadChromeDialog();
             }
         } else {
-            bB.a(getApplicationContext(), Helper.getResString(R.string.common_message_check_network), bB.TOAST_NORMAL).show();
+            ToastFactory.a(getApplicationContext(), Helper.getResString(R.string.common_message_check_network), ToastFactory.TOAST_NORMAL).show();
         }
     }
 
@@ -87,6 +88,7 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.setData(Uri.parse("https://sketchware-pro.vercel.app/docs/components/Firebase/connect-to-firebase"));
+
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -104,6 +106,7 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_ok), (v, which) -> {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setData(Uri.parse("market://details?id=com.android.chrome"));
+
             startActivity(intent);
             v.dismiss();
         });
@@ -145,6 +148,7 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
             showImportJsonDialog();
         } else if (id == R.id.layout_switch) {
             //Enable Disable Firebase
+
             if (libSwitch.isChecked() || !firebaseLibraryBean.data.isEmpty()) {
                 libSwitch.setChecked(!libSwitch.isChecked());
                 if ("Y".equals(firebaseLibraryBean.useYn) && !libSwitch.isChecked()) {
@@ -173,7 +177,7 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
         getSupportActionBar().setDisplayShowTitleEnabled(true);
         toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
-        s = new DB(getApplicationContext(), "P1");
+        s = new PreferenceStore(getApplicationContext(), "P1");
         firebaseLibraryBean = getIntent().getParcelableExtra("firebase");
         sc_id = savedInstanceState != null ? savedInstanceState.getString("sc_id") : getIntent().getStringExtra("sc_id");
         LinearLayout switchLayout = findViewById(R.id.layout_switch);
@@ -238,18 +242,22 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
 
         if (firebaseLibraryBean.data != null) {
             tvProjectId.setText(firebaseLibraryBean.data); //Realtime Database Url
+
         }
 
         if (firebaseLibraryBean.reserved1 != null) {
             tvAppId.setText(firebaseLibraryBean.reserved1); //APP ID
+
         }
 
         if (firebaseLibraryBean.reserved2 != null) {
             tvApiKey.setText(firebaseLibraryBean.reserved2); //API Key
+
         }
 
         if (firebaseLibraryBean.reserved3 != null) {
             tvStorageUrl.setText(firebaseLibraryBean.reserved3); //Storage Bucket
+
         }
     }
 
@@ -279,6 +287,7 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
             @Override
             public void onFileSelected(File file) {
                 // Handle file selection
+
                 String filePath = file.getAbsolutePath();
                 String fileContent = FileUtil.readFile(filePath);
                 parseDataFromGoogleServicesJson(fileContent);
@@ -331,12 +340,14 @@ public class ManageFirebaseActivity extends BaseAppCompatActivity implements Vie
         }
         if (rtdbMatcher.find()) {
             configureImportFirebaseConfigFromJson(realtime_db, rtdbMatcher.group(1).replace("https://", ""));
+
         } else {
             notFoundLog.append("Realtime Database, ");
             configureImportFirebaseConfigFromJson(realtime_db, "");
             hasNullConfig = true;
 
             //Disable Firebase in case it was enabled
+
             libSwitch.setChecked(false);
             firebaseLibraryBean.useYn = "N";
 

@@ -28,10 +28,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.jC;
-import a.a.a.lC;
-import a.a.a.wq;
-import a.a.a.yq;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.workspace.ProjectWorkspaceManager;
 import mod.hey.studios.code.SrcCodeEditor;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
@@ -55,7 +55,7 @@ import pro.sketchware.utility.TranslationFunction;
 public class ResourcesEditorActivity extends BaseAppCompatActivity {
 
     private final String variantFullNameStarts = "values-";
-    public yq yq;
+    public ProjectWorkspaceManager workspace;
     public boolean isComingFromSrcCodeEditor;
     public String sc_id;
     public String variant;
@@ -110,8 +110,8 @@ public class ResourcesEditorActivity extends BaseAppCompatActivity {
     private void initializeManagers() {
         sc_id = getIntent().getStringExtra("sc_id");
 
-        yq = new yq(getApplicationContext(), sc_id);
-        yq.a(jC.c(sc_id), jC.b(sc_id), jC.a(sc_id));
+        workspace = new ProjectWorkspaceManager(getApplicationContext(), sc_id);
+        workspace.a(ProjectDataManagerRegistry.c(sc_id), ProjectDataManagerRegistry.b(sc_id), ProjectDataManagerRegistry.a(sc_id));
     }
 
     private void initializeEditors() {
@@ -124,7 +124,7 @@ public class ResourcesEditorActivity extends BaseAppCompatActivity {
 
     private void initializeBackgroundTask(String variant) {
         this.variant = variant;
-        String baseDir = String.format("%s/files/resource/values%s/", wq.b(sc_id), variant);
+        String baseDir = String.format("%s/files/resource/values%s/", WorkspacePathManager.b(sc_id), variant);
         stringsFilePath = baseDir + "strings.xml";
         colorsFilePath = baseDir + "colors.xml";
         stylesFilePath = baseDir + "styles.xml";
@@ -405,7 +405,7 @@ public class ResourcesEditorActivity extends BaseAppCompatActivity {
 
     private void updateProjectMetadata() {
         if (variant.isEmpty()) {
-            HashMap<String, Object> metadata = yq.metadata;
+            HashMap<String, Object> metadata = workspace.metadata;
 
             for (ColorModel color : colorsEditor.colorList) {
                 if (colorsEditor.defaultColors.containsKey(color.getColorName())) {
@@ -419,7 +419,7 @@ public class ResourcesEditorActivity extends BaseAppCompatActivity {
                 }
             }
 
-            lC.a(sc_id, metadata);
+            RecentProjectsRegistry.a(sc_id, metadata);
         }
     }
 
@@ -471,7 +471,7 @@ public class ResourcesEditorActivity extends BaseAppCompatActivity {
         }
 
         ArrayList<String> resourcesDir = new ArrayList<>();
-        FileUtil.listDir(wq.b(sc_id) + "/files/resource/", resourcesDir);
+        FileUtil.listDir(WorkspacePathManager.b(sc_id) + "/files/resource/", resourcesDir);
 
         ArrayList<String> variants = extractVariants(resourcesDir);
         AtomicInteger selectedChoice = new AtomicInteger(variants.indexOf("values" + variant));

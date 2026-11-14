@@ -9,6 +9,7 @@
     <string name="app_name">Sketchware IA</string>
     <string name="project_type_native">Native</string>
     <string name="project_type_android_studio">Android Studio</string>
+    <string name="project_type_game_2d">Game Engine 2D</string>
     <string name="main_search_projects_hint">Search projects...</string>
     <string name="main_search_web_services_hint">Search web services...</string>
     <string name="main_search_chat_hint">Search projects to chat about...</string>
@@ -3498,4 +3499,23 @@ Please try again later"</string>
     <string name="template_format_sketchware">Sketchware · Blocos visuais</string>
     <string name="template_unlock_message">%1$s\n\nAssista ao vídeo até o fim para liberar este modelo. Sua cópia editável aparecerá em Projetos.</string>
     <string name="template_watch_video">Assistir ao vídeo</string>
+
+    <!-- Game Engine 2D -->
+    <string name="game_engine_tab_scene">Cena &amp; UI</string>
+    <string name="game_engine_tab_blocks">Blocos</string>
+    <string name="game_engine_action_undo">Desfazer</string>
+    <string name="game_engine_action_redo">Refazer</string>
+    <string name="game_engine_action_save">Salvar</string>
+    <string name="game_engine_action_preview">Testar jogo</string>
+    <string name="game_engine_action_build">Gerar APK</string>
+    <string name="game_engine_action_drawer">Menu do projeto</string>
+    <string name="game_engine_toggle_palette">Paleta</string>
+    <string name="game_engine_toggle_inspector">Propriedades</string>
+    <string name="game_engine_toggle_grid">Grade</string>
+    <string name="game_engine_reset_camera">Centralizar</string>
+    <string name="game_engine_layer_all">Tudo</string>
+    <string name="game_engine_layer_world">Mundo</string>
+    <string name="game_engine_layer_hud">HUD</string>
+    <string name="game_engine_scenes_button">Cenas</string>
+    <string name="game_engine_hierarchy_button">Objetos</string>
 </resources>

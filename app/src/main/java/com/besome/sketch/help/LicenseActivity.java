@@ -6,7 +6,7 @@ import android.text.util.Linkify;
 
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 
-import a.a.a.oB;
+import pro.sketchware.filemanagers.FileCryptoUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.databinding.ActivityOssLibrariesBinding;
 
@@ -21,7 +21,7 @@ public class LicenseActivity extends BaseAppCompatActivity {
 
         binding.toolbar.setNavigationOnClickListener(Helper.getBackPressedClickListener(this));
 
-        binding.licensesText.setText(new oB().b(getApplicationContext(), "oss.txt"));
+        binding.licensesText.setText(new FileCryptoUtils().b(getApplicationContext(), "oss.txt"));
         binding.licensesText.setAutoLinkMask(Linkify.WEB_URLS);
         binding.licensesText.setMovementMethod(LinkMovementMethod.getInstance());
     }

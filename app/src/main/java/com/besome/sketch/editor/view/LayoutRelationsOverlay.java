@@ -78,6 +78,7 @@ public class LayoutRelationsOverlay extends View {
     private Callback callback;
 
     // Anchor drag
+
     @Nullable
     private LayoutRelations.Side dragSide;
     private final PointF dragStart = new PointF();
@@ -87,11 +88,13 @@ public class LayoutRelationsOverlay extends View {
     private Target candidate;
 
     // Drop target while a widget is dragged
+
     @Nullable
     private ViewGroup dropTarget;
     private int dropGravity = -1;
 
     // Alignment guides while a widget is moved: x1, y1, x2, y2 per line
+
     private final List<float[]> guides = new ArrayList<>();
 
     /** Where a dragged anchor would attach. */
@@ -169,7 +172,9 @@ public class LayoutRelationsOverlay extends View {
     }
 
     // ---------------------------------------------------------------------------------------------
+
     // Geometry
+
 
     @Nullable
     private RectF rectOf(@Nullable View view) {
@@ -226,7 +231,9 @@ public class LayoutRelationsOverlay extends View {
     }
 
     // ---------------------------------------------------------------------------------------------
+
     // Drawing
+
 
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
@@ -267,9 +274,11 @@ public class LayoutRelationsOverlay extends View {
                 float textWidth = labelPaint.measureText(text, 0, text.length());
                 if (view instanceof ViewGroup group && hasWidgetChildren(group)) {
                     // Containers: name in the bottom-left corner, clear of their children's labels.
+
                     canvas.drawText(text, 0, text.length(), rect.left + screenDp(3f), rect.bottom - screenDp(4f), labelPaint);
                 } else {
                     // Widgets: name in the middle of their box, as in Android Studio's blueprint.
+
                     canvas.drawText(text, 0, text.length(), rect.centerX() - textWidth / 2f,
                             rect.centerY() + screenDp(3f), labelPaint);
                 }
@@ -425,6 +434,7 @@ public class LayoutRelationsOverlay extends View {
         }
         canvas.drawPath(path, linePaint);
         // Short straight connector when the target edge isn't in line with the anchor.
+
         PointF end = vertical ? new PointF(from.x, to.y) : new PointF(to.x, from.y);
         if (Math.abs(end.x - to.x) > 1 || Math.abs(end.y - to.y) > 1) {
             canvas.drawLine(end.x, end.y, to.x, to.y, linePaint);
@@ -435,11 +445,11 @@ public class LayoutRelationsOverlay extends View {
     private void drawArrow(Canvas canvas, PointF tip, PointF direction, int color) {
         float size = screenDp(5f);
         float ux = direction.x;
-        float uy = direction.y;
+        float PaletteWidgetItem = direction.y;
         path.reset();
         path.moveTo(tip.x, tip.y);
-        path.lineTo(tip.x - ux * size - uy * size * 0.6f, tip.y - uy * size + ux * size * 0.6f);
-        path.lineTo(tip.x - ux * size + uy * size * 0.6f, tip.y - uy * size - ux * size * 0.6f);
+        path.lineTo(tip.x - ux * size - PaletteWidgetItem * size * 0.6f, tip.y - PaletteWidgetItem * size + ux * size * 0.6f);
+        path.lineTo(tip.x - ux * size + PaletteWidgetItem * size * 0.6f, tip.y - PaletteWidgetItem * size - ux * size * 0.6f);
         path.close();
         fillPaint.setStyle(Paint.Style.FILL);
         fillPaint.setColor(color);
@@ -588,7 +598,9 @@ public class LayoutRelationsOverlay extends View {
     }
 
     // ---------------------------------------------------------------------------------------------
+
     // Alignment guides
+
 
     /**
      * Snaps a widget being moved by ({@code dx}, {@code dy}) pane pixels to the nearest edge or centre
@@ -618,6 +630,7 @@ public class LayoutRelationsOverlay extends View {
             }
         }
         // Horizontal: left, centre and right of the widget against those of every reference.
+
         float bestX = threshold + 1;
         float snapX = 0;
         RectF guideX = null;
@@ -670,6 +683,7 @@ public class LayoutRelationsOverlay extends View {
         }
         if (guides.isEmpty()) {
             // Keep the overlay in "moving" state so the anchors stay hidden while the finger moves.
+
             guides.add(new float[]{0, 0, 0, 0});
         }
         invalidate();
@@ -677,7 +691,9 @@ public class LayoutRelationsOverlay extends View {
     }
 
     // ---------------------------------------------------------------------------------------------
+
     // Touch: dragging anchors
+
 
     /**
      * The anchor under the finger. Inside the widget the touch must be right on the anchor so the
@@ -711,6 +727,7 @@ public class LayoutRelationsOverlay extends View {
         boolean vertical = dragSide == LayoutRelations.Side.TOP || dragSide == LayoutRelations.Side.BOTTOM;
         float tolerance = screenDp(14f);
         // Another widget of the same parent under the finger: attach to its nearest edge on this axis.
+
         for (int i = parent.getChildCount() - 1; i >= 0; i--) {
             View child = parent.getChildAt(i);
             if (child == selectedView || !(child instanceof ItemView item) || item.getBean() == null) continue;
@@ -727,6 +744,7 @@ public class LayoutRelationsOverlay extends View {
         RectF content = contentRectOf(parent);
         if (content == null) return null;
         // The middle of the parent: centre on this axis.
+
         float middle = vertical ? content.centerY() : content.centerX();
         float position = vertical ? y : x;
         if (Math.abs(position - middle) < tolerance) {
@@ -740,6 +758,7 @@ public class LayoutRelationsOverlay extends View {
             side = position < middle ? LayoutRelations.Side.START : LayoutRelations.Side.END;
         }
         // RelativeLayout can only align an edge to the same edge of its parent.
+
         if (!constraint && side != dragSide) return null;
         return new Target(LayoutRelations.PARENT, side, content);
     }
@@ -751,6 +770,7 @@ public class LayoutRelationsOverlay extends View {
             case MotionEvent.ACTION_DOWN -> {
                 LayoutRelations.Side side = hitHandle(event.getX(), event.getY());
                 // Not on an anchor: let the widgets below get the touch.
+
                 if (side == null) return false;
                 dragSide = side;
                 dragMoved = false;
@@ -781,6 +801,7 @@ public class LayoutRelationsOverlay extends View {
                 if (bean == null || callback == null) return true;
                 if (!moved) {
                     // Tapping an anchor removes what it's attached to, as in Android Studio.
+
                     if (LayoutRelations.hasSide(bean, side)) {
                         callback.applyRelationChange(bean, b -> LayoutRelations.disconnect(b, side));
                     }
@@ -796,6 +817,7 @@ public class LayoutRelationsOverlay extends View {
                         if (callback.applyRelationChange(bean, b -> LayoutRelations.connect(b, side, id, targetSide, distance))
                                 && replaces) {
                             // Android would stretch the widget between the two anchors; say why one was released.
+
                             android.widget.Toast.makeText(getContext(), pro.sketchware.R.string.design_relations_relative_one_anchor,
                                     android.widget.Toast.LENGTH_LONG).show();
                         }
@@ -838,7 +860,9 @@ public class LayoutRelationsOverlay extends View {
         if (bean != null && !LayoutRelations.isConstraint(bean.parentType) && !LayoutRelations.PARENT.equals(target.id)
                 && target.side != side) {
             // RelativeLayout puts below/above/toEndOf/toStartOf after the anchor's own margin on that
+
             // side too (mBottom = anchor.mTop - (anchor.topMargin + bottomMargin)), so leave it out.
+
             View anchor = findSibling((View) selected, target.id);
             if (anchor != null && anchor.getLayoutParams() instanceof ViewGroup.MarginLayoutParams margins) {
                 distance -= switch (target.side) {

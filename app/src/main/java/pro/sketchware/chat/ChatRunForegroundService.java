@@ -42,10 +42,11 @@ public final class ChatRunForegroundService extends Service {
     public static void start(Context context, String projectId, String threadId,
                              String operationId, String status) {
         if (context == null || !ChatMessage.hasVisibleText(operationId)) return;
-        activeOperationId = operationId.trim();
         activeProjectId = safe(projectId);
         activeThreadId = safe(threadId);
         activeStatus = safe(status);
+        // Publish the id last so observers never see a new id paired with stale fields.
+        activeOperationId = operationId.trim();
         Intent intent = new Intent(context.getApplicationContext(), ChatRunForegroundService.class)
                 .setAction(ACTION_START)
                 .putExtra(EXTRA_PROJECT_ID, activeProjectId)
@@ -72,10 +73,11 @@ public final class ChatRunForegroundService extends Service {
 
     public static void stop(Context context, String operationId) {
         if (!matches(operationId)) return;
-        activeOperationId = "";
         activeProjectId = "";
         activeThreadId = "";
         activeStatus = "";
+        // Clear the guard id last so the operation stays consistent while tearing down.
+        activeOperationId = "";
         ChatRunForegroundService service = instance;
         if (service != null) {
             service.stopForeground(STOP_FOREGROUND_REMOVE);

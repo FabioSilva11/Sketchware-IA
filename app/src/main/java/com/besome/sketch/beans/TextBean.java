@@ -5,9 +5,9 @@ import android.os.Parcelable;
 
 import com.google.gson.annotations.Expose;
 
-import a.a.a.nA;
+import pro.sketchware.core.ComparisonResult;
 
-public class TextBean extends nA implements Parcelable {
+public class TextBean extends ComparisonResult implements Parcelable {
     public static final Parcelable.Creator<TextBean> CREATOR = new Parcelable.Creator<>() {
         @Override
         public TextBean createFromParcel(Parcel source) {
@@ -131,6 +131,7 @@ public class TextBean extends nA implements Parcelable {
             return false;
         }
         if (textSize != textBean.textSize || textColor != textBean.textColor || textType != textBean.textType || resTextColor != textBean.resTextColor || resHintColor != textBean.resTextColor) { //new
+
             return false;
         }
         String str3 = textFont;
@@ -152,6 +153,7 @@ public class TextBean extends nA implements Parcelable {
             return false;
         }
         return hintColor == textBean.hintColor && singleLine == textBean.singleLine && line == textBean.line && inputType == textBean.inputType && imeOption == textBean.imeOption || resTextColor == textBean.resTextColor || resHintColor == textBean.resTextColor; //new
+
     }
 
     public void print() {

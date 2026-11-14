@@ -25,10 +25,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import a.a.a.Kw;
-import a.a.a.jC;
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.InjectAttributes;
@@ -55,11 +55,11 @@ public class PropertyAttributeItem extends RelativeLayout implements View.OnClic
     private ImageView imgLeftIcon;
     private View propertyItem;
     private View propertyMenuItem;
-    private Kw valueChangeListener;
+    private ObjectChangeListener valueChangeListener;
 
     public PropertyAttributeItem(Context context) {
         super(context);
-        wB.a(context, this, R.layout.property_selector_item);
+        ViewInflationUtils.a(context, this, R.layout.property_selector_item);
         tvName = findViewById(R.id.tv_name);
         tvValue = findViewById(R.id.tv_value);
         imgLeftIcon = findViewById(R.id.img_left_icon);
@@ -73,6 +73,7 @@ public class PropertyAttributeItem extends RelativeLayout implements View.OnClic
         this.scId = scId;
         setTag(spec.key());
         // Items are reused across selections: decoding the vector icons again was most of the cost of showing them.
+
         if (sameLook) return;
         tvName.setText(spec.label);
         imgLeftIcon.setImageResource(spec.icon);
@@ -141,7 +142,7 @@ public class PropertyAttributeItem extends RelativeLayout implements View.OnClic
         dirty = false;
     }
 
-    public void setOnPropertyValueChangeListener(Kw listener) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener listener) {
         valueChangeListener = listener;
     }
 
@@ -161,7 +162,7 @@ public class PropertyAttributeItem extends RelativeLayout implements View.OnClic
 
     @Override
     public void onClick(View v) {
-        if (mB.a() || spec == null) return;
+        if (EditorViewUtils.a() || spec == null) return;
         switch (spec.kind) {
             case ENUM -> showChoices(spec.options);
             case BOOLEAN -> showChoices(new String[]{"true", "false"});
@@ -195,7 +196,7 @@ public class PropertyAttributeItem extends RelativeLayout implements View.OnClic
     }
 
     private void showChoices(@NonNull String[] options) {
-        View root = wB.a(getContext(), R.layout.property_popup_choice_attribute);
+        View root = ViewInflationUtils.a(getContext(), R.layout.property_popup_choice_attribute);
         TextView help = root.findViewById(R.id.help);
         help.setText(spec.help == null ? "" : spec.help);
         help.setVisibility(spec.help == null ? GONE : VISIBLE);
@@ -243,7 +244,7 @@ public class PropertyAttributeItem extends RelativeLayout implements View.OnClic
     }
 
     private void showInput() {
-        View root = wB.a(getContext(), R.layout.property_popup_input_attribute);
+        View root = ViewInflationUtils.a(getContext(), R.layout.property_popup_input_attribute);
         TextInputLayout layout = root.findViewById(R.id.input_layout);
         TextInputEditText input = root.findViewById(R.id.input);
         TextView help = root.findViewById(R.id.help);
@@ -326,10 +327,10 @@ public class PropertyAttributeItem extends RelativeLayout implements View.OnClic
     private String[] projectLayouts() {
         List<String> layouts = new ArrayList<>();
         try {
-            for (com.besome.sketch.beans.ProjectFileBean file : jC.b(scId).b()) {
+            for (com.besome.sketch.beans.ProjectFileBean file : ProjectDataManagerRegistry.b(scId).b()) {
                 layouts.add("@layout/" + file.getXmlName().replace(".xml", ""));
             }
-            for (com.besome.sketch.beans.ProjectFileBean file : jC.b(scId).c()) {
+            for (com.besome.sketch.beans.ProjectFileBean file : ProjectDataManagerRegistry.b(scId).c()) {
                 layouts.add("@layout/" + file.getXmlName().replace(".xml", ""));
             }
         } catch (Exception ignored) {
@@ -341,7 +342,7 @@ public class PropertyAttributeItem extends RelativeLayout implements View.OnClic
     private String[] projectDrawables() {
         List<String> names = new ArrayList<>();
         try {
-            for (String name : jC.d(scId).m()) {
+            for (String name : ProjectDataManagerRegistry.d(scId).m()) {
                 if (name != null && !name.isEmpty() && !"NONE".equals(name) && !"default_image".equals(name)) {
                     names.add("@drawable/" + name.replace(".9", ""));
                 }

@@ -11,10 +11,10 @@ import android.widget.TextView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import a.a.a.Kw;
-import a.a.a.mB;
-import a.a.a.sq;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ViewPropertyValueMapper;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -30,7 +30,7 @@ public class PropertyGravityItem extends RelativeLayout implements View.OnClickL
     private int icon;
     private View propertyItem;
     private View propertyMenuItem;
-    private Kw valueChangeListener;
+    private ObjectChangeListener valueChangeListener;
 
     public PropertyGravityItem(Context context, boolean z) {
         super(context);
@@ -62,12 +62,12 @@ public class PropertyGravityItem extends RelativeLayout implements View.OnClickL
 
     public void setValue(int value) {
         gravityValue = value;
-        tvValue.setText(sq.a(value));
+        tvValue.setText(ViewPropertyValueMapper.a(value));
     }
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             switch (key) {
                 case "property_gravity":
                 case "property_layout_gravity":
@@ -77,7 +77,7 @@ public class PropertyGravityItem extends RelativeLayout implements View.OnClickL
         }
     }
 
-    public void setOnPropertyValueChangeListener(Kw onPropertyValueChangeListener) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener onPropertyValueChangeListener) {
         valueChangeListener = onPropertyValueChangeListener;
     }
 
@@ -96,16 +96,20 @@ public class PropertyGravityItem extends RelativeLayout implements View.OnClickL
     }
 
     private void initialize(Context context, boolean z) {
-        wB.a(context, this, R.layout.property_selector_item);
+        ViewInflationUtils.a(context, this, R.layout.property_selector_item);
         tvName = findViewById(R.id.tv_name);
         tvValue = findViewById(R.id.tv_value);
         imgLeftIcon = findViewById(R.id.img_left_icon);
         propertyItem = findViewById(R.id.property_item);
         propertyMenuItem = findViewById(R.id.property_menu_item);
 //        if (z) {
+
 //            propertyMenuItem.setOnClickListener(this);
+
 //            propertyMenuItem.setSoundEffectsEnabled(true);
+
 //        }
+
     }
 
     private void showDialog() {
@@ -113,7 +117,7 @@ public class PropertyGravityItem extends RelativeLayout implements View.OnClickL
         dialog.setTitle(Helper.getText(tvName));
         dialog.setIcon(icon);
 
-        View view = wB.a(getContext(), R.layout.property_popup_selector_gravity);
+        View view = ViewInflationUtils.a(getContext(), R.layout.property_popup_selector_gravity);
         CheckBox chk_left = view.findViewById(R.id.chk_left);
         CheckBox chk_right = view.findViewById(R.id.chk_right);
         CheckBox chk_hcenter = view.findViewById(R.id.chk_hcenter);

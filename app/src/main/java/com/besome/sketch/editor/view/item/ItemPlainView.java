@@ -11,7 +11,7 @@ import androidx.annotation.NonNull;
 import com.besome.sketch.beans.ViewBean;
 import com.besome.sketch.editor.view.ItemView;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 
 /** A plain View, Space or divider in the layout editor. Spaces get a dashed outline so they can be found. */
 public class ItemPlainView extends View implements ItemView {
@@ -23,7 +23,7 @@ public class ItemPlainView extends View implements ItemView {
 
     public ItemPlainView(Context context) {
         super(context);
-        float dp = wB.a(context, 1.0F);
+        float dp = ViewInflationUtils.a(context, 1.0F);
         setMinimumWidth((int) (dp * 4));
         setMinimumHeight((int) dp);
         paint.setStyle(Paint.Style.STROKE);
@@ -76,7 +76,7 @@ public class ItemPlainView extends View implements ItemView {
 
     @Override
     public void setPadding(int left, int top, int right, int bottom) {
-        super.setPadding((int) wB.a(getContext(), (float) left), (int) wB.a(getContext(), (float) top),
-                (int) wB.a(getContext(), (float) right), (int) wB.a(getContext(), (float) bottom));
+        super.setPadding((int) ViewInflationUtils.a(getContext(), (float) left), (int) ViewInflationUtils.a(getContext(), (float) top),
+                (int) ViewInflationUtils.a(getContext(), (float) right), (int) ViewInflationUtils.a(getContext(), (float) bottom));
     }
 }

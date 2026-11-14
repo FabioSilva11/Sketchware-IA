@@ -10,7 +10,7 @@ import android.widget.SearchView;
 import com.besome.sketch.beans.ViewBean;
 import com.besome.sketch.editor.view.ItemView;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 
 public class ItemSearchView extends SearchView implements ItemView {
 
@@ -23,7 +23,7 @@ public class ItemSearchView extends SearchView implements ItemView {
 
     public ItemSearchView(Context context) {
         super(context);
-        dip = (int) wB.a(context, 1.0f);
+        dip = (int) ViewInflationUtils.a(context, 1.0f);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setColor(0x9599d5d0);
         rect = new Rect();

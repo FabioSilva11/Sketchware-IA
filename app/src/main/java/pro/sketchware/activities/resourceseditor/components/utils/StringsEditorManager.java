@@ -15,9 +15,9 @@ import java.util.Map;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import a.a.a.lC;
-import a.a.a.wq;
-import a.a.a.yB;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.MapValueUtils;
 import pro.sketchware.activities.resourceseditor.ResourcesEditorActivity;
 import pro.sketchware.utility.XmlUtil;
 import pro.sketchware.utility.TranslationFunction;
@@ -37,6 +37,7 @@ public class StringsEditorManager {
         try {
             listMap.clear();
             notesMap.clear(); // Clear notes map at the beginning
+
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             ByteArrayInputStream input = new ByteArrayInputStream(xmlString.getBytes(StandardCharsets.UTF_8));
@@ -47,18 +48,20 @@ public class StringsEditorManager {
                 Node node = childNodes.item(i);
                 if (node.getNodeType() == Node.COMMENT_NODE) {
                     // Save comments in notesMap
+
                     notesMap.put(listMap.size(), node.getNodeValue().trim());
                 } else if (node.getNodeType() == Node.ELEMENT_NODE && node.getNodeName().equals("string")) {
                     addToListMap(listMap, (Element) node);
                 }
             }
             // Callers that only read strings don't set sc_id; saving then wrote to .sketchware/data/null.
+
             if (isDefaultVariant && !hasAppNameKey && sc_id != null) {
                 HashMap<String, Object> map = new HashMap<>();
                 map.put("key", "app_name");
-                map.put("text", yB.c(lC.b(sc_id), "my_app_name"));
+                map.put("text", MapValueUtils.c(RecentProjectsRegistry.b(sc_id), "my_app_name"));
                 listMap.add(0, map);
-                XmlUtil.saveXml(wq.b(sc_id) + "/files/resource/values/strings.xml", convertListMapToXmlStrings(listMap, notesMap));
+                XmlUtil.saveXml(WorkspacePathManager.b(sc_id) + "/files/resource/values/strings.xml", convertListMapToXmlStrings(listMap, notesMap));
             }
         } catch (Exception ignored) {
             isDataLoadingFailed = !xmlString.trim().isEmpty();
@@ -111,6 +114,7 @@ public class StringsEditorManager {
             String text = (String) map.getOrDefault("text", "");
             String escapedText = ResourcesEditorActivity.escapeXml(text);
             // Text starting with @ or ? would be read by aapt2 as a reference; real references stay as they are.
+
             if ((escapedText.startsWith("@") || escapedText.startsWith("?"))
                     && !escapedText.matches("[@?]([A-Za-z_.]+:)?[a-z]+/[A-Za-z0-9_.]+")) {
                 escapedText = "\\" + escapedText;

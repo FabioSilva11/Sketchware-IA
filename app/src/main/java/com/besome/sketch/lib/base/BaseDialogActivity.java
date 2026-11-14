@@ -10,8 +10,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.R;
 
 public class BaseDialogActivity extends BaseAppCompatActivity {
@@ -24,7 +24,9 @@ public class BaseDialogActivity extends BaseAppCompatActivity {
     public ImageView dialogIcon;
     public TextView dialogDefaultButton;
     public TextView r; // dialogPositiveButton
+
     public TextView s; // dialogNegativeButton
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -49,7 +51,7 @@ public class BaseDialogActivity extends BaseAppCompatActivity {
         r = findViewById(R.id.common_dialog_ok_button);
         s = findViewById(R.id.common_dialog_cancel_button);
         dialogContainerView.setOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 finish();
             }
         });
@@ -58,13 +60,13 @@ public class BaseDialogActivity extends BaseAppCompatActivity {
 
     @Override
     public void setContentView(int layoutResID) {
-        wB.a(this, dialogContentView, layoutResID);
+        ViewInflationUtils.a(this, dialogContentView, layoutResID);
     }
 
     public void a(boolean var1) {
         if (var1) {
             dialogContainerView.setOnClickListener(v -> {
-                if (!mB.a()) {
+                if (!EditorViewUtils.a()) {
                     finish();
                 }
             });

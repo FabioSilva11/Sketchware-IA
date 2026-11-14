@@ -15,9 +15,9 @@ import androidx.viewpager.widget.ViewPager;
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import java.lang.ref.WeakReference;
 
-import a.a.a.MA;
-import a.a.a.Op;
-import a.a.a.mB;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.filemanagers.SoundResourceManager;
+import pro.sketchware.editor.EditorViewUtils;
 import com.besome.sketch.editor.manage.lottie.LottieProjectFragment;
 import com.besome.sketch.editor.manage.lottie.LottieCollectionFragment;
 import mod.hey.studios.util.Helper;
@@ -40,6 +40,7 @@ public class ManageLottieActivity extends BaseAppCompatActivity implements ViewP
 
     private String getTranslatedString(int resId) {
         // Fallback to standard getString; replace with translation logic if available
+
         return getString(resId);
     }
 
@@ -89,7 +90,7 @@ public class ManageLottieActivity extends BaseAppCompatActivity implements ViewP
         setSupportActionBar(binding.topAppBar);
         binding.topAppBar.setTitle(Helper.getResString(R.string.design_drawer_menu_title_lottie));
         binding.topAppBar.setNavigationOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 onBackPressed();
             }
         });
@@ -137,7 +138,7 @@ public class ManageLottieActivity extends BaseAppCompatActivity implements ViewP
         }
     }
 
-    private static class SaveLottiesAsyncTask extends MA {
+    private static class SaveLottiesAsyncTask extends BackgroundTask {
         private final WeakReference<ManageLottieActivity> activity;
 
         public SaveLottiesAsyncTask(ManageLottieActivity activity) {
@@ -152,7 +153,7 @@ public class ManageLottieActivity extends BaseAppCompatActivity implements ViewP
             activity.h();
             activity.setResult(Activity.RESULT_OK);
             activity.finish();
-            Op.g().d();
+            SoundResourceManager.g().d();
         }
 
         @Override

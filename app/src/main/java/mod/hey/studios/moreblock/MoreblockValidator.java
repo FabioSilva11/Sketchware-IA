@@ -7,12 +7,12 @@ import com.google.android.material.textfield.TextInputLayout;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
 
-import a.a.a.MB;
+import pro.sketchware.lib.validator.TextInputValidator;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
-public class MoreblockValidator extends MB {
+public class MoreblockValidator extends TextInputValidator {
 
     private final String[] reservedKeywords;
     private final ArrayList<String> registeredVariables;

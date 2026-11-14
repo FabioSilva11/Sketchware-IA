@@ -9,10 +9,10 @@ import com.besome.sketch.beans.ViewBean;
 import java.util.ArrayList;
 import java.util.List;
 
-import a.a.a.Ox;
-import a.a.a.jC;
-import a.a.a.jq;
-import a.a.a.oq;
+import pro.sketchware.compiler.LayoutXmlGenerator;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.compiler.ProjectBuildMetadata;
+import pro.sketchware.editor.ComponentEventRegistry;
 import mod.agus.jcoderz.beans.ViewBeans;
 
 /**
@@ -30,7 +30,7 @@ public final class ViewEventCatalog {
     public static boolean hasEvents(@NonNull ProjectFileBean file, ViewBean view) {
         if (view == null || view.id == null || view.id.isEmpty()) return false;
         if (view.type == ViewBeans.VIEW_TYPE_LAYOUT_INCLUDE || "include".equals(view.convert)) return false;
-        return !new Ox(new jq(), file).readAttributesToReplace(view).contains("android:id");
+        return !new LayoutXmlGenerator(new ProjectBuildMetadata(), file).readAttributesToReplace(view).contains("android:id");
     }
 
     /** Event names of the widget's real class that apply to this widget. */
@@ -38,7 +38,7 @@ public final class ViewEventCatalog {
     public static List<String> eventNames(@NonNull ProjectFileBean file, ViewBean view) {
         List<String> names = new ArrayList<>();
         if (!hasEvents(file, view)) return names;
-        for (String event : oq.getEventsForClass(view.getClassInfo())) {
+        for (String event : ComponentEventRegistry.getEventsForClass(view.getClassInfo())) {
             if (event.equals("onBindCustomView")
                     && (view.customView == null || view.customView.isEmpty() || view.customView.equals("none"))) {
                 continue;
@@ -51,7 +51,7 @@ public final class ViewEventCatalog {
     /** Whether {@code event} of {@code view} is already in the activity of {@code file}. */
     public static boolean isAdded(@NonNull String scId, @NonNull ProjectFileBean file, @NonNull ViewBean view,
                                   @NonNull String event, int eventType) {
-        ArrayList<EventBean> events = jC.a(scId).g(file.getJavaName());
+        ArrayList<EventBean> events = ProjectDataManagerRegistry.a(scId).g(file.getJavaName());
         if (events == null) return false;
         for (EventBean existing : events) {
             if (existing.eventType == eventType && view.id.equals(existing.targetId) && event.equals(existing.eventName)) {

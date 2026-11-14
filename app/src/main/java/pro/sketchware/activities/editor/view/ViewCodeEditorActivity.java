@@ -19,8 +19,8 @@ import com.besome.sketch.beans.ViewBean;
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import a.a.a.cC;
-import a.a.a.jC;
+import pro.sketchware.editor.ViewHistoryManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
 import io.github.rosemoe.sora.widget.CodeEditor;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
@@ -98,8 +98,8 @@ public class ViewCodeEditorActivity extends BaseAppCompatActivity {
         }
         rootLayoutManager = new InjectRootLayoutManager(sc_id);
         String title = getIntent().getStringExtra("title");
-        projectFile = jC.b(sc_id).b(title);
-        projectLibrary = jC.c(sc_id).c();
+        projectFile = ProjectDataManagerRegistry.b(sc_id).b(title);
+        projectLibrary = ProjectDataManagerRegistry.c(sc_id).c();
         getOnBackPressedDispatcher().addCallback(this, onBackPressedCallback);
         setSupportActionBar(binding.toolbar);
         getSupportActionBar().setTitle("XML Editor");
@@ -215,6 +215,7 @@ public class ViewCodeEditorActivity extends BaseAppCompatActivity {
         try {
             if (isContentModified()) {
                 // Parse content to validate circular dependencies
+
                 var parser = new ViewBeanParser(editor.getText().toString());
                 parser.setSkipRoot(true);
 
@@ -232,6 +233,7 @@ public class ViewCodeEditorActivity extends BaseAppCompatActivity {
                 }
 
                 // Update content only after validation
+
                 content = editor.getText().toString();
                 if (!isEdited) {
                     isEdited = true;
@@ -259,15 +261,16 @@ public class ViewCodeEditorActivity extends BaseAppCompatActivity {
             var root = parser.getRootAttributes();
             rootLayoutManager.set(filename, InjectRootLayoutManager.toRoot(root));
             HistoryViewBean bean = new HistoryViewBean();
-            bean.actionOverride(parsedLayout, jC.a(sc_id).d(filename));
-            var cc = cC.c(sc_id);
+            bean.actionOverride(parsedLayout, ProjectDataManagerRegistry.a(sc_id).d(filename));
+            var cc = ViewHistoryManager.c(sc_id);
             if (!cc.c.containsKey(filename)) {
                 cc.e(filename);
             }
             cc.a(filename);
             cc.a(filename, bean);
             // Replace the view beans with the parsed layout
-            jC.a(sc_id).c.put(filename, parsedLayout);
+
+            ProjectDataManagerRegistry.a(sc_id).c.put(filename, parsedLayout);
             setResult(RESULT_OK);
         } catch (Exception e) {
             SketchwareUtil.toastError(e.toString());

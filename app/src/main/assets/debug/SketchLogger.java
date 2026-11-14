@@ -60,7 +60,7 @@ public class SketchLogger {
     public static synchronized void stopLogging() {
         if (isRunning) {
             isRunning = false;
-            broadcastLog("Stopping logger by user request.");
+            broadcastLog("Stopping logger ProjectFileActionListener user request.");
         } else {
             broadcastLog("Logger not running");
         }

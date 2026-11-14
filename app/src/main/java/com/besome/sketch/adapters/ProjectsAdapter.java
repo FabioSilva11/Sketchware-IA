@@ -27,11 +27,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
-import a.a.a.DB;
-import a.a.a.lC;
-import a.a.a.mB;
-import a.a.a.wq;
-import a.a.a.yB;
+import pro.sketchware.core.PreferenceStore;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.MapValueUtils;
 import mod.hey.studios.project.ProjectSettingsDialog;
 import mod.hey.studios.project.AndroidStudioProjectSettingsDialog;
 import mod.hey.studios.project.backup.BackupRestoreManager;
@@ -48,7 +48,7 @@ import pro.sketchware.utility.TranslationFunction;
 public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.ProjectViewHolder> {
     private final ProjectsFragment projectsFragment;
     private final Activity activity;
-    private final DB preference;
+    private final PreferenceStore preference;
     private List<HashMap<String, Object>> shownProjects = new ArrayList<>();
     private List<HashMap<String, Object>> allProjects;
 
@@ -56,7 +56,7 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
         this.projectsFragment = projectsFragment;
         activity = projectsFragment.requireActivity();
         this.allProjects = allProjects;
-        preference = new DB(activity, "project");
+        preference = new PreferenceStore(activity, "project");
 
     }
 
@@ -87,8 +87,8 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
 
             @Override
             public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-                String oldScId = yB.c(shownProjects.get(oldItemPosition), "sc_id");
-                String newScId = yB.c(newProjects.get(newItemPosition), "sc_id");
+                String oldScId = MapValueUtils.c(shownProjects.get(oldItemPosition), "sc_id");
+                String newScId = MapValueUtils.c(newProjects.get(newItemPosition), "sc_id");
                 return oldScId.equalsIgnoreCase(newScId);
             }
 
@@ -97,7 +97,7 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
                 HashMap<String, Object> oldMap = shownProjects.get(oldItemPosition);
                 HashMap<String, Object> newMap = newProjects.get(newItemPosition);
                 for (String key : Arrays.asList("my_app_name", "my_ws_name", "sc_ver_name", "sc_ver_code", "my_sc_pkg_name")) {
-                    if (!yB.c(oldMap, key).equals(yB.c(newMap, key))) {
+                    if (!MapValueUtils.c(oldMap, key).equals(MapValueUtils.c(newMap, key))) {
                         return false;
                     }
                 }
@@ -119,7 +119,7 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
     private boolean matchesQuery(HashMap<String, Object> projectMap, String searchQuery) {
         searchQuery = searchQuery.toLowerCase();
         for (String key : Arrays.asList("sc_id", "my_ws_name", "my_app_name", "my_sc_pkg_name")) {
-            if (yB.c(projectMap, key).toLowerCase().contains(searchQuery)) {
+            if (MapValueUtils.c(projectMap, key).toLowerCase().contains(searchQuery)) {
                 return true;
             }
         }
@@ -143,23 +143,23 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
     public void onBindViewHolder(@NonNull ProjectViewHolder holder, int position) {
         holder.itemView.setBackgroundResource(R.drawable.bg_chat_thread_item);
         HashMap<String, Object> projectMap = shownProjects.get(position);
-        String scId = yB.c(projectMap, "sc_id");
+        String scId = MapValueUtils.c(projectMap, "sc_id");
 
         holder.binding.imgIcon.setImageResource(R.drawable.default_icon);
 
-        if (yB.c(projectMap, "sc_ver_code").isEmpty()) {
+        if (MapValueUtils.c(projectMap, "sc_ver_code").isEmpty()) {
             projectMap.put("sc_ver_code", "1");
             projectMap.put("sc_ver_name", "1.0");
-            lC.b(scId, projectMap);
+            RecentProjectsRegistry.b(scId, projectMap);
         }
 
-        if (yB.b(projectMap, "sketchware_ver") <= 0) {
+        if (MapValueUtils.b(projectMap, "sketchware_ver") <= 0) {
             projectMap.put("sketchware_ver", 61);
-            lC.b(scId, projectMap);
+            RecentProjectsRegistry.b(scId, projectMap);
         }
 
         if (ProjectMapUtils.getBoolean(projectMap, "custom_icon")) {
-            String iconFolder = wq.e() + File.separator + scId;
+            String iconFolder = WorkspacePathManager.e() + File.separator + scId;
             File iconFile = new File(iconFolder, "icon.png");
             if (iconFile.exists()) {
                 Uri uri;
@@ -178,19 +178,21 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
 
         }
 
-        String version = " - " + yB.c(projectMap, "sc_ver_name") + " (" + yB.c(projectMap, "sc_ver_code") + ")";
-        holder.binding.appName.setText(yB.c(projectMap, "my_ws_name") + version);
-        holder.binding.projectName.setText(yB.c(projectMap, "my_app_name"));
-        holder.binding.packageName.setText(yB.c(projectMap, "my_sc_pkg_name"));
+        String version = " - " + MapValueUtils.c(projectMap, "sc_ver_name") + " (" + MapValueUtils.c(projectMap, "sc_ver_code") + ")";
+        holder.binding.appName.setText(MapValueUtils.c(projectMap, "my_ws_name") + version);
+        holder.binding.projectName.setText(MapValueUtils.c(projectMap, "my_app_name"));
+        holder.binding.packageName.setText(MapValueUtils.c(projectMap, "my_sc_pkg_name"));
         bindProjectType(holder, projectMap);
         holder.binding.tvPublished.setVisibility(View.VISIBLE);
         holder.binding.tvPublished.setText(scId);
         holder.itemView.setTag("custom");
 
         holder.binding.getRoot().setOnClickListener(v -> {
-            if (!mB.a()) {
-                if (lC.isAndroidStudioProject(projectMap)) {
+            if (!EditorViewUtils.a()) {
+                if (RecentProjectsRegistry.isAndroidStudioProject(projectMap)) {
                     toAndroidStudioProjectActivity(projectMap);
+                } else if (RecentProjectsRegistry.isGameProject(projectMap)) {
+                    projectsFragment.toGameEngineActivity(scId);
                 } else {
                     projectsFragment.toDesignActivity(scId);
                 }
@@ -198,7 +200,7 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
         });
 
         View.OnClickListener showProjectSettingsDialog = v -> {
-            mB.a(v);
+            EditorViewUtils.a(v);
             int currentPosition = holder.getAbsoluteAdapterPosition();
             if (currentPosition != RecyclerView.NO_POSITION) {
                 showProjectOptionsBottomSheet(projectMap, currentPosition);
@@ -224,12 +226,12 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
         LoadingDialog progressDialog = new LoadingDialog(activity);
         progressDialog.show();
 
-        String scId = yB.c(projectMap, "sc_id");
+        String scId = MapValueUtils.c(projectMap, "sc_id");
         new Thread(() -> {
-            if (lC.isAndroidStudioProject(projectMap)) {
-                lC.deleteAndroidStudioProject(scId);
+            if (RecentProjectsRegistry.isAndroidStudioProject(projectMap)) {
+                RecentProjectsRegistry.deleteAndroidStudioProject(scId);
             } else {
-                lC.a(activity, scId);
+                RecentProjectsRegistry.a(activity, scId);
                 new ChatHistoryManager(activity.getApplicationContext()).deleteProjectHistory(scId);
             }
             activity.runOnUiThread(() -> {
@@ -247,17 +249,24 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
     private void toProjectSettingOrRequestPermission(HashMap<String, Object> project, int index) {
         Intent intent = new Intent(activity, MyProjectSettingActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        intent.putExtra("sc_id", yB.c(project, "sc_id"));
+        intent.putExtra("sc_id", MapValueUtils.c(project, "sc_id"));
         intent.putExtra("is_update", true);
-        intent.putExtra(MyProjectSettingActivity.EXTRA_PROJECT_KIND, yB.c(project, lC.PROJECT_KIND_KEY));
+        intent.putExtra(MyProjectSettingActivity.EXTRA_PROJECT_KIND, MapValueUtils.c(project, RecentProjectsRegistry.PROJECT_KIND_KEY));
         intent.putExtra("index", index);
         projectsFragment.openProjectSettings.launch(intent);
     }
 
     private void bindProjectType(ProjectViewHolder holder, HashMap<String, Object> projectMap) {
-        boolean androidStudioProject = lC.isAndroidStudioProject(projectMap);
+        boolean androidStudioProject = RecentProjectsRegistry.isAndroidStudioProject(projectMap);
+        boolean gameProject = RecentProjectsRegistry.isGameProject(projectMap);
         if (androidStudioProject) {
             holder.binding.projectTypeBadge.setText(R.string.project_type_android_studio);
+            holder.binding.projectTypeBadge.setTextColor(ContextCompat.getColor(activity, R.color.chat_accent));
+            holder.binding.projectTypeBadge.setBackgroundResource(R.drawable.bg_chat_status_chip);
+            holder.binding.imgIconView.setStrokeColor(ContextCompat.getColor(activity, R.color.chat_accent));
+            holder.binding.imgIconView.setStrokeWidth(dp(1));
+        } else if (gameProject) {
+            holder.binding.projectTypeBadge.setText(R.string.project_type_game_2d);
             holder.binding.projectTypeBadge.setTextColor(ContextCompat.getColor(activity, R.color.chat_accent));
             holder.binding.projectTypeBadge.setBackgroundResource(R.drawable.bg_chat_status_chip);
             holder.binding.imgIconView.setStrokeColor(ContextCompat.getColor(activity, R.color.chat_accent));
@@ -276,18 +285,18 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
     }
 
     private void showProjectSettingDialog(HashMap<String, Object> project) {
-        if (lC.isAndroidStudioProject(project)) {
-            new AndroidStudioProjectSettingsDialog(activity, yB.c(project, "sc_id")).show();
+        if (RecentProjectsRegistry.isAndroidStudioProject(project)) {
+            new AndroidStudioProjectSettingsDialog(activity, MapValueUtils.c(project, "sc_id")).show();
         } else {
-            new ProjectSettingsDialog(activity, yB.c(project, "sc_id")).show();
+            new ProjectSettingsDialog(activity, MapValueUtils.c(project, "sc_id")).show();
         }
     }
 
     private void backupProject(HashMap<String, Object> project) {
-        String scId = yB.c(project, "sc_id");
-        String appName = yB.c(project, "my_ws_name");
+        String scId = MapValueUtils.c(project, "sc_id");
+        String appName = MapValueUtils.c(project, "my_ws_name");
         BackupRestoreManager backupRestoreManager = new BackupRestoreManager(activity);
-        if (lC.isAndroidStudioProject(project)) {
+        if (RecentProjectsRegistry.isAndroidStudioProject(project)) {
             backupRestoreManager.backupAndroidStudioProject(scId, appName);
         } else {
             backupRestoreManager.backup(scId, appName);
@@ -297,14 +306,14 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
     private void toExportProjectActivity(HashMap<String, Object> project) {
         Intent intent = new Intent(activity, ExportProjectActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        intent.putExtra("sc_id", yB.c(project, "sc_id"));
+        intent.putExtra("sc_id", MapValueUtils.c(project, "sc_id"));
         activity.startActivity(intent);
     }
 
     private void toAndroidStudioProjectActivity(HashMap<String, Object> project) {
         Intent intent = new Intent(activity, AndroidStudioProjectActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        intent.putExtra(AndroidStudioProjectActivity.EXTRA_SC_ID, yB.c(project, "sc_id"));
+        intent.putExtra(AndroidStudioProjectActivity.EXTRA_SC_ID, MapValueUtils.c(project, "sc_id"));
         activity.startActivity(intent);
     }
 
@@ -312,13 +321,13 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
         if (isPinned(projectMap)) {
             preference.a("pinnedProject", "-1", true);
         } else {
-            preference.a("pinnedProject", yB.c(projectMap, "sc_id"), true);
+            preference.a("pinnedProject", MapValueUtils.c(projectMap, "sc_id"), true);
         }
         projectsFragment.refreshProjectsList();
     }
 
     private boolean isPinned(HashMap<String, Object> projectMap) {
-        return Objects.equals(yB.c(projectMap, "sc_id"), preference.a("pinnedProject", "-1"));
+        return Objects.equals(MapValueUtils.c(projectMap, "sc_id"), preference.a("pinnedProject", "-1"));
     }
 
     private void showProjectOptionsBottomSheet(HashMap<String, Object> projectMap, int position) {
@@ -326,12 +335,16 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
         BottomSheetProjectOptionsBinding binding = BottomSheetProjectOptionsBinding.inflate(LayoutInflater.from(activity));
         projectOptionsBSD.setContentView(binding.getRoot());
 
-        binding.title.setText(yB.c(projectMap, "my_ws_name"));
-        binding.tvProjectId.setText(lC.isAndroidStudioProject(projectMap)
-                ? yB.c(projectMap, "sc_id") + " - Android Studio"
-                : yB.c(projectMap, "sc_id"));
+        binding.title.setText(MapValueUtils.c(projectMap, "my_ws_name"));
+        String projectIdText = MapValueUtils.c(projectMap, "sc_id");
+        if (RecentProjectsRegistry.isAndroidStudioProject(projectMap)) {
+            projectIdText += " - Android Studio";
+        } else if (RecentProjectsRegistry.isGameProject(projectMap)) {
+            projectIdText += " - Game 2D";
+        }
+        binding.tvProjectId.setText(projectIdText);
 
-        if (lC.isAndroidStudioProject(projectMap)) {
+        if (RecentProjectsRegistry.isAndroidStudioProject(projectMap)) {
             binding.exportSign.setVisibility(View.GONE);
         }
 
@@ -365,7 +378,7 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
             MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(activity);
             dialog.setIcon(R.drawable.icon_delete);
             dialog.setTitle(Helper.getResString(R.string.delete_project_dialog_title));
-            dialog.setMessage(Helper.getResString(R.string.delete_project_dialog_message).replace("%1$s", yB.c(projectMap, "my_app_name")));
+            dialog.setMessage(Helper.getResString(R.string.delete_project_dialog_message).replace("%1$s", MapValueUtils.c(projectMap, "my_app_name")));
             dialog.setPositiveButton(Helper.getResString(R.string.common_word_delete), (v1, which) -> {
                 deleteProject(projectMap, position);
                 v1.dismiss();

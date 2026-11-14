@@ -11,15 +11,15 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-import a.a.a.YA;
-import a.a.a.wB;
+import pro.sketchware.editor.SelectionPositionListener;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.R;
 
 public class SelectableButtonBar extends LinearLayout {
 
     private final List<Integer> keys = new ArrayList<>();
     private final List<String> values = new ArrayList<>();
-    private YA selectionListener;
+    private SelectionPositionListener selectionListener;
     private int selectedItemIndex;
 
     public SelectableButtonBar(Context context) {
@@ -64,11 +64,11 @@ public class SelectableButtonBar extends LinearLayout {
         return selectableButton;
     }
 
-    public YA getListener() {
+    public SelectionPositionListener getListener() {
         return selectionListener;
     }
 
-    public void setListener(YA var1) {
+    public void setListener(SelectionPositionListener var1) {
         selectionListener = var1;
     }
 
@@ -117,7 +117,7 @@ public class SelectableButtonBar extends LinearLayout {
             this.key = key;
             setOrientation(LinearLayout.HORIZONTAL);
             setGravity(Gravity.CENTER);
-            int padding = (int) wB.a(getContext(), 4.0F);
+            int padding = (int) ViewInflationUtils.a(getContext(), 4.0F);
             setPadding(padding, padding, padding, padding);
             textView = new TextView(context);
             LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(

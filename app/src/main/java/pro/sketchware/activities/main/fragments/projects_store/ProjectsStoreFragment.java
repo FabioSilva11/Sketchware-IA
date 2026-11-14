@@ -27,7 +27,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Locale;
 
-import a.a.a.lC;
+import pro.sketchware.workspace.RecentProjectsRegistry;
 import mod.hey.studios.project.ProjectTracker;
 import mod.hey.studios.project.backup.BackupFactory;
 import pro.sketchware.R;
@@ -93,6 +93,7 @@ public class ProjectsStoreFragment extends Fragment implements MainSearchable {
             int[] listLocation = new int[2];
             int[] navLocation = new int[2];
             navigationInsetListener = () -> {
+                if (cards == null || bottomNav == null || !isAdded()) return;
                 cards.getLocationInWindow(listLocation);
                 bottomNav.getLocationInWindow(navLocation);
                 int overlap = bottomNav.isShown()
@@ -209,7 +210,7 @@ public class ProjectsStoreFragment extends Fragment implements MainSearchable {
                     int count;
                     while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
                 }
-                String id = lC.b();
+                String id = RecentProjectsRegistry.b();
                 BackupFactory backup = new BackupFactory(id);
                 if (androidStudio) backup.restoreAndroidStudioProject(archive);
                 else backup.restore(archive);

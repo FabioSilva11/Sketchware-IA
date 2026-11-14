@@ -12,11 +12,11 @@ import com.besome.sketch.beans.ProjectLibraryBean;
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import a.a.a.GB;
-import a.a.a.Uu;
-import a.a.a.bB;
-import a.a.a.iC;
-import a.a.a.mB;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.beans.ProjectLibraryDataProvider;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectLibraryManager;
+import pro.sketchware.editor.EditorViewUtils;
 import mod.hey.studios.util.Helper;
 import mod.jbk.editor.manage.library.LibrarySettingsImporter;
 import pro.sketchware.R;
@@ -27,7 +27,7 @@ public class AdmobActivity extends BaseAppCompatActivity implements View.OnClick
     private String[] stepTitles;
     private String[] stepDescriptions;
     private int stepPosition = 0;
-    private Uu step;
+    private ProjectLibraryDataProvider step;
     private ProjectLibraryBean adMobSettings;
     private String sc_id;
     private ManageLibraryAdmobBinding binding;
@@ -146,7 +146,7 @@ public class AdmobActivity extends BaseAppCompatActivity implements View.OnClick
         } else if (id == binding.tvPrevbtn.getId()) {
             onBackPressed();
         } else if (id == binding.btnImport.getId()) {
-            LibrarySettingsImporter importer = new LibrarySettingsImporter(sc_id, iC::b);
+            LibrarySettingsImporter importer = new LibrarySettingsImporter(sc_id, ProjectLibraryManager::b);
             importer.addOnProjectSelectedListener(settings -> {
                 adMobSettings = settings;
                 stepPosition = 0;
@@ -161,11 +161,12 @@ public class AdmobActivity extends BaseAppCompatActivity implements View.OnClick
     }
 
     private void goToConsole() {
-        if (GB.h(this)) {
+        if (DeviceEnvironmentUtils.h(this)) {
             try {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 intent.setData(Uri.parse("https://apps.admob.com/v2/home"));
+
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                 intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -175,7 +176,7 @@ public class AdmobActivity extends BaseAppCompatActivity implements View.OnClick
                 showGoogleChromeNotice();
             }
         } else {
-            bB.a(this, Helper.getResString(R.string.common_message_check_network), 0).show();
+            ToastFactory.a(this, Helper.getResString(R.string.common_message_check_network), 0).show();
         }
     }
 
@@ -233,7 +234,7 @@ public class AdmobActivity extends BaseAppCompatActivity implements View.OnClick
 
     private void goToDocumentation() {
         if (!step.getDocUrl().isEmpty()) {
-            if (GB.h(this)) {
+            if (DeviceEnvironmentUtils.h(this)) {
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -247,7 +248,7 @@ public class AdmobActivity extends BaseAppCompatActivity implements View.OnClick
                     showGoogleChromeNotice();
                 }
             } else {
-                bB.a(this, Helper.getResString(R.string.common_message_check_network), 0).show();
+                ToastFactory.a(this, Helper.getResString(R.string.common_message_check_network), 0).show();
             }
         }
     }
@@ -258,9 +259,10 @@ public class AdmobActivity extends BaseAppCompatActivity implements View.OnClick
         dialog.setTitle(Helper.getResString(R.string.title_compatible_chrome_browser));
         dialog.setMessage(Helper.getResString(R.string.message_compatible_chrome_brower));
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_ok), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse("market://details?id=com.android.chrome"));
+
                 startActivity(intent);
                 v.dismiss();
             }

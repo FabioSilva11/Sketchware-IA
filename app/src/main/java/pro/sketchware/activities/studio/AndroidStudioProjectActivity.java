@@ -64,10 +64,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.lC;
-import a.a.a.ProjectBuilder;
-import a.a.a.wq;
-import a.a.a.yq;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.compiler.ProjectBuilder;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.workspace.ProjectWorkspaceManager;
 import io.github.rosemoe.sora.lang.EmptyLanguage;
 import io.github.rosemoe.sora.lang.Language;
 import io.github.rosemoe.sora.langs.java.JavaLanguage;
@@ -184,7 +184,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         super.onCreate(savedInstanceState);
 
         scId = getIntent().getStringExtra(EXTRA_SC_ID);
-        HashMap<String, Object> project = scId == null ? null : lC.b(scId);
+        HashMap<String, Object> project = scId == null ? null : RecentProjectsRegistry.b(scId);
         String projectName = valueOf(project, "my_ws_name", getString(R.string.studio_editor_title));
         String appName = valueOf(project, "my_app_name", projectName);
 
@@ -1223,7 +1223,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             return;
         }
 
-        projectRoot = new File(wq.getAndroidStudioProjectPath(scId));
+        projectRoot = new File(WorkspacePathManager.getAndroidStudioProjectPath(scId));
         selectedNodeFile = projectRoot;
         binding.studioToolbar.setSubtitle(studioDisplayPath(scId, projectRoot));
         binding.studioProjectPath.setText(studioDisplayPath(scId, projectRoot));
@@ -1835,8 +1835,8 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     }
 
     private File runStudioBuild() throws Throwable {
-        HashMap<String, Object> project = lC.b(scId);
-        yq workspace = new yq(getApplicationContext(), projectRoot.getAbsolutePath(), project);
+        HashMap<String, Object> project = RecentProjectsRegistry.b(scId);
+        ProjectWorkspaceManager workspace = new ProjectWorkspaceManager(getApplicationContext(), projectRoot.getAbsolutePath(), project);
         configureStudioBuildWorkspace(workspace);
 
         BuildProgressReceiver receiver = (progress, step) -> {
@@ -1892,6 +1892,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         }
         String manifest = new String(Files.readAllBytes(manifestFile.toPath()), StandardCharsets.UTF_8);
         // A hand-edited manifest may use tools:/app: without declaring them ("Undefined Prefix: tools")
+
         String updated = ManifestNamespaces.declareUsedPrefixes(addExportedToLauncherActivity(manifest));
         if (!manifest.equals(updated)) {
             Files.write(manifestFile.toPath(), updated.getBytes(StandardCharsets.UTF_8));
@@ -1926,7 +1927,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         return manifest;
     }
 
-    private void ensureStudioBuildDirectories(yq workspace) throws IOException {
+    private void ensureStudioBuildDirectories(ProjectWorkspaceManager workspace) throws IOException {
         ensureDirectory(workspace.binDirectoryPath);
         ensureDirectory(workspace.compiledClassesPath);
         ensureDirectory(workspace.rJavaDirectoryPath);
@@ -1957,7 +1958,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         return message == null || message.isEmpty() ? throwable.getClass().getSimpleName() : message;
     }
 
-    private void configureStudioBuildWorkspace(yq workspace) {
+    private void configureStudioBuildWorkspace(ProjectWorkspaceManager workspace) {
         workspace.N.packageName = workspace.packageName;
         workspace.N.projectName = workspace.applicationName;
         workspace.N.versionCode = workspace.versionCode;
@@ -2146,13 +2147,21 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
 
     private void appendBuildOutput(String message) {
         // ANR FIX: previously this read the ENTIRE output TextView and re-set it
+
         // (getText() + setText(current + message)) on every single build line —
+
         // O(n²) string work + a fullScroll relayout per line. On big builds the
+
         // main-thread message queue floods and Android shows "Sketchware não está
+
         // respondendo" even though the build runs fine on a worker thread.
+
         //
+
         // Now lines are buffered and flushed at most every ~150 ms with a single
+
         // incremental append() and one scroll.
+
         synchronized (buildOutputBuffer) {
             buildOutputBuffer.append(message).append('\n');
         }
@@ -3783,10 +3792,10 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             return "";
         }
         try {
-            File root = new File(wq.getAndroidStudioProjectPath(scId));
+            File root = new File(WorkspacePathManager.getAndroidStudioProjectPath(scId));
             String relative = root.toPath().relativize(file.toPath()).toString().replace(File.separator, "/");
-            return relative.isEmpty() ? wq.ANDROID_STUDIO_PROJECTS + "/" + scId
-                    : wq.ANDROID_STUDIO_PROJECTS + "/" + scId + "/" + relative;
+            return relative.isEmpty() ? WorkspacePathManager.ANDROID_STUDIO_PROJECTS + "/" + scId
+                    : WorkspacePathManager.ANDROID_STUDIO_PROJECTS + "/" + scId + "/" + relative;
         } catch (Exception e) {
             return file.getAbsolutePath();
         }

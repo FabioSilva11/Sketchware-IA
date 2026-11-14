@@ -38,20 +38,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.IntStream;
 
-import a.a.a.DA;
-import a.a.a.DB;
-import a.a.a.lC;
+import pro.sketchware.editor.StoragePermissionFragment;
+import pro.sketchware.core.PreferenceStore;
+import pro.sketchware.workspace.RecentProjectsRegistry;
 import dev.chrisbanes.insetter.Insetter;
 import mod.hey.studios.project.ProjectTracker;
 import mod.hey.studios.project.backup.BackupRestoreManager;
 import pro.sketchware.R;
+import pro.sketchware.activities.game.GameEngineActivity;
 import pro.sketchware.activities.main.activities.MainActivity;
 import pro.sketchware.databinding.MyprojectsBinding;
 import pro.sketchware.databinding.SortProjectDialogBinding;
 import pro.sketchware.utility.AdManager;
 import pro.sketchware.utility.UI;
 
-public class ProjectsFragment extends DA implements pro.sketchware.activities.main.MainSearchable {
+public class ProjectsFragment extends StoragePermissionFragment implements pro.sketchware.activities.main.MainSearchable {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private final List<HashMap<String, Object>> projectsList = new ArrayList<>();
     private MyprojectsBinding binding;
@@ -63,7 +64,9 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
                 String sc_id = data.getStringExtra("sc_id");
                 if (data.getBooleanExtra("is_new", false)) {
                     String projectKind = data.getStringExtra(MyProjectSettingActivity.EXTRA_PROJECT_KIND);
-                    if (!lC.PROJECT_KIND_ANDROID_STUDIO.equals(projectKind)) {
+                    if (RecentProjectsRegistry.PROJECT_KIND_GAME_2D.equals(projectKind)) {
+                        toGameEngineActivity(sc_id);
+                    } else if (!RecentProjectsRegistry.PROJECT_KIND_ANDROID_STUDIO.equals(projectKind)) {
                         toDesignActivity(sc_id);
                     }
                     addProject(sc_id);
@@ -76,7 +79,7 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
             }
         }
     });
-    private DB preference;
+    private PreferenceStore preference;
     private SearchView projectsSearchView;
     private MenuProvider menuProvider;
 
@@ -96,6 +99,15 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
     public void toDesignActivity(String sc_id) {
         Intent intent = new Intent(requireContext(), DesignActivity.class);
         ProjectTracker.setScId(sc_id);
+        intent.putExtra("sc_id", sc_id);
+        intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        requireActivity().startActivity(intent);
+    }
+
+    public void toGameEngineActivity(String sc_id) {
+        Intent intent = new Intent(requireContext(), GameEngineActivity.class);
+        ProjectTracker.setScId(sc_id);
+        DesignActivity.sc_id = sc_id;
         intent.putExtra("sc_id", sc_id);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         requireActivity().startActivity(intent);
@@ -123,7 +135,7 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
     }
 
     public void toProjectSettingsActivity() {
-        toProjectSettingsActivity(lC.PROJECT_KIND_SKETCHWARE);
+        toProjectSettingsActivity(RecentProjectsRegistry.PROJECT_KIND_SKETCHWARE);
     }
 
     public void toProjectSettingsActivity(String projectKind) {
@@ -147,11 +159,12 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
     public void onDestroyView() {
         super.onDestroyView();
         binding = null; // avoid memory leaks
+
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        preference = new DB(requireContext(), "project");
+        preference = new PreferenceStore(requireContext(), "project");
 
         ExtendedFloatingActionButton fab = requireActivity().findViewById(R.id.create_new_project);
         fab.setOnClickListener((v) -> showNewProjectTypeDialog());
@@ -164,6 +177,7 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
         binding.myprojects.setHasFixedSize(true);
 
         binding.myprojects.post(this::refreshProjectsList); // wait for RecyclerView to be ready
+
         UI.addSystemWindowInsetToPadding(binding.specialActionContainer, true, false, true, false);
         UI.addSystemWindowInsetToPadding(binding.loadingContainer, true, false, true, true);
         UI.addSystemWindowInsetToPadding(binding.titleContainer, true, false, true, false);
@@ -190,6 +204,7 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
                         @Override
                         public boolean onQueryTextChange(String s) {
                             // The search bar is shared by every tab; the activity passes it to the one shown
+
                             if (getActivity() instanceof MainActivity mainActivity) {
                                 mainActivity.handleMainSearchQuery(s);
                             } else {
@@ -212,7 +227,7 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
             }
         };
 
-        requireActivity().addMenuProvider(menuProvider);
+        requireActivity().addMenuProvider(menuProvider, getViewLifecycleOwner(), androidx.lifecycle.Lifecycle.State.RESUMED);
 
         if (getActivity() != null) {
             AdManager.loadBanner(requireActivity(), binding.adContainer);
@@ -228,12 +243,19 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
 
         dialogView.findViewById(R.id.project_type_native).setOnClickListener(v -> {
             dialog.dismiss();
-            toProjectSettingsActivity(lC.PROJECT_KIND_SKETCHWARE);
+            toProjectSettingsActivity(RecentProjectsRegistry.PROJECT_KIND_SKETCHWARE);
         });
         dialogView.findViewById(R.id.project_type_android_studio).setOnClickListener(v -> {
             dialog.dismiss();
-            toProjectSettingsActivity(lC.PROJECT_KIND_ANDROID_STUDIO);
+            toProjectSettingsActivity(RecentProjectsRegistry.PROJECT_KIND_ANDROID_STUDIO);
         });
+        View game2dCard = dialogView.findViewById(R.id.project_type_game_2d);
+        if (game2dCard != null) {
+            game2dCard.setOnClickListener(v -> {
+                dialog.dismiss();
+                toProjectSettingsActivity(RecentProjectsRegistry.PROJECT_KIND_GAME_2D);
+            });
+        }
         dialog.show();
     }
 
@@ -244,7 +266,7 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
         if (hidden) {
             requireActivity().removeMenuProvider(menuProvider);
         } else {
-            requireActivity().addMenuProvider(menuProvider);
+            requireActivity().addMenuProvider(menuProvider, getViewLifecycleOwner(), androidx.lifecycle.Lifecycle.State.RESUMED);
         }
     }
 
@@ -260,17 +282,20 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
 
     public void refreshProjectsList() {
         // Check if the fragment is still attached to the activity
+
         if (!isAdded()) return;
 
         // Don't load project list without having permissions
+
         if (!c()) {
             if (binding.swipeRefresh.isRefreshing()) binding.swipeRefresh.setRefreshing(false);
             ((MainActivity) requireActivity()).s(); // ask for permissions
+
             return;
         }
 
         executorService.execute(() -> {
-            List<HashMap<String, Object>> loadedProjects = lC.a();
+            List<HashMap<String, Object>> loadedProjects = RecentProjectsRegistry.a();
             loadedProjects.sort(new ProjectComparator(preference.d("sortBy"),preference.a("pinnedProject", "-1")));
 
             DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(new ProjectDiffCallback(projectsList, loadedProjects));
@@ -291,7 +316,7 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
 
     private void addProject(String sc_id) {
         executorService.execute(() -> {
-            HashMap<String, Object> newProject = lC.b(sc_id);
+            HashMap<String, Object> newProject = RecentProjectsRegistry.b(sc_id);
             if (newProject != null) {
                 requireActivity().runOnUiThread(() -> {
                     projectsList.add(0, newProject);
@@ -304,7 +329,7 @@ public class ProjectsFragment extends DA implements pro.sketchware.activities.ma
 
     private void updateProject(String sc_id) {
         executorService.execute(() -> {
-            HashMap<String, Object> updatedProject = lC.b(sc_id);
+            HashMap<String, Object> updatedProject = RecentProjectsRegistry.b(sc_id);
             if (updatedProject != null) {
                 int index = IntStream.range(0, projectsList.size()).filter(i -> projectsList.get(i).get("sc_id").equals(sc_id)).findFirst().orElse(-1);
                 if (index != -1) {

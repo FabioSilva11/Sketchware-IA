@@ -15,7 +15,7 @@ import android.widget.TextView;
 import com.besome.sketch.beans.ViewBean;
 import com.besome.sketch.editor.view.ItemView;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.R;
 
 /** The Unity Banner widget in the layout editor: a 320x50 placeholder showing the placement ID. */
@@ -31,7 +31,7 @@ public class ItemUnityBanner extends LinearLayout implements ItemView {
 
     public ItemUnityBanner(Context context) {
         super(context);
-        dip = wB.a(context, 1.0F);
+        dip = ViewInflationUtils.a(context, 1.0F);
         paint.setColor(0x9599d5d0);
         setWillNotDraw(false);
         setGravity(Gravity.CENTER);

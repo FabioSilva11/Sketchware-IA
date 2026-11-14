@@ -20,14 +20,14 @@ import com.besome.sketch.beans.ProjectLibraryBean;
 import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import a.a.a.GB;
-import a.a.a.bB;
-import a.a.a.iC;
-import a.a.a.kv;
-import a.a.a.lv;
-import a.a.a.mB;
-import a.a.a.mv;
-import a.a.a.nv;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectLibraryManager;
+import pro.sketchware.editor.FirebaseDbImportView;
+import pro.sketchware.editor.FirebaseAuthImportView;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.FirebaseStorageImportView;
+import pro.sketchware.beans.ProjectLibraryValidator;
 import mod.hey.studios.util.Helper;
 import mod.jbk.editor.manage.library.LibrarySettingsImporter;
 import pro.sketchware.R;
@@ -39,7 +39,7 @@ public class FirebaseActivity extends BaseAppCompatActivity implements View.OnCl
     private static final int STEP_3 = 2;
     private String[] stepTitles;
     private String[] stepDescriptions;
-    private nv step;
+    private ProjectLibraryValidator step;
     private ProjectLibraryBean firebaseSettings;
     private String sc_id;
     private int stepNumber = STEP_1;
@@ -63,19 +63,19 @@ public class FirebaseActivity extends BaseAppCompatActivity implements View.OnCl
         layout_container.removeAllViews();
         if (stepNumber == STEP_1) {
             cv_console.setVisibility(View.VISIBLE);
-            lv lvVar = new lv(this);
+            FirebaseAuthImportView lvVar = new FirebaseAuthImportView(this);
             layout_container.addView(lvVar);
             lvVar.setData(firebaseSettings);
             step = lvVar;
         } else if (stepNumber == STEP_2) {
             cv_console.setVisibility(View.VISIBLE);
-            mv mvVar = new mv(this);
+            FirebaseStorageImportView mvVar = new FirebaseStorageImportView(this);
             layout_container.addView(mvVar);
             mvVar.setData(firebaseSettings);
             step = mvVar;
         } else if (stepNumber == STEP_3) {
             cv_console.setVisibility(View.GONE);
-            kv kvVar = new kv(this);
+            FirebaseDbImportView kvVar = new FirebaseDbImportView(this);
             layout_container.addView(kvVar);
             kvVar.setData(firebaseSettings);
             step = kvVar;
@@ -102,11 +102,12 @@ public class FirebaseActivity extends BaseAppCompatActivity implements View.OnCl
     private void openDocumentation() {
         String docUrl = step.getDocUrl();
         if (!docUrl.isEmpty()) {
-            if (GB.h(getApplicationContext())) {
+            if (DeviceEnvironmentUtils.h(getApplicationContext())) {
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW);
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     intent.setData(Uri.parse("googlechrome://navigate?url=" + docUrl));
+
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                     intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -116,17 +117,18 @@ public class FirebaseActivity extends BaseAppCompatActivity implements View.OnCl
                     showGetChromeDialog();
                 }
             } else {
-                bB.a(getApplicationContext(), getString(R.string.common_message_check_network), bB.TOAST_NORMAL).show();
+                ToastFactory.a(getApplicationContext(), getString(R.string.common_message_check_network), ToastFactory.TOAST_NORMAL).show();
             }
         }
     }
 
     private void openFirebaseConsole() {
-        if (GB.h(getApplicationContext())) {
+        if (DeviceEnvironmentUtils.h(getApplicationContext())) {
             try {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 intent.setData(Uri.parse("googlechrome://navigate?url=https://console.firebase.google.com"));
+
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                 intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
@@ -136,7 +138,7 @@ public class FirebaseActivity extends BaseAppCompatActivity implements View.OnCl
                 showGetChromeDialog();
             }
         } else {
-            bB.a(getApplicationContext(), getString(R.string.common_message_check_network), bB.TOAST_NORMAL).show();
+            ToastFactory.a(getApplicationContext(), getString(R.string.common_message_check_network), ToastFactory.TOAST_NORMAL).show();
         }
     }
 
@@ -152,7 +154,7 @@ public class FirebaseActivity extends BaseAppCompatActivity implements View.OnCl
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             int id = v.getId();
             if (id == R.id.btn_open_doc) {
                 openDocumentation();
@@ -163,7 +165,7 @@ public class FirebaseActivity extends BaseAppCompatActivity implements View.OnCl
             } else if (id == R.id.tv_nextbtn) {
                 onNextPressed();
             } else if (id == R.id.btn_import) {
-                LibrarySettingsImporter importer = new LibrarySettingsImporter(sc_id, iC::d);
+                LibrarySettingsImporter importer = new LibrarySettingsImporter(sc_id, ProjectLibraryManager::d);
                 importer.addOnProjectSelectedListener(settings -> {
                     firebaseSettings = settings;
                     stepNumber = STEP_3;
@@ -267,9 +269,10 @@ public class FirebaseActivity extends BaseAppCompatActivity implements View.OnCl
         dialog.setTitle(R.string.title_compatible_chrome_browser);
         dialog.setMessage(R.string.message_compatible_chrome_brower);
         dialog.setPositiveButton(R.string.common_word_ok, (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse("market://details?id=com.android.chrome"));
+
                 startActivity(intent);
                 v.dismiss();
             }

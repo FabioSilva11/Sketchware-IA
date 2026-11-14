@@ -54,7 +54,9 @@ public final class Dex {
     private static final int SIGNATURE_OFFSET = CHECKSUM_OFFSET + CHECKSUM_SIZE;
     private static final int SIGNATURE_SIZE = 20;
     // Provided as a convenience to avoid a memory allocation to benefit Dalvik.
+
     // Note: libcore.util.EmptyArray cannot be accessed when this code isn't run on Dalvik.
+
     static final short[] EMPTY_SHORT_ARRAY = new short[0];
 
     private ByteBuffer data;
@@ -150,6 +152,7 @@ public final class Dex {
     public void writeTo(OutputStream out) throws IOException {
         byte[] buffer = new byte[8192];
         ByteBuffer data = this.data.duplicate(); // positioned ByteBuffers aren't thread safe
+
         data.clear();
         while (data.hasRemaining()) {
             int count = Math.min(buffer.length, data.remaining());
@@ -175,6 +178,7 @@ public final class Dex {
         }
         ByteBuffer sectionData = data.duplicate();
         sectionData.order(ByteOrder.LITTLE_ENDIAN); // necessary?
+
         sectionData.position(position);
         sectionData.limit(data.capacity());
         return new Section("section", sectionData);
@@ -187,6 +191,7 @@ public final class Dex {
         int limit = nextSectionStart + maxByteCount;
         ByteBuffer sectionData = data.duplicate();
         sectionData.order(ByteOrder.LITTLE_ENDIAN); // necessary?
+
         sectionData.position(nextSectionStart);
         sectionData.limit(limit);
         Section result = new Section(name, sectionData);
@@ -207,6 +212,7 @@ public final class Dex {
      */
     public byte[] getBytes() {
         ByteBuffer data = this.data.duplicate(); // positioned ByteBuffers aren't thread safe
+
         byte[] result = new byte[data.capacity()];
         data.position(0);
         data.get(result);
@@ -278,6 +284,7 @@ public final class Dex {
         }
         byte[] buffer = new byte[8192];
         ByteBuffer data = this.data.duplicate(); // positioned ByteBuffers aren't thread safe
+
         data.limit(data.capacity());
         data.position(SIGNATURE_OFFSET + SIGNATURE_SIZE);
         while (data.hasRemaining()) {
@@ -295,6 +302,7 @@ public final class Dex {
         Adler32 adler32 = new Adler32();
         byte[] buffer = new byte[8192];
         ByteBuffer data = this.data.duplicate(); // positioned ByteBuffers aren't thread safe
+
         data.limit(data.capacity());
         data.position(CHECKSUM_OFFSET + CHECKSUM_SIZE);
         while (data.hasRemaining()) {
@@ -481,6 +489,7 @@ public final class Dex {
             if (triesSize > 0) {
                 if (instructions.length % 2 == 1) {
                     readShort(); // padding
+
                 }
 
                 /*
@@ -563,6 +572,7 @@ public final class Dex {
             int fieldIndex = 0;
             for (int i = 0; i < count; i++) {
                 fieldIndex += readUleb128(); // field index diff
+
                 int accessFlags = readUleb128();
                 result[i] = new mod.agus.jcoderz.dex.ClassData.Field(fieldIndex, accessFlags);
             }
@@ -574,6 +584,7 @@ public final class Dex {
             int methodIndex = 0;
             for (int i = 0; i < count; i++) {
                 methodIndex += readUleb128(); // method index diff
+
                 int accessFlags = readUleb128();
                 int codeOff = readUleb128();
                 result[i] = new ClassData.Method(methodIndex, accessFlags, codeOff);

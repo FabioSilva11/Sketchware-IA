@@ -1,8 +1,8 @@
 package com.besome.sketch.beans;
 
-import a.a.a.nA;
+import pro.sketchware.core.ComparisonResult;
 
-public class SelectableBean extends nA {
+public class SelectableBean extends ComparisonResult {
     public static final int SAVED_POS_ETC = 2;
     public static final int SAVED_POS_NONE = -1;
     public static final int SAVED_POS_SKETCHWARE_DATA = 0;

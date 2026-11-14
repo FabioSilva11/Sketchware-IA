@@ -14,7 +14,7 @@ import com.besome.sketch.editor.view.ItemView;
 
 import java.util.ArrayList;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 
 public class ItemGridView extends GridView implements ItemView {
 
@@ -27,9 +27,9 @@ public class ItemGridView extends GridView implements ItemView {
 
     public ItemGridView(Context context) {
         super(context);
-        paddingFactor = (int) wB.a(context, 1.0f);
+        paddingFactor = (int) ViewInflationUtils.a(context, 1.0f);
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        paint.setStrokeWidth(wB.a(getContext(), 2.0f));
+        paint.setStrokeWidth(ViewInflationUtils.a(getContext(), 2.0f));
         rect = new Rect();
         setDrawingCacheEnabled(true);
         setNumColumns(3);

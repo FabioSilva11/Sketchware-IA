@@ -74,7 +74,7 @@ public class StylesEditor extends Fragment {
         ArrayList<StyleModel> defaultStyles;
 
         if ((activity.variant.isEmpty() || hasUnsavedChanges) && !FileUtil.isExistFile(filePath)) {
-            String generatedContent = activity.yq.getXMLStyle();
+            String generatedContent = activity.workspace.getXMLStyle();
             defaultStyles = stylesEditorManager.parseStylesFile(generatedContent);
         } else {
             defaultStyles = stylesEditorManager.parseStylesFile(FileUtil.readFileIfExist(filePath));

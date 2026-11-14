@@ -14,8 +14,8 @@ import android.view.Window;
 
 import com.besome.sketch.editor.LogicEditorActivity;
 
-import a.a.a.Lx;
-import a.a.a.Ss;
+import pro.sketchware.compiler.ComponentSourceGenerator;
+import pro.sketchware.editor.BlockMenuItem;
 import io.github.rosemoe.sora.widget.component.EditorAutoCompletion;
 import mod.hey.studios.code.SrcCodeEditor;
 import mod.hey.studios.util.Helper;
@@ -46,6 +46,7 @@ public class AsdDialog extends Dialog implements DialogInterface.OnDismissListen
         if (window != null) {
             window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
             //window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
         }
 
         binding.editor.setTypefaceText(EditorUtils.getTypeface(act));
@@ -82,7 +83,7 @@ public class AsdDialog extends Dialog implements DialogInterface.OnDismissListen
                 boolean failed = false;
                 String code = sb.toString();
                 try {
-                    code = Lx.j(code, true);
+                    code = ComponentSourceGenerator.j(code, true);
                 } catch (Exception e) {
                     failed = true;
                     SketchwareUtil.toastError("Your code contains incorrectly nested parentheses");
@@ -121,7 +122,7 @@ public class AsdDialog extends Dialog implements DialogInterface.OnDismissListen
         act = null;
     }
 
-    public void setOnSaveClickListener(LogicEditorActivity logicEditorActivity, boolean z, Ss ss, AsdDialog asdDialog) {
+    public void setOnSaveClickListener(LogicEditorActivity logicEditorActivity, boolean z, BlockMenuItem ss, AsdDialog asdDialog) {
         binding.btnSave.setOnClickListener(new AsdHandlerCodeEditor(logicEditorActivity, z, ss, asdDialog, binding.editor));
     }
 

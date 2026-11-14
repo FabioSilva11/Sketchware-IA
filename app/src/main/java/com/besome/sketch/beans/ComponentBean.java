@@ -6,7 +6,7 @@ import android.os.Parcelable;
 
 import com.google.gson.annotations.Expose;
 
-import a.a.a.Gx;
+import pro.sketchware.editor.ComponentClassInfo;
 import mod.hilal.saif.components.ComponentsHandler;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -69,7 +69,7 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
     public static final int COMPONENT_TYPE_UNITY_INTERSTITIAL_AD = 55;
     public static final int COMPONENT_TYPE_UNITY_REWARDED_AD = 56;
 
-    public Gx classInfo;
+    public ComponentClassInfo classInfo;
     @Expose
     public String componentId;
     @Expose
@@ -129,53 +129,80 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
     public static String getComponentDocsUrlByTypeName(int type) {
         return switch (type) {
             case COMPONENT_TYPE_INTENT -> "https://docs.sketchware.io/docs/component-intent.html";
+
             case COMPONENT_TYPE_SHAREDPREF ->
                     "https://docs.sketchware.io/docs/component-shared-preference.html";
+
             case COMPONENT_TYPE_CALENDAR ->
                     "https://docs.sketchware.io/docs/component-calendar.html";
+
             case COMPONENT_TYPE_VIBRATOR ->
                     "https://docs.sketchware.io/docs/component-vibrator.html";
+
             case COMPONENT_TYPE_TIMERTASK -> "https://docs.sketchware.io/docs/component-timer.html";
+
             case COMPONENT_TYPE_FIREBASE ->
                     "https://docs.sketchware.io/docs/component-firebase-database.html";
+
             case COMPONENT_TYPE_DIALOG -> "https://docs.sketchware.io/docs/component-dialog.html";
+
             case COMPONENT_TYPE_MEDIAPLAYER ->
                     "https://docs.sketchware.io/docs/component-mediaplayer.html";
+
             case COMPONENT_TYPE_SOUNDPOOL ->
                     "https://docs.sketchware.io/docs/component-soundpool.html";
+
             case COMPONENT_TYPE_OBJECTANIMATOR ->
                     "https://docs.sketchware.io/docs/component-object-animator.html";
+
             case COMPONENT_TYPE_GYROSCOPE ->
                     "https://docs.sketchware.io/docs/component-gyroscope.html";
+
             case COMPONENT_TYPE_COMPASS, COMPONENT_TYPE_LIGHT_SENSOR,
                  COMPONENT_TYPE_PROXIMITY_SENSOR, COMPONENT_TYPE_BAROMETER,
                  COMPONENT_TYPE_STEP_COUNTER ->
                     "https://developer.android.com/develop/sensors-and-location/sensors/sensors_overview";
+
             case COMPONENT_TYPE_WORK_MANAGER -> "https://developer.android.com/topic/libraries/architecture/workmanager";
+
             case COMPONENT_TYPE_ALARM_MANAGER -> "https://developer.android.com/develop/background-work/services/alarms";
+
             case COMPONENT_TYPE_BIOMETRIC_MANAGER -> "https://developer.android.com/identity/sign-in/biometric-auth";
+
             case COMPONENT_TYPE_FUSED_LOCATION_MANAGER -> "https://developers.google.com/location-context/fused-location-provider";
+
             case COMPONENT_TYPE_SUPABASE_DATABASE -> "https://supabase.com/docs/guides/api";
+
             case COMPONENT_TYPE_SUPABASE_AUTH -> "https://supabase.com/docs/guides/auth/passwords";
+
             case COMPONENT_TYPE_SUPABASE_STORAGE -> "https://supabase.com/docs/guides/storage";
+
             case COMPONENT_TYPE_UNITY_INTERSTITIAL_AD ->
                     "https://docs.unity.com/en-us/ads-android/latest/sdk-integration/interstitial-ads";
+
             case COMPONENT_TYPE_UNITY_REWARDED_AD ->
                     "https://docs.unity.com/en-us/ads-android/latest/sdk-integration/rewarded-ads";
+
             case COMPONENT_TYPE_FIREBASE_AUTH ->
                     "https://docs.sketchware.io/docs/component-firebase-auth.html";
+
             case COMPONENT_TYPE_FIREBASE_CLOUD_MESSAGE ->
                     "https://sketchware-pro.vercel.app/docs/components/Firebase/cloud-messaging";
+
             case COMPONENT_TYPE_INTERSTITIAL_AD, COMPONENT_TYPE_REQUEST_NETWORK,
                  COMPONENT_TYPE_TEXT_TO_SPEECH, COMPONENT_TYPE_SPEECH_TO_TEXT,
                  COMPONENT_TYPE_BLUETOOTH_CONNECT, COMPONENT_TYPE_LOCATION_MANAGER ->
                 // sad :c
+
                     "";
             case COMPONENT_TYPE_FIREBASE_STORAGE ->
                     "https://docs.sketchware.io/docs/component-firebase-storage.html";
+
             case COMPONENT_TYPE_CAMERA -> "https://docs.sketchware.io/docs/component-camera.html";
+
             case COMPONENT_TYPE_FILE_PICKER ->
                     "https://docs.sketchware.io/docs/component-filepicker.html";
+
             default -> ComponentsHandler.docs(type);
         };
     }
@@ -487,7 +514,7 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
             case COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN -> "FirebaseGoogleLogin";
             default -> ComponentsHandler.getBuildClassById(type);
         };
-        classInfo = new Gx(typeName);
+        classInfo = new ComponentClassInfo(typeName);
     }
 
     public void clearClassInfo() {
@@ -507,7 +534,7 @@ public class ComponentBean extends CollapsibleBean implements Parcelable {
         return 0;
     }
 
-    public Gx getClassInfo() {
+    public ComponentClassInfo getClassInfo() {
         if (classInfo == null) {
             buildClassInfo();
         }

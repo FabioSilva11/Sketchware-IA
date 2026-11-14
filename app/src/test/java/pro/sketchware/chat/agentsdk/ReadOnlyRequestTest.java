@@ -45,11 +45,13 @@ public class ReadOnlyRequestTest {
                 "sc1");
 
         // Success: text response is valid
+
         assertTrue("Read-only request should succeed", result.isSuccessful());
         assertNotNull("Should have assistant text", result.getOutput());
-        assertFalse("Should not be blocked by guardrail", result.isBlockedByGuardrail());
+        assertFalse("Should not be blocked ProjectFileActionListener guardrail", result.isBlockedByGuardrail());
 
         // History should NOT contain recovery message
+
         for (ChatMessage msg : history) {
             if (msg.getType() == ChatMessage.TYPE_USER) {
                 assertFalse("History should NOT contain recovery nudge",
@@ -58,6 +60,7 @@ public class ReadOnlyRequestTest {
         }
 
         // Only ONE turn should have occurred (no retry with recovery)
+
         assertEquals("Should have exactly ONE LLM call (no recovery)", 1, gateway.getCallCount());
     }
 
@@ -114,6 +117,7 @@ public class ReadOnlyRequestTest {
     public void mutationRequest_withToolCall_executesNormally() throws Exception {
         RecordingGateway gateway = new RecordingGateway();
         // Simulate structured tool call
+
         pro.sketchware.chat.toolcalling.ToolCall toolCall =
                 new pro.sketchware.chat.toolcalling.ToolCall(
                         "apply_patch",
@@ -140,6 +144,7 @@ public class ReadOnlyRequestTest {
         RunResult result = runtime.run(agent, "Corrija o bug em MainActivity.java", "sc1");
 
         // Should complete (tool was called)
+
         assertTrue("Should succeed", result.isSuccessful() || !result.isBlockedByGuardrail());
     }
 
@@ -150,6 +155,7 @@ public class ReadOnlyRequestTest {
     public void mutationRequest_textResponse_noFakeUserMessage() throws Exception {
         RecordingGateway gateway = new RecordingGateway();
         gateway.setNextResponse("Vou corrigir isso agora.", null); // Text only, no tool call
+
 
         EventStream events = new EventStream();
         AgentRuntime runtime = new AgentRuntime.Builder(gateway)
@@ -166,9 +172,11 @@ public class ReadOnlyRequestTest {
                 "sc1");
 
         // Should complete successfully (text is valid response)
+
         assertTrue("Should succeed", result.isSuccessful());
 
         // History should NOT contain fake [system] message
+
         for (ChatMessage msg : history) {
             if (msg.getType() == ChatMessage.TYPE_USER) {
                 assertFalse("Should NOT have fake system message",
@@ -179,10 +187,12 @@ public class ReadOnlyRequestTest {
         }
 
         // Only ONE turn (no retry)
+
         assertEquals("Should have ONE call", 1, gateway.getCallCount());
     }
 
     // Helper stubs
+
 
     private static class RecordingGateway implements AgentLlmGateway {
         private String nextText;

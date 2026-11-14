@@ -5,8 +5,8 @@ import android.os.Parcelable;
 
 import com.google.gson.annotations.Expose;
 
-import a.a.a.eC;
-import a.a.a.jC;
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
 import pro.sketchware.R;
 
 public class EventBean extends CollapsibleBean implements Parcelable {
@@ -67,8 +67,8 @@ public class EventBean extends CollapsibleBean implements Parcelable {
     }
 
     public static void deleteEvent(String sc_id, EventBean event, ProjectFileBean projectFileBean) {
-        jC.a(sc_id).d(projectFileBean.getJavaName(), event.targetId, event.eventName);
-        eC a2 = jC.a(sc_id);
+        ProjectDataManagerRegistry.a(sc_id).d(projectFileBean.getJavaName(), event.targetId, event.eventName);
+        ProjectDataManager a2 = ProjectDataManagerRegistry.a(sc_id);
         String javaName = projectFileBean.getJavaName();
         a2.k(javaName, event.targetId + "_" + event.eventName);
     }

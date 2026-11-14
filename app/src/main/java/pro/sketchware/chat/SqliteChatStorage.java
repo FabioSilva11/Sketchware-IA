@@ -54,8 +54,11 @@ public final class SqliteChatStorage extends SQLiteOpenHelper {
         super(context.getApplicationContext(), DATABASE_NAME, null, DATABASE_VERSION);
         discardLegacyJson(context.getApplicationContext());
         // Open immediately so schema errors surface at construction. Streaming
+
         // rows are intentionally retained: they are the last local checkpoint
+
         // when Android stops the process while a response is still arriving.
+
         getWritableDatabase();
     }
 
@@ -439,8 +442,11 @@ public final class SqliteChatStorage extends SQLiteOpenHelper {
     public void deleteThread(String scId, String threadId) {
         if (!ChatMessage.hasVisibleText(threadId)) return;
         // Invalidate every queued snapshot for this exact conversation before
+
         // deleting it. Otherwise an older asynchronous save could run afterward
+
         // and recreate the row that the user just removed.
+
         nextGeneration(scId, threadId);
         storageLock.lock();
         try {
@@ -591,6 +597,7 @@ public final class SqliteChatStorage extends SQLiteOpenHelper {
                 }
             }
             // adEvery = conversation turns between ads; ads sit only before user messages
+
             int[] rows = ChatMessagePositionMapper.layout(ordinals, roles, showAds, adEvery);
             int totalCount = rows.length;
             int safeLoadSize = Math.max(1, loadSize);

@@ -37,16 +37,16 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipInputStream;
 
-import a.a.a.GB;
-import a.a.a.MA;
-import a.a.a.VB;
-import a.a.a.lC;
-import a.a.a.mB;
-import a.a.a.nB;
-import a.a.a.oB;
-import a.a.a.wB;
-import a.a.a.wq;
-import a.a.a.yB;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.editor.KeyAliasValidator;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.DateTimeUtils;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.core.ViewInflationUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.MapValueUtils;
 import mod.hey.studios.project.AndroidStudioProjectSettingsDialog;
 import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.util.Helper;
@@ -78,7 +78,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
     private final int[] projectThemeColors = new int[themeColorKeys.length];
     public MyprojectSettingBinding binding;
     private PackageNameValidator projectPackageNameValidator;
-    private VB projectNameValidator;
+    private KeyAliasValidator projectNameValidator;
     private AppNameValidator projectAppNameValidator;
     private boolean projectHasCustomIcon = false;
     private boolean updatingExistingProject = false;
@@ -90,7 +90,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
     private Bitmap icon;
     private Uri pendingCropOutputUri;
     private String sc_id;
-    private String projectKind = lC.PROJECT_KIND_SKETCHWARE;
+    private String projectKind = RecentProjectsRegistry.PROJECT_KIND_SKETCHWARE;
     private String originalPackageName;
     private String saveError;
 
@@ -141,7 +141,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
 
         projectAppNameValidator = new AppNameValidator(getApplicationContext(), binding.tilAppName);
         projectPackageNameValidator = new PackageNameValidator(getApplicationContext(), binding.tilPackageName);
-        projectNameValidator = new VB(getApplicationContext(), binding.tilProjectName);
+        projectNameValidator = new KeyAliasValidator(getApplicationContext(), binding.tilProjectName);
         binding.tilPackageName.setOnFocusChangeListener((v, hasFocus) -> {
             if (isPackageNameLocked()) {
                 return;
@@ -165,7 +165,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
             colorView.color.setBackgroundColor(Color.WHITE);
             binding.layoutThemeColors.addView(colorView);
             colorView.setOnClickListener(v -> {
-                if (!mB.a()) {
+                if (!EditorViewUtils.a()) {
                     pickColor(v, (Integer) v.getTag());
                 }
             });
@@ -173,36 +173,38 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
         if (updatingExistingProject) {
             /* Set the dialog's title & save button label */
             binding.toolbar.setTitle("Project Settings");
-            HashMap<String, Object> metadata = lC.b(sc_id);
-            projectKind = normalizeProjectKind(yB.c(metadata, lC.PROJECT_KIND_KEY));
-            originalPackageName = yB.c(metadata, "my_sc_pkg_name");
-            binding.etPackageName.setText(yB.c(metadata, "my_sc_pkg_name"));
-            binding.etProjectName.setText(yB.c(metadata, "my_ws_name"));
-            binding.etAppName.setText(yB.c(metadata, "my_app_name"));
+            HashMap<String, Object> metadata = RecentProjectsRegistry.b(sc_id);
+            projectKind = normalizeProjectKind(MapValueUtils.c(metadata, RecentProjectsRegistry.PROJECT_KIND_KEY));
+            originalPackageName = MapValueUtils.c(metadata, "my_sc_pkg_name");
+            binding.etPackageName.setText(MapValueUtils.c(metadata, "my_sc_pkg_name"));
+            binding.etProjectName.setText(MapValueUtils.c(metadata, "my_ws_name"));
+            binding.etAppName.setText(MapValueUtils.c(metadata, "my_app_name"));
             binding.okButton.setText("Save changes");
-            projectVersionCode = parseInt(yB.c(metadata, "sc_ver_code"), 1);
-            parseVersion(yB.c(metadata, "sc_ver_name"));
-            binding.verCode.setText(yB.c(metadata, "sc_ver_code"));
-            binding.verName.setText(yB.c(metadata, "sc_ver_name"));
+            projectVersionCode = parseInt(MapValueUtils.c(metadata, "sc_ver_code"), 1);
+            parseVersion(MapValueUtils.c(metadata, "sc_ver_name"));
+            binding.verCode.setText(MapValueUtils.c(metadata, "sc_ver_code"));
+            binding.verName.setText(MapValueUtils.c(metadata, "sc_ver_name"));
             projectHasCustomIcon = ProjectMapUtils.getBoolean(metadata, "custom_icon");
             if (projectHasCustomIcon) {
                 binding.appIcon.setImageURI(FileProvider.getUriForFile(getApplicationContext(), getApplicationContext().getPackageName() + ".provider", getCustomIcon()));
             }
 
             for (int i = 0; i < themeColorKeys.length; i++) {
-                projectThemeColors[i] = yB.a(metadata, themeColorKeys[i], projectThemeColors[i]);
+                projectThemeColors[i] = MapValueUtils.a(metadata, themeColorKeys[i], projectThemeColors[i]);
             }
         } else {
             /* Set the dialog's title & create button label */
             String newProjectName = getIntent().getStringExtra("my_ws_name");
             String newProjectPackageName = getIntent().getStringExtra("my_sc_pkg_name");
             if (sc_id == null || sc_id.isEmpty()) {
-                sc_id = lC.b();
-                newProjectName = lC.c();
+                sc_id = RecentProjectsRegistry.b();
+                newProjectName = RecentProjectsRegistry.c();
                 newProjectPackageName = "com.my." + newProjectName.toLowerCase();
             }
             if (isAndroidStudioProject()) {
                 binding.toolbar.setTitle("New Android Studio Project");
+            } else if (isGameProject()) {
+                binding.toolbar.setTitle(R.string.project_type_game_2d);
             }
             originalPackageName = newProjectPackageName;
             binding.etPackageName.setText(newProjectPackageName);
@@ -257,7 +259,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
         if (id == R.id.app_icon_layout) {
             showAppIconOptions();
         } else if (id == R.id.ok_button) {
-            mB.a(v);
+            EditorViewUtils.a(v);
             if (isInputValid()) {
                 if (icon != null) saveBitmapTo(icon, getCustomIconPath());
                 new SaveProjectAsyncTask(getApplicationContext()).execute();
@@ -292,11 +294,11 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
     public void onStart() {
         super.onStart();
 
-        oB oBVar = new oB();
-        oBVar.f(wq.e() + File.separator + sc_id);
-        oBVar.f(wq.g() + File.separator + sc_id);
-        oBVar.f(wq.t() + File.separator + sc_id);
-        oBVar.f(wq.d() + File.separator + sc_id);
+        FileCryptoUtils oBVar = new FileCryptoUtils();
+        oBVar.f(WorkspacePathManager.e() + File.separator + sc_id);
+        oBVar.f(WorkspacePathManager.g() + File.separator + sc_id);
+        oBVar.f(WorkspacePathManager.t() + File.separator + sc_id);
+        oBVar.f(WorkspacePathManager.d() + File.separator + sc_id);
         File o = getCustomIcon();
         if (!o.exists()) {
             try {
@@ -311,7 +313,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
         MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(this);
         dialog.setIcon(R.drawable.numbers_48);
         dialog.setTitle(Helper.getResString(R.string.myprojects_settings_version_control_title));
-        View view = wB.a(getApplicationContext(), R.layout.property_popup_version_control);
+        View view = ViewInflationUtils.a(getApplicationContext(), R.layout.property_popup_version_control);
         ((TextView) view.findViewById(R.id.tv_code)).setText(Helper.getResString(R.string.myprojects_settings_version_control_title_code));
         ((TextView) view.findViewById(R.id.tv_name)).setText(Helper.getResString(R.string.myprojects_settings_version_control_title_name));
 
@@ -372,7 +374,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
             }
         });
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_save), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 binding.verCode.setText(String.valueOf(versionCodePicker.getValue()));
                 binding.verName.setText(projectNewVersionNameFirstPart + "." + projectNewVersionNameSecondPart);
                 v.dismiss();
@@ -535,19 +537,19 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
     }
 
     private String getCustomIconPath() {
-        return wq.e() + File.separator + sc_id + File.separator + "icon.png";
+        return WorkspacePathManager.e() + File.separator + sc_id + File.separator + "icon.png";
     }
 
     private String getTempIconsFolderPath(String foldername) {
-        return wq.e() + File.separator + sc_id + File.separator + foldername;
+        return WorkspacePathManager.e() + File.separator + sc_id + File.separator + foldername;
     }
 
     private File getTempIconFile(String fileName) {
-        return new File(wq.e() + File.separator + sc_id + File.separator + fileName);
+        return new File(WorkspacePathManager.e() + File.separator + sc_id + File.separator + fileName);
     }
 
     private String getIconsFolderPath() {
-        return wq.e() + File.separator + sc_id + File.separator + "mipmaps" + File.separator;
+        return WorkspacePathManager.e() + File.separator + sc_id + File.separator + "mipmaps" + File.separator;
     }
 
     private boolean isInputValid() {
@@ -618,14 +620,21 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
     }
 
     private String normalizeProjectKind(String value) {
-        if (lC.PROJECT_KIND_ANDROID_STUDIO.equals(value)) {
-            return lC.PROJECT_KIND_ANDROID_STUDIO;
+        if (RecentProjectsRegistry.PROJECT_KIND_ANDROID_STUDIO.equals(value)) {
+            return RecentProjectsRegistry.PROJECT_KIND_ANDROID_STUDIO;
         }
-        return lC.PROJECT_KIND_SKETCHWARE;
+        if (RecentProjectsRegistry.PROJECT_KIND_GAME_2D.equals(value)) {
+            return RecentProjectsRegistry.PROJECT_KIND_GAME_2D;
+        }
+        return RecentProjectsRegistry.PROJECT_KIND_SKETCHWARE;
+    }
+
+    private boolean isGameProject() {
+        return RecentProjectsRegistry.PROJECT_KIND_GAME_2D.equals(projectKind);
     }
 
     private boolean isAndroidStudioProject() {
-        return lC.PROJECT_KIND_ANDROID_STUDIO.equals(projectKind);
+        return RecentProjectsRegistry.PROJECT_KIND_ANDROID_STUDIO.equals(projectKind);
     }
 
     private boolean isPackageNameLocked() {
@@ -652,7 +661,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
     }
 
     private void createAndroidStudioProjectFromTemplate(HashMap<String, Object> data, boolean cleanProjectFolder) throws IOException {
-        File projectRoot = new File(wq.getAndroidStudioProjectPath(sc_id));
+        File projectRoot = new File(WorkspacePathManager.getAndroidStudioProjectPath(sc_id));
         if (cleanProjectFolder && projectRoot.exists()) {
             FileUtil.deleteFile(projectRoot.getAbsolutePath());
         }
@@ -919,13 +928,13 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
 
         private void initialize(Context context, int tag) {
             setTag(tag);
-            wB.a(context, this, R.layout.myproject_color);
+            ViewInflationUtils.a(context, this, R.layout.myproject_color);
             color = findViewById(R.id.color);
             name = findViewById(R.id.name);
         }
     }
 
-    private class SaveProjectAsyncTask extends MA {
+    private class SaveProjectAsyncTask extends BackgroundTask {
 
         public SaveProjectAsyncTask(Context context) {
             super(context);
@@ -966,52 +975,52 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
             data.put("my_sc_pkg_name", getPackageNameForSave());
             data.put("my_ws_name", Helper.getText(binding.etProjectName));
             data.put("my_app_name", Helper.getText(binding.etAppName));
-            data.put(lC.PROJECT_KIND_KEY, projectKind);
+            data.put(RecentProjectsRegistry.PROJECT_KIND_KEY, projectKind);
             data.put("proj_type", isAndroidStudioProject() ? 2 : 1);
             if (updatingExistingProject) {
                 data.put("custom_icon", projectHasCustomIcon);
                 data.put("isIconAdaptive", isIconAdaptive);
                 data.put("sc_ver_code", Helper.getText(binding.verCode));
                 data.put("sc_ver_name", Helper.getText(binding.verName));
-                data.put("sketchware_ver", GB.d(getApplicationContext()));
+                data.put("sketchware_ver", DeviceEnvironmentUtils.d(getApplicationContext()));
                 for (int i = 0; i < themeColorKeys.length; i++) {
                     data.put(themeColorKeys[i], projectThemeColors[i]);
                 }
                 if (isAndroidStudioProject()) {
                     try {
                         createAndroidStudioProjectFromTemplate(data, false);
-                        data.put("studio_path", wq.getAndroidStudioProjectPath(sc_id));
-                        lC.b(sc_id, data);
+                        data.put("studio_path", WorkspacePathManager.getAndroidStudioProjectPath(sc_id));
+                        RecentProjectsRegistry.b(sc_id, data);
                     } catch (Exception e) {
                         saveError = "Falha ao configurar o projeto Android Studio: " + e.getMessage();
                     }
                 } else {
-                    lC.b(sc_id, data);
+                    RecentProjectsRegistry.b(sc_id, data);
                     updateProjectResourcesContents(data);
                 }
             } else {
-                data.put("my_sc_reg_dt", new nB().a("yyyyMMddHHmmss"));
+                data.put("my_sc_reg_dt", new DateTimeUtils().a("yyyyMMddHHmmss"));
                 data.put("custom_icon", projectHasCustomIcon);
                 data.put("isIconAdaptive", isIconAdaptive);
                 data.put("sc_ver_code", Helper.getText(binding.verCode));
                 data.put("sc_ver_name", Helper.getText(binding.verName));
-                data.put("sketchware_ver", GB.d(getApplicationContext()));
+                data.put("sketchware_ver", DeviceEnvironmentUtils.d(getApplicationContext()));
                 for (int i = 0; i < themeColorKeys.length; i++) {
                     data.put(themeColorKeys[i], projectThemeColors[i]);
                 }
                 if (isAndroidStudioProject()) {
                     try {
                         createAndroidStudioProjectFromTemplate(data, true);
-                        data.put("studio_path", wq.getAndroidStudioProjectPath(sc_id));
-                        lC.saveAndroidStudioProject(sc_id, data);
+                        data.put("studio_path", WorkspacePathManager.getAndroidStudioProjectPath(sc_id));
+                        RecentProjectsRegistry.saveAndroidStudioProject(sc_id, data);
                     } catch (Exception e) {
                         saveError = "Falha ao criar o projeto Android Studio: " + e.getMessage();
                     }
                 } else {
-                    lC.a(sc_id, data);
+                    RecentProjectsRegistry.a(sc_id, data);
                     updateProjectResourcesContents(data);
-                    wq.a(getApplicationContext(), sc_id);
-                    new oB().b(wq.b(sc_id));
+                    WorkspacePathManager.a(getApplicationContext(), sc_id);
+                    new FileCryptoUtils().b(WorkspacePathManager.b(sc_id));
                     ProjectSettings projectSettings = new ProjectSettings(sc_id);
                     projectSettings.setValue(ProjectSettings.SETTING_NEW_XML_COMMAND, ProjectSettings.SETTING_GENERIC_VALUE_TRUE);
                     projectSettings.setValue(ProjectSettings.SETTING_ENABLE_VIEWBINDING, ProjectSettings.SETTING_GENERIC_VALUE_TRUE);
@@ -1029,7 +1038,7 @@ public class MyProjectSettingActivity extends BaseAppCompatActivity implements V
         }
 
         private void updateProjectResourcesContents(HashMap<String, Object> data) {
-            String baseDir = wq.b(sc_id) + "/files/resource/values/";
+            String baseDir = WorkspacePathManager.b(sc_id) + "/files/resource/values/";
             String stringsFilePath = baseDir + "strings.xml";
             String colorsFilePath = baseDir + "colors.xml";
             String newAppName = Objects.requireNonNull(data.get("my_app_name")).toString();

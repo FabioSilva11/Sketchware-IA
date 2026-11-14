@@ -48,7 +48,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import a.a.a.MA;
+import pro.sketchware.core.BackgroundTask;
 import mod.hey.studios.util.Helper;
 import mod.jbk.build.BuiltInLibraries;
 import mod.jbk.util.LogUtil;
@@ -103,9 +103,11 @@ public class ExcludeBuiltInLibrariesActivity extends BaseAppCompatActivity {
                 }
                 errorMessage = "read config was null";
                 // fall-through to shared handler
+
             } catch (Exception e) {
                 errorMessage = Log.getStackTraceString(e);
                 // fall-through to shared handler
+
             }
 
             LogUtil.e(TAG, "Couldn't parse config: " + errorMessage);
@@ -296,10 +298,13 @@ public class ExcludeBuiltInLibrariesActivity extends BaseAppCompatActivity {
         dialog.setTitle("Select built-in libraries");
 
         // magic to initialize scrollbars even without android:scrollbars defined in XML
+
         // https://stackoverflow.com/a/48698300/10929762
+
         TypedArray typedArray = obtainStyledAttributes(null, new int[0]);
         try {
             //noinspection JavaReflectionMemberAccess
+
             Method method = View.class.getDeclaredMethod("initializeScrollbars", TypedArray.class);
             method.setAccessible(true);
             method.invoke(binding.recyclerView, typedArray);
@@ -340,7 +345,7 @@ public class ExcludeBuiltInLibrariesActivity extends BaseAppCompatActivity {
         dialog.show();
     }
 
-    private static class SaveConfigTask extends MA {
+    private static class SaveConfigTask extends BackgroundTask {
         private final WeakReference<ExcludeBuiltInLibrariesActivity> activity;
 
         public SaveConfigTask(ExcludeBuiltInLibrariesActivity activity) {

@@ -411,6 +411,7 @@ public final class SsaBasicBlock {
         SsaBasicBlock newPred = parent.makeNewGotoBlock();
 
         // Update the new block.
+
         newPred.predecessors = predecessors;
         newPred.successors.set(index) ;
         newPred.successorList.add(index);
@@ -418,10 +419,12 @@ public final class SsaBasicBlock {
 
 
         // Update us.
+
         predecessors = new BitSet(parent.getBlocks().size());
         predecessors.set(newPred.index);
 
         // Update our (soon-to-be) old predecessors.
+
         for (int i = newPred.predecessors.nextSetBit(0); i >= 0;
                 i = newPred.predecessors.nextSetBit(i + 1)) {
 
@@ -453,12 +456,14 @@ public final class SsaBasicBlock {
         }
 
         // Update the new block.
+
         newSucc.predecessors.set(this.index);
         newSucc.successors.set(other.index) ;
         newSucc.successorList.add(other.index);
         newSucc.primarySuccessor = other.index;
 
         // Update us.
+
         for (int i = successorList.size() - 1 ;  i >= 0; i--) {
             if (successorList.get(i) == other.index) {
                 successorList.set(i, newSucc.index);
@@ -472,6 +477,7 @@ public final class SsaBasicBlock {
         successors.set(newSucc.index);
 
         // Update "other".
+
         other.predecessors.set(newSucc.index);
         other.predecessors.set(index, successors.get(other.index));
 
@@ -491,6 +497,7 @@ public final class SsaBasicBlock {
         }
 
         // Update us.
+
         successors.set(newIndex);
 
         if (primarySuccessor == oldIndex) {
@@ -506,9 +513,11 @@ public final class SsaBasicBlock {
         successors.clear(oldIndex);
 
         // Update new successor.
+
         parent.getBlocks().get(newIndex).predecessors.set(index);
 
         // Update old successor.
+
         parent.getBlocks().get(oldIndex).predecessors.clear(index);
     }
 
@@ -577,6 +586,7 @@ public final class SsaBasicBlock {
 
         if (result.getReg() == source.getReg()) {
             // Sometimes we end up with no-op moves. Ignore them here.
+
             return;
         }
 
@@ -633,6 +643,7 @@ public final class SsaBasicBlock {
     public void addMoveToBeginning (mod.agus.jcoderz.dx.rop.code.RegisterSpec result, mod.agus.jcoderz.dx.rop.code.RegisterSpec source) {
         if (result.getReg() == source.getReg()) {
             // Sometimes we end up with no-op moves. Ignore them here.
+
             return;
         }
 
@@ -652,10 +663,10 @@ public final class SsaBasicBlock {
      * @param regsUsed set, indexed by register number
      * @param rs register to mark as used
      */
-    private static void setRegsUsed (BitSet regsUsed, mod.agus.jcoderz.dx.rop.code.RegisterSpec rs) {
-        regsUsed.set(rs.getReg());
-        if (rs.getCategory() > 1) {
-            regsUsed.set(rs.getReg() + 1);
+    private static void setRegsUsed (BitSet regsUsed, mod.agus.jcoderz.dx.rop.code.RegisterSpec LogicEventEditorFragment) {
+        regsUsed.set(LogicEventEditorFragment.getReg());
+        if (LogicEventEditorFragment.getCategory() > 1) {
+            regsUsed.set(LogicEventEditorFragment.getReg() + 1);
         }
     }
 
@@ -668,9 +679,9 @@ public final class SsaBasicBlock {
      * @return true if register is fully or partially (for the case of wide
      * registers) used.
      */
-    private static boolean checkRegUsed (BitSet regsUsed, mod.agus.jcoderz.dx.rop.code.RegisterSpec rs) {
-        int reg = rs.getReg();
-        int category = rs.getCategory();
+    private static boolean checkRegUsed (BitSet regsUsed, mod.agus.jcoderz.dx.rop.code.RegisterSpec LogicEventEditorFragment) {
+        int reg = LogicEventEditorFragment.getReg();
+        int category = LogicEventEditorFragment.getCategory();
 
         return regsUsed.get(reg)
                 || (category == 2 ? regsUsed.get(reg + 1) : false);
@@ -691,6 +702,7 @@ public final class SsaBasicBlock {
         BitSet regsUsedAsSources = new BitSet(parent.getRegCount());
 
         // TODO: Get rid of this.
+
         BitSet regsUsedAsResults = new BitSet(parent.getRegCount());
 
         int sz = toSchedule.size();
@@ -701,6 +713,7 @@ public final class SsaBasicBlock {
             int oldInsertPlace = insertPlace;
 
             // Record all registers used as sources in this block.
+
             for (int i = insertPlace; i < sz; i++) {
                 setRegsUsed(regsUsedAsSources,
                         toSchedule.get(i).getSources().get(0));
@@ -734,6 +747,7 @@ public final class SsaBasicBlock {
                 SsaInsn insnToSplit = null;
 
                 // Find an insn whose result is used as a source.
+
                 for (int i = insertPlace; i < sz; i++) {
                     SsaInsn insn = toSchedule.get(i);
                     if (checkRegUsed(regsUsedAsSources, insn.getResult())
@@ -751,6 +765,7 @@ public final class SsaBasicBlock {
                 }
 
                 // At least one insn will be set above.
+
 
                 mod.agus.jcoderz.dx.rop.code.RegisterSpec result = insnToSplit.getResult();
                 mod.agus.jcoderz.dx.rop.code.RegisterSpec tempSpec = result.withReg(
@@ -775,6 +790,7 @@ public final class SsaBasicBlock {
                 toSchedule.set(insertPlace, toReplace);
 
                 // The size changed.
+
                 sz = toSchedule.size();
             }
 
@@ -905,6 +921,7 @@ public final class SsaBasicBlock {
 
                     if (!moveExceptionInterferes) {
                         // This is the easy case.
+
                         insns.remove(movesFromPhisAtBeginning);
                         insns.add(0, firstNonPhiMoveInsn);
                     } else {
@@ -918,6 +935,7 @@ public final class SsaBasicBlock {
                                 originalResultSpec.getCategory());
 
                         // We now move it to a spare register.
+
                         firstNonPhiMoveInsn.changeResultReg(spareRegister);
                         RegisterSpec tempSpec =
                             firstNonPhiMoveInsn.getResult();
@@ -925,6 +943,7 @@ public final class SsaBasicBlock {
                         insns.add(0, firstNonPhiMoveInsn);
 
                         // And here we move it back.
+
 
                         NormalSsaInsn toAdd = new NormalSsaInsn(
                                 new PlainInsn(
@@ -952,6 +971,7 @@ public final class SsaBasicBlock {
         }
 
         // Return registers borrowed here and in scheduleUseBeforeAssigned().
+
         parent.returnSpareRegisters();
 
     }
@@ -963,7 +983,9 @@ public final class SsaBasicBlock {
      */
     public void forEachInsn(SsaInsn.Visitor visitor) {
         // This gets called a LOT, and not using an iterator
+
         // saves a lot of allocations and reduces memory usage
+
         int len = insns.size();
         for (int i = 0; i < len; i++) {
             insns.get(i).accept(visitor);

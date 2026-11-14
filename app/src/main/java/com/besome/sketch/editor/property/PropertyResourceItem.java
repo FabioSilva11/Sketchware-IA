@@ -30,11 +30,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import a.a.a.Kw;
-import a.a.a.jC;
-import a.a.a.kC;
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.filemanagers.ProjectResourceManager;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.bobur.VectorDrawableLoader;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
@@ -63,7 +63,7 @@ public class PropertyResourceItem extends RelativeLayout implements View.OnClick
     public View k;
     public View l;
     public int m;
-    public Kw n;
+    public ObjectChangeListener n;
 
     public PropertyResourceItem(Context context, boolean z, String str, boolean z2) {
         super(context);
@@ -106,14 +106,14 @@ public class PropertyResourceItem extends RelativeLayout implements View.OnClick
         if (str != null && !str.equalsIgnoreCase("NONE")) {
             c = str;
             f.setText(str);
-            if (jC.d(a).h(str) == ProjectResourceBean.PROJECT_RES_TYPE_RESOURCE) {
+            if (ProjectDataManagerRegistry.d(a).h(str) == ProjectResourceBean.PROJECT_RES_TYPE_RESOURCE) {
                 g.setImageResource(getContext().getResources().getIdentifier(str, "drawable", getContext().getPackageName()));
                 return;
             } else if (str.equals("default_image")) {
                 g.setImageResource(getContext().getResources().getIdentifier(str, "drawable", getContext().getPackageName()));
                 return;
             } else {
-                File file = new File(jC.d(a).f(str));
+                File file = new File(ProjectDataManagerRegistry.d(a).f(str));
                 if (file.exists()) {
                     Context context = getContext();
                     fromFile = FileProvider.getUriForFile(context, getContext().getPackageName() + ".provider", file);
@@ -121,7 +121,7 @@ public class PropertyResourceItem extends RelativeLayout implements View.OnClick
                         svgUtils.loadImage(g, fpu.getSvgFullPath(a, str));
                         return;
                     }
-                    Glide.with(getContext()).load(fromFile).signature(kC.n()).error(R.drawable.ic_remove_grey600_24dp).into(g);
+                    Glide.with(getContext()).load(fromFile).signature(ProjectResourceManager.n()).error(R.drawable.ic_remove_grey600_24dp).into(g);
                     return;
                 }
                 g.setImageResource(getContext().getResources().getIdentifier(str, "drawable", getContext().getPackageName()));
@@ -136,13 +136,13 @@ public class PropertyResourceItem extends RelativeLayout implements View.OnClick
 
     @Override
     public void onClick(View view) {
-        if (mB.a()) {
+        if (EditorViewUtils.a()) {
             return;
         }
         a();
     }
 
-    public void setOnPropertyValueChangeListener(Kw kw) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener kw) {
         n = kw;
     }
 
@@ -161,7 +161,7 @@ public class PropertyResourceItem extends RelativeLayout implements View.OnClick
     }
 
     public final void a(Context context, boolean z, boolean z2) {
-        wB.a(context, this, R.layout.property_resource_item);
+        ViewInflationUtils.a(context, this, R.layout.property_resource_item);
         e = findViewById(R.id.tv_name);
         f = findViewById(R.id.tv_value);
         g = findViewById(R.id.view_image);
@@ -174,7 +174,7 @@ public class PropertyResourceItem extends RelativeLayout implements View.OnClick
     public final void a() {
         SearchWithRecyclerViewBinding binding = SearchWithRecyclerViewBinding.inflate(LayoutInflater.from(getContext()));
 
-        ArrayList<String> images = jC.d(a).m();
+        ArrayList<String> images = ProjectDataManagerRegistry.d(a).m();
         images.addAll(new VectorDrawableLoader().getVectorDrawables(DesignActivity.sc_id));
         images.add(0, d ? "default_image" : "NONE");
 
@@ -280,7 +280,7 @@ public class PropertyResourceItem extends RelativeLayout implements View.OnClick
 
     private View setImageViewContent(String image) {
         ImageView imageView = new ImageView(getContext());
-        int size = (int) (48 * wB.a(getContext(), 1f));
+        int size = (int) (48 * ViewInflationUtils.a(getContext(), 1f));
         imageView.setLayoutParams(new LinearLayout.LayoutParams(size, size));
         imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
         imageView.setBackgroundResource(R.drawable.bg_outline);
@@ -289,7 +289,7 @@ public class PropertyResourceItem extends RelativeLayout implements View.OnClick
             if ("default_image".equals(image)) {
                 imageView.setImageResource(getResources().getIdentifier(image, "drawable", getContext().getPackageName()));
             } else {
-                File file = new File(jC.d(a).f(image));
+                File file = new File(ProjectDataManagerRegistry.d(a).f(image));
                 if (file.exists()) {
                     Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".provider", file);
                     if (file.getAbsolutePath().endsWith(".xml")) {
@@ -297,7 +297,7 @@ public class PropertyResourceItem extends RelativeLayout implements View.OnClick
                     } else {
                         Glide.with(getContext())
                                 .load(uri)
-                                .signature(kC.n())
+                                .signature(ProjectResourceManager.n())
                                 .error(R.drawable.ic_remove_grey600_24dp)
                                 .into(imageView);
                     }

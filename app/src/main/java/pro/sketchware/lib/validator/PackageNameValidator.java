@@ -6,12 +6,12 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.regex.Pattern;
 
-import a.a.a.MB;
-import a.a.a.uq;
+import pro.sketchware.lib.validator.TextInputValidator;
+import pro.sketchware.editor.ComponentNameRegistry;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
-public class PackageNameValidator extends MB {
+public class PackageNameValidator extends TextInputValidator {
 
     private static final Pattern packagePattern = Pattern.compile("([a-zA-Z][a-zA-Z\\d]*\\.)*[a-zA-Z][a-zA-Z\\d]*");
 
@@ -27,6 +27,7 @@ public class PackageNameValidator extends MB {
                 b.setError(a.getString(R.string.invalid_value_max_lenth, 50));
             } else {
                 //what ???
+
                 b.setError(a.getString(e, 50));
             }
             d = false;
@@ -50,7 +51,7 @@ public class PackageNameValidator extends MB {
         }
         boolean containsReservedWord = false;
         for (String packagePart : s.toString().split("\\.")) {
-            String[] reservedWords = uq.b;
+            String[] reservedWords = ComponentNameRegistry.b;
             int length = reservedWords.length;
             int reservedWordIndex = 0;
             while (true) {

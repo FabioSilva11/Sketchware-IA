@@ -30,17 +30,17 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
-import a.a.a.By;
-import a.a.a.HB;
-import a.a.a.MA;
-import a.a.a.Op;
-import a.a.a.PB;
-import a.a.a.bB;
-import a.a.a.oB;
-import a.a.a.uq;
-import a.a.a.xB;
-import a.a.a.yy;
-import a.a.a.wq;
+import pro.sketchware.beans.ProjectSettingsStore;
+import pro.sketchware.filemanagers.DocumentUriUtils;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.filemanagers.SoundResourceManager;
+import pro.sketchware.lib.validator.MultiSuffixNameInputValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.core.TranslationManager;
+import pro.sketchware.core.StringListStore;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -50,7 +50,7 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
     private TextView tv_add_lottie;
     private LottieAnimationView preview;
     private ArrayList<Uri> pickedLottieUris;
-    private PB O;
+    private MultiSuffixNameInputValidator O;
     private EditText ed_input_edittext;
     private EasyDeleteEditText ed_input;
     private ImageView tv_desc;
@@ -122,7 +122,7 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
     public void onCreate(Bundle bundle) {
         super.onCreate(bundle);
         e("Add Lottie Animation");
-        d(xB.b().a(getApplicationContext(), R.string.common_word_save));
+        d(TranslationManager.b().a(getApplicationContext(), R.string.common_word_save));
         setContentView(R.layout.manage_lottie_add);
         Intent intent = getIntent();
         existingLotties = intent.getParcelableArrayListExtra("lotties");
@@ -143,16 +143,17 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
         ed_input_edittext = ed_input.getEditText();
         ed_input_edittext.setPrivateImeOptions("defaultInputmode=english;");
         ed_input.setHint("Enter Lottie animation name");
-        O = new PB(this, ed_input.getTextInputLayout(), uq.b, getReservedLottieNames());
+        O = new MultiSuffixNameInputValidator(this, ed_input.getTextInputLayout(), ComponentNameRegistry.b, getReservedLottieNames());
         O.a(1);
-        chk_collection.setText(xB.b().a(getApplicationContext(), R.string.design_manager_title_add_to_collection));
+        chk_collection.setText(TranslationManager.b().a(getApplicationContext(), R.string.design_manager_title_add_to_collection));
         tv_add_lottie.setText("Add Lottie Animation");
         preview.setOnClickListener(this);
         r.setOnClickListener(this);
         s.setOnClickListener(this);
         B = false;
         // dir_path already points to assets/lottie; ensure it exists
-        new oB().f(dir_path);
+
+        new FileCryptoUtils().f(dir_path);
         lotties = new ArrayList<>();
     }
 
@@ -162,7 +163,7 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
         if (editing) {
             lottie.isEdited = true;
             e("Edit Lottie Animation");
-            O = new PB(this, ed_input.getTextInputLayout(), uq.b, getReservedLottieNames(), lottie.resName);
+            O = new MultiSuffixNameInputValidator(this, ed_input.getTextInputLayout(), ComponentNameRegistry.b, getReservedLottieNames(), lottie.resName);
             O.a(1);
             ed_input_edittext.setText(lottie.resName);
             ed_input_edittext.setEnabled(false);
@@ -216,7 +217,7 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
             }
             startActivityForResult(Intent.createChooser(intent, "Choose Lottie File"), 215);
         } catch (ActivityNotFoundException unused) {
-            bB.b(this, xB.b().a(this, R.string.common_error_activity_not_found), bB.TOAST_NORMAL).show();
+            ToastFactory.b(this, TranslationManager.b().a(this, R.string.common_error_activity_not_found), ToastFactory.TOAST_NORMAL).show();
         }
     }
 
@@ -248,7 +249,7 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
         tv_lottiecnt.setText("+ " + (count - 1) + " more");
     }
 
-    private boolean a(PB pb) {
+    private boolean a(MultiSuffixNameInputValidator pb) {
         if (!pb.b()) {
             return false;
         }
@@ -263,9 +264,10 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
         if (uri == null) return;
         String filePath = null;
         try {
-            filePath = HB.a(this, uri);
+            filePath = DocumentUriUtils.a(this, uri);
         } catch (Throwable ignored) {
             // Fallback below
+
         }
         if (filePath == null) {
             filePath = resolveLottieFilePathFromUri(uri);
@@ -273,7 +275,7 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
         if (filePath != null) {
             setLottieFromFile(filePath);
         } else {
-            bB.b(this, xB.b().a(this, R.string.collection_no_exist_file), bB.TOAST_NORMAL).show();
+            ToastFactory.b(this, TranslationManager.b().a(this, R.string.collection_no_exist_file), ToastFactory.TOAST_NORMAL).show();
         }
     }
 
@@ -293,14 +295,16 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
     private String resolveLottieFilePathFromUri(Uri uri) {
         try {
             // Try HB again in case it succeeds silently
+
             String hbPath = null;
             try {
-                hbPath = HB.a(getApplicationContext(), uri);
+                hbPath = DocumentUriUtils.a(getApplicationContext(), uri);
             } catch (Throwable ignored) {
             }
             if (hbPath != null) return hbPath;
 
             // Robust SAF fallback: copy to app cache and return absolute path
+
             String fileName = queryDisplayName(uri);
             if (fileName == null || fileName.trim().isEmpty()) {
                 fileName = "lottie_" + System.currentTimeMillis() + ".json";
@@ -311,6 +315,7 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
             File cacheDir = new File(getCacheDir(), "lottie_imports");
             if (!cacheDir.exists()) {
                 // Ensure directory exists
+
                 cacheDir.mkdirs();
             }
             File outFile = new File(cacheDir, fileName);
@@ -363,20 +368,21 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
 
     private String a(ProjectResourceBean projectResourceBean) {
         // Project-local path within assets/lottie
+
         return dir_path + File.separator + projectResourceBean.resFullName;
     }
 
-    private void addToMyCollection(ProjectResourceBean lottie) throws By {
-        String destDir = wq.a() + File.separator + "assets";
-        new oB().f(destDir);
+    private void addToMyCollection(ProjectResourceBean lottie) throws ProjectSettingsStore {
+        String destDir = WorkspacePathManager.a() + File.separator + "assets";
+        new FileCryptoUtils().f(destDir);
         String destName = lottie.resName.toLowerCase().endsWith(".json") ? lottie.resName : lottie.resName + ".json";
         File src = new File(lottie.resFullName);
         File dest = new File(destDir, destName);
         if (!src.exists()) {
-            throw new By(xB.b().a(getApplicationContext(), R.string.collection_no_exist_file));
+            throw new ProjectSettingsStore(TranslationManager.b().a(getApplicationContext(), R.string.collection_no_exist_file));
         }
         if (dest.exists()) {
-            throw new By(xB.b().a(getApplicationContext(), R.string.collection_duplicated_name) + "[" + lottie.resName + "]");
+            throw new ProjectSettingsStore(TranslationManager.b().a(getApplicationContext(), R.string.collection_duplicated_name) + "[" + lottie.resName + "]");
         }
         try (InputStream in = new java.io.FileInputStream(src);
              OutputStream out = new java.io.FileOutputStream(dest)) {
@@ -387,11 +393,11 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
             }
         } catch (Exception e) {
             e.printStackTrace();
-            throw new By(xB.b().a(getApplicationContext(), R.string.collection_failed_to_copy));
+            throw new ProjectSettingsStore(TranslationManager.b().a(getApplicationContext(), R.string.collection_failed_to_copy));
         }
     }
 
-    private static class SaveAsyncTask extends MA {
+    private static class SaveAsyncTask extends BackgroundTask {
         private final WeakReference<AddLottieActivity> activity;
 
         public SaveAsyncTask(AddLottieActivity activity) {
@@ -416,12 +422,12 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
         }
 
         @Override
-        public void b() throws By {
+        public void b() throws ProjectSettingsStore {
             var activity = this.activity.get();
             try {
                 publishProgress("Processing Lottie files...");
                 String lottieDir = activity.dir_path;
-                new oB().f(lottieDir);
+                new FileCryptoUtils().f(lottieDir);
                 
                 if (!activity.multipleLottiesPicked) {
                     if (!activity.editing) {
@@ -467,17 +473,17 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
                     activity.lotties.addAll(toAdd);
                 }
             } catch (Exception e) {
-                if (e instanceof yy yy) {
-                    var errorMessage = yy.getMessage();
+                if (e instanceof StringListStore StringListStore) {
+                    var errorMessage = StringListStore.getMessage();
                     var code = switch (errorMessage) {
                         case "fail_to_copy" -> R.string.collection_failed_to_copy;
                         case "file_no_exist" -> R.string.collection_no_exist_file;
                         case "duplicate_name" -> R.string.collection_duplicated_name;
                         default -> 0;
                     };
-                    var message = code != 0 ? xB.b().a(activity.getApplicationContext(), code) : null;
+                    var message = code != 0 ? TranslationManager.b().a(activity.getApplicationContext(), code) : null;
 
-                    var a = yy.a();
+                    var a = StringListStore.a();
                     if (a != null && !a.isEmpty()) {
                         var names = "";
                         for (String name : a) {
@@ -488,10 +494,10 @@ public class AddLottieActivity extends BaseDialogActivity implements View.OnClic
                         }
                         message += "[" + names + "]";
                     }
-                    throw new By(message);
+                    throw new ProjectSettingsStore(message);
                 }
                 e.printStackTrace();
-                throw new By(e.getMessage());
+                throw new ProjectSettingsStore(e.getMessage());
             }
         }
 

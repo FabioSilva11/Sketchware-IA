@@ -41,9 +41,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 
-import a.a.a.DB;
-import a.a.a.GB;
-import a.a.a.lC;
+import pro.sketchware.core.PreferenceStore;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.workspace.RecentProjectsRegistry;
 import mod.hey.studios.project.backup.BackupFactory;
 import mod.hey.studios.project.backup.BackupRestoreManager;
 import mod.hey.studios.util.Helper;
@@ -77,7 +77,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     private static final int MAIN_PAGE_COUNT = 4;
     private static final int REQUEST_UPDATE_NOTIFICATIONS = 24012;
     private ActionBarDrawerToggle drawerToggle;
-    private DB u;
+    private PreferenceStore u;
     private Snackbar storageAccessDenied;
     private MainBinding binding;
     private final OnBackPressedCallback closeDrawer = new OnBackPressedCallback(true) {
@@ -112,6 +112,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
     @Override
     // onRequestPermissionsResult but for Storage access only, and only when granted
+
     public void g(int i) {
         if (i == 9501) {
             restoreExternalTranslationSupport();
@@ -204,7 +205,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         binding.statusBarOverlapper.setMinimumHeight(UI.getStatusBarHeight(this));
         UI.addSystemWindowInsetToPadding(binding.appbar, true, false, true, false);
 
-        u = new DB(getApplicationContext(), "U1");
+        u = new PreferenceStore(getApplicationContext(), "U1");
         adsNoticeOpenCountForLaunch = savedInstanceState == null ? recordAdsNoticeAppOpen() : 0;
         int u1I0 = u.a("U1I0", -1);
         long u1I1 = u.e("U1I1");
@@ -277,6 +278,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
                             }
 
                             // Clear intent so it doesn't duplicate
+
                             getIntent().setData(null);
                         } else {
                             SketchwareUtil.toastError("Failed to copy backup file to temporary location: " + reason, Toast.LENGTH_LONG);
@@ -287,6 +289,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         }
 
         // Exibir a aba/fragmento de loja na navegação inferior
+
         binding.bottomNav.getMenu().findItem(R.id.item_store).setVisible(true);
 
         binding.bottomNav.setOnItemSelectedListener(item -> {
@@ -386,7 +389,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
     }
 
     private void restoreExternalTranslationSupport() {
-        lC.d();
+        RecentProjectsRegistry.d();
         if (TranslationFunction.initialize(this)) {
             SketchwareUtil.toast(getString(R.string.message_strings_xml_loaded));
         }
@@ -416,8 +419,11 @@ public class MainActivity extends BasePermissionAppCompatActivity {
 
     private void setupMainPager(int initialPage) {
         binding.container.setAdapter(new MainPagerAdapter(this));
+        binding.container.setOffscreenPageLimit(2);
         // No offscreen limit: only the shown tab is built at startup, the others when first opened. Building all
+
         // four (store listings, web services, chat) took most of the time before the project list appeared.
+
         binding.container.setCurrentItem(initialPage, false);
         updateSelectedPage(initialPage);
         binding.bottomNav.setSelectedItemId(pageToNavId(initialPage));
@@ -451,6 +457,9 @@ public class MainActivity extends BasePermissionAppCompatActivity {
             webServiceFragment = (WebServiceFragment) fragment;
         } else if (fragment instanceof ChatFragment) {
             chatFragment = (ChatFragment) fragment;
+            if (chatFragment.isAdded()) {
+                chatFragment.refreshProjectsList();
+            }
         }
         activeFragment = fragment;
         currentNavItemId = pageToNavId(page);
@@ -565,7 +574,7 @@ public class MainActivity extends BasePermissionAppCompatActivity {
         super.onResume();
         refreshProjectBackedFragments();
         /* Check if the device is running low on storage space */
-        long freeMegabytes = GB.c();
+        long freeMegabytes = DeviceEnvironmentUtils.c();
         if (freeMegabytes < 100 && freeMegabytes > 0) {
             showNoticeNotEnoughFreeStorageSpace();
         }

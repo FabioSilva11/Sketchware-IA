@@ -20,10 +20,10 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
-import a.a.a.ProjectBuilder;
-import a.a.a.bB;
-import a.a.a.jC;
-import a.a.a.yq;
+import pro.sketchware.compiler.ProjectBuilder;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.workspace.ProjectWorkspaceManager;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.databinding.SrcViewerBinding;
@@ -77,20 +77,21 @@ public class SrcViewerActivity extends BaseAppCompatActivity {
 
         k(); // show loading
 
+
         new Thread(() -> {
-            var yq = new yq(getBaseContext(), sc_id);
-            var fileManager = jC.b(sc_id);
-            var dataManager = jC.a(sc_id);
-            var libraryManager = jC.c(sc_id);
-            yq.a(libraryManager, fileManager, dataManager, a.a.a.yq.ExportType.SOURCE_CODE_VIEWING);
-            ProjectBuilder builder = new ProjectBuilder(this, yq);
+            var workspace = new ProjectWorkspaceManager(getBaseContext(), sc_id);
+            var fileManager = ProjectDataManagerRegistry.b(sc_id);
+            var dataManager = ProjectDataManagerRegistry.a(sc_id);
+            var libraryManager = ProjectDataManagerRegistry.c(sc_id);
+            workspace.a(libraryManager, fileManager, dataManager, pro.sketchware.workspace.ProjectWorkspaceManager.ExportType.SOURCE_CODE_VIEWING);
+            ProjectBuilder builder = new ProjectBuilder(this, workspace);
             builder.buildBuiltInLibraryInformation();
-            sourceCodeBeans = yq.a(fileManager, dataManager, builder.getBuiltInLibraryManager());
+            sourceCodeBeans = workspace.a(fileManager, dataManager, builder.getBuiltInLibraryManager());
 
             try {
                 runOnUiThread(() -> {
                     if (sourceCodeBeans == null) {
-                        bB.b(getApplicationContext(), Helper.getResString(R.string.common_error_unknown), bB.TOAST_NORMAL).show();
+                        ToastFactory.b(getApplicationContext(), Helper.getResString(R.string.common_error_unknown), ToastFactory.TOAST_NORMAL).show();
                     } else {
                         binding.filesListSpinner.setAdapter(new FilesListSpinnerAdapter());
                         for (SrcCodeBean src : sourceCodeBeans) {
@@ -101,10 +102,12 @@ public class SrcViewerActivity extends BaseAppCompatActivity {
                         }
                         binding.editor.setText(sourceCodeBeans.get(binding.filesListSpinner.getSelectedItemPosition()).source);
                         h(); // hide loading
+
                     }
                 });
             } catch (Exception ignored) {
                 // May occur if the activity is killed
+
             }
         }).start();
     }

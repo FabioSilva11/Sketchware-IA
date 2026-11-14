@@ -17,10 +17,10 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.materialswitch.MaterialSwitch;
 
-import a.a.a.GB;
-import a.a.a.bB;
-import a.a.a.iC;
-import a.a.a.mB;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectLibraryManager;
+import pro.sketchware.editor.EditorViewUtils;
 import mod.hey.studios.util.Helper;
 import mod.jbk.editor.manage.library.LibrarySettingsImporter;
 import pro.sketchware.R;
@@ -33,9 +33,10 @@ public class ManageGoogleMapActivity extends BaseAppCompatActivity implements Vi
     private ProjectLibraryBean googleMapLibraryBean;
 
     private void openDoc() {
-        if (GB.h(getApplicationContext())) {
+        if (DeviceEnvironmentUtils.h(getApplicationContext())) {
             try {
                 Uri documentationUrl = Uri.parse("https://developers.google.com/maps/documentation/android-sdk/signup");
+
                 Intent openDocIntent = new Intent(Intent.ACTION_VIEW);
                 openDocIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 openDocIntent.setData(documentationUrl);
@@ -48,7 +49,7 @@ public class ManageGoogleMapActivity extends BaseAppCompatActivity implements Vi
                 downloadChromeDialog();
             }
         } else {
-            bB.a(getApplicationContext(), Helper.getResString(R.string.common_message_check_network), 0).show();
+            ToastFactory.a(getApplicationContext(), Helper.getResString(R.string.common_message_check_network), 0).show();
         }
     }
 
@@ -58,9 +59,10 @@ public class ManageGoogleMapActivity extends BaseAppCompatActivity implements Vi
         dialog.setTitle(Helper.getResString(R.string.title_compatible_chrome_browser));
         dialog.setMessage(Helper.getResString(R.string.message_compatible_chrome_brower));
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_ok), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse("market://details?id=com.android.chrome"));
+
                 startActivity(intent);
                 v.dismiss();
             }
@@ -77,7 +79,7 @@ public class ManageGoogleMapActivity extends BaseAppCompatActivity implements Vi
         intent.putExtra("google_map", googleMapLibraryBean);
         setResult(RESULT_OK, intent);
         if (Helper.getText(editApiKey).isEmpty() && libSwitch.isChecked()) {
-            bB.a(getApplicationContext(), "Api key can't be empty!", Toast.LENGTH_SHORT).show();
+            ToastFactory.a(getApplicationContext(), "Api key can't be empty!", Toast.LENGTH_SHORT).show();
         } else {
             super.onBackPressed();
         }
@@ -88,7 +90,7 @@ public class ManageGoogleMapActivity extends BaseAppCompatActivity implements Vi
         int id = v.getId();
 
         if (id == R.id.btn_import) {
-            LibrarySettingsImporter importer = new LibrarySettingsImporter(sc_id, iC::e);
+            LibrarySettingsImporter importer = new LibrarySettingsImporter(sc_id, ProjectLibraryManager::e);
             importer.addOnProjectSelectedListener(settings -> {
                 googleMapLibraryBean = settings;
                 configure();

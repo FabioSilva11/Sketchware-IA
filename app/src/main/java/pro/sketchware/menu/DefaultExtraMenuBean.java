@@ -11,11 +11,11 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.Ss;
-import a.a.a.eC;
-import a.a.a.jC;
-import a.a.a.uq;
-import a.a.a.wq;
+import pro.sketchware.editor.BlockMenuItem;
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.ComponentNameRegistry;
+import pro.sketchware.workspace.WorkspacePathManager;
 import mod.agus.jcoderz.editor.manage.block.makeblock.BlockMenu;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.utility.CustomVariableUtil;
@@ -24,13 +24,13 @@ import pro.sketchware.utility.FileUtil;
 public class DefaultExtraMenuBean {
 
     private final LogicEditorActivity logicEditor;
-    private final eC projectDataManager;
+    private final ProjectDataManager projectDataManager;
     private final String sc_id;
 
     public DefaultExtraMenuBean(LogicEditorActivity logicEditor) {
         this.logicEditor = logicEditor;
         sc_id = logicEditor.scId;
-        projectDataManager = jC.a(sc_id);
+        projectDataManager = ProjectDataManagerRegistry.a(sc_id);
     }
 
     public static String getName(String menuName) {
@@ -56,7 +56,7 @@ public class DefaultExtraMenuBean {
         };
     }
 
-    public Pair<String, ArrayList<String>> getMenu(Ss menu) {
+    public Pair<String, ArrayList<String>> getMenu(BlockMenuItem menu) {
         var javaName = logicEditor.M.getJavaName();
         var menuName = menu.getMenuName();
         ArrayList<String> menus = new ArrayList<>();
@@ -105,12 +105,14 @@ public class DefaultExtraMenuBean {
                                 "find-replace-all"));
             }
             // This is meant to be a built-in menu including the cases below, but Aldi implemented it as a file, which is why, in some cases, certain menus appear empty.
+
             //start
+
             case "menu", "layout", "anim", "drawable" -> {
                 String path = getPath(sc_id, menuName);
                 title = "Select a " + menuName;
                 if (menuName.equals("layout")) {
-                    for (String name : jC.b(sc_id).e()) {
+                    for (String name : ProjectDataManagerRegistry.b(sc_id).e()) {
                         menus.add(name.substring(0, name.indexOf(".xml")));
                     }
                 }
@@ -132,81 +134,84 @@ public class DefaultExtraMenuBean {
             }
             case "til_box_mode" -> {
                 title = "Select box mode";
-                menus.addAll(Arrays.asList(uq.TIL_BOX_MODE));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.TIL_BOX_MODE));
             }
             case "fabsize" -> {
                 title = "Select fab size";
-                menus.addAll(Arrays.asList(uq.FAB_SIZE));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.FAB_SIZE));
             }
             case "fabvisible" -> {
                 title = "Select fab visibility";
-                menus.addAll(Arrays.asList(uq.FAB_VISIBLE));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.FAB_VISIBLE));
             }
             case "menuaction" -> {
                 title = "Select menu action";
-                menus.addAll(Arrays.asList(uq.MENU_ACTION));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.MENU_ACTION));
             }
             case "porterduff" -> {
                 title = "Select porterduff mode";
-                menus.addAll(Arrays.asList(uq.PORTER_DUFF));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.PORTER_DUFF));
             }
             case "transcriptmode" -> {
                 title = "Select transcript mode";
-                menus.addAll(Arrays.asList(uq.TRANSCRIPT_MODE));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.TRANSCRIPT_MODE));
             }
             // idk, but it seems this isn't used anywhere, yet it was included in the menu file.
+
             case "listscrollparam" -> {
                 title = "Select scroll param";
-                menus.addAll(Arrays.asList(uq.LIST_SCROLL_STATES));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.LIST_SCROLL_STATES));
             }
             // same with listscrollparam
+
             case "recyclerscrollparam", "pagerscrollparam" -> {
                 title = "Select scroll param";
-                menus.addAll(Arrays.asList(uq.RECYCLER_SCROLL_STATES));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.RECYCLER_SCROLL_STATES));
             }
             case "gridstretchmode" -> {
                 title = "Select stretch mode";
-                menus.addAll(Arrays.asList(uq.GRID_STRETCH_MODE));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.GRID_STRETCH_MODE));
             }
             case "gravity_v" -> {
                 title = "Select gravity vertical";
-                menus.addAll(Arrays.asList(uq.GRAVITY_VERTICAL));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.GRAVITY_VERTICAL));
             }
             case "gravity_h" -> {
                 title = "Select gravity horizontal";
-                menus.addAll(Arrays.asList(uq.GRAVITY_HORIZONTAL));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.GRAVITY_HORIZONTAL));
             }
             case "gravity_t" -> {
                 title = "Select gravity toast";
-                menus.addAll(Arrays.asList(uq.GRAVITY_TOAST));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.GRAVITY_TOAST));
             }
             case "patternviewmode" -> {
                 title = "Select patternview mode";
-                menus.addAll(Arrays.asList(uq.PATTERNVIEW_MODE));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.PATTERNVIEW_MODE));
             }
             case "styleprogress" -> {
                 title = "Select progress style";
-                menus.addAll(Arrays.asList(uq.PROGRESS_STYLE));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.PROGRESS_STYLE));
             }
             case "cv_theme" -> {
                 title = "Select theme";
-                menus.addAll(Arrays.asList(uq.CODEVIEW_THEME));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.CODEVIEW_THEME));
             }
             case "cv_language" -> {
                 title = "Select language";
-                menus.addAll(Arrays.asList(uq.CODEVIEW_LANGUAGE));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.CODEVIEW_LANGUAGE));
             }
             case "import" -> {
                 title = "Select language";
-                menus.addAll(Arrays.asList(uq.IMPORT_CLASS_PATH));
+                menus.addAll(Arrays.asList(ComponentNameRegistry.IMPORT_CLASS_PATH));
             }
             //end
+
         }
         return new Pair<>(title, menus);
     }
 
     private String getPath(String sc_id, String name) {
-        return wq.b(sc_id) + "/files/resource/" + name + "/";
+        return WorkspacePathManager.b(sc_id) + "/files/resource/" + name + "/";
     }
 
     private String getFilename(String filePath, String filenameExtensionToCutOff) {

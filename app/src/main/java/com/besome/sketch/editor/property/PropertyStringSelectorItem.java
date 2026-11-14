@@ -14,10 +14,10 @@ import android.widget.TextView;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
-import a.a.a.Kw;
-import a.a.a.mB;
-import a.a.a.sq;
-import a.a.a.wB;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ViewPropertyValueMapper;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -34,7 +34,7 @@ public class PropertyStringSelectorItem extends RelativeLayout implements View.O
     private View propertyItem;
     private View propertyMenuItem;
     private ViewGroup radioGroupContent;
-    private Kw valueChangeListener;
+    private ObjectChangeListener valueChangeListener;
 
     public PropertyStringSelectorItem(Context context, boolean z) {
         super(context);
@@ -83,12 +83,12 @@ public class PropertyStringSelectorItem extends RelativeLayout implements View.O
 
     @Override
     public void onClick(View v) {
-        if (!mB.a()) {
+        if (!EditorViewUtils.a()) {
             showDialog();
         }
     }
 
-    public void setOnPropertyValueChangeListener(Kw onPropertyValueChangeListener) {
+    public void setOnPropertyValueChangeListener(ObjectChangeListener onPropertyValueChangeListener) {
         valueChangeListener = onPropertyValueChangeListener;
     }
 
@@ -107,29 +107,33 @@ public class PropertyStringSelectorItem extends RelativeLayout implements View.O
     }
 
     private void initialize(Context context, boolean z) {
-        wB.a(context, this, R.layout.property_selector_item);
+        ViewInflationUtils.a(context, this, R.layout.property_selector_item);
         tvName = findViewById(R.id.tv_name);
         tvValue = findViewById(R.id.tv_value);
         imgLeftIcon = findViewById(R.id.img_left_icon);
         propertyItem = findViewById(R.id.property_item);
         propertyMenuItem = findViewById(R.id.property_menu_item);
 //        if (z) {
+
 //            propertyMenuItem.setOnClickListener(this);
+
 //            propertyMenuItem.setSoundEffectsEnabled(true);
+
 //        }
+
     }
 
     private void showDialog() {
         MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(getContext());
         dialog.setTitle(Helper.getText(tvName));
         dialog.setIcon(icon);
-        View view = wB.a(getContext(), R.layout.property_popup_selector_single);
+        View view = ViewInflationUtils.a(getContext(), R.layout.property_popup_selector_single);
         radioGroupContent = view.findViewById(R.id.rg_content);
 
         String[] items = switch (key) {
-            case "property_ad_size" -> sq.k;
-            case "property_indeterminate" -> sq.l;
-            case "property_scale_type" -> sq.j;
+            case "property_ad_size" -> ViewPropertyValueMapper.k;
+            case "property_indeterminate" -> ViewPropertyValueMapper.l;
+            case "property_scale_type" -> ViewPropertyValueMapper.j;
             default -> null;
         };
 
@@ -177,8 +181,8 @@ public class PropertyStringSelectorItem extends RelativeLayout implements View.O
         LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
-        layoutParams.topMargin = (int) wB.a(getContext(), 4.0f);
-        layoutParams.bottomMargin = (int) wB.a(getContext(), 4.0f);
+        layoutParams.topMargin = (int) ViewInflationUtils.a(getContext(), 4.0f);
+        layoutParams.bottomMargin = (int) ViewInflationUtils.a(getContext(), 4.0f);
         radioButton.setGravity(Gravity.CENTER | Gravity.LEFT);
         radioButton.setLayoutParams(layoutParams);
         return radioButton;

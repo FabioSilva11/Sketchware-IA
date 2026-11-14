@@ -9,12 +9,12 @@ import com.google.gson.annotations.Expose;
 
 import java.util.HashMap;
 
-import a.a.a.Gx;
-import a.a.a.nA;
+import pro.sketchware.editor.ComponentClassInfo;
+import pro.sketchware.core.ComparisonResult;
 import mod.agus.jcoderz.beans.ViewBeans;
 import pro.sketchware.R;
 
-public class ViewBean extends nA implements Parcelable {
+public class ViewBean extends ComparisonResult implements Parcelable {
     public static final Parcelable.Creator<ViewBean> CREATOR = new Parcelable.Creator<>() {
         @Override
         public ViewBean createFromParcel(Parcel source) {
@@ -72,7 +72,7 @@ public class ViewBean extends nA implements Parcelable {
     public int checked;
     @Expose
     public int choiceMode;
-    public Gx classInfo;
+    public ComponentClassInfo classInfo;
     @Expose
     public int clickable;
     @Expose
@@ -102,7 +102,7 @@ public class ViewBean extends nA implements Parcelable {
     public String name;
     @Expose
     public String parent;
-    public Gx parentClassInfo;
+    public ComponentClassInfo parentClassInfo;
     /** Parent type {@link #parentClassInfo} was built for: a widget moved to another container gets a new one. */
     private transient int parentClassInfoType = Integer.MIN_VALUE;
     @Expose
@@ -298,7 +298,7 @@ public class ViewBean extends nA implements Parcelable {
         };
     }
 
-    public Gx buildClassInfo(int type) {
+    public ComponentClassInfo buildClassInfo(int type) {
         String name = switch (type) {
             case VIEW_TYPE_LAYOUT_LINEAR -> "LinearLayout";
             case VIEW_TYPE_LAYOUT_RELATIVE -> "RelativeLayout";
@@ -321,7 +321,7 @@ public class ViewBean extends nA implements Parcelable {
             case VIEW_TYPE_WIDGET_MAPVIEW -> "MapView";
             default -> ViewBeans.buildClassInfo(type);
         };
-        return new Gx(name);
+        return new ComponentClassInfo(name);
     }
 
     public void clearClassInfo() {
@@ -381,14 +381,14 @@ public class ViewBean extends nA implements Parcelable {
         return 0;
     }
 
-    public Gx getClassInfo() {
+    public ComponentClassInfo getClassInfo() {
         if (classInfo == null) {
             classInfo = buildClassInfo(type);
         }
         return classInfo;
     }
 
-    public Gx getParentClassInfo() {
+    public ComponentClassInfo getParentClassInfo() {
         if (parentType == -1) {
             return null;
         }

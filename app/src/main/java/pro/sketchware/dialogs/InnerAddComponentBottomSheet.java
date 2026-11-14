@@ -21,13 +21,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import a.a.a.GB;
-import a.a.a.SB;
-import a.a.a.ZB;
-import a.a.a.bB;
-import a.a.a.jC;
-import a.a.a.mB;
-import a.a.a.uq;
+import pro.sketchware.core.DeviceEnvironmentUtils;
+import pro.sketchware.editor.LengthRangeValidator;
+import pro.sketchware.editor.ComponentNameValidator;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.editor.ComponentNameRegistry;
 import mod.hey.studios.util.Helper;
 import mod.hilal.saif.components.ComponentsHandler;
 import pro.sketchware.R;
@@ -45,10 +45,10 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
     private ComponentBean componentBean;
     private ProjectFileBean projectFileBean;
 
-    private ZB componentNameValidator;
-    private SB componentFileNameValidator;
-    private SB componentFirebasePathValidator;
-    private SB componentMimeTypeValidator;
+    private ComponentNameValidator componentNameValidator;
+    private LengthRangeValidator componentFileNameValidator;
+    private LengthRangeValidator componentFirebasePathValidator;
+    private LengthRangeValidator componentMimeTypeValidator;
 
     public static InnerAddComponentBottomSheet newInstance(String scId, ProjectFileBean projectFileBean, ComponentBean componentBean, OnSaveClickListener onSaveClickListener) {
         InnerAddComponentBottomSheet sheet = new InnerAddComponentBottomSheet();
@@ -95,12 +95,14 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
             case ComponentBean.COMPONENT_TYPE_SUPABASE_DATABASE:
             case ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE:
                 // The table or the bucket, in the field Firebase uses for its path
+
                 binding.tiInputFirebasePath.setVisibility(View.VISIBLE);
                 break;
 
             case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD:
             case ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD:
                 // The placement (ad unit) ID, in the same field; new Unity projects have these already
+
                 binding.tiInputFirebasePath.setVisibility(View.VISIBLE);
                 if (Helper.getText(binding.edInputFirebasePath).isEmpty()) {
                     binding.edInputFirebasePath.setText(componentBean.type == ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD
@@ -109,7 +111,7 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 break;
 
             case ComponentBean.COMPONENT_TYPE_GYROSCOPE:
-                if (!GB.b(getContext(), Sensor.TYPE_GYROSCOPE)) {
+                if (!DeviceEnvironmentUtils.b(getContext(), Sensor.TYPE_GYROSCOPE)) {
                     binding.cardWarning.setVisibility(View.VISIBLE);
                     binding.warning.setText(Helper.getResString(R.string.message_device_not_support));
                 }
@@ -168,16 +170,16 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
 
         binding.tiInputFilePicker.setEndIconOnClickListener(v -> showFilePickerMimeTypeSelectionDialog());
 
-        componentNameValidator = new ZB(getContext(), binding.tiInput, uq.b, uq.a(), jC.a(scId).a(projectFileBean));
-        componentFileNameValidator = new SB(getContext(), binding.tiInputFilename, 1, 20);
-        componentFirebasePathValidator = new SB(getContext(), binding.tiInputFirebasePath, 0, 100);
-        componentMimeTypeValidator = new SB(getContext(), binding.tiInputFilePicker, 1, 50);
+        componentNameValidator = new ComponentNameValidator(getContext(), binding.tiInput, ComponentNameRegistry.b, ComponentNameRegistry.a(), ProjectDataManagerRegistry.a(scId).a(projectFileBean));
+        componentFileNameValidator = new LengthRangeValidator(getContext(), binding.tiInputFilename, 1, 20);
+        componentFirebasePathValidator = new LengthRangeValidator(getContext(), binding.tiInputFirebasePath, 0, 100);
+        componentMimeTypeValidator = new LengthRangeValidator(getContext(), binding.tiInputFilePicker, 1, 50);
 
         binding.btnReadDocs.setOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 String componentDocsUrlByTypeName = ComponentBean.getComponentDocsUrlByTypeName(componentBean.type);
                 if (componentDocsUrlByTypeName.isEmpty()) {
-                    bB.a(getContext(), Helper.getResString(R.string.component_add_message_docs_updated_soon), bB.TOAST_NORMAL).show();
+                    ToastFactory.a(getContext(), Helper.getResString(R.string.component_add_message_docs_updated_soon), ToastFactory.TOAST_NORMAL).show();
                     return;
                 }
                 try {
@@ -199,8 +201,8 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
             @Override
             protected void onDebouncedClick(View v) {
                 if (checks() && getContext() != null) {
-                    bB.a(requireContext(), Helper.getResString(R.string.component_message_component_block_added), bB.TOAST_WARNING).show();
-                    mB.a(requireContext(), binding.edInput);
+                    ToastFactory.a(requireContext(), Helper.getResString(R.string.component_message_component_block_added), ToastFactory.TOAST_WARNING).show();
+                    EditorViewUtils.a(requireContext(), binding.edInput);
                     onSaveClickListener.onSaveClick(InnerAddComponentBottomSheet.this);
                 }
             }
@@ -252,7 +254,7 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 if (!componentFileNameValidator.b()) {
                     return false;
                 }
-                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, Helper.getText(binding.edInputFilename));
+                ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, Helper.getText(binding.edInputFilename));
                 break;
 
             case ComponentBean.COMPONENT_TYPE_FIREBASE:
@@ -260,22 +262,22 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                 if (!componentFirebasePathValidator.b()) {
                     return false;
                 }
-                if (jC.c(scId).d().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
-                    bB.b(getContext(), Helper.getResString(R.string.design_library_guide_setup_first), bB.TOAST_WARNING).show();
+                if (ProjectDataManagerRegistry.c(scId).d().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
+                    ToastFactory.b(getContext(), Helper.getResString(R.string.design_library_guide_setup_first), ToastFactory.TOAST_WARNING).show();
                     return false;
                 }
-                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, Helper.getText(binding.edInputFirebasePath));
+                ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, Helper.getText(binding.edInputFirebasePath));
                 break;
 
             case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH:
-                if (jC.c(scId).d().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
-                    bB.b(getContext(), Helper.getResString(R.string.design_library_guide_setup_first), bB.TOAST_WARNING).show();
+                if (ProjectDataManagerRegistry.c(scId).d().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
+                    ToastFactory.b(getContext(), Helper.getResString(R.string.design_library_guide_setup_first), ToastFactory.TOAST_WARNING).show();
                     return false;
-                } else if (jC.c(scId).d().reserved2.trim().isEmpty()) {
-                    bB.b(getContext(), Helper.getResString(R.string.design_library_firebase_guide_setup_first), bB.TOAST_WARNING).show();
+                } else if (ProjectDataManagerRegistry.c(scId).d().reserved2.trim().isEmpty()) {
+                    ToastFactory.b(getContext(), Helper.getResString(R.string.design_library_firebase_guide_setup_first), ToastFactory.TOAST_WARNING).show();
                     return false;
                 } else {
-                    jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, Helper.getText(binding.edInputFirebasePath));
+                    ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, Helper.getText(binding.edInputFirebasePath));
                 }
                 break;
 
@@ -283,11 +285,11 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
             case ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH:
             case ComponentBean.COMPONENT_TYPE_SUPABASE_STORAGE:
                 if (!SupabaseSettings.isConfigured(scId)) {
-                    bB.b(getContext(), Helper.getResString(R.string.supabase_component_setup_first), bB.TOAST_WARNING).show();
+                    ToastFactory.b(getContext(), Helper.getResString(R.string.supabase_component_setup_first), ToastFactory.TOAST_WARNING).show();
                     return false;
                 }
                 if (componentType == ComponentBean.COMPONENT_TYPE_SUPABASE_AUTH) {
-                    jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId);
+                    ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId);
                     break;
                 }
                 String name = Helper.getText(binding.edInputFirebasePath).trim();
@@ -296,13 +298,13 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                     return false;
                 }
                 binding.tiInputFirebasePath.setError(null);
-                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, name);
+                ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, name);
                 break;
 
             case ComponentBean.COMPONENT_TYPE_UNITY_INTERSTITIAL_AD:
             case ComponentBean.COMPONENT_TYPE_UNITY_REWARDED_AD:
                 if (!UnityAdsSettings.isConfigured(scId)) {
-                    bB.b(getContext(), Helper.getResString(R.string.unity_ads_component_setup_first), bB.TOAST_WARNING).show();
+                    ToastFactory.b(getContext(), Helper.getResString(R.string.unity_ads_component_setup_first), ToastFactory.TOAST_WARNING).show();
                     return false;
                 }
                 String placementId = Helper.getText(binding.edInputFirebasePath).trim();
@@ -311,43 +313,43 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
                     return false;
                 }
                 binding.tiInputFirebasePath.setError(null);
-                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, placementId);
+                ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, placementId);
                 break;
 
             case ComponentBean.COMPONENT_TYPE_FRAGMENT_ADAPTER:
             case ComponentBean.COMPONENT_TYPE_BIOMETRIC_MANAGER:
-                if (jC.c(scId).c().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
-                    bB.b(getContext(), Helper.getResString(R.string.design_library_guide_setup_first), bB.TOAST_WARNING).show();
+                if (ProjectDataManagerRegistry.c(scId).c().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
+                    ToastFactory.b(getContext(), Helper.getResString(R.string.design_library_guide_setup_first), ToastFactory.TOAST_WARNING).show();
                     return false;
                 }
-                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId);
+                ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId);
                 break;
 
             case ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD:
             case ComponentBean.COMPONENT_TYPE_REWARDED_VIDEO_AD:
-                if (jC.c(scId).b().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
-                    bB.b(getContext(), Helper.getResString(R.string.design_library_admob_component_setup_first), bB.TOAST_WARNING).show();
+                if (ProjectDataManagerRegistry.c(scId).b().useYn.equals(ProjectLibraryBean.LIB_USE_N)) {
+                    ToastFactory.b(getContext(), Helper.getResString(R.string.design_library_admob_component_setup_first), ToastFactory.TOAST_WARNING).show();
                     return false;
                 }
-                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId);
+                ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId);
                 break;
 
             case ComponentBean.COMPONENT_TYPE_FILE_PICKER:
                 if (Helper.getText(binding.edInputFilePicker).isEmpty() || !componentMimeTypeValidator.b()) {
                     return false;
                 }
-                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, Helper.getText(binding.edInputFilePicker));
+                ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId, Helper.getText(binding.edInputFilePicker));
                 break;
 
             default:
-                jC.a(scId).a(projectFileBean.getJavaName(), componentType, componentId);
+                ProjectDataManagerRegistry.a(scId).a(projectFileBean.getJavaName(), componentType, componentId);
         }
-        jC.a(scId).k();
+        ProjectDataManagerRegistry.a(scId).k();
         return true;
     }
 
     private void showSensorWarningIfUnavailable(int sensorType) {
-        if (!GB.b(getContext(), sensorType)) {
+        if (!DeviceEnvironmentUtils.b(getContext(), sensorType)) {
             binding.cardWarning.setVisibility(View.VISIBLE);
             binding.warning.setText(Helper.getResString(R.string.message_device_not_support));
         }
@@ -362,9 +364,10 @@ public class InnerAddComponentBottomSheet extends BottomSheetDialogFragment {
         dialog.setTitle(Helper.getResString(R.string.title_compatible_chrome_browser));
         dialog.setMessage(Helper.getResString(R.string.message_compatible_chrome_brower));
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_ok), (v, which) -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setData(Uri.parse("market://details?id=com.android.chrome"));
+
                 startActivity(intent);
                 v.dismiss();
             }

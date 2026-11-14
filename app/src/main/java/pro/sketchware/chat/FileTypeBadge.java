@@ -52,6 +52,7 @@ final class FileTypeBadge {
     private static Map<String, Info> build() {
         Map<String, Info> m = new HashMap<>();
         // Web
+
         put(m, new Info("HTML", 0xFFE44D26), "html", "htm");
         put(m, new Info("CSS", 0xFF2965F1), "css");
         put(m, new Info("SCSS", 0xFFCC6699), "scss", "sass");
@@ -61,6 +62,7 @@ final class FileTypeBadge {
         put(m, new Info("TSX", 0xFF3178C6), "tsx");
         put(m, new Info("VUE", 0xFF42B883), "vue");
         // Backend / general purpose
+
         put(m, new Info("PY", 0xFF3776AB), "py", "pyw");
         put(m, new Info("JAVA", 0xFFEA2D2E), "java");
         put(m, new Info("KT", 0xFFA97BFF), "kt", "kts");
@@ -74,6 +76,7 @@ final class FileTypeBadge {
         put(m, new Info("SWIFT", 0xFFFA7343), "swift");
         put(m, new Info("SH", 0xFF4EAA25), "sh", "bash", "zsh");
         // Data / config
+
         put(m, new Info("JSON", 0xFF8BC34A), "json");
         put(m, new Info("XML", 0xFFFF6F00), "xml");
         put(m, new Info("YML", 0xFFCB171E), "yml", "yaml");

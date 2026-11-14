@@ -6,7 +6,7 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import a.a.a.wB;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.R;
 
 public class PropertySubheader extends RelativeLayout {
@@ -20,7 +20,7 @@ public class PropertySubheader extends RelativeLayout {
     }
 
     private void initialize(Context context) {
-        wB.a(context, this, R.layout.property_subheader);
+        ViewInflationUtils.a(context, this, R.layout.property_subheader);
         tvName = findViewById(R.id.tv_name);
         imgAdd = findViewById(R.id.img_add);
     }

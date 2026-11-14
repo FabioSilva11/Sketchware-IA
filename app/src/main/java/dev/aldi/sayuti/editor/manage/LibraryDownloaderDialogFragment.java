@@ -302,8 +302,12 @@ public class LibraryDownloaderDialogFragment extends BottomSheetDialogFragment {
         var handler = new Handler(Looper.getMainLooper());
 
         downloadExecutor.execute(() -> {
-            BuiltInLibraries.maybeExtractAndroidJar((message, progress) ->
-                    handler.post(() -> binding.overallProgress.setIndeterminate(true)));
+            try {
+                BuiltInLibraries.maybeExtractAndroidJar((message, progress) ->
+                        handler.post(() -> binding.overallProgress.setIndeterminate(true)));
+            } catch (Exception e) {
+                Log.e("LibraryDownloader", "Failed to extract android.jar: " + e.getMessage(), e);
+            }
             BuiltInLibraries.maybeExtractCoreLambdaStubsJar();
 
             resolver.resolveDependency(new DependencyResolver.DependencyResolverCallback() {

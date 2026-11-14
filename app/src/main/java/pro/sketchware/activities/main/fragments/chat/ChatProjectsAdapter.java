@@ -16,10 +16,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import a.a.a.lC;
-import a.a.a.mB;
-import a.a.a.wq;
-import a.a.a.yB;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.MapValueUtils;
 import mod.hey.studios.util.ProjectMapUtils;
 import pro.sketchware.R;
 import pro.sketchware.databinding.ChatProjectItemBinding;
@@ -35,18 +35,16 @@ public class ChatProjectsAdapter extends RecyclerView.Adapter<ChatProjectsAdapte
         activity = chatFragment.requireActivity();
         this.allProjects = allProjects;
         // Inicializar shownProjects com todos os projetos
+
         this.shownProjects = new ArrayList<>(allProjects);
     }
 
     public void setAllProjects(List<HashMap<String, Object>> projects) {
-        allProjects = projects;
-        // Atualizar shownProjects também
-        shownProjects = new ArrayList<>(projects);
-        notifyDataSetChanged();
+        allProjects = projects == null ? new ArrayList<>() : new ArrayList<>(projects);
     }
 
     public void filterData(String query) {
-        List<HashMap<String, Object>> newProjects = query.isEmpty() ? allProjects : new ArrayList<>();
+        List<HashMap<String, Object>> newProjects = query.isEmpty() ? new ArrayList<>(allProjects) : new ArrayList<>();
         if (!query.isEmpty()) {
             for (HashMap<String, Object> project : allProjects) {
                 if (matchesQuery(project, query)) {
@@ -68,8 +66,8 @@ public class ChatProjectsAdapter extends RecyclerView.Adapter<ChatProjectsAdapte
 
             @Override
             public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-                String oldScId = yB.c(shownProjects.get(oldItemPosition), "sc_id");
-                String newScId = yB.c(newProjects.get(newItemPosition), "sc_id");
+                String oldScId = MapValueUtils.c(shownProjects.get(oldItemPosition), "sc_id");
+                String newScId = MapValueUtils.c(newProjects.get(newItemPosition), "sc_id");
                 return oldScId.equalsIgnoreCase(newScId);
             }
 
@@ -78,7 +76,7 @@ public class ChatProjectsAdapter extends RecyclerView.Adapter<ChatProjectsAdapte
                 HashMap<String, Object> oldMap = shownProjects.get(oldItemPosition);
                 HashMap<String, Object> newMap = newProjects.get(newItemPosition);
                 for (String key : Arrays.asList("my_app_name", "my_ws_name", "sc_ver_name", "sc_ver_code", "my_sc_pkg_name")) {
-                    if (!yB.c(oldMap, key).equals(yB.c(newMap, key))) {
+                    if (!MapValueUtils.c(oldMap, key).equals(MapValueUtils.c(newMap, key))) {
                         return false;
                     }
                 }
@@ -100,7 +98,7 @@ public class ChatProjectsAdapter extends RecyclerView.Adapter<ChatProjectsAdapte
     private boolean matchesQuery(HashMap<String, Object> projectMap, String searchQuery) {
         searchQuery = searchQuery.toLowerCase();
         for (String key : Arrays.asList("sc_id", "my_ws_name", "my_app_name", "my_sc_pkg_name")) {
-            if (yB.c(projectMap, key).toLowerCase().contains(searchQuery)) {
+            if (MapValueUtils.c(projectMap, key).toLowerCase().contains(searchQuery)) {
                 return true;
             }
         }
@@ -110,23 +108,23 @@ public class ChatProjectsAdapter extends RecyclerView.Adapter<ChatProjectsAdapte
     @Override
     public void onBindViewHolder(@NonNull ProjectViewHolder holder, int position) {
         HashMap<String, Object> projectMap = shownProjects.get(position);
-        String scId = yB.c(projectMap, "sc_id");
+        String scId = MapValueUtils.c(projectMap, "sc_id");
 
         holder.binding.imgIcon.setImageResource(R.drawable.default_icon);
 
-        if (yB.c(projectMap, "sc_ver_code").isEmpty()) {
+        if (MapValueUtils.c(projectMap, "sc_ver_code").isEmpty()) {
             projectMap.put("sc_ver_code", "1");
             projectMap.put("sc_ver_name", "1.0");
-            lC.b(scId, projectMap);
+            RecentProjectsRegistry.b(scId, projectMap);
         }
 
-        if (yB.b(projectMap, "sketchware_ver") <= 0) {
+        if (MapValueUtils.b(projectMap, "sketchware_ver") <= 0) {
             projectMap.put("sketchware_ver", 61);
-            lC.b(scId, projectMap);
+            RecentProjectsRegistry.b(scId, projectMap);
         }
 
         if (ProjectMapUtils.getBoolean(projectMap, "custom_icon")) {
-            String iconFolder = wq.e() + File.separator + scId;
+            String iconFolder = WorkspacePathManager.e() + File.separator + scId;
             File iconFile = new File(iconFolder, "icon.png");
             if (iconFile.exists()) {
                 String providerPath = activity.getPackageName() + ".provider";
@@ -136,18 +134,19 @@ public class ChatProjectsAdapter extends RecyclerView.Adapter<ChatProjectsAdapte
             }
         }
 
-        String version = " - " + yB.c(projectMap, "sc_ver_name") + " (" + yB.c(projectMap, "sc_ver_code") + ")";
-        holder.binding.appName.setText(yB.c(projectMap, "my_ws_name") + version);
-        holder.binding.projectName.setText(yB.c(projectMap, "my_app_name"));
-        holder.binding.packageName.setText(yB.c(projectMap, "my_sc_pkg_name"));
+        String version = " - " + MapValueUtils.c(projectMap, "sc_ver_name") + " (" + MapValueUtils.c(projectMap, "sc_ver_code") + ")";
+        holder.binding.appName.setText(MapValueUtils.c(projectMap, "my_ws_name") + version);
+        holder.binding.projectName.setText(MapValueUtils.c(projectMap, "my_app_name"));
+        holder.binding.packageName.setText(MapValueUtils.c(projectMap, "my_sc_pkg_name"));
         holder.binding.tvPublished.setVisibility(View.VISIBLE);
         holder.binding.tvPublished.setText(scId);
         holder.binding.threadBadge.setText(R.string.chat_list_badge);
         holder.itemView.setTag("custom");
 
         // Clique abre ChatActivity ao invés de DesignActivity
+
         holder.binding.getRoot().setOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 chatFragment.toChatActivity(scId);
             }
         });

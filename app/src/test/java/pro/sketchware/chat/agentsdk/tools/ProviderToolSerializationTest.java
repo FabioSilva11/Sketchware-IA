@@ -35,6 +35,7 @@ public class ProviderToolSerializationTest {
         assertTrue(registry.contains("request_user_input"));
         assertTrue(registry.contains("get_context_remaining"));
         // new_context did nothing and clock.sleep had nothing to wait for: neither is offered
+
         assertFalse(registry.contains("new_context"));
         assertTrue(registry.contains("clock.curr_time"));
         assertFalse(registry.contains("clock.sleep"));
@@ -88,7 +89,7 @@ public class ProviderToolSerializationTest {
         ToolRegistration ctx = registry.get("get_context_remaining");
         assertNotNull(ctx);
         JSONObject output = ctx.spec().outputSchema();
-        assertNotNull("output_schema required by Codex contract", output);
+        assertNotNull("output_schema required ProjectFileActionListener Codex contract", output);
         assertEquals("object", output.optString("type"));
         assertNotNull(output.optJSONObject("properties").opt("tokens_left"));
         assertEquals("boolean", output.optJSONObject("properties")
@@ -105,6 +106,7 @@ public class ProviderToolSerializationTest {
                     && "clock".equals(entry.getString("name"))) {
                 JSONArray tools = entry.getJSONArray("tools");
                 // clock.sleep isn't offered: the chat has nothing to wait for
+
                 assertEquals(1, tools.length());
                 return;
             }

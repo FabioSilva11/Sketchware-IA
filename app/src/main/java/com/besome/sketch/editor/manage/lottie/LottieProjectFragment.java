@@ -54,15 +54,15 @@ import pro.sketchware.databinding.ManageLottieListItemBinding;
 import pro.sketchware.utility.FilePathUtil;
 import pro.sketchware.utility.SvgUtils;
 import com.airbnb.lottie.LottieDrawable;
-import a.a.a.bB;
-import a.a.a.iB;
-import a.a.a.jC;
-import a.a.a.kC;
-import a.a.a.oB;
-import a.a.a.qA;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.filemanagers.BitmapUtils;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.filemanagers.ProjectResourceManager;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.editor.BaseEditorFragment;
 import pro.sketchware.utility.TranslationFunction;
 
-public class LottieProjectFragment extends qA {
+public class LottieProjectFragment extends BaseEditorFragment {
 
     private final FilePathUtil fpu = new FilePathUtil();
     public boolean isSelecting = false;
@@ -91,10 +91,11 @@ public class LottieProjectFragment extends qA {
             addNewColorFilterInfo(selectedColorHex, selectedColor, lotties.size());
 
             addImage(icon);
-            bB.a(requireActivity(), getString(R.string.design_manager_message_add_complete), bB.TOAST_NORMAL).show();
+            ToastFactory.a(requireActivity(), getString(R.string.design_manager_message_add_complete), ToastFactory.TOAST_NORMAL).show();
         }
     });
     // Web search functionality removed for Lottie files
+
     /*
     private final ActivityResultLauncher<Intent> openImageWebSearchActivity = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
         if (result.getResultCode() == Activity.RESULT_OK) {
@@ -128,7 +129,7 @@ public class LottieProjectFragment extends qA {
             adapter.notifyItemRangeInserted(lotties.size() - addedImages.size(), addedImages.size());
             updateGuideVisibility();
             ((ManageLottieActivity) requireActivity()).l().refreshData();
-            bB.a(requireActivity(), getString(R.string.design_manager_message_add_complete), bB.TOAST_NORMAL).show();
+            ToastFactory.a(requireActivity(), getString(R.string.design_manager_message_add_complete), ToastFactory.TOAST_NORMAL).show();
         }
     });
     private final ActivityResultLauncher<Intent> showImageDetailsDialog = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -143,7 +144,7 @@ public class LottieProjectFragment extends qA {
             if (editedImage == null || editedImage.resName == null) {
                 return;
             }
-            kC.z();
+            ProjectResourceManager.z();
             for (ProjectResourceBean image : lotties) {
                 if (image != null && image.resName != null && image.resName.equals(editedImage.resName)) {
                     image.copy(editedImage);
@@ -153,7 +154,7 @@ public class LottieProjectFragment extends qA {
             }
             updateGuideVisibility();
             ((ManageLottieActivity) requireActivity()).l().refreshData();
-            bB.a(requireActivity(), getString(R.string.design_manager_message_edit_complete), bB.TOAST_NORMAL).show();
+            ToastFactory.a(requireActivity(), getString(R.string.design_manager_message_edit_complete), ToastFactory.TOAST_NORMAL).show();
         }
     });
 
@@ -178,11 +179,14 @@ public class LottieProjectFragment extends qA {
     private void initialize() {
         sc_id = requireActivity().getIntent().getStringExtra("sc_id");
         // Use project assets directory
+
         projectLottiesDirectory = fpu.getPathAssets(sc_id);
         // Ensure directory exists
-        new oB().f(projectLottiesDirectory);
+
+        new FileCryptoUtils().f(projectLottiesDirectory);
 
         // Initialize list by scanning existing .json files in assets/lottie
+
         File dir = new File(projectLottiesDirectory);
         File[] files = dir.listFiles((d, name) -> name != null && name.toLowerCase().endsWith(".json"));
         if (files != null) {
@@ -191,6 +195,7 @@ public class LottieProjectFragment extends qA {
                 String base = name.substring(0, Math.max(0, name.lastIndexOf('.')));
                 ProjectResourceBean bean = new ProjectResourceBean(ProjectResourceBean.PROJECT_RES_TYPE_FILE, base, name);
                 bean.savedPos = 0; // inside project
+
                 lotties.add(bean);
             }
         }
@@ -213,9 +218,11 @@ public class LottieProjectFragment extends qA {
 
     public void saveImages() {
         // Ensure target directory exists
-        new oB().f(projectLottiesDirectory);
+
+        new FileCryptoUtils().f(projectLottiesDirectory);
 
         // Save Lottie JSONs into assets/lottie
+
         for (int i = 0; i < lotties.size(); i++) {
             ProjectResourceBean lottie = lotties.get(i);
             if (lottie.isNew || lottie.isEdited) {
@@ -225,6 +232,7 @@ public class LottieProjectFragment extends qA {
                     copyFile(srcPath, destPath);
 
                     // Normalize bean to point to the project-local filename
+
                     lotties.set(i, new ProjectResourceBean(
                             ProjectResourceBean.PROJECT_RES_TYPE_FILE,
                             lottie.resName,
@@ -236,6 +244,7 @@ public class LottieProjectFragment extends qA {
             }
         }
         // Do NOT touch image manager state here; Lottie has its own directory
+
     }
 
     private void updateGuideVisibility() {
@@ -265,11 +274,17 @@ public class LottieProjectFragment extends qA {
     }
 
     // Web search functionality removed for Lottie files
+
     // private void openImageWebSearchActivity() {
+
     //     Intent intent = new Intent(requireActivity(), ManageImageWebSearchActivity.class);
+
     //     intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
     //     openImageWebSearchActivity.launch(intent);
+
     // }
+
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -282,7 +297,8 @@ public class LottieProjectFragment extends qA {
             lotties = savedInstanceState.getParcelableArrayList("lotties");
         }
         // Ensure directory exists
-        new oB().f(projectLottiesDirectory);
+
+        new FileCryptoUtils().f(projectLottiesDirectory);
         adapter.notifyDataSetChanged();
         updateGuideVisibility();
     }
@@ -321,7 +337,7 @@ public class LottieProjectFragment extends qA {
                 deleteSelected();
                 a(false);
                 updateGuideVisibility();
-                bB.a(requireActivity(), getString(R.string.common_message_complete_delete), bB.TOAST_WARNING).show();
+                ToastFactory.a(requireActivity(), getString(R.string.common_message_complete_delete), ToastFactory.TOAST_WARNING).show();
                 fab.show();
             }
         });
@@ -336,7 +352,7 @@ public class LottieProjectFragment extends qA {
             a(false);
             showAddLottieDialog();
         });
-        kC.z();
+        ProjectResourceManager.z();
         return binding.getRoot();
     }
 
@@ -394,10 +410,10 @@ public class LottieProjectFragment extends qA {
         }
         addImages(imagesToAdd);
         if (!duplicateNames.isEmpty()) {
-            bB.a(requireActivity(), getString(R.string.common_message_name_unavailable) + "\n" +
-                    "[" + String.join(", ", duplicateNames) + "]", bB.TOAST_WARNING).show();
+            ToastFactory.a(requireActivity(), getString(R.string.common_message_name_unavailable) + "\n" +
+                    "[" + String.join(", ", duplicateNames) + "]", ToastFactory.TOAST_WARNING).show();
         } else {
-            bB.a(requireActivity(), getString(R.string.design_manager_message_import_complete), bB.TOAST_WARNING).show();
+            ToastFactory.a(requireActivity(), getString(R.string.design_manager_message_import_complete), ToastFactory.TOAST_WARNING).show();
         }
         adapter.notifyDataSetChanged();
         updateGuideVisibility();
@@ -471,6 +487,7 @@ public class LottieProjectFragment extends qA {
 
             holder.binding.deleteLottieContainer.setVisibility(isSelecting ? View.VISIBLE : View.GONE);
             // Always show animation indicator for Lottie files
+
             holder.binding.lottieAnimationIndicator.setVisibility(View.VISIBLE);
             holder.binding.lottieDelete.setImageResource(image.isSelected ? R.drawable.ic_checkmark_green_48dp
                     : R.drawable.ic_trashcan_white_48dp);
@@ -493,11 +510,13 @@ public class LottieProjectFragment extends qA {
                         throw new Exception("JSON vazio ou inválido");
                     }
                     // Validar se o JSON contém elementos básicos de Lottie
+
                     if (!isValidLottieJson(json)) {
                         throw new Exception("JSON não é um arquivo Lottie válido");
                     }
                     holder.binding.lottie.setAnimationFromJson(json, path);
                     // Preview estático no primeiro frame para evitar travamentos na lista
+
                     holder.binding.lottie.setProgress(0f);
                 } catch (Exception e) {
                     Log.e("LottieProjectFragment", "Erro ao carregar animação Lottie: " + e.getMessage(), e);
@@ -522,6 +541,7 @@ public class LottieProjectFragment extends qA {
         @Override
         public void onViewRecycled(@NonNull ViewHolder holder) {
             // Garantir que nenhuma animação fique ativa ao reciclar itens
+
             holder.binding.lottie.cancelAnimation();
             holder.binding.lottie.setImageDrawable(null);
             holder.binding.lottie.setProgress(0f);
@@ -576,6 +596,7 @@ public class LottieProjectFragment extends qA {
         }
         try {
             // Verifica se o JSON contém elementos básicos de uma animação Lottie
+
             return json.contains("\"v\"") && 
                    (json.contains("\"assets\"") || json.contains("\"layers\"")) &&
                    json.contains("\"fr\"") && json.contains("\"ip\"");

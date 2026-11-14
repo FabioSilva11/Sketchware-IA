@@ -78,14 +78,14 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.Gx;
-import a.a.a.jC;
-import a.a.a.kC;
-import a.a.a.lC;
-import a.a.a.wB;
-import a.a.a.wq;
-import a.a.a.yB;
-import a.a.a.zB;
+import pro.sketchware.editor.ComponentClassInfo;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.filemanagers.ProjectResourceManager;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.core.ViewInflationUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.core.MapValueUtils;
+import pro.sketchware.filemanagers.PngBitmapCodec;
 import dev.aldi.sayuti.editor.view.item.ItemBadgeView;
 import dev.aldi.sayuti.editor.view.item.ItemCircleImageView;
 import dev.aldi.sayuti.editor.view.item.ItemCodeView;
@@ -134,11 +134,12 @@ public class ViewPane extends RelativeLayout {
     private ArrayList<ViewInfo> viewInfos = new ArrayList<>();
     private ViewInfo viewInfo;
     private TextView highlightedTextView;
-    private kC resourcesManager;
+    private ProjectResourceManager resourcesManager;
     private String sc_id;
     private SvgUtils svgUtils;
     private ColorsEditorManager colorsEditorManager;
     private int defaultTextColor = 0; // need to save the original color before changes, cause using getDefaultColor() returns the current text color
+
     private int defaultHintColor = 0;
     private Material3LibraryManager material3LibraryManager;
     private HashMap<String, String> cachedStrings;
@@ -220,6 +221,7 @@ public class ViewPane extends RelativeLayout {
     public void onViewAdded(View child) {
         super.onViewAdded(child);
         // The overlay draws over the layout and the FAB, and gets touches on anchors first.
+
         if (relationsOverlay != null && child != relationsOverlay) {
             relationsOverlay.bringToFront();
         }
@@ -239,7 +241,7 @@ public class ViewPane extends RelativeLayout {
         }
     }
 
-    public void setResourceManager(kC resourcesManager) {
+    public void setResourceManager(ProjectResourceManager resourcesManager) {
         this.resourcesManager = resourcesManager;
     }
 
@@ -380,6 +382,7 @@ public class ViewPane extends RelativeLayout {
             setBackground(AppCompatResources.getDrawable(context, R.drawable.bg_view_pane));
         }
         //addRootLayout();
+
         initTextView();
     }
 
@@ -512,7 +515,7 @@ public class ViewPane extends RelativeLayout {
         if (screenXml != null) chain.add(screenXml);
         pane.includeChain = chain;
         pane.updateRootLayout(sc_id, xml);
-        for (ViewBean bean : pro.sketchware.utility.ViewHierarchy.sorted(jC.a(sc_id).d(xml))) {
+        for (ViewBean bean : pro.sketchware.utility.ViewHierarchy.sorted(ProjectDataManagerRegistry.a(sc_id).d(xml))) {
             pane.addViewAndUpdateIndex(pane.createItemView(bean.clone()));
         }
         View root = pane.getRootLayout();
@@ -550,6 +553,7 @@ public class ViewPane extends RelativeLayout {
         ImageBean imageBean;
         String str;
         // A view file written without an image name (by hand or by the AI chat) used to crash the whole editor.
+
         if (viewBean.image == null) viewBean.image = new ImageBean();
         if (viewBean.image.resName == null || viewBean.image.resName.isEmpty()) viewBean.image.resName = "default_image";
         if (view instanceof ItemInclude include) updateIncludePreview(include, viewBean);
@@ -558,10 +562,10 @@ public class ViewPane extends RelativeLayout {
             LayoutParams layoutParams = new LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT);
-            layoutParams.leftMargin = (int) wB.a(getContext(), (float) viewBean.layout.marginLeft);
-            layoutParams.topMargin = (int) wB.a(getContext(), (float) viewBean.layout.marginTop);
-            layoutParams.rightMargin = (int) wB.a(getContext(), (float) viewBean.layout.marginRight);
-            layoutParams.bottomMargin = (int) wB.a(getContext(), (float) viewBean.layout.marginBottom);
+            layoutParams.leftMargin = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.marginLeft);
+            layoutParams.topMargin = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.marginTop);
+            layoutParams.rightMargin = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.marginRight);
+            layoutParams.bottomMargin = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.marginBottom);
             int layoutGravity = viewBean.layout.layoutGravity;
             if ((layoutGravity & Gravity.LEFT) == Gravity.LEFT) {
                 layoutParams.addRule(RelativeLayout.ALIGN_PARENT_LEFT);
@@ -642,8 +646,8 @@ public class ViewPane extends RelativeLayout {
             }
             view.setRotation(viewBean.image.rotate);
             view.setAlpha(viewBean.alpha);
-            view.setTranslationX(wB.a(getContext(), viewBean.translationX));
-            view.setTranslationY(wB.a(getContext(), viewBean.translationY));
+            view.setTranslationX(ViewInflationUtils.a(getContext(), viewBean.translationX));
+            view.setTranslationY(ViewInflationUtils.a(getContext(), viewBean.translationY));
             view.setScaleX(viewBean.scaleX);
             view.setScaleY(viewBean.scaleY);
             view.setVisibility(View.VISIBLE);
@@ -653,8 +657,8 @@ public class ViewPane extends RelativeLayout {
         Container containerKind = updateLayout(view, viewBean, container);
         view.setRotation(viewBean.image.rotate);
         view.setAlpha(viewBean.alpha);
-        view.setTranslationX(wB.a(getContext(), viewBean.translationX));
-        view.setTranslationY(wB.a(getContext(), viewBean.translationY));
+        view.setTranslationX(ViewInflationUtils.a(getContext(), viewBean.translationX));
+        view.setTranslationY(ViewInflationUtils.a(getContext(), viewBean.translationY));
         view.setScaleX(viewBean.scaleX);
         view.setScaleY(viewBean.scaleY);
         String backgroundResource = viewBean.layout.backgroundResource;
@@ -665,7 +669,7 @@ public class ViewPane extends RelativeLayout {
                 } else {
                     String backgroundRes = resourcesManager.f(viewBean.layout.backgroundResource);
                     if (backgroundRes.endsWith(".9.png")) {
-                        Bitmap decodedBitmap = zB.a(backgroundRes);
+                        Bitmap decodedBitmap = PngBitmapCodec.a(backgroundRes);
                         byte[] ninePatchChunk = decodedBitmap.getNinePatchChunk();
                         if (NinePatch.isNinePatchChunk(ninePatchChunk)) {
                             view.setBackground(new NinePatchDrawable(getResources(), decodedBitmap, ninePatchChunk, new Rect(), null));
@@ -682,7 +686,7 @@ public class ViewPane extends RelativeLayout {
                 Log.e("DEBUG", e.getMessage(), e);
             }
         }
-        Gx classInfo = viewBean.getClassInfo();
+        ComponentClassInfo classInfo = viewBean.getClassInfo();
         if (classInfo.a("LinearLayout")) {
             LinearLayout linearLayout = (LinearLayout) view;
             linearLayout.setOrientation(viewBean.layout.orientation);
@@ -693,6 +697,7 @@ public class ViewPane extends RelativeLayout {
         }
         if (container instanceof ItemRelativeLayout && containerKind == Container.RELATIVE) {
             // The rules of the siblings can point at this widget (and cycles depend on all of them).
+
             refreshPositionRules(container);
         } else if (container instanceof ItemConstraintLayout && containerKind == Container.CONSTRAINT) {
             updateConstraints(view, viewBean, container);
@@ -839,6 +844,7 @@ public class ViewPane extends RelativeLayout {
             String itemCount = injectHandler.getAttributeValueOf("itemCount");
             if (!TextUtils.isEmpty(listitem)) {
                 //lmao use simple_list_item_1 for now
+
                 listItem.setListItem(android.R.layout.simple_list_item_1);
             }
             crashlytics.log("ViewPane: setting item count to EditorListItem");
@@ -865,7 +871,9 @@ public class ViewPane extends RelativeLayout {
             view.setAlpha(viewBean.alpha * 0.35f);
         }
         // Editor items have their own minimum size (an empty layout stays droppable, an include
+
         // shows its placeholder); android:minWidth/minHeight replace it only when they are set.
+
         int[] editorMinimum = editorMinimums.computeIfAbsent(view, v -> new int[]{v.getMinimumWidth(), v.getMinimumHeight()});
         view.setMinimumWidth(dimenToPx(attrs.get("android:minWidth"), editorMinimum[0]));
         view.setMinimumHeight(dimenToPx(attrs.get("android:minHeight"), editorMinimum[1]));
@@ -955,7 +963,7 @@ public class ViewPane extends RelativeLayout {
         if ("sp".equals(unit)) {
             return Math.round(android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, number, getResources().getDisplayMetrics()));
         }
-        return Math.round(wB.a(getContext(), number));
+        return Math.round(ViewInflationUtils.a(getContext(), number));
     }
 
     private Integer resolveAttrColor(String value) {
@@ -1009,6 +1017,7 @@ public class ViewPane extends RelativeLayout {
         ViewInfo target = viewInfo;
         if (target == null) {
             // Outside every target: the end of the root layout, if the root can take another child.
+
             if (rootLayout == null || !acceptsAnotherChild(rootLayout, viewBean)) return false;
             viewBean.preIndex = viewBean.index;
             viewBean.preParent = viewBean.parent;
@@ -1027,6 +1036,7 @@ public class ViewPane extends RelativeLayout {
         if (view.getTag() == null) return false;
         String newParent = view.getTag().toString();
         // Only a widget that is already a child of the target is moved inside it.
+
         boolean sameParent = view instanceof ViewGroup group && childWithTag(group, viewBean.id) != null;
         viewBean.preIndex = viewBean.index;
         viewBean.preParent = viewBean.parent;
@@ -1054,13 +1064,16 @@ public class ViewPane extends RelativeLayout {
         prepareRelationsForDrop(viewBean);
         if (view instanceof ItemRelativeLayout || view instanceof ItemConstraintLayout || view instanceof ItemFrameLayout) {
             // In these containers the order is only the drawing order: a move inside the same
+
             // container keeps it, a new widget goes on top.
+
             if (sameParent && viewBean.preIndex >= 0) viewBean.index = viewBean.preIndex;
         }
         if (view instanceof ItemRelativeLayout || view instanceof ItemConstraintLayout) {
             placeDroppedBean(viewBean, view);
         } else if (view instanceof ItemFrameLayout) {
             // FrameLayout has no relations: only layout_gravity (and the margins) position a child.
+
             viewBean.parentAttributes = new HashMap<>();
             if (dropGroup == view && dropGravity >= 0) {
                 viewBean.layout.layoutGravity = dropGravity;
@@ -1146,6 +1159,7 @@ public class ViewPane extends RelativeLayout {
             resetView(true);
             highlightedTextView.setLayoutParams(previewParams(group, width, height));
             // The container maps the widget index to a valid child position (see EditorChildren).
+
             group.addView(highlightedTextView, target.index());
             highlightedTextView.setVisibility(View.VISIBLE);
             this.viewInfo = target;
@@ -1186,6 +1200,7 @@ public class ViewPane extends RelativeLayout {
             int vertical = third(localY - group.getPaddingTop(), contentHeight, Gravity.TOP, Gravity.CENTER_VERTICAL, Gravity.BOTTOM);
             int gravity = horizontal | vertical;
             // top|left is where FrameLayout puts a child without layout_gravity.
+
             dropGravity = gravity == (Gravity.LEFT | Gravity.TOP) ? LayoutBean.GRAVITY_NONE : gravity;
             highlightedTextView.setLayoutParams(new FrameLayout.LayoutParams(width, height, gravity));
             return;
@@ -1218,6 +1233,7 @@ public class ViewPane extends RelativeLayout {
         View existing = sameParent ? viewGroup.findViewWithTag(viewBean.id) : null;
         if (existing != null) {
             // Moved inside the same parent: keep its relations, change margins or bias.
+
             float density = getResources().getDisplayMetrics().density;
             int currentLeft = Math.round((existing.getLeft() - viewGroup.getPaddingLeft()) / density);
             int currentTop = Math.round((existing.getTop() - viewGroup.getPaddingTop()) / density);
@@ -1282,6 +1298,7 @@ public class ViewPane extends RelativeLayout {
         Rect bounds = screenRect(linearLayout);
         int depth = calculateViewDepth(linearLayout);
         // Anywhere past the last middle: append.
+
         addViewInfo(bounds, linearLayout, -1, depth);
         boolean vertical = linearLayout.getOrientation() == LinearLayout.VERTICAL;
         int previousEdge = vertical ? bounds.top : bounds.left;
@@ -1430,16 +1447,16 @@ public class ViewPane extends RelativeLayout {
         int width = layoutBean.width;
         int height = layoutBean.height;
         if (width > 0) {
-            width = (int) wB.a(getContext(), (float) viewBean.layout.width);
+            width = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.width);
         }
         if (height > 0) {
-            height = (int) wB.a(getContext(), (float) viewBean.layout.height);
+            height = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.height);
         }
 
-        int leftMargin = (int) wB.a(getContext(), (float) viewBean.layout.marginLeft);
-        int topMargin = (int) wB.a(getContext(), (float) viewBean.layout.marginTop);
-        int rightMargin = (int) wB.a(getContext(), (float) viewBean.layout.marginRight);
-        int bottomMargin = (int) wB.a(getContext(), (float) viewBean.layout.marginBottom);
+        int leftMargin = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.marginLeft);
+        int topMargin = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.marginTop);
+        int rightMargin = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.marginRight);
+        int bottomMargin = (int) ViewInflationUtils.a(getContext(), (float) viewBean.layout.marginBottom);
 
         if (viewBean.layout.backgroundResColor == null) {
             view.setBackgroundColor(viewBean.layout.backgroundColor);
@@ -1461,6 +1478,7 @@ public class ViewPane extends RelativeLayout {
             }
             case RELATIVE -> params = new RelativeLayout.LayoutParams(width, height);
             // 0dp is "match constraint" in a ConstraintLayout.
+
             case CONSTRAINT -> params = new ConstraintLayout.LayoutParams(
                     viewBean.layout.width == 0 ? 0 : width, viewBean.layout.height == 0 ? 0 : height);
             default -> {
@@ -1688,14 +1706,14 @@ public class ViewPane extends RelativeLayout {
             return value;
         }
         if (key.equals("@string/app_name")) {
-            return yB.c(lC.b(sc_id), "my_app_name");
+            return MapValueUtils.c(RecentProjectsRegistry.b(sc_id), "my_app_name");
         }
         return key;
     }
 
     /** strings.xml parsed once per change instead of once per widget. */
     private HashMap<String, String> getProjectStrings() {
-        File file = new File(wq.b(sc_id) + "/files/resource/values/strings.xml");
+        File file = new File(WorkspacePathManager.b(sc_id) + "/files/resource/values/strings.xml");
         long stamp = (file.exists() ? file.lastModified() * 31 + file.length() : 0) * 31 + ProjectStrings.version;
         if (cachedStrings == null || stamp != cachedStringsStamp) {
             ArrayList<HashMap<String, Object>> stringsListMap = new ArrayList<>();

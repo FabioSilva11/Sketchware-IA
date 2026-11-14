@@ -28,24 +28,24 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
-import a.a.a.Iw;
-import a.a.a.Jw;
-import a.a.a.Kw;
-import a.a.a.Lw;
-import a.a.a.NB;
-import a.a.a.Op;
-import a.a.a.Qs;
-import a.a.a.Rp;
-import a.a.a.bB;
-import a.a.a.jC;
-import a.a.a.mB;
-import a.a.a.wB;
+import pro.sketchware.editor.ViewActionListener;
+import pro.sketchware.core.StringActionListener;
+import pro.sketchware.core.ObjectChangeListener;
+import pro.sketchware.editor.ViewSelectionListener;
+import pro.sketchware.editor.UniqueNameValidator;
+import pro.sketchware.filemanagers.SoundResourceManager;
+import pro.sketchware.editor.EventSelectionListener;
+import pro.sketchware.editor.WidgetCollectionManager;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.EditorViewUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
-public class ViewProperty extends LinearLayout implements Kw {
+public class ViewProperty extends LinearLayout implements ObjectChangeListener {
 
     private Context context;
     private final ArrayList<ViewBean> projectActivityViews = new ArrayList<>();
@@ -53,14 +53,14 @@ public class ViewProperty extends LinearLayout implements Kw {
     private ProjectFileBean projectFile;
     private Spinner spnWidget;
     private ViewIdsAdapter idsAdapter;
-    private Jw propertyTargetChangeListener = null;
+    private StringActionListener propertyTargetChangeListener = null;
     private LinearLayout layoutPropertySeeAll;
     private ViewPropertyItems viewPropertyItems;
     private SeeAllPropertiesFloatingItem seeAll;
     private View propertyLayout;
     private ViewEvents viewEvent;
-    private Iw propertyListener = null;
-    private Lw propertyValueChangedListener;
+    private ViewActionListener propertyListener = null;
+    private ViewSelectionListener propertyValueChangedListener;
     private onPropertyDeleted onPropertyDeletedListener;
     private LinearLayout layoutPropertyGroup;
     private int selectedGroupId;
@@ -92,19 +92,19 @@ public class ViewProperty extends LinearLayout implements Kw {
         onPropertyDeletedListener = onPropertyDeleted;
     }
 
-    public void setOnEventClickListener(Qs onEventClickListener) {
+    public void setOnEventClickListener(EventSelectionListener onEventClickListener) {
         viewEvent.setOnEventClickListener(onEventClickListener);
     }
 
-    public void setOnPropertyListener(Iw onPropertyListener) {
+    public void setOnPropertyListener(ViewActionListener onPropertyListener) {
         propertyListener = onPropertyListener;
     }
 
-    public void setOnPropertyTargetChangeListener(Jw onPropertyTargetChangeListener) {
+    public void setOnPropertyTargetChangeListener(StringActionListener onPropertyTargetChangeListener) {
         propertyTargetChangeListener = onPropertyTargetChangeListener;
     }
 
-    public void setOnPropertyValueChangedListener(Lw onPropertyValueChangedListener) {
+    public void setOnPropertyValueChangedListener(ViewSelectionListener onPropertyValueChangedListener) {
         propertyValueChangedListener = onPropertyValueChangedListener;
         viewPropertyItems.setOnPropertyValueChangedListener(viewBean -> {
             if (propertyValueChangedListener != null) {
@@ -129,7 +129,7 @@ public class ViewProperty extends LinearLayout implements Kw {
             showAllShower.setInterpolator(new DecelerateInterpolator());
         }
         if (showAllHider == null) {
-            showAllHider = ObjectAnimator.ofFloat(layoutPropertySeeAll, View.TRANSLATION_Y, wB.a(getContext(), 100.0f));
+            showAllHider = ObjectAnimator.ofFloat(layoutPropertySeeAll, View.TRANSLATION_Y, ViewInflationUtils.a(getContext(), 100.0f));
             showAllHider.setDuration(200L);
             showAllHider.setInterpolator(new DecelerateInterpolator());
         }
@@ -178,7 +178,7 @@ public class ViewProperty extends LinearLayout implements Kw {
         MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(getContext());
         dialog.setTitle(Helper.getResString(R.string.view_widget_favorites_save_title));
         dialog.setIcon(R.drawable.ic_bookmark_red_48dp);
-        View view = wB.a(getContext(), R.layout.property_popup_save_to_favorite);
+        View view = ViewInflationUtils.a(getContext(), R.layout.property_popup_save_to_favorite);
         ((TextView) view.findViewById(R.id.tv_favorites_guide)).setText(Helper.getResString(R.string.view_widget_favorites_save_guide_new));
         EditText editText = view.findViewById(R.id.ed_input);
         editText.setPrivateImeOptions("defaultInputmode=english;");
@@ -186,36 +186,36 @@ public class ViewProperty extends LinearLayout implements Kw {
         editText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         editText.setImeOptions(EditorInfo.IME_ACTION_DONE);
 
-        NB validator = new NB(getContext(), view.findViewById(R.id.ti_input), Rp.h().g());
+        UniqueNameValidator validator = new UniqueNameValidator(getContext(), view.findViewById(R.id.ti_input), WidgetCollectionManager.h().g());
         dialog.setView(view);
         dialog.setPositiveButton(Helper.getResString(R.string.common_word_save), (v, which) -> {
-            if (!mB.a() && validator.b()) {
+            if (!EditorViewUtils.a() && validator.b()) {
                 String widgetName = Helper.getText(editText);
-                ArrayList<ViewBean> viewBeans = pro.sketchware.utility.ViewHierarchy.withDescendants(jC.a(sc_id).d(projectFile.getXmlName()), projectActivityViews.get(idsAdapter.getSelectedItemPosition()));
+                ArrayList<ViewBean> viewBeans = pro.sketchware.utility.ViewHierarchy.withDescendants(ProjectDataManagerRegistry.a(sc_id).d(projectFile.getXmlName()), projectActivityViews.get(idsAdapter.getSelectedItemPosition()));
                 for (ViewBean viewBean : viewBeans) {
                     String backgroundResource = viewBean.layout.backgroundResource;
                     String resName = viewBean.image.resName;
-                    if (backgroundResource != null && !backgroundResource.equals("NONE") && jC.d(sc_id).l(backgroundResource) && !Op.g().b(backgroundResource)) {
+                    if (backgroundResource != null && !backgroundResource.equals("NONE") && ProjectDataManagerRegistry.d(sc_id).l(backgroundResource) && !SoundResourceManager.g().b(backgroundResource)) {
                         try {
-                            Op.g().a(sc_id, jC.d(sc_id).g(backgroundResource));
+                            SoundResourceManager.g().a(sc_id, ProjectDataManagerRegistry.d(sc_id).g(backgroundResource));
                         } catch (Exception e) {
                             e.printStackTrace();
-                            bB.b(getContext(), e.getMessage(), bB.TOAST_NORMAL).show();
+                            ToastFactory.b(getContext(), e.getMessage(), ToastFactory.TOAST_NORMAL).show();
                         }
                     }
-                    if (resName != null && !resName.equals("default_image") && !resName.equals("NONE") && jC.d(sc_id).l(resName) && !Op.g().b(resName)) {
+                    if (resName != null && !resName.equals("default_image") && !resName.equals("NONE") && ProjectDataManagerRegistry.d(sc_id).l(resName) && !SoundResourceManager.g().b(resName)) {
                         try {
-                            Op.g().a(sc_id, jC.d(sc_id).g(resName));
+                            SoundResourceManager.g().a(sc_id, ProjectDataManagerRegistry.d(sc_id).g(resName));
                         } catch (Exception e) {
-                            bB.b(getContext(), e.getMessage(), bB.TOAST_NORMAL).show();
+                            ToastFactory.b(getContext(), e.getMessage(), ToastFactory.TOAST_NORMAL).show();
                         }
                     }
                 }
-                Rp.h().a(widgetName, viewBeans, true);
+                WidgetCollectionManager.h().a(widgetName, viewBeans, true);
                 if (propertyListener != null) {
                     propertyListener.a();
                 }
-                bB.a(getContext(), Helper.getResString(R.string.common_message_complete_save), bB.TOAST_NORMAL).show();
+                ToastFactory.a(getContext(), Helper.getResString(R.string.common_message_complete_save), ToastFactory.TOAST_NORMAL).show();
                 v.dismiss();
             }
         });
@@ -238,7 +238,7 @@ public class ViewProperty extends LinearLayout implements Kw {
 
     private void initialize(Context context) {
         this.context = context;
-        wB.a(context, this, R.layout.view_property);
+        ViewInflationUtils.a(context, this, R.layout.view_property);
         layoutPropertyGroup = findViewById(R.id.layout_property_group);
         CustomHorizontalScrollView hcvProperty = findViewById(R.id.hcv_property);
         propertyLayout = findViewById(R.id.property_layout);
@@ -281,7 +281,7 @@ public class ViewProperty extends LinearLayout implements Kw {
         });
         imgSave = findViewById(R.id.img_save);
         imgSave.setOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 showSaveToCollectionDialog();
             }
         });
@@ -352,6 +352,7 @@ public class ViewProperty extends LinearLayout implements Kw {
         addGroup(0, R.string.property_group_basic);
         addGroup(1, R.string.property_group_recent);
         // Events of the selected widget, from the same list the Event tab and the code generator use.
+
         addGroup(2, R.string.property_group_event);
     }
 
@@ -447,7 +448,7 @@ public class ViewProperty extends LinearLayout implements Kw {
         }
 
         private void initialize(Context context) {
-            wB.a(context, this, R.layout.property_group_item);
+            ViewInflationUtils.a(context, this, R.layout.property_group_item);
             title = findViewById(R.id.tv_title);
         }
 
@@ -474,7 +475,7 @@ public class ViewProperty extends LinearLayout implements Kw {
         public SeeAllPropertiesFloatingItem(Context context) {
             super(context);
 
-            wB.a(context, this, R.layout.property_grid_item);
+            ViewInflationUtils.a(context, this, R.layout.property_grid_item);
             propertyMenuItem = findViewById(R.id.property_menu_item);
             icon = findViewById(R.id.img_icon);
             title = findViewById(R.id.tv_title);

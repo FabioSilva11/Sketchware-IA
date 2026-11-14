@@ -14,8 +14,8 @@ import com.besome.sketch.ctrls.ViewIdSpinnerItem;
 
 import java.util.ArrayList;
 
-import a.a.a.Jw;
-import a.a.a.wB;
+import pro.sketchware.core.StringActionListener;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
@@ -24,7 +24,7 @@ public class ViewProperties extends RelativeLayout implements AdapterView.OnItem
 
     private final ArrayList<String> viewsIdList = new ArrayList<>();
     private SpinnerItemAdapter spinnerItemAdapter;
-    private Jw propertyTargetChangeListener = null;
+    private StringActionListener propertyTargetChangeListener = null;
 
     public ViewProperties(Context context) {
         super(context);
@@ -36,12 +36,12 @@ public class ViewProperties extends RelativeLayout implements AdapterView.OnItem
         initialize(context);
     }
 
-    public void setOnPropertyTargetChangeListener(Jw onPropertyTargetChangeListener) {
+    public void setOnPropertyTargetChangeListener(StringActionListener onPropertyTargetChangeListener) {
         propertyTargetChangeListener = onPropertyTargetChangeListener;
     }
 
     private void initialize(Context context) {
-        wB.a(context, this, R.layout.view_properties);
+        ViewInflationUtils.a(context, this, R.layout.view_properties);
         ((TextView) findViewById(R.id.btn_editproperties)).setText(Helper.getResString(R.string.design_button_properties));
         Spinner spinner = findViewById(R.id.spn_widget);
         spinnerItemAdapter = new SpinnerItemAdapter(context, viewsIdList);

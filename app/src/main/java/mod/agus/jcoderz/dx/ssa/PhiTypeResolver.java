@@ -131,21 +131,23 @@ public class PhiTypeResolver {
         RegisterSpecList sources = insn.getSources();
 
         // Start by finding the first non-void operand
+
         mod.agus.jcoderz.dx.rop.code.RegisterSpec first = null;
         int firstIndex = -1;
 
         int szSources = sources.size();
         for (int i = 0 ; i <szSources ; i++) {
-            mod.agus.jcoderz.dx.rop.code.RegisterSpec rs = sources.get(i);
+            mod.agus.jcoderz.dx.rop.code.RegisterSpec LogicEventEditorFragment = sources.get(i);
 
-            if (rs.getBasicType() != mod.agus.jcoderz.dx.rop.type.Type.BT_VOID) {
-                first = rs;
+            if (LogicEventEditorFragment.getBasicType() != mod.agus.jcoderz.dx.rop.type.Type.BT_VOID) {
+                first = LogicEventEditorFragment;
                 firstIndex = i;
             }
         }
 
         if (first == null) {
             // All operands are void -- we're not ready to resolve yet
+
             return false;
         }
 
@@ -157,17 +159,18 @@ public class PhiTypeResolver {
                 continue;
             }
 
-            mod.agus.jcoderz.dx.rop.code.RegisterSpec rs = sources.get(i);
+            mod.agus.jcoderz.dx.rop.code.RegisterSpec LogicEventEditorFragment = sources.get(i);
 
             // Just skip void (unresolved phi results) for now
-            if (rs.getBasicType() == Type.BT_VOID){
+
+            if (LogicEventEditorFragment.getBasicType() == Type.BT_VOID){
                 continue;
             }
 
             sameLocals = sameLocals
-                    && equalsHandlesNulls(firstLocal, rs.getLocalItem());
+                    && equalsHandlesNulls(firstLocal, LogicEventEditorFragment.getLocalItem());
 
-            mergedType = Merger.mergeType(mergedType, rs.getType());
+            mergedType = Merger.mergeType(mergedType, LogicEventEditorFragment.getType());
         }
 
         TypeBearer newResultType;

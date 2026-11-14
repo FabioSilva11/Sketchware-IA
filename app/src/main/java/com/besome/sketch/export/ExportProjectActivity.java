@@ -30,19 +30,19 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import a.a.a.KB;
-import a.a.a.MA;
-import a.a.a.ProjectBuilder;
-import a.a.a.eC;
-import a.a.a.hC;
-import a.a.a.iC;
-import a.a.a.kC;
-import a.a.a.lC;
-import a.a.a.oB;
-import a.a.a.wq;
-import a.a.a.xq;
-import a.a.a.yB;
-import a.a.a.yq;
+import pro.sketchware.workspace.ProjectArchiveManager;
+import pro.sketchware.core.BackgroundTask;
+import pro.sketchware.compiler.ProjectBuilder;
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.workspace.ProjectFileManager;
+import pro.sketchware.workspace.ProjectLibraryManager;
+import pro.sketchware.filemanagers.ProjectResourceManager;
+import pro.sketchware.workspace.RecentProjectsRegistry;
+import pro.sketchware.filemanagers.FileCryptoUtils;
+import pro.sketchware.workspace.WorkspacePathManager;
+import pro.sketchware.filemanagers.FileNameValidator;
+import pro.sketchware.core.MapValueUtils;
+import pro.sketchware.workspace.ProjectWorkspaceManager;
 import kellinwood.security.zipsigner.ZipSigner;
 import kellinwood.security.zipsigner.optional.LoadKeystoreException;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
@@ -67,7 +67,7 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
 
     private static final Pattern STRING_RESOURCE_PATTERN = Pattern.compile("(?s)<(string|string-array|plurals)\\s+[^>]*\\bname\\s*=\\s*([\"'])([^\"']+)\\2[^>]*(?:/>|>.*?</\\1>)");
 
-    private final oB file_utility = new oB();
+    private final FileCryptoUtils file_utility = new FileCryptoUtils();
     /**
      * /sketchware/signed_apk
      */
@@ -87,7 +87,7 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
     private String export_src_filename;
     private String sc_id;
     private HashMap<String, Object> sc_metadata = null;
-    private yq project_metadata = null;
+    private ProjectWorkspaceManager project_metadata = null;
 
     private Button sign_apk_button;
     private Button export_aab_button;
@@ -144,8 +144,8 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
             sc_id = savedInstanceState.getString("sc_id");
         }
 
-        sc_metadata = lC.b(sc_id);
-        project_metadata = new yq(getApplicationContext(), wq.d(sc_id), sc_metadata);
+        sc_metadata = RecentProjectsRegistry.b(sc_id);
+        project_metadata = new ProjectWorkspaceManager(getApplicationContext(), WorkspacePathManager.d(sc_id), sc_metadata);
 
         initializeOutputDirectories();
         initializeSignApkViews();
@@ -191,9 +191,9 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
 
             ArrayList<String> toCompress = new ArrayList<>();
             toCompress.add(exportedProjectRoot.getAbsolutePath());
-            String exportedFilename = yB.c(sc_metadata, "my_ws_name") + ".zip";
+            String exportedFilename = MapValueUtils.c(sc_metadata, "my_ws_name") + ".zip";
 
-            String exportedSourcesZipPath = wq.s() + File.separator + "export_src" + File.separator + exportedFilename;
+            String exportedSourcesZipPath = WorkspacePathManager.s() + File.separator + "export_src" + File.separator + exportedFilename;
             if (file_utility.e(exportedSourcesZipPath)) {
                 file_utility.c(exportedSourcesZipPath);
             }
@@ -204,7 +204,7 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
             }
             toExclude.add("DebugActivity.java");
 
-            new KB().a(exportedSourcesZipPath, toCompress, toExclude);
+            new ProjectArchiveManager().a(exportedSourcesZipPath, toCompress, toExclude);
             project_metadata.e();
             runOnUiThread(() -> initializeAfterExportedSourceViews(exportedFilename));
         } catch (Exception e) {
@@ -222,10 +222,10 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
     private File generateAndroidStudioSourceProject() throws Exception {
         FileUtil.deleteFile(project_metadata.projectMyscPath);
 
-        hC hCVar = new hC(sc_id);
-        kC kCVar = new kC(sc_id);
-        eC eCVar = new eC(sc_id);
-        iC iCVar = new iC(sc_id);
+        ProjectFileManager hCVar = new ProjectFileManager(sc_id);
+        ProjectResourceManager kCVar = new ProjectResourceManager(sc_id);
+        ProjectDataManager eCVar = new ProjectDataManager(sc_id);
+        ProjectLibraryManager iCVar = new ProjectLibraryManager(sc_id);
         hCVar.i();
         kCVar.s();
         eCVar.g();
@@ -233,19 +233,20 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         iCVar.i();
 
         /* Extract project type template */
-        project_metadata.a(getApplicationContext(), wq.e(xq.a(sc_id) ? "600" : sc_id));
+        project_metadata.a(getApplicationContext(), WorkspacePathManager.e(FileNameValidator.a(sc_id) ? "600" : sc_id));
 
         /* Start generating project files */
         ProjectBuilder builder = new ProjectBuilder(this, project_metadata);
-        project_metadata.a(iCVar, hCVar, eCVar, yq.ExportType.ANDROID_STUDIO);
+        project_metadata.a(iCVar, hCVar, eCVar, ProjectWorkspaceManager.ExportType.ANDROID_STUDIO);
         builder.buildBuiltInLibraryInformation();
         project_metadata.b(hCVar, eCVar, iCVar, builder.getBuiltInLibraryManager());
-        if (ProjectMapUtils.getBoolean(lC.b(sc_id), "custom_icon")) {
-            project_metadata.aa(wq.e() + File.separator + sc_id + File.separator + "mipmaps");
-            if (ProjectMapUtils.getBoolean(lC.b(sc_id), "isIconAdaptive", false)) {
+        if (ProjectMapUtils.getBoolean(RecentProjectsRegistry.b(sc_id), "custom_icon")) {
+            project_metadata.aa(WorkspacePathManager.e() + File.separator + sc_id + File.separator + "mipmaps");
+            if (ProjectMapUtils.getBoolean(RecentProjectsRegistry.b(sc_id), "isIconAdaptive", false)) {
                 project_metadata.createLauncherIconXml("""
                         <?xml version="1.0" encoding="utf-8"?>
                         <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android" >
+
                         <background android:drawable="@mipmap/ic_launcher_background"/>
                         <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
                         <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
@@ -392,14 +393,14 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         GetKeyStoreCredentialsDialog credentialsDialog = new GetKeyStoreCredentialsDialog(this,
                 R.drawable.ic_mtrl_key, "Sign outputted AAB", "Fill in the keystore details to sign the AAB.");
         credentialsDialog.setListener(credentials -> {
-            BuildingAsyncTask task = new BuildingAsyncTask(this, yq.ExportType.AAB);
+            BuildingAsyncTask task = new BuildingAsyncTask(this, ProjectWorkspaceManager.ExportType.AAB);
             task.enableAppBundleBuild();
             if (credentials != null) {
                 if (credentials.isForSigningWithTestkey()) {
                     task.setSignWithTestkey(true);
                 } else {
                     task.configureResultJarSigning(
-                            wq.j(),
+                            WorkspacePathManager.j(),
                             credentials.getKeyStorePassword().toCharArray(),
                             credentials.getKeyAlias(),
                             credentials.getKeyPassword().toCharArray(),
@@ -455,8 +456,8 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
     private void exportToIdeProject() {
         try {
             File generatedProjectRoot = generateAndroidStudioSourceProject();
-            String androidStudioScId = lC.b();
-            File targetFolder = new File(wq.getAndroidStudioProjectPath(androidStudioScId));
+            String androidStudioScId = RecentProjectsRegistry.b();
+            File targetFolder = new File(WorkspacePathManager.getAndroidStudioProjectPath(androidStudioScId));
             if (targetFolder.exists()) {
                 throw new IllegalStateException("Project id already exists: " + androidStudioScId);
             }
@@ -469,10 +470,10 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
             HashMap<String, Object> androidStudioMetadata = new HashMap<>(sc_metadata);
             androidStudioMetadata.put("sc_id", androidStudioScId);
             androidStudioMetadata.put("source_sc_id", sc_id);
-            androidStudioMetadata.put(lC.PROJECT_KIND_KEY, lC.PROJECT_KIND_ANDROID_STUDIO);
+            androidStudioMetadata.put(RecentProjectsRegistry.PROJECT_KIND_KEY, RecentProjectsRegistry.PROJECT_KIND_ANDROID_STUDIO);
             androidStudioMetadata.put("proj_type", 2);
             androidStudioMetadata.put("studio_path", targetFolder.getAbsolutePath());
-            lC.saveAndroidStudioProject(androidStudioScId, androidStudioMetadata);
+            RecentProjectsRegistry.saveAndroidStudioProject(androidStudioScId, androidStudioMetadata);
             copyProjectConfiguration(androidStudioScId, targetFolder);
             FileUtil.deleteFile(generatedProjectRoot.getAbsolutePath());
 
@@ -546,13 +547,13 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
             sign_apk_loading_anim.setVisibility(View.VISIBLE);
             sign_apk_loading_anim.playAnimation();
 
-            BuildingAsyncTask task = new BuildingAsyncTask(this, yq.ExportType.SIGN_APP);
+            BuildingAsyncTask task = new BuildingAsyncTask(this, ProjectWorkspaceManager.ExportType.SIGN_APP);
             if (credentials != null) {
                 if (credentials.isForSigningWithTestkey()) {
                     task.setSignWithTestkey(true);
                 } else {
                     task.configureResultJarSigning(
-                            wq.j(),
+                            WorkspacePathManager.j(),
                             credentials.getKeyStorePassword().toCharArray(),
                             credentials.getKeyAlias(),
                             credentials.getKeyPassword().toCharArray(),
@@ -570,15 +571,15 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
     private void initializeOutputDirectories() {
         signed_apk_postfix = File.separator + "sketchware" + File.separator + "signed_apk";
         export_src_postfix = File.separator + "sketchware" + File.separator + "export_src";
-        export_ide_postfix = File.separator + wq.ANDROID_STUDIO_PROJECTS;
+        export_ide_postfix = File.separator + WorkspacePathManager.ANDROID_STUDIO_PROJECTS;
         /* /sdcard/sketchware/signed_apk */
-        String signed_apk_full_path = wq.s() + File.separator + "signed_apk";
-        export_src_full_path = wq.s() + File.separator + "export_src";
+        String signed_apk_full_path = WorkspacePathManager.s() + File.separator + "signed_apk";
+        export_src_full_path = WorkspacePathManager.s() + File.separator + "export_src";
 
         /* Check if they exist, if not, create them */
         file_utility.f(signed_apk_full_path);
         file_utility.f(export_src_full_path);
-        file_utility.f(wq.getAndroidStudioProjectsRoot());
+        file_utility.f(WorkspacePathManager.getAndroidStudioProjectsRoot());
     }
 
     private void shareExportedSourceCode() {
@@ -617,11 +618,11 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         SketchwareUtil.toast("IDE project created");
     }
 
-    private static class BuildingAsyncTask extends MA implements DialogInterface.OnCancelListener, BuildProgressReceiver {
+    private static class BuildingAsyncTask extends BackgroundTask implements DialogInterface.OnCancelListener, BuildProgressReceiver {
         private final WeakReference<ExportProjectActivity> activity;
-        private final yq project_metadata;
+        private final ProjectWorkspaceManager project_metadata;
         private final WeakReference<LottieAnimationView> loading_sign_apk;
-        private final yq.ExportType exportType;
+        private final ProjectWorkspaceManager.ExportType exportType;
 
         private ProjectBuilder builder;
         private boolean canceled = false;
@@ -633,47 +634,57 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         private String signingAlgorithm = null;
         private boolean signWithTestkey = false;
 
-        public BuildingAsyncTask(ExportProjectActivity exportProjectActivity, yq.ExportType exportType) {
+        public BuildingAsyncTask(ExportProjectActivity exportProjectActivity, ProjectWorkspaceManager.ExportType exportType) {
             super(exportProjectActivity);
             this.exportType = exportType;
             activity = new WeakReference<>(exportProjectActivity);
             project_metadata = exportProjectActivity.project_metadata;
             loading_sign_apk = new WeakReference<>(exportProjectActivity.sign_apk_loading_anim);
             // Register as AsyncTask with dialog to Activity
+
             activity.get().addTask(this);
             // Make a simple ProgressDialog show and set its OnCancelListener
+
             activity.get().a((DialogInterface.OnCancelListener) this);
             // Allow user to use back button
+
             activity.get().progressDialog.setCancelable(false);
         }
 
         /**
-         * a.a.a.MA's doInBackground()
+         * MA's doInBackground()
          */
         @Override // a.a.a.MA
+
         public void b() {
             if (canceled) {
                 cancel(true);
                 return;
             }
 
-            String sc_id = activity.get().sc_id;
+            // The WeakReference may have been GC'd while this long build task runs: bail out early.
+            ExportProjectActivity host = activity.get();
+            if (host == null) {
+                cancel(true);
+                return;
+            }
+            String sc_id = host.sc_id;
 
             try {
                 publishProgress("Deleting temporary files...");
                 FileUtil.deleteFile(project_metadata.projectMyscPath);
 
                 publishProgress(Helper.getResString(R.string.design_run_title_ready_to_build));
-                oB oBVar = new oB();
+                FileCryptoUtils oBVar = new FileCryptoUtils();
                 /* Check if /Internal storage/sketchware/signed_apk/ exists */
-                if (!oBVar.e(wq.o())) {
+                if (!oBVar.e(WorkspacePathManager.o())) {
                     /* Doesn't exist yet, let's create it */
-                    oBVar.f(wq.o());
+                    oBVar.f(WorkspacePathManager.o());
                 }
-                hC hCVar = new hC(sc_id);
-                kC kCVar = new kC(sc_id);
-                eC eCVar = new eC(sc_id);
-                iC iCVar = new iC(sc_id);
+                ProjectFileManager hCVar = new ProjectFileManager(sc_id);
+                ProjectResourceManager kCVar = new ProjectResourceManager(sc_id);
+                ProjectDataManager eCVar = new ProjectDataManager(sc_id);
+                ProjectLibraryManager iCVar = new ProjectLibraryManager(sc_id);
                 hCVar.i();
                 kCVar.s();
                 eCVar.g();
@@ -694,23 +705,24 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
                     cancel(true);
                     return;
                 }
-                project_metadata.a(a, wq.e("600"));
+                project_metadata.a(a, WorkspacePathManager.e("600"));
                 if (canceled) {
                     cancel(true);
                     return;
                 }
-                if (ProjectMapUtils.getBoolean(lC.b(sc_id), "custom_icon")) {
-                    project_metadata.aa(wq.e() + File.separator + sc_id + File.separator + "mipmaps");
-                    if (ProjectMapUtils.getBoolean(lC.b(sc_id), "isIconAdaptive", false)) {
+                if (ProjectMapUtils.getBoolean(RecentProjectsRegistry.b(sc_id), "custom_icon")) {
+                    project_metadata.aa(WorkspacePathManager.e() + File.separator + sc_id + File.separator + "mipmaps");
+                    if (ProjectMapUtils.getBoolean(RecentProjectsRegistry.b(sc_id), "isIconAdaptive", false)) {
                         project_metadata.createLauncherIconXml("""
                                 <?xml version="1.0" encoding="utf-8"?>
                                 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android" >
+
                                 <background android:drawable="@mipmap/ic_launcher_background"/>
                                 <foreground android:drawable="@mipmap/ic_launcher_foreground"/>
                                 <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
                                 </adaptive-icon>""");
                     } else {
-                        project_metadata.a(wq.e() + File.separator + sc_id + File.separator + "icon.png");
+                        project_metadata.a(WorkspacePathManager.e() + File.separator + sc_id + File.separator + "icon.png");
                     }
                 }
                 project_metadata.a();
@@ -823,7 +835,9 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
                         signer.signZip(createdBundlePath, outputPath);
                     } else if (isResultJarSigningEnabled()) {
                         // Use ApkSigner (apksig) for AAB as well so that V2/V3 signatures
+
                         // are included. Pass signingAliasPassword (not signingKeystorePassword).
+
                         mod.alucard.tn.apksigner.ApkSigner apkSigner =
                                 new mod.alucard.tn.apksigner.ApkSigner();
                         apkSigner.signWithKeyStore(
@@ -847,24 +861,27 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
                     }
 
                     publishProgress("Aligning APK...");
-                    builder.runZipalign(builder.yq.unsignedUnalignedApkPath, builder.yq.unsignedAlignedApkPath);
+                    builder.runZipalign(builder.workspace.unsignedUnalignedApkPath, builder.workspace.unsignedAlignedApkPath);
                     if (canceled) {
                         cancel(true);
                         return;
                     }
 
                     publishProgress("Signing APK...");
-                    String outputLocation = getCorrectResultFilename(builder.yq.releaseApkPath);
+                    String outputLocation = getCorrectResultFilename(builder.workspace.releaseApkPath);
                     if (signWithTestkey) {
-                        TestkeySignBridge.signWithTestkey(builder.yq.unsignedAlignedApkPath, outputLocation);
+                        TestkeySignBridge.signWithTestkey(builder.workspace.unsignedAlignedApkPath, outputLocation);
                     } else if (isResultJarSigningEnabled()) {
                         // Use ApkSigner (apksig) instead of ZipSigner/JarSigner so the APK
+
                         // is signed with V1 + V2 + V3 schemes. ZipSigner only produces V1
+
                         // signatures, which Android 11+ (API 30+) may reject on install.
+
                         mod.alucard.tn.apksigner.ApkSigner apkSigner =
                                 new mod.alucard.tn.apksigner.ApkSigner();
                         apkSigner.signWithKeyStore(
-                                builder.yq.unsignedAlignedApkPath,
+                                builder.workspace.unsignedAlignedApkPath,
                                 outputLocation,
                                 signingKeystorePath,
                                 new String(signingKeystorePassword),
@@ -873,7 +890,7 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
                                 null
                         );
                     } else {
-                        FileUtil.copyFile(builder.yq.unsignedAlignedApkPath, outputLocation);
+                        FileUtil.copyFile(builder.workspace.unsignedAlignedApkPath, outputLocation);
                     }
                 }
             } catch (Throwable throwable) {
@@ -907,6 +924,7 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
             builder = null;
             activity.get().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             // Dismiss the ProgressDialog
+
             activity.get().i();
             activity.get().sign_apk_output_stage.setVisibility(View.GONE);
             LottieAnimationView loading_sign_apk = this.loading_sign_apk.get();
@@ -924,19 +942,23 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         }
 
         @Override // android.os.AsyncTask
+
         public void onProgressUpdate(String... strArr) {
             super.onProgressUpdate(strArr);
             // Update the ProgressDialog's text
+
             activity.get().a(strArr[0]);
         }
 
         /**
-         * a.a.a.MA's onPostExecute()
+         * MA's onPostExecute()
          */
         @Override // a.a.a.MA
+
         public void a() {
             activity.get().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             // Dismiss the ProgressDialog
+
             activity.get().i();
 
             if (new File(getCorrectResultFilename(project_metadata.releaseApkPath)).exists()) {
@@ -956,13 +978,15 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         }
 
         /**
-         * Called by a.a.a.MA if doInBackground() (a.a.a.MA#b()) returned a non-empty String,
+         * Called by MA if doInBackground() (MA#b()) returned a non-empty String,
          * ergo, an error occurred.
          */
         @Override // a.a.a.MA
+
         public void a(String str) {
             activity.get().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             // Dismiss the ProgressDialog
+
             activity.get().i();
             SketchwareUtil.showAnErrorOccurredDialog(activity.get(), str);
             activity.get().sign_apk_output_stage.setVisibility(View.GONE);

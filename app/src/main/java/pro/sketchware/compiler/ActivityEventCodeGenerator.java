@@ -1,0 +1,490 @@
+package pro.sketchware.compiler;
+
+import com.besome.sketch.beans.BlockBean;
+import com.besome.sketch.beans.ComponentBean;
+import com.besome.sketch.beans.EventBean;
+import com.besome.sketch.beans.ProjectFileBean;
+import com.besome.sketch.beans.ViewBean;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+import mod.hilal.saif.components.ComponentExtraCode;
+import mod.pranav.viewbinding.ViewBindingBuilder;
+import pro.sketchware.utility.IncludedViews;
+
+import pro.sketchware.beans.ProjectDataManager;
+import pro.sketchware.editor.ComponentClassInfo;
+import pro.sketchware.editor.ComponentEventRegistry;
+import pro.sketchware.editor.ComponentLibraryRegistry;
+
+public class ActivityEventCodeGenerator {
+
+    private final ProjectFileBean projectFileBean;
+    private final ProjectBuildMetadata buildConfig;
+    private final ArrayList<Event> viewEvents = new ArrayList<>();
+    private final ArrayList<Event> componentEvents = new ArrayList<>();
+    private final ArrayList<ActivityEvent> activityEvents = new ArrayList<>();
+    private final ArrayList<Event> authEvents = new ArrayList<>();
+    private final ArrayList<Event> drawerViewEvents = new ArrayList<>();
+    private final ArrayList<ComponentCallback> callbackEvents = new ArrayList<>();
+    private final ArrayList<String> imports = new ArrayList<>();
+    private final HashMap<String, String> activityLifecycleEvents = new HashMap<>();
+    private final Boolean isViewBindingEnabled;
+    private final IncludedViews.Result includes;
+    public String k = "";
+    public String l = "";
+
+    /**
+     * @param includes            widgets the screen reaches through its includes, which can have events too
+     * @param isViewBindingEnabled the same choice as the rest of the file (an Android Studio export never uses it)
+     */
+    public ActivityEventCodeGenerator(ProjectBuildMetadata logicHolder, ProjectFileBean projectFileBean, ProjectDataManager projectDataManager, IncludedViews.Result includes, boolean isViewBindingEnabled) {
+        buildConfig = logicHolder;
+        this.projectFileBean = projectFileBean;
+        this.includes = includes;
+        this.isViewBindingEnabled = isViewBindingEnabled;
+
+        ArrayList<ViewBean> views = new ArrayList<>(projectDataManager.d(projectFileBean.getXmlName()));
+        if (projectFileBean.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_FAB)) {
+            ViewBean fab = projectDataManager.h(projectFileBean.getXmlName());
+            views.add(fab);
+        }
+        for (IncludedViews.Entry entry : includes.entries) {
+            views.add(entry.view);
+        }
+        for (ViewBean view : views) {
+            viewEvents.add(new Event(this, viewReference(view.id), view.getClassInfo(), isViewBindingEnabled));
+        }
+
+        ArrayList<ComponentBean> components = projectDataManager.e(projectFileBean.getJavaName());
+        for (ComponentBean componentBean : components) {
+            int type = componentBean.type;
+            if (type == ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH || type == ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD) {
+                authEvents.add(new Event(this, componentBean.componentId, componentBean.getClassInfo(), isViewBindingEnabled));
+            } else {
+                componentEvents.add(new Event(this, componentBean.componentId, componentBean.getClassInfo(), isViewBindingEnabled));
+            }
+        }
+
+        if (projectFileBean.hasActivityOption(ProjectFileBean.OPTION_ACTIVITY_DRAWER)) {
+            ArrayList<ViewBean> drawerViews = projectDataManager.d(projectFileBean.getDrawerXmlName());
+            for (ViewBean view : drawerViews) {
+                drawerViewEvents.add(new Event(this, isViewBindingEnabled ? "binding.drawer." + ViewBindingBuilder.generateParameterFromId(view.id) : "_drawer_" + view.id, view.getClassInfo(), isViewBindingEnabled));
+            }
+        }
+
+        a(projectDataManager.g(projectFileBean.getJavaName()), projectDataManager.b(projectFileBean.getJavaName()));
+    }
+
+    /** How the code refers to a widget of the screen, including one reached through an include. */
+    private String viewReference(String id) {
+        String included = includes.reference(id, isViewBindingEnabled);
+        if (included != null) return included;
+        return isViewBindingEnabled ? "binding." + ViewBindingBuilder.generateParameterFromId(id) : id;
+    }
+
+    public String getOnActivityResultSwitchCases() {
+        StringBuilder sb = new StringBuilder(4096);
+        for (ComponentCallback value : callbackEvents) {
+            String code = value.getCode();
+            if (sb.length() > 0 && !code.isEmpty()) {
+                sb.append(ActivitySourceGenerator.EOL);
+                sb.append(ActivitySourceGenerator.EOL);
+            }
+            sb.append(code);
+        }
+        return sb.toString();
+    }
+
+    private void addCallbackEvents(int targetType, String targetId, String eventName, String eventLogic) {
+        boolean hasOnSuccessLogic = eventName.equals("onPictureTaken") || eventName.equals("onAccountPicker") || eventName.equals("onFilesPicked");
+        boolean hasOnCancelledLogic = eventName.equals("onPictureTakenCancel") || eventName.equals("onFilesPickedCancel") || eventName.equals("onAccountPickerCancelled");
+
+        boolean alreadyRegistered = false;
+        for (ComponentCallback next : callbackEvents) {
+            if (next.componentName.equals(targetId)) {
+                if (hasOnSuccessLogic) {
+                    next.setOnSuccessLogic(eventLogic);
+                    return;
+                } else if (hasOnCancelledLogic) {
+                    next.setOnCancelledLogic(eventLogic);
+                    return;
+                } else {
+                    alreadyRegistered = true;
+                }
+            }
+        }
+        if (!alreadyRegistered) {
+            ComponentCallback event = new ComponentCallback(targetType, targetId);
+            if (hasOnSuccessLogic) {
+                event.setOnSuccessLogic(eventLogic);
+            } else if (hasOnCancelledLogic) {
+                event.setOnCancelledLogic(eventLogic);
+            }
+            callbackEvents.add(event);
+        }
+    }
+
+    private void addActivityEvent(String eventName, String eventLogic) {
+        ActivityEvent target = null;
+
+        for (ActivityEvent next : activityEvents) {
+            if (next.name.equals(eventName)) {
+                target = next;
+                break;
+            }
+        }
+
+        if (target == null) {
+            target = new ActivityEvent(eventName);
+            activityEvents.add(target);
+        }
+        target.setLogic(eventLogic);
+    }
+
+    public void addLifecycleEvent(String eventName, String viewType, String viewId) {
+        String targetId = viewType.equals("FusedLocationManager") ? viewId : viewReference(viewId);
+        String lifecycleCode = ComponentSourceGenerator.getDefaultActivityLifecycleCode(eventName, viewType, targetId);
+        if (lifecycleCode.isEmpty()) return;
+        String currentCode = activityLifecycleEvents.get(eventName);
+        activityLifecycleEvents.put(eventName, currentCode == null ? lifecycleCode : currentCode + ActivitySourceGenerator.EOL + lifecycleCode);
+    }
+
+    private void a(ArrayList<EventBean> events, HashMap<String, ArrayList<BlockBean>> logicBlocks) {
+        for (EventBean eventBean : events) {
+            ArrayList<BlockBean> eventLogicBlocks = logicBlocks.get(eventBean.targetId + "_" + eventBean.eventName);
+            String eventLogic = (eventLogicBlocks == null || eventLogicBlocks.isEmpty()) ? "" :
+                    new BlockCodeGenerator(projectFileBean.getActivityName(), buildConfig, eventLogicBlocks, isViewBindingEnabled).withIncludes(includes).a();
+
+            switch (eventBean.eventType) {
+                case EventBean.EVENT_TYPE_VIEW:
+                    addViewListeners(eventBean.targetId, eventBean.eventName, eventLogic);
+                    break;
+
+                case EventBean.EVENT_TYPE_COMPONENT:
+                    switch (eventBean.targetType) {
+                        case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH:
+                        case ComponentBean.COMPONENT_TYPE_INTERSTITIAL_AD:
+                            addCallbackEvents(eventBean.targetId, eventBean.eventName, eventLogic);
+                            break;
+
+                        case ComponentBean.COMPONENT_TYPE_CAMERA:
+                        case ComponentBean.COMPONENT_TYPE_FILE_PICKER:
+                        case ComponentBean.COMPONENT_TYPE_FIREBASE_AUTH_GOOGLE_LOGIN:
+                            addCallbackEvents(eventBean.targetType, eventBean.targetId, eventBean.eventName, eventLogic);
+                            break;
+
+                        default:
+                            addViewImports(eventBean.targetId, eventBean.eventName, eventLogic);
+                    }
+                    break;
+
+                case EventBean.EVENT_TYPE_ACTIVITY:
+                    addActivityEvent(eventBean.eventName, eventLogic);
+                    break;
+
+                case EventBean.EVENT_TYPE_DRAWER_VIEW:
+                    addDrawerEvents(eventBean.targetId, eventBean.eventName, eventLogic);
+                    break;
+
+                default:
+            }
+        }
+    }
+
+    public String generateActivityLifecycleEventCode() {
+        StringBuilder sb = new StringBuilder(4096);
+        for (Map.Entry<String, String> event : activityLifecycleEvents.entrySet()) {
+            String name = event.getKey();
+            String logic = event.getValue();
+
+            boolean found = false;
+            for (ActivityEvent next : activityEvents) {
+                if (next.name.equals(name)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                ActivityEvent a = new ActivityEvent(name);
+                a.setLogic(logic);
+                activityEvents.add(a);
+            } else {
+                for (ActivityEvent next : activityEvents) {
+                    if (next.name.equals(name)) {
+                        next.setLogic(logic + ActivitySourceGenerator.EOL + next.logic);
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (ActivityEvent value : activityEvents) {
+            String code = value.getCode();
+            if (sb.length() > 0 && !code.isEmpty()) {
+                sb.append(ActivitySourceGenerator.EOL);
+                sb.append(ActivitySourceGenerator.EOL);
+            }
+            sb.append(code);
+        }
+        return sb.toString();
+    }
+
+    private void addViewImports(String targetId, String eventName, String eventLogic) {
+        for (Event next : componentEvents) {
+            if (next.id.equals(targetId)) {
+                next.addEvent(targetId, eventName, eventLogic);
+                return;
+            }
+        }
+    }
+
+    public String generateComponentEvents() {
+        StringBuilder sb = new StringBuilder(4096);
+        ComponentExtraCode componentExtraCode = new ComponentExtraCode(this, sb);
+        for (Event next : componentEvents) {
+            componentExtraCode.s(next.generateEvent());
+        }
+        return sb.toString();
+    }
+
+    private void addDrawerEvents(String targetId, String eventName, String eventLogic) {
+        for (Event next : drawerViewEvents) {
+            if (next.id.equals(isViewBindingEnabled ? "binding.drawer." + ViewBindingBuilder.generateParameterFromId(targetId) : "_drawer_" + targetId)) {
+                next.addEvent(targetId, eventName, eventLogic);
+                return;
+            }
+        }
+    }
+
+    public String generateDrawerEvents() {
+        StringBuilder sb = new StringBuilder(4096);
+        for (Event drawerViewEvent : drawerViewEvents) {
+            String eventCodes = drawerViewEvent.generateEvent();
+            if (sb.length() > 0 && !eventCodes.isEmpty()) {
+                sb.append(ActivitySourceGenerator.EOL);
+                sb.append(ActivitySourceGenerator.EOL);
+            }
+            sb.append(eventCodes);
+        }
+        return sb.toString();
+    }
+
+    private void addCallbackEvents(String targetId, String eventName, String eventLogic) {
+        for (Event next : authEvents) {
+            if (next.id.equals(targetId)) {
+                next.addEvent(targetId, eventName, eventLogic);
+                return;
+            }
+        }
+    }
+
+    /**
+     * @return {@link Hx#imports}
+     */
+    public ArrayList<String> getImports() {
+        return imports;
+    }
+
+    private void addViewListeners(String targetId, String eventName, String eventLogic) {
+        for (Event next : viewEvents) {
+            if (next.id.equals(viewReference(targetId))) {
+                next.addEvent(targetId, eventName, eventLogic);
+                return;
+            }
+        }
+    }
+
+    public String generateAuthEvents() {
+        StringBuilder sb = new StringBuilder(4096);
+        for (Event authEvent : authEvents) {
+            String event = authEvent.generateEvent();
+            if (sb.length() > 0 && !event.isEmpty()) {
+                sb.append(ActivitySourceGenerator.EOL);
+                sb.append(ActivitySourceGenerator.EOL);
+            }
+            sb.append(event);
+        }
+        return sb.toString();
+    }
+
+    public String generateViewEvents() {
+        StringBuilder sb = new StringBuilder(4096);
+        for (Event value : viewEvents) {
+            String event = value.generateEvent();
+            if (sb.length() > 0 && !event.isEmpty()) {
+                sb.append(ActivitySourceGenerator.EOL);
+                sb.append(ActivitySourceGenerator.EOL);
+            }
+            sb.append(event);
+        }
+        return sb.toString();
+    }
+
+    private static class ActivityEvent {
+
+        private final String name;
+        private String logic = "";
+        private String targetId = "";
+
+        private ActivityEvent(String name) {
+            this.name = name;
+        }
+
+        private String getCode() {
+            return ComponentSourceGenerator.getEventCode(targetId, name, logic);
+        }
+
+        private void setLogic(String logic) {
+            this.logic = logic;
+        }
+
+        private void setTargetId(String targetId) {
+            this.targetId = targetId;
+        }
+    }
+
+    private static class ComponentCallback {
+
+        private final int componentId;
+        private final String componentName;
+        private String onSuccessCode = "";
+        private String onCancelledCode = "";
+
+        private ComponentCallback(int componentId, String componentName) {
+            this.componentId = componentId;
+            this.componentName = componentName;
+        }
+
+        private void setOnCancelledLogic(String onCancelledLogic) {
+            onCancelledCode = onCancelledLogic;
+        }
+
+        private void setOnSuccessLogic(String onSuccessLogic) {
+            onSuccessCode = onSuccessLogic;
+        }
+
+        private String getCode() {
+            return ComponentSourceGenerator.getOnActivityResultCode(componentId, componentName, onSuccessCode, onCancelledCode);
+        }
+    }
+
+    private static class Event {
+        private final ActivityEventCodeGenerator hx;
+        private final String id;
+        private final ArrayList<ComponentEvents> listeners = new ArrayList<>();
+
+        private Event(ActivityEventCodeGenerator hx, String id, ComponentClassInfo classInfo, boolean isViewBindingEnabled) {
+            this.hx = hx;
+            this.id = id;
+
+            String[] listeners = ComponentEventRegistry.getListenersForClass(classInfo);
+            if (listeners.length > 0) {
+                for (String listener : listeners) {
+                    /* Found functionally same instructions in vanilla Sketchware, keep it this way */
+                    if (!this.listeners.contains(listener)) {
+                        this.listeners.add(new ComponentEvents(listener));
+                    }
+                }
+
+                switch (classInfo.getClassName()) {
+                    case "FirebaseDB":
+                    case "FirebaseStorage":
+                    case "FirebaseAuth":
+                    case "Gyroscope":
+                    case "Compass":
+                    case "LightSensor":
+                    case "ProximitySensor":
+                    case "Barometer":
+                    case "StepCounter":
+                    case "BiometricManager":
+                    case "FusedLocationManager":
+                    case "SupabaseDatabase":
+                    case "SupabaseAuth":
+                    case "SupabaseStorage":
+                    case "UnityInterstitialAd":
+                    case "UnityRewardedAd":
+                    case "FragmentAdapter":
+                    case "WebView":
+                    case "MapView":
+                    case "InterstitialAd":
+                    case "RequestNetwork":
+                    case "BluetoothConnect":
+                        for (ComponentEvents value : this.listeners) {
+                            value.isInitialized = true;
+                        }
+                        break;
+
+                    default:
+                }
+            }
+        }
+
+        private String generateEvent() {
+            StringBuilder sb = new StringBuilder(4096);
+            for (ComponentEvents value : listeners) {
+                String event = value.generateEvent(id);
+                if (sb.length() > 0 && !event.isEmpty()) {
+                    sb.append(ActivitySourceGenerator.EOL);
+                    sb.append(ActivitySourceGenerator.EOL);
+                }
+                sb.append(event);
+            }
+
+            return sb.toString();
+        }
+
+        private void addEvent(String targetId, String eventName, String eventLogic) {
+            for (ComponentEvents listener : listeners) {
+                for (ActivityEvent activityEvent : listener.activityEvents) {
+                    if (activityEvent.name.equals(eventName)) {
+                        activityEvent.setLogic(eventLogic);
+                        activityEvent.setTargetId(targetId);
+                        listener.isInitialized = true;
+                    }
+                }
+
+                if (listener.isInitialized) {
+                    hx.imports.addAll(ComponentLibraryRegistry.d(listener.listenerName));
+                }
+            }
+        }
+
+    }
+
+    private static class ComponentEvents {
+
+        private final String listenerName;
+        private final ArrayList<ActivityEvent> activityEvents;
+        /**
+         * Probably "if associated to a Component"/"got its code added"
+         */
+        private boolean isInitialized = false;
+
+        private ComponentEvents(String listenerName) {
+            this.listenerName = listenerName;
+            activityEvents = new ArrayList<>();
+            for (String eventName : ComponentEventRegistry.getEventsForListener(listenerName)) {
+                activityEvents.add(new ActivityEvent(eventName));
+            }
+        }
+
+        private String generateEvent(String componentName) {
+            if (!isInitialized) {
+                return "";
+            }
+            StringBuilder eventsCode = new StringBuilder(4096);
+            for (ActivityEvent activityEvent : activityEvents) {
+                String code = activityEvent.getCode();
+                if (eventsCode.length() > 0 && !code.isEmpty()) {
+                    eventsCode.append(ActivitySourceGenerator.EOL);
+                    eventsCode.append(ActivitySourceGenerator.EOL);
+                }
+                eventsCode.append(code);
+            }
+            return ComponentSourceGenerator.getListenerCode(listenerName, componentName, eventsCode.toString());
+        }
+    }
+}

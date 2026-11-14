@@ -40,6 +40,7 @@ final class ChatImageThumbnailLoader {
     private static final Object WAITERS_LOCK = new Object();
     private static final Map<String, List<Target>> WAITERS = new HashMap<>();
     private static final Map<String, Boolean> FAILED = new HashMap<>();
+    private static final int FAILED_MAX_ENTRIES = 512;
 
     private ChatImageThumbnailLoader() {
     }
@@ -104,6 +105,10 @@ final class ChatImageThumbnailLoader {
             if (permanentFailure) {
                 // Referências antigas podem ter perdido a concessão do DocumentsUI.
                 // Não consulte o provider repetidamente durante cada rebind.
+                // Bounded: without this the map grows forever over long sessions.
+                if (FAILED.size() >= FAILED_MAX_ENTRIES) {
+                    FAILED.clear();
+                }
                 FAILED.put(key, true);
             }
         }

@@ -36,6 +36,7 @@ public class FileMutationFlowTest {
         fs = new FileChangeTrackerWorkspaceTest.FakeWorkspaceFileSystem();
         WorkspaceManager.INSTANCE.setCustomFileSystemForTesting(fs, fakeWorkspace());
         // Tools resolve the RUN's filesystem (fail-closed without one), as AgentRuntime pins it for a run
+
         runBinding = RuntimeFileContext.install("run_mutation",
                 WorkspaceIdentity.of("sc_mutation", fakeWorkspace()), fs);
         FileChangeTracker.clearChanges("sc_mutation");
@@ -50,8 +51,11 @@ public class FileMutationFlowTest {
     }
 
     // ------------------------------------------------------------------
+
     // delete_file_or_folder through the workspace filesystem
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void delete_viaWorkspace_removesTheFileAndReportsSuccess() throws Exception {
@@ -111,8 +115,11 @@ public class FileMutationFlowTest {
     }
 
     // ------------------------------------------------------------------
+
     // apply_patch: validated delete + rollback after partial failure
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void applyPatch_delete_validatesTheFilesystemResult() throws Exception {
@@ -145,6 +152,7 @@ public class FileMutationFlowTest {
     public void applyPatch_rollsBackEarlierWrites_whenALaterDeleteFails() throws Exception {
         fs.writeText("src/B.kt", "val b = 2\n");
         fs.writeText("src/C.kt", "val c = 3\n"); // passes validation, fails on apply
+
         fs.failDeletes = true;
         ApplyPatchTool tool = new ApplyPatchTool("sc_mutation", null, fs);
 
@@ -188,8 +196,11 @@ public class FileMutationFlowTest {
     }
 
     // ------------------------------------------------------------------
+
     // registry metadata preservation + PermissionLayer routing
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void registryMetadata_preservesMutationDestructiveAndApprovalFlags() {
@@ -215,6 +226,7 @@ public class FileMutationFlowTest {
     @Test
     public void permissionLayer_classifiesMutatingToolsFromMetadata_notUnknown() {
         // A mutation-only tool (non-destructive) must follow the mutation rule.
+
         ToolRegistration edit = registration("edit_file", false, false, true);
         ToolRegistration delete = registration("delete_file_or_folder", true, true, true);
         ToolRegistration patch = registration("apply_patch", true, true, true);
@@ -233,13 +245,16 @@ public class FileMutationFlowTest {
         assertEquals("destructive metadata must win over mutation",
                 ToolPolicy.Rule.ASK_USER, layer.ruleForPublicForTest(delete));
         assertEquals(ToolPolicy.Rule.ASK_USER, layer.ruleForPublicForTest(patch));
-        assertEquals("read-only tools must not be classified by the name fallback",
+        assertEquals("read-only tools must not be classified ProjectFileActionListener the name fallback",
                 ToolPolicy.Rule.DENY, layer.ruleForPublicForTest(read));
     }
 
     // ------------------------------------------------------------------
+
     // create_file_or_folder through the workspace filesystem
+
     // ------------------------------------------------------------------
+
 
     @Test
     public void createFile_viaWorkspace_createsAndTracksTheFile() throws Exception {
@@ -263,6 +278,7 @@ public class FileMutationFlowTest {
         assertFalse("folder creation must succeed: " + output, output.contains("Error"));
         assertTrue("the folder must exist", fs.isDirectory("src/newpkg"));
         // Folders are not tracked: the diff review is for file contents.
+
         assertTrue(FileChangeTracker.getAllRecentChanges("sc_mutation").isEmpty());
     }
 
@@ -318,8 +334,11 @@ public class FileMutationFlowTest {
     }
 
     // ------------------------------------------------------------------
+
     // helpers
+
     // ------------------------------------------------------------------
+
 
     private static Workspace fakeWorkspace() {
         return new Workspace("ws-mutation", "Mutation", "/", "/", false,

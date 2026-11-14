@@ -14,9 +14,9 @@ import android.widget.TextView;
 
 import com.google.android.material.card.MaterialCardView;
 
-import a.a.a.Rs;
-import a.a.a.Ts;
-import a.a.a.wB;
+import pro.sketchware.editor.BlockView;
+import pro.sketchware.editor.BlockCanvasView;
+import pro.sketchware.core.ViewInflationUtils;
 import pro.sketchware.R;
 import pro.sketchware.databinding.PaletteBlockBinding;
 
@@ -39,26 +39,37 @@ public class PaletteBlock extends LinearLayout {
     private void initialize(Context context) {
         this.context = context;
         binding = PaletteBlockBinding.inflate(LayoutInflater.from(context), this, true);
-        f = wB.a(context, 1.0F);
+        f = ViewInflationUtils.a(context, 1.0F);
     }
 
-    public Ts a(String var1, String var2, String var3) {
+    public BlockCanvasView a(String var1, String var2, String var3) {
         View view = new View(context);
         view.setLayoutParams(getLayoutParams(8.0F));
         binding.blockBuilder.addView(view);
-        Rs blockView = new Rs(context, -1, var1, var2, var3);
+        BlockView blockView = new BlockView(context, -1, var1, var2, var3);
         blockView.setContentDescription(generateContentDescription(var3));
         blockView.setBlockType(1);
         binding.blockBuilder.addView(blockView);
         return blockView;
     }
 
-    public Ts a(String var1, String var2, String var3, String var4) {
+    public BlockCanvasView a(String var1, String var2, String var3, String var4) {
         View view = new View(context);
         view.setLayoutParams(getLayoutParams(8.0F));
         binding.blockBuilder.addView(view);
-        Rs blockView = new Rs(context, -1, var1, var2, var3, var4);
+        BlockView blockView = new BlockView(context, -1, var1, var2, var3, var4);
         blockView.setContentDescription(generateContentDescription(var4));
+        blockView.setBlockType(1);
+        binding.blockBuilder.addView(blockView);
+        return blockView;
+    }
+
+    public BlockCanvasView addGameBlock(String spec, String type, String typeName, String opCode, int color) {
+        View view = new View(context);
+        view.setLayoutParams(getLayoutParams(8.0F));
+        binding.blockBuilder.addView(view);
+        BlockView blockView = new BlockView(context, -1, spec, type, typeName, opCode, color);
+        blockView.setContentDescription(generateContentDescription(opCode));
         blockView.setBlockType(1);
         binding.blockBuilder.addView(blockView);
         return blockView;
@@ -111,7 +122,7 @@ public class PaletteBlock extends LinearLayout {
         if (message != null && !message.isEmpty()) {
             a(message, getColor(context, isDarkThemeEnabled(context) ? R.attr.colorSurfaceContainerHigh : R.attr.colorSurfaceInverse));
         }
-        Ts blockView = a("", type, opCode);
+        BlockCanvasView blockView = a("", type, opCode);
         blockView.e = 0xFFBDBDBD;
         blockView.setTag(opCode);
     }
@@ -126,8 +137,11 @@ public class PaletteBlock extends LinearLayout {
             char currentChar = name.charAt(i);
             if (Character.isUpperCase(currentChar)) {
                 // Check if previous char is not already a space (for acronyms like "HTTPExample")
+
                 // and if the current char is not part of an acronym (e.g. the TTP in HTTP)
+
                 // For simplicity here, just add a space before any uppercase unless it's followed by lowercase.
+
                 if (i + 1 < name.length() && Character.isLowerCase(name.charAt(i + 1)) || Character.isLowerCase(name.charAt(i - 1))) {
                     result.append(' ');
                 }

@@ -19,7 +19,7 @@ import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.List;
 
-import a.a.a.lC;
+import pro.sketchware.workspace.RecentProjectsRegistry;
 import dev.pranav.filepicker.FilePickerCallback;
 import dev.pranav.filepicker.FilePickerDialogFragment;
 import dev.pranav.filepicker.FilePickerOptions;
@@ -36,6 +36,7 @@ public class BackupRestoreManager {
     private final Activity act;
 
     // Needed to refresh the project list after restoring
+
     private ProjectsFragment projectsFragment;
 
     private HashMap<Integer, Boolean> backupDialogStates;
@@ -313,7 +314,7 @@ public class BackupRestoreManager {
 
         @Override
         protected String doInBackground(String... params) {
-            bm = new BackupFactory(lC.b());
+            bm = new BackupFactory(RecentProjectsRegistry.b());
             bm.setBackupLocalLibs(restoreLocalLibs);
 
             try {
@@ -370,7 +371,7 @@ public class BackupRestoreManager {
 
         @Override
         protected String doInBackground(String... params) {
-            bm = new BackupFactory(lC.b());
+            bm = new BackupFactory(RecentProjectsRegistry.b());
 
             try {
                 bm.restoreAndroidStudioProject(new File(file));

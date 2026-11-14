@@ -9,8 +9,8 @@ import com.besome.sketch.lib.base.BaseAppCompatActivity;
 
 import java.util.ArrayList;
 
-import a.a.a.jC;
-import a.a.a.mB;
+import pro.sketchware.workspace.ProjectDataManagerRegistry;
+import pro.sketchware.editor.EditorViewUtils;
 import pro.sketchware.databinding.ActivityLayoutPreviewBinding;
 import pro.sketchware.tools.ViewBeanParser;
 import pro.sketchware.utility.SketchwareUtil;
@@ -35,7 +35,7 @@ public class LayoutPreviewActivity extends BaseAppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(true);
         toolbar.setNavigationOnClickListener(v -> {
-            if (!mB.a()) {
+            if (!EditorViewUtils.a()) {
                 onBackPressed();
             }
         });
@@ -45,7 +45,7 @@ public class LayoutPreviewActivity extends BaseAppCompatActivity {
         pane.initialize(sc_id, true);
         pane.updateRootLayout(sc_id, getIntent().getStringExtra("title"));
         pane.setVerticalScrollBarEnabled(true);
-        pane.setResourceManager(jC.d(sc_id));
+        pane.setResourceManager(ProjectDataManagerRegistry.d(sc_id));
         UI.addSystemWindowInsetToPadding(binding.pane, false, false, false, true);
     }
 

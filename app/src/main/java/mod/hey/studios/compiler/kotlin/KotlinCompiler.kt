@@ -1,6 +1,6 @@
 package mod.hey.studios.compiler.kotlin
 
-import a.a.a.ProjectBuilder
+import pro.sketchware.compiler.ProjectBuilder
 import mod.hey.studios.build.BuildSettings
 import mod.hey.studios.compiler.kotlin.KotlinCompilerUtil.*
 import mod.jbk.util.LogUtil
@@ -18,7 +18,7 @@ import java.io.File
 class KotlinCompiler(
     private val builder: ProjectBuilder
 ) {
-    private val workspace = builder.yq
+    private val workspace = builder.workspace
 
     /**
      * Invokes `kotlinc`.
@@ -36,19 +36,25 @@ class KotlinCompiler(
 
         val mKotlinHome = File(KotlinCompilerBridge.getKotlinHome(workspace)).apply { mkdirs() }
         // Output in the same place as ecj, makes everything easier
+
         val mClassOutput = File(workspace.compiledClassesPath).apply { mkdirs() }
 
         val arguments = mutableListOf<String>().apply {
             // Classpath
+
             add("-cp")
             add(builder.getClasspath())
 
             // Libraries such as play-services-ads 25.x are built with a newer Kotlin (metadata 2.3)
+
             // than this kotlinc (2.1). Their .kotlin_module/metadata files are still readable, so the
+
             // version check must not fail the build.
+
             add("-Xskip-metadata-version-check")
 
             // Sources (.java & .kt)
+
             addAll(filesToCompile.map { it.absolutePath })
         }
 
@@ -74,10 +80,13 @@ class KotlinCompiler(
         compiler.exec(collector, Services.EMPTY, args)
 
         // Log all diagnostics
+
         LogUtil.d(TAG, "kotlinc MessageCollector: $collector")
 
         // kotlinc generates some .kotlin_module files that make D8 fail,
+
         // delete them for now (?) TODO
+
         File(mClassOutput, "META-INF").deleteRecursively()
 
         if (collector.hasErrors()) {

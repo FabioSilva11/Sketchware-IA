@@ -16,15 +16,15 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
 
-import a.a.a.Uu;
-import a.a.a.bB;
-import a.a.a.gB;
-import a.a.a.wB;
+import pro.sketchware.beans.ProjectLibraryDataProvider;
+import pro.sketchware.editor.ToastFactory;
+import pro.sketchware.editor.ViewAnimationUtils;
+import pro.sketchware.core.ViewInflationUtils;
 import mod.hey.studios.util.Helper;
 import pro.sketchware.R;
 import pro.sketchware.utility.TranslationFunction;
 
-public class AssignAdUnitStepView extends LinearLayout implements Uu, OnClickListener {
+public class AssignAdUnitStepView extends LinearLayout implements ProjectLibraryDataProvider, OnClickListener {
     private final ArrayList<String> adUnits = new ArrayList<>();
     private String bannerAdUnitId = "";
     private TextView bannerAdName;
@@ -45,8 +45,8 @@ public class AssignAdUnitStepView extends LinearLayout implements Uu, OnClickLis
         RadioButton radioButton = new RadioButton(getContext());
         radioButton.setText(text);
         LayoutParams layoutParams = new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        layoutParams.topMargin = (int) wB.a(getContext(), 4F);
-        layoutParams.bottomMargin = (int) wB.a(getContext(), 4F);
+        layoutParams.topMargin = (int) ViewInflationUtils.a(getContext(), 4F);
+        layoutParams.bottomMargin = (int) ViewInflationUtils.a(getContext(), 4F);
         radioButton.setGravity(Gravity.CENTER | Gravity.LEFT);
         radioButton.setLayoutParams(layoutParams);
         return radioButton;
@@ -54,7 +54,7 @@ public class AssignAdUnitStepView extends LinearLayout implements Uu, OnClickLis
 
     private void setAdUnit(int position) {
         MaterialAlertDialogBuilder dialog = new MaterialAlertDialogBuilder(getContext());
-        View rootView = wB.a(getContext(), R.layout.property_popup_selector_single);
+        View rootView = ViewInflationUtils.a(getContext(), R.layout.property_popup_selector_single);
         ViewGroup viewGroup = rootView.findViewById(R.id.rg_content);
         dialog.setTitle(Helper.getResString(R.string.design_library_admob_dialog_select_unit_title));
 
@@ -85,8 +85,8 @@ public class AssignAdUnitStepView extends LinearLayout implements Uu, OnClickLis
 
     @SuppressLint("SetTextI18n")
     private void initialize(Context context) {
-        wB.a(context, this, R.layout.manage_library_admob_set_unit);
-        gB.b(this, 600, 200, null);
+        ViewInflationUtils.a(context, this, R.layout.manage_library_admob_set_unit);
+        ViewAnimationUtils.b(this, 600, 200, null);
         bannerAdName = findViewById(R.id.tv_banner_name);
         bannerAdUnitIdView = findViewById(R.id.tv_banner_id);
         interstitialAdName = findViewById(R.id.tv_inter_name);
@@ -169,7 +169,7 @@ public class AssignAdUnitStepView extends LinearLayout implements Uu, OnClickLis
         if (!bannerAdUnitId.isEmpty() && !interstitialAdUnitId.isEmpty()) {
             return true;
         } else {
-            bB.a(getContext(), Helper.getResString(R.string.design_library_admob_message_select_ad_unit), 1).show();
+            ToastFactory.a(getContext(), Helper.getResString(R.string.design_library_admob_message_select_ad_unit), 1).show();
             return false;
         }
     }
