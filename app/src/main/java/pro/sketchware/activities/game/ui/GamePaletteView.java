@@ -267,11 +267,14 @@ public class GamePaletteView extends LinearLayout {
                     if (!dragStarted[0]) {
                         float dx = event.getX() - downPos[0];
                         float dy = event.getY() - downPos[1];
-                        if (Math.abs(dy) > touchSlop && Math.abs(dy) > Math.abs(dx)) {
+                        float absDx = Math.abs(dx);
+                        float absDy = Math.abs(dy);
+                        // Allow vertical scrolling only for mostly-vertical swipes; diagonal drags toward stage initiate drag.
+                        if (absDy > touchSlop * 1.15f && absDx < absDy * 0.45f) {
                             v.removeCallbacks(longPressDrag);
                             return false;
                         }
-                        if (Math.abs(dx) > touchSlop * 0.9f && Math.abs(dx) > Math.abs(dy) * 1.1f) {
+                        if (absDx > touchSlop * 0.7f && absDx >= absDy * 0.45f) {
                             v.removeCallbacks(longPressDrag);
                             dragStarted[0] = true;
                             startPaletteDrag(v, entry.type);

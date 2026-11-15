@@ -84,7 +84,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import mod.hilal.saif.asd.AsdDialog;
 import pro.sketchware.R;
 import pro.sketchware.activities.game.blocks.GameBlockBeanConverter;
 import pro.sketchware.activities.game.blocks.GameBlockCatalog;
@@ -994,16 +993,7 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
         }
 
         if ("b".equals(slotType)) {
-            String[] opts = new String[]{"true", "false"};
-            int checked = "false".equalsIgnoreCase(currentVal.trim()) ? 1 : 0;
-            new MaterialAlertDialogBuilder(this)
-                    .setTitle("Boolean value")
-                    .setSingleChoiceItems(opts, checked, (dialog, which) -> {
-                        applyMenuItemValue(hostBlock, menuItem, opts[which]);
-                        dialog.dismiss();
-                    })
-                    .setNegativeButton("Cancel", null)
-                    .show();
+            showBooleanConditionPickerDialog(hostBlock, menuItem, currentVal);
             return;
         }
 
@@ -1091,29 +1081,47 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
                                             @NonNull BlockMenuItem menuItem,
                                             boolean numericMode,
                                             @NonNull String currentVal) {
-        String hint = numericMode ? "Number or expression (e.g. 10, score + 1)" : "Text or {var}";
-        PropertyPopupInputTextBinding binding = inflateTextInputBinding(
-                hint,
-                currentVal,
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS,
-                true);
-        LinearLayout container = (LinearLayout) binding.getRoot();
-        container.setPadding(container.getPaddingLeft(), container.getPaddingTop(),
-                container.getPaddingRight(), dp(8));
-
         GameBlockCatalog.BlockDef def = GameBlockCatalog.findByOpCode(hostBlock.U);
         String kind = (def != null && def.paramKinds != null && slotIndex < def.paramKinds.length)
                 ? def.paramKinds[slotIndex]
                 : (numericMode ? GameBlockCatalog.KIND_NUMBER : GameBlockCatalog.KIND_TEXT);
 
+        String hint = numericMode ? "Enter a number" : "Enter text";
+        String initialVal = currentVal;
+        if (numericMode && !initialVal.trim().isEmpty() && !isNumericLiteral(initialVal.trim())) {
+            initialVal = "";
+        }
+        int inputType = numericMode
+                ? (InputType.TYPE_CLASS_NUMBER
+                        | InputType.TYPE_NUMBER_FLAG_SIGNED
+                        | InputType.TYPE_NUMBER_FLAG_DECIMAL)
+                : (InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+
+        PropertyPopupInputTextBinding binding = inflateTextInputBinding(
+                hint,
+                initialVal,
+                inputType,
+                true);
+        LinearLayout container = (LinearLayout) binding.getRoot();
+        container.setPadding(container.getPaddingLeft(), container.getPaddingTop(),
+                container.getPaddingRight(), dp(8));
+
+        TextView tip = new TextView(this);
+        tip.setText("Tip: Drag a Variable, Sensing, or Operators block here, or tap \"Use Block\".");
+        tip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f);
+        tip.setTextColor(MaterialColors.getColor(
+                this, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF777777));
+        tip.setPadding(0, dp(6), 0, dp(2));
+        container.addView(tip);
+
         List<String> suggestions = buildExpressionSuggestions(kind);
         if (!suggestions.isEmpty()) {
             TextView header = new TextView(this);
-            header.setText("Quick insert");
+            header.setText(numericMode ? "Quick numbers" : "Quick text");
             header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             header.setTextColor(MaterialColors.getColor(
                     this, com.google.android.material.R.attr.colorOnSurfaceVariant, 0xFF777777));
-            header.setPadding(0, dp(12), 0, dp(6));
+            header.setPadding(0, dp(10), 0, dp(6));
             container.addView(header);
 
             HorizontalScrollView hsv = new HorizontalScrollView(this);
@@ -1143,24 +1151,274 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
         }
 
         new MaterialAlertDialogBuilder(this)
-                .setTitle(numericMode ? "Enter number / expression" : "Enter value")
+                .setTitle(numericMode ? "Enter number" : "Enter text")
                 .setView(container)
-                .setNeutralButton("Code Editor", (d, w) -> {
-                    String draft = binding.edInput.getText() != null
-                            ? binding.edInput.getText().toString() : currentVal;
-                    d.dismiss();
-                    AsdDialog editor = new AsdDialog(this);
-                    editor.setContent(draft);
-                    editor.show();
-                    editor.setOnSaveClickListener(value -> applyMenuItemValue(hostBlock, menuItem, value));
-                    editor.setOnCancelClickListener(editor);
+                .setNeutralButton("Use Block", (d, w) ->
+                        showReporterBlockPickerDialog(hostBlock, menuItem, kind))
+                .setPositiveButton("Save", (d, w) -> {
+                    String val = binding.edInput.getText() != null
+                            ? binding.edInput.getText().toString() : "";
+                    if (numericMode) {
+                        val = sanitizeNumericInput(val);
+                    }
+                    applyMenuItemValue(hostBlock, menuItem, val);
                 })
-                .setPositiveButton("Save", (d, w) -> applyMenuItemValue(
-                        hostBlock,
-                        menuItem,
-                        binding.edInput.getText() != null ? binding.edInput.getText().toString() : ""))
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private static boolean isNumericLiteral(@Nullable String text) {
+        if (TextUtils.isEmpty(text)) {
+            return false;
+        }
+        return text.trim().matches("[-+]?(\\d+(\\.\\d*)?|\\.\\d+)");
+    }
+
+    private static String sanitizeNumericInput(@Nullable String raw) {
+        String s = raw != null ? raw.trim() : "";
+        if (s.isEmpty() || "-".equals(s) || "+".equals(s) || ".".equals(s) || "-.".equals(s)) {
+            return "0";
+        }
+        try {
+            Double.parseDouble(s);
+            return s;
+        } catch (NumberFormatException ignored) {
+            return "0";
+        }
+    }
+
+    private void showBooleanConditionPickerDialog(@NonNull BlockView hostBlock,
+                                                  @NonNull BlockMenuItem menuItem,
+                                                  @NonNull String currentVal) {
+        List<String> vars = getSortedVariableNames();
+        String firstVar = !vars.isEmpty() ? vars.get(0) : "score";
+
+        List<String> labels = new ArrayList<>();
+        List<GameBlockItem> blocks = new ArrayList<>();
+        if (!TextUtils.isEmpty(currentVal)) {
+            labels.add("Clear condition (empty < >)");
+            blocks.add(null);
+        }
+
+        addBlockChoice(labels, blocks, "button [JUMP] pressed?", "touchingButton");
+        addBlockChoice(labels, blocks, "button [FIRE] just pressed?", "isActionJustPressed");
+        addBlockChoice(labels, blocks, "joystick active?", "isJoystickActive");
+        addBlockChoice(labels, blocks, "screen touched?", "isTouchingScreen");
+        addBlockChoice(labels, blocks, "touching tag [coin] ?", "touchingTag");
+        addBlockChoice(labels, blocks, "touching [touch] ?", "touchingObject");
+        addBlockChoice(labels, blocks, "on ground?", "isOnGround");
+        addBlockChoice(labels, blocks, "outside world?", "isOutsideWorld");
+        addBlockChoice(labels, blocks, "left screen?", "hasLeftScreen");
+
+        GameBlockItem gtBlock = createComparisonPresetBlock("opGt", firstVar, "10");
+        if (gtBlock != null) {
+            labels.add("[" + firstVar + "] > 10");
+            blocks.add(gtBlock);
+        }
+        GameBlockItem ltBlock = createComparisonPresetBlock("opLt", firstVar, "10");
+        if (ltBlock != null) {
+            labels.add("[" + firstVar + "] < 10");
+            blocks.add(ltBlock);
+        }
+        GameBlockItem eqBlock = createComparisonPresetBlock("opEq", firstVar, "0");
+        if (eqBlock != null) {
+            labels.add("[" + firstVar + "] = 0");
+            blocks.add(eqBlock);
+        }
+
+        addBlockChoice(labels, blocks, "< > and < >", "opAnd");
+        addBlockChoice(labels, blocks, "< > or < >", "opOr");
+        addBlockChoice(labels, blocks, "not < >", "opNot");
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Choose condition block")
+                .setItems(labels.toArray(new String[0]), (d, which) -> {
+                    GameBlockItem chosen = blocks.get(which);
+                    if (chosen == null) {
+                        applyMenuItemValue(hostBlock, menuItem, "");
+                    } else {
+                        snapGameBlockIntoMenuSlot(hostBlock, menuItem, chosen);
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showReporterBlockPickerDialog(@NonNull BlockView hostBlock,
+                                                 @NonNull BlockMenuItem menuItem,
+                                                 @NonNull String kind) {
+        List<String> labels = new ArrayList<>();
+        List<GameBlockItem> blocks = new ArrayList<>();
+
+        List<String> vars = getSortedVariableNames();
+        if (!vars.isEmpty()) {
+            for (String varName : vars) {
+                GameBlockItem varBlk = GameBlockCatalog.createBlockInstance(
+                        GameBlockCatalog.findByOpCode("getVar"));
+                if (varBlk != null) {
+                    while (varBlk.parameters.isEmpty()) {
+                        varBlk.parameters.add("");
+                    }
+                    varBlk.parameters.set(0, varName);
+                    labels.add("Variable: " + varName);
+                    blocks.add(varBlk);
+                }
+            }
+        } else {
+            addBlockChoice(labels, blocks, "Variable: score", "getVar");
+        }
+
+        addBlockChoice(labels, blocks, "joystick x", "joyX");
+        addBlockChoice(labels, blocks, "joystick y", "joyY");
+        addBlockChoice(labels, blocks, "x position", "getPosX");
+        addBlockChoice(labels, blocks, "y position", "getPosY");
+        addBlockChoice(labels, blocks, "direction", "getDirection");
+        addBlockChoice(labels, blocks, "touch x", "touchX");
+        addBlockChoice(labels, blocks, "touch y", "touchY");
+        addBlockChoice(labels, blocks, "timer", "timer");
+        addBlockChoice(labels, blocks, "pick random 1 to 10", "opRandom");
+        addBlockChoice(labels, blocks, "( ) + ( )", "opAdd");
+        addBlockChoice(labels, blocks, "( ) - ( )", "opSub");
+        addBlockChoice(labels, blocks, "( ) * ( )", "opMul");
+        addBlockChoice(labels, blocks, "( ) / ( )", "opDiv");
+        if (GameBlockCatalog.KIND_TEXT.equals(kind)) {
+            addBlockChoice(labels, blocks, "join [ ] [ ]", "opJoin");
+            addBlockChoice(labels, blocks, "size", "getSize");
+            addBlockChoice(labels, blocks, "costume name", "getSpriteName");
+            addBlockChoice(labels, blocks, "current scene name", "getSceneName");
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Insert block")
+                .setItems(labels.toArray(new String[0]), (d, which) ->
+                        snapGameBlockIntoMenuSlot(hostBlock, menuItem, blocks.get(which)))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private static void addBlockChoice(List<String> labels, List<GameBlockItem> blocks,
+                                       String label, String opCode) {
+        GameBlockItem item = GameBlockCatalog.createBlockInstance(GameBlockCatalog.findByOpCode(opCode));
+        if (item != null) {
+            labels.add(label);
+            blocks.add(item);
+        }
+    }
+
+    @Nullable
+    private static GameBlockItem createComparisonPresetBlock(String opCode, String varName, String rightValue) {
+        GameBlockItem cmp = GameBlockCatalog.createBlockInstance(GameBlockCatalog.findByOpCode(opCode));
+        if (cmp == null) {
+            return null;
+        }
+        GameBlockItem varBlock = GameBlockCatalog.createBlockInstance(GameBlockCatalog.findByOpCode("getVar"));
+        if (varBlock != null) {
+            while (varBlock.parameters.isEmpty()) {
+                varBlock.parameters.add("");
+            }
+            varBlock.parameters.set(0, varName);
+            cmp.setParamBlock(0, varBlock);
+        }
+        while (cmp.parameters.size() <= 1) {
+            cmp.parameters.add("0");
+        }
+        cmp.parameters.set(1, rightValue);
+        return cmp;
+    }
+
+    private void snapGameBlockIntoMenuSlot(@NonNull BlockView hostBlock,
+                                           @NonNull BlockMenuItem menuItem,
+                                           @NonNull GameBlockItem item) {
+        GameBlockBeanConverter.ConversionResult conv =
+                GameBlockBeanConverter.toBlockBeans(this, Collections.singletonList(item));
+        if (conv.beans == null || conv.beans.isEmpty() || conv.rootNextId < 0) {
+            return;
+        }
+        preDragSnapshot = captureSnapshot();
+
+        Map<Integer, Integer> idRemap = new HashMap<>();
+        List<BlockBean> remapped = new ArrayList<>(conv.beans.size());
+        for (BlockBean orig : conv.beans) {
+            BlockBean b = orig.clone();
+            try {
+                int oldId = Integer.parseInt(b.id);
+                int newId = blockPane.g++;
+                idRemap.put(oldId, newId);
+                b.id = String.valueOf(newId);
+            } catch (NumberFormatException ignored) {
+            }
+            remapped.add(b);
+        }
+        for (BlockBean b : remapped) {
+            b.nextBlock = (b.nextBlock >= 0 && idRemap.containsKey(b.nextBlock)) ? idRemap.get(b.nextBlock) : -1;
+            b.subStack1 = (b.subStack1 >= 0 && idRemap.containsKey(b.subStack1)) ? idRemap.get(b.subStack1) : -1;
+            b.subStack2 = (b.subStack2 >= 0 && idRemap.containsKey(b.subStack2)) ? idRemap.get(b.subStack2) : -1;
+            if (b.parameters != null) {
+                for (int i = 0; i < b.parameters.size(); i++) {
+                    String p = b.parameters.get(i);
+                    if (p != null && p.startsWith("@")) {
+                        try {
+                            int refId = Integer.parseInt(p.substring(1));
+                            b.parameters.set(i, idRemap.containsKey(refId) ? "@" + idRemap.get(refId) : "");
+                        } catch (NumberFormatException ignored) {
+                        }
+                    }
+                }
+            }
+        }
+
+        Map<Integer, BlockView> created = new HashMap<>();
+        for (BlockBean b : remapped) {
+            int newId = Integer.parseInt(b.id);
+            BlockView bv = new BlockView(
+                    this,
+                    newId,
+                    b.spec != null ? b.spec : "",
+                    b.type != null ? b.type : " ",
+                    b.typeName != null ? b.typeName : "",
+                    b.opCode != null ? b.opCode : "",
+                    b.color);
+            bv.pa = blockPane;
+            bv.setOnTouchListener(this);
+            blockPane.addView(bv);
+            created.put(newId, bv);
+        }
+
+        for (BlockBean b : remapped) {
+            BlockView parent = created.get(Integer.parseInt(b.id));
+            if (parent == null || b.parameters == null || parent.V == null) {
+                continue;
+            }
+            for (int p = 0; p < b.parameters.size() && p < parent.V.size(); p++) {
+                String val = b.parameters.get(p);
+                View slot = parent.V.get(p);
+                if (val != null && val.startsWith("@")) {
+                    BlockView child = created.get(Integer.parseInt(val.substring(1)));
+                    if (child != null && slot instanceof BlockCanvasView) {
+                        parent.a((BlockCanvasView) slot, child);
+                    }
+                } else if (slot instanceof BlockMenuItem) {
+                    ((BlockMenuItem) slot).setArgValue(val != null ? val : "");
+                }
+            }
+        }
+
+        Integer mappedRootId = idRemap.get(conv.rootNextId);
+        BlockView nestedRoot = mappedRootId != null ? created.get(mappedRootId) : null;
+        if (nestedRoot == null) {
+            return;
+        }
+        for (BlockView bv : created.values()) {
+            if (bv != nestedRoot) {
+                bv.o();
+            }
+        }
+        hostBlock.a(menuItem, nestedRoot);
+        nestedRoot.o();
+        hostBlock.o();
+        hostBlock.p().k();
+        blockPane.b();
+        recordHistoryCommit();
     }
 
     private void showDropdownSelectorDialog(@NonNull BlockView hostBlock,
@@ -1361,31 +1619,31 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
     }
 
     private List<String> buildExpressionSuggestions(@NonNull String kind) {
-        Set<String> out = new LinkedHashSet<>();
         if (GameBlockCatalog.KIND_TEXT.equals(kind)) {
-            for (String var : getSortedVariableNames()) {
-                out.add("{" + var + "}");
-            }
-            out.addAll(Arrays.asList("Score: {score}", "HP: {hp}", "Game Over!", "Victory!"));
-            return new ArrayList<>(out);
+            return new ArrayList<>(Arrays.asList("Hello!", "Score: 0", "Game Over!", "Victory!"));
         }
-        out.addAll(getSortedVariableNames());
-        out.addAll(Arrays.asList("selfX", "selfY", "vx", "vy", "rot", "size", "joyX", "joyY", "touchX", "touchY", "timer"));
-        return new ArrayList<>(out);
+        return new ArrayList<>(Arrays.asList("0", "1", "5", "10", "50", "100", "-1", "-10"));
     }
 
     private List<String> buildDropdownOptions(@Nullable String opCode, @NonNull String menuName) {
         Set<String> out = new LinkedHashSet<>();
         switch (menuName) {
             case "gameObject":
-                if ("goToTarget".equals(opCode)) {
-                    out.add("random");
-                    out.add("touch");
-                } else if ("createClone".equals(opCode)) {
+                if ("propOf".equals(opCode) || "createClone".equals(opCode)) {
                     out.add("myself");
-                } else if (!"cameraFollow".equals(opCode) && !"propOf".equals(opCode)) {
+                } else if ("touchingObject".equals(opCode)) {
                     out.add("touch");
                     out.add("edge");
+                } else if ("goToTarget".equals(opCode)) {
+                    out.add("random");
+                    out.add("touch");
+                } else if ("pointToward".equals(opCode) || "distanceTo".equals(opCode)) {
+                    out.add("touch");
+                } else if (!"cameraFollow".equals(opCode)) {
+                    out.add("myself");
+                    out.add("touch");
+                } else {
+                    out.add("myself");
                 }
                 if (currentScene != null && currentScene.objects != null) {
                     for (GameObjectBean obj : currentScene.objects) {

@@ -1574,14 +1574,23 @@ public class GameBlocksEditorView extends FrameLayout {
         final EditText nameEt = new EditText(ctx);
         nameEt.setHint("Variable name (e.g. coins, hp)");
         nameEt.setSingleLine(true);
+        nameEt.setTextColor(colorTextPrimary);
+        nameEt.setHintTextColor(colorTextSecondary);
+        nameEt.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_NEXT);
         nameEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         container.addView(nameEt);
 
         final EditText initEt = new EditText(ctx);
-        initEt.setHint("Initial value (e.g. 0)");
+        initEt.setHint("Initial number (e.g. 0)");
         initEt.setText("0");
+        initEt.setSelection(initEt.getText().length());
         initEt.setSingleLine(true);
-        initEt.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        initEt.setTextColor(colorTextPrimary);
+        initEt.setHintTextColor(colorTextSecondary);
+        initEt.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+        initEt.setInputType(InputType.TYPE_CLASS_NUMBER
+                | InputType.TYPE_NUMBER_FLAG_SIGNED
+                | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         LinearLayout.LayoutParams initLp = new LinearLayout.LayoutParams(
                 LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
         initLp.topMargin = dp(8);
@@ -1855,7 +1864,7 @@ public class GameBlocksEditorView extends FrameLayout {
                 && !TextUtils.isEmpty(item.spec)
                 && GameBlockCatalog.countPlaceholders(item.spec) >= 3) {
             if (paramIdx == 0) {
-                return GameBlockCatalog.KIND_EXPR;
+                return GameBlockCatalog.KIND_NUMBER;
             }
             if (paramIdx == 1) {
                 return GameBlockCatalog.KIND_OP;
@@ -2107,22 +2116,22 @@ public class GameBlocksEditorView extends FrameLayout {
                 .show();
     }
 
+    private String getCurrentEventParamKind() {
+        if (GameScriptNode.EVENT_COLLISION.equals(currentEventType)) {
+            return GameBlockCatalog.KIND_TAG;
+        }
+        if (GameScriptNode.EVENT_BUTTON.equals(currentEventType)) {
+            return GameBlockCatalog.KIND_ACTION;
+        }
+        return GameBlockCatalog.KIND_MESSAGE;
+    }
+
     private void showEditEventParamDialog() {
         if (!eventUsesParam(currentEventType)) {
             return;
         }
-        String kind;
-        String title;
-        if (GameScriptNode.EVENT_COLLISION.equals(currentEventType)) {
-            kind = GameBlockCatalog.KIND_TAG;
-            title = "Collision Tag / Object";
-        } else if (GameScriptNode.EVENT_BUTTON.equals(currentEventType)) {
-            kind = GameBlockCatalog.KIND_ACTION;
-            title = "HUD Button / Action";
-        } else {
-            kind = GameBlockCatalog.KIND_MESSAGE;
-            title = "Message Name";
-        }
+        String kind = getCurrentEventParamKind();
+        String title = getParamDialogTitle(kind);
 
         showSmartValueDialog(title, currentEventParam, kind, newVal -> {
             String cleaned = newVal != null ? newVal.trim() : "";
@@ -2405,9 +2414,16 @@ public class GameBlocksEditorView extends FrameLayout {
         ensureItemIntegrity(item);
         String currentVal = paramIndex < item.parameters.size() ? item.parameters.get(paramIndex) : "";
         String kind = resolveParamKind(item, def, paramIndex);
+        if (GameBlockCatalog.KIND_COND.equals(kind)) {
+            showBooleanConditionPickerDialog(item, paramIndex);
+            return;
+        }
         String title = getParamDialogTitle(kind);
+        Runnable pickReporterAction = GameBlockCatalog.canAcceptNestedBlock(kind, createDummyReporter())
+                ? () -> showReporterBlockPickerDialog(item, paramIndex, kind)
+                : null;
 
-        showSmartValueDialog(title, currentVal, kind, chosen -> {
+        showSmartValueDialog(title, currentVal, kind, item.opCode, pickReporterAction, chosen -> {
             while (item.parameters.size() <= paramIndex) {
                 item.parameters.add("");
             }
@@ -2418,10 +2434,17 @@ public class GameBlocksEditorView extends FrameLayout {
         });
     }
 
+    private static GameBlockItem createDummyReporter() {
+        GameBlockItem dummy = new GameBlockItem();
+        dummy.type = "d";
+        return dummy;
+    }
+
     private String getParamDialogTitle(String kind) {
         switch (kind) {
             case GameBlockCatalog.KIND_NUMBER:
-                return "Number or Expression";
+            case GameBlockCatalog.KIND_EXPR:
+                return "Enter Number";
             case GameBlockCatalog.KIND_SPRITE:
                 return "Select Sprite (Image)";
             case GameBlockCatalog.KIND_SOUND:
@@ -2440,10 +2463,12 @@ public class GameBlocksEditorView extends FrameLayout {
                 return "HUD Button / Action";
             case GameBlockCatalog.KIND_MESSAGE:
                 return "Select Message";
+            case GameBlockCatalog.KIND_TRANSITION:
+                return "Select Transition";
             case GameBlockCatalog.KIND_BOOL:
                 return "Select Boolean";
             case GameBlockCatalog.KIND_COND:
-                return "Logic Condition (Boolean)";
+                return "Choose Condition Block";
             case GameBlockCatalog.KIND_OP:
                 return "Comparison Operator";
             case GameBlockCatalog.KIND_VAR:
@@ -2457,10 +2482,8 @@ public class GameBlocksEditorView extends FrameLayout {
                 return "Display Layer";
             case GameBlockCatalog.KIND_COLOR:
                 return "Choose Color";
-            case GameBlockCatalog.KIND_EXPR:
-                return "Value or Expression";
             default:
-                return "Edit Text";
+                return "Enter Text";
         }
     }
 
@@ -2475,7 +2498,8 @@ public class GameBlocksEditorView extends FrameLayout {
                 || GameBlockCatalog.KIND_TAG.equals(kind)
                 || GameBlockCatalog.KIND_VAR.equals(kind)
                 || GameBlockCatalog.KIND_VAR_REF.equals(kind)
-                || GameBlockCatalog.KIND_MESSAGE.equals(kind);
+                || GameBlockCatalog.KIND_MESSAGE.equals(kind)
+                || GameBlockCatalog.KIND_TRANSITION.equals(kind);
     }
 
     private static boolean isExtensibleSelectorKind(String kind) {
@@ -2513,10 +2537,13 @@ public class GameBlocksEditorView extends FrameLayout {
         final EditText input = new EditText(ctx);
         input.setHint("Enter name...");
         input.setSingleLine(true);
+        input.setTextColor(colorTextPrimary);
+        input.setHintTextColor(colorTextSecondary);
+        input.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         container.addView(input);
 
-        new MaterialAlertDialogBuilder(ctx)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(ctx)
                 .setTitle(title)
                 .setView(container)
                 .setPositiveButton("Create", (d, w) -> {
@@ -2538,10 +2565,30 @@ public class GameBlocksEditorView extends FrameLayout {
                     callback.onValueChosen(val);
                 })
                 .setNegativeButton("Cancel", null)
-                .show();
+                .create();
+        input.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                android.widget.Button pos = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                if (pos != null) {
+                    pos.performClick();
+                }
+                return true;
+            }
+            return false;
+        });
+        dialog.show();
     }
 
     private void showSmartValueDialog(String title, String currentValue, String kind, ValueCallback callback) {
+        showSmartValueDialog(title, currentValue, kind, null, null, callback);
+    }
+
+    private void showSmartValueDialog(String title,
+                                      String currentValue,
+                                      String kind,
+                                      @Nullable String hostOpCode,
+                                      @Nullable Runnable onPickReporterBlock,
+                                      ValueCallback callback) {
         Context ctx = getContext();
 
         if (GameBlockCatalog.KIND_BOOL.equals(kind)) {
@@ -2574,8 +2621,8 @@ public class GameBlocksEditorView extends FrameLayout {
         }
 
         if (GameBlockCatalog.KIND_MATH_FN.equals(kind)) {
-            final String[] fns = {"abs", "floor", "ceil", "sqrt", "sin", "cos", "tan",
-                    "asin", "acos", "atan", "ln", "log10", "exp"};
+            final String[] fns = {"abs", "floor", "ceiling", "sqrt", "sin", "cos", "tan",
+                    "asin", "acos", "atan", "ln", "log", "e ^", "10 ^"};
             new MaterialAlertDialogBuilder(ctx)
                     .setTitle(title)
                     .setItems(fns, (d, which) -> callback.onValueChosen(fns[which]))
@@ -2585,7 +2632,7 @@ public class GameBlocksEditorView extends FrameLayout {
         }
 
         if (GameBlockCatalog.KIND_PROP.equals(kind)) {
-            final String[] props = {"x", "y", "vx", "vy", "rotation", "size", "alpha", "spriteName", "visible"};
+            final String[] props = {"x", "y", "direction", "size", "costume", "alpha", "visible"};
             new MaterialAlertDialogBuilder(ctx)
                     .setTitle(title)
                     .setItems(props, (d, which) -> callback.onValueChosen(props[which]))
@@ -2611,7 +2658,7 @@ public class GameBlocksEditorView extends FrameLayout {
         }
 
         if (isSelectorKind(kind)) {
-            List<String> suggestions = buildSuggestionsForKind(kind);
+            List<String> suggestions = buildSuggestionsForKind(kind, hostOpCode);
             boolean extensible = isExtensibleSelectorKind(kind);
             if (suggestions.isEmpty() && !extensible) {
                 new MaterialAlertDialogBuilder(ctx)
@@ -2650,122 +2697,80 @@ public class GameBlocksEditorView extends FrameLayout {
             return;
         }
 
-        // Combined editor for numbers, expressions, conditions, and free text
+        final boolean isNumericKind = GameBlockCatalog.KIND_NUMBER.equals(kind)
+                || GameBlockCatalog.KIND_EXPR.equals(kind);
+
         LinearLayout container = new LinearLayout(ctx);
         container.setOrientation(LinearLayout.VERTICAL);
         container.setPadding(dp(20), dp(12), dp(20), dp(4));
 
         final EditText input = new EditText(ctx);
-        input.setText(currentValue != null ? currentValue : "");
+        String initialText = currentValue != null ? currentValue : "";
+        if (isNumericKind && !initialText.trim().isEmpty() && !isNumericLiteral(initialText.trim())) {
+            initialText = "";
+        }
+        input.setText(initialText);
+        input.setHint(isNumericKind ? "0" : "Type text...");
         input.setSingleLine(true);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        input.setTextColor(colorTextPrimary);
+        input.setHintTextColor(colorTextSecondary);
+        input.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
+        if (isNumericKind) {
+            input.setInputType(InputType.TYPE_CLASS_NUMBER
+                    | InputType.TYPE_NUMBER_FLAG_SIGNED
+                    | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        } else {
+            input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        }
         input.setSelection(input.getText().length());
         container.addView(input);
 
-        if (GameBlockCatalog.KIND_COND.equals(kind)) {
-            addConditionBuilderRow(ctx, container, input);
+        if (onPickReporterBlock != null) {
+            TextView tipView = new TextView(ctx);
+            tipView.setText("Tip: Drag a Variable, Sensing, or Operators block here, or tap \"Use Block\".");
+            tipView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f);
+            tipView.setTextColor(colorTextSecondary);
+            tipView.setPadding(0, dp(6), 0, dp(2));
+            container.addView(tipView);
         }
 
-        List<String> suggestions = buildSuggestionsForKind(kind);
-
-        final AlertDialog[] dialogHolder = new AlertDialog[1];
-
+        List<String> suggestions = buildSuggestionsForKind(kind, hostOpCode);
         if (!suggestions.isEmpty()) {
             TextView sugHeader = new TextView(ctx);
-            sugHeader.setText(GameBlockCatalog.KIND_NUMBER.equals(kind)
-                    || GameBlockCatalog.KIND_EXPR.equals(kind)
-                    || GameBlockCatalog.KIND_COND.equals(kind)
-                    ? "Quick shortcuts:"
-                    : "Available in project (tap to choose):");
+            sugHeader.setText(isNumericKind ? "Quick numbers:" : "Quick text:");
             sugHeader.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f);
             sugHeader.setTextColor(colorTextSecondary);
             sugHeader.setPadding(0, dp(10), 0, dp(6));
             container.addView(sugHeader);
 
-            boolean useChipMode = GameBlockCatalog.KIND_NUMBER.equals(kind)
-                    || GameBlockCatalog.KIND_TEXT.equals(kind)
-                    || GameBlockCatalog.KIND_EXPR.equals(kind)
-                    || GameBlockCatalog.KIND_COND.equals(kind);
+            HorizontalScrollView chipScroll = new HorizontalScrollView(ctx);
+            chipScroll.setHorizontalScrollBarEnabled(false);
+            LinearLayout chipRow = new LinearLayout(ctx);
+            chipRow.setOrientation(LinearLayout.HORIZONTAL);
+            chipScroll.addView(chipRow);
+            container.addView(chipScroll);
 
-            if (useChipMode) {
-                HorizontalScrollView chipScroll = new HorizontalScrollView(ctx);
-                chipScroll.setHorizontalScrollBarEnabled(false);
-                LinearLayout chipRow = new LinearLayout(ctx);
-                chipRow.setOrientation(LinearLayout.HORIZONTAL);
-                chipScroll.addView(chipRow);
-                container.addView(chipScroll);
-
-                for (String s : suggestions) {
-                    TextView chip = new TextView(ctx);
-                    chip.setText(s);
-                    chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
-                    chip.setTypeface(null, Typeface.BOLD);
-                    chip.setTextColor(colorTextPrimary);
-                    chip.setPadding(dp(12), dp(6), dp(12), dp(6));
-                    GradientDrawable chipBg = new GradientDrawable();
-                    chipBg.setCornerRadius(dp(14));
-                    chipBg.setColor(colorSurfaceAlt);
-                    chipBg.setStroke(dp(1), colorBorder);
-                    chip.setBackground(chipBg);
-                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                            LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-                    lp.rightMargin = dp(6);
-                    chip.setLayoutParams(lp);
-                    chip.setOnClickListener(v -> {
-                        if (GameBlockCatalog.KIND_TEXT.equals(kind) && s.startsWith("{") && s.endsWith("}")) {
-                            int pos = Math.max(0, input.getSelectionStart());
-                            input.getText().insert(pos, s);
-                        } else {
-                            input.setText(s);
-                            input.setSelection(s.length());
-                        }
-                    });
-                    chipRow.addView(chip);
-                }
-            } else {
-                ScrollView listScroll = new ScrollView(ctx);
-                LinearLayout.LayoutParams listScrollLp = new LinearLayout.LayoutParams(
-                        LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-                listScrollLp.height = suggestions.size() > 6 ? dp(210) : LayoutParams.WRAP_CONTENT;
-                listScroll.setLayoutParams(listScrollLp);
-                container.addView(listScroll);
-
-                LinearLayout listCol = new LinearLayout(ctx);
-                listCol.setOrientation(LinearLayout.VERTICAL);
-                listScroll.addView(listCol);
-
-                for (String s : suggestions) {
-                    TextView row = new TextView(ctx);
-                    row.setText(s);
-                    row.setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f);
-                    row.setTextColor(colorTextPrimary);
-                    row.setPadding(dp(12), dp(10), dp(12), dp(10));
-                    GradientDrawable rowBg = new GradientDrawable();
-                    rowBg.setCornerRadius(dp(8));
-                    rowBg.setColor(colorSurfaceAlt);
-                    row.setBackground(rowBg);
-                    LinearLayout.LayoutParams rLp = new LinearLayout.LayoutParams(
-                            LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-                    rLp.bottomMargin = dp(6);
-                    row.setLayoutParams(rLp);
-                    row.setOnClickListener(v -> {
-                        String cleanValue = stripDisplayTag(s);
-                        if ((GameBlockCatalog.KIND_VAR.equals(kind) || GameBlockCatalog.KIND_VAR_REF.equals(kind))
-                                && project != null) {
-                            if (project.globalVariables == null) {
-                                project.globalVariables = new HashMap<>();
-                            }
-                            if (!project.globalVariables.containsKey(cleanValue)) {
-                                project.globalVariables.put(cleanValue, "0");
-                            }
-                        }
-                        if (dialogHolder[0] != null) {
-                            dialogHolder[0].dismiss();
-                        }
-                        callback.onValueChosen(cleanValue);
-                    });
-                    listCol.addView(row);
-                }
+            for (String s : suggestions) {
+                TextView chip = new TextView(ctx);
+                chip.setText(s);
+                chip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f);
+                chip.setTypeface(null, Typeface.BOLD);
+                chip.setTextColor(colorTextPrimary);
+                chip.setPadding(dp(12), dp(6), dp(12), dp(6));
+                GradientDrawable chipBg = new GradientDrawable();
+                chipBg.setCornerRadius(dp(14));
+                chipBg.setColor(colorSurfaceAlt);
+                chipBg.setStroke(dp(1), colorBorder);
+                chip.setBackground(chipBg);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+                lp.rightMargin = dp(6);
+                chip.setLayoutParams(lp);
+                chip.setOnClickListener(v -> {
+                    input.setText(s);
+                    input.setSelection(s.length());
+                });
+                chipRow.addView(chip);
             }
         }
 
@@ -2774,110 +2779,207 @@ public class GameBlocksEditorView extends FrameLayout {
                 .setView(container)
                 .setPositiveButton("Apply", (d, w) -> {
                     String val = input.getText().toString().trim();
-                    if ((GameBlockCatalog.KIND_VAR.equals(kind) || GameBlockCatalog.KIND_VAR_REF.equals(kind))
-                            && !val.isEmpty() && project != null) {
-                        if (project.globalVariables == null) {
-                            project.globalVariables = new HashMap<>();
-                        }
-                        if (!project.globalVariables.containsKey(val)) {
-                            project.globalVariables.put(val, "0");
-                        }
-                        renderPaletteBlocks();
+                    if (isNumericKind) {
+                        val = sanitizeNumericInput(val);
                     }
                     callback.onValueChosen(val);
                 })
                 .setNegativeButton("Cancel", null);
+        if (onPickReporterBlock != null) {
+            builder.setNeutralButton("Use Block", (d, w) -> onPickReporterBlock.run());
+        }
 
-        dialogHolder[0] = builder.show();
+        AlertDialog dialog = builder.create();
+        input.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                android.widget.Button pos = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                if (pos != null) {
+                    pos.performClick();
+                }
+                return true;
+            }
+            return false;
+        });
+        dialog.show();
     }
 
-    private void addConditionBuilderRow(Context ctx, LinearLayout container, EditText targetInput) {
-        TextView label = new TextView(ctx);
-        label.setText("Quick comparison builder:");
-        label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f);
-        label.setTextColor(colorTextSecondary);
-        label.setPadding(0, dp(10), 0, dp(4));
-        container.addView(label);
+    private static boolean isNumericLiteral(@Nullable String text) {
+        if (TextUtils.isEmpty(text)) {
+            return false;
+        }
+        return text.trim().matches("[-+]?(\\d+(\\.\\d*)?|\\.\\d+)");
+    }
 
-        LinearLayout row = new LinearLayout(ctx);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(8), dp(6), dp(8), dp(6));
-        GradientDrawable rowBg = new GradientDrawable();
-        rowBg.setCornerRadius(dp(10));
-        rowBg.setColor(colorSurfaceAlt);
-        rowBg.setStroke(dp(1), colorBorder);
-        row.setBackground(rowBg);
-        container.addView(row);
+    private static String sanitizeNumericInput(@Nullable String raw) {
+        String s = raw != null ? raw.trim() : "";
+        if (s.isEmpty() || "-".equals(s) || "+".equals(s) || ".".equals(s) || "-.".equals(s)) {
+            return "0";
+        }
+        try {
+            Double.parseDouble(s);
+            return s;
+        } catch (NumberFormatException ignored) {
+            return "0";
+        }
+    }
 
-        final EditText leftEt = new EditText(ctx);
-        leftEt.setHint("var");
-        leftEt.setText("score");
-        leftEt.setSingleLine(true);
-        leftEt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f);
-        leftEt.setTextColor(colorTextPrimary);
-        LinearLayout.LayoutParams leftLp = new LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
-        leftEt.setLayoutParams(leftLp);
-        row.addView(leftEt);
+    private String getFirstProjectVariableName() {
+        if (project != null && project.globalVariables != null && !project.globalVariables.isEmpty()) {
+            for (String key : project.globalVariables.keySet()) {
+                if (!TextUtils.isEmpty(key)) {
+                    return key;
+                }
+            }
+        }
+        return "score";
+    }
 
-        final String[] ops = {"==", "!=", ">=", "<=", ">", "<"};
-        final int[] opIdx = {2};
-        final TextView opChip = new TextView(ctx);
-        opChip.setText(ops[opIdx[0]]);
-        opChip.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f);
-        opChip.setTypeface(null, Typeface.BOLD);
-        opChip.setTextColor(colorAccent);
-        opChip.setPadding(dp(10), dp(6), dp(10), dp(6));
-        GradientDrawable opBg = new GradientDrawable();
-        opBg.setCornerRadius(dp(8));
-        opBg.setColor(colorSurface);
-        opBg.setStroke(dp(1), colorBorder);
-        opChip.setBackground(opBg);
-        LinearLayout.LayoutParams opLp = new LinearLayout.LayoutParams(
-                LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-        opLp.leftMargin = dp(4);
-        opLp.rightMargin = dp(4);
-        opChip.setLayoutParams(opLp);
-        opChip.setOnClickListener(v -> {
-            opIdx[0] = (opIdx[0] + 1) % ops.length;
-            opChip.setText(ops[opIdx[0]]);
-        });
-        row.addView(opChip);
+    private void applyNestedSlotBlock(GameBlockItem hostItem, int paramIndex, @Nullable GameBlockItem nestedBlock) {
+        while (hostItem.parameters.size() <= paramIndex) {
+            hostItem.parameters.add("");
+        }
+        hostItem.setParamBlock(paramIndex, nestedBlock);
+        if (nestedBlock == null) {
+            hostItem.parameters.set(paramIndex, "");
+        }
+        syncAllNestedExpressions();
+        renderWorkspace();
+        notifyModified();
+    }
 
-        final EditText rightEt = new EditText(ctx);
-        rightEt.setHint("value");
-        rightEt.setText("10");
-        rightEt.setSingleLine(true);
-        rightEt.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f);
-        rightEt.setTextColor(colorTextPrimary);
-        LinearLayout.LayoutParams rightLp = new LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
-        rightEt.setLayoutParams(rightLp);
-        row.addView(rightEt);
+    @Nullable
+    private GameBlockItem createComparisonPresetBlock(String opCode, String varName, String rightValue) {
+        GameBlockItem cmp = GameBlockCatalog.createBlockInstance(GameBlockCatalog.findByOpCode(opCode));
+        if (cmp == null) {
+            return null;
+        }
+        GameBlockItem varBlock = GameBlockCatalog.createBlockInstance(GameBlockCatalog.findByOpCode("getVar"));
+        if (varBlock != null) {
+            while (varBlock.parameters.isEmpty()) {
+                varBlock.parameters.add("");
+            }
+            varBlock.parameters.set(0, varName);
+            cmp.setParamBlock(0, varBlock);
+        }
+        while (cmp.parameters.size() <= 1) {
+            cmp.parameters.add("0");
+        }
+        cmp.parameters.set(1, rightValue);
+        return cmp;
+    }
 
-        TextView applyBtn = new TextView(ctx);
-        applyBtn.setText("Use");
-        applyBtn.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f);
-        applyBtn.setTypeface(null, Typeface.BOLD);
-        applyBtn.setTextColor(Color.WHITE);
-        applyBtn.setPadding(dp(10), dp(6), dp(10), dp(6));
-        GradientDrawable applyBg = new GradientDrawable();
-        applyBg.setCornerRadius(dp(8));
-        applyBg.setColor(colorAccent);
-        applyBtn.setBackground(applyBg);
-        LinearLayout.LayoutParams applyLp = new LinearLayout.LayoutParams(
-                LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-        applyLp.leftMargin = dp(6);
-        applyBtn.setLayoutParams(applyLp);
-        applyBtn.setOnClickListener(v -> {
-            String l = leftEt.getText().toString().trim();
-            String r = rightEt.getText().toString().trim();
-            if (l.isEmpty()) l = "score";
-            if (r.isEmpty()) r = "0";
-            String built = l + " " + ops[opIdx[0]] + " " + r;
-            targetInput.setText(built);
-            targetInput.setSelection(built.length());
-        });
-        row.addView(applyBtn);
+    private void showBooleanConditionPickerDialog(GameBlockItem hostItem, int paramIndex) {
+        Context ctx = getContext();
+        String firstVar = getFirstProjectVariableName();
+        boolean hasExisting = hostItem.getParamBlock(paramIndex) != null
+                || (paramIndex < hostItem.parameters.size()
+                && !TextUtils.isEmpty(hostItem.parameters.get(paramIndex)));
+
+        final List<String> labels = new ArrayList<>();
+        final List<GameBlockItem> blocks = new ArrayList<>();
+
+        if (hasExisting) {
+            labels.add("Clear condition (empty < >)");
+            blocks.add(null);
+        }
+
+        addBlockChoice(labels, blocks, "button [JUMP] pressed?", "touchingButton");
+        addBlockChoice(labels, blocks, "button [FIRE] just pressed?", "isActionJustPressed");
+        addBlockChoice(labels, blocks, "joystick active?", "isJoystickActive");
+        addBlockChoice(labels, blocks, "screen touched?", "isTouchingScreen");
+        addBlockChoice(labels, blocks, "touching tag [coin] ?", "touchingTag");
+        addBlockChoice(labels, blocks, "touching [touch] ?", "touchingObject");
+        addBlockChoice(labels, blocks, "on ground?", "isOnGround");
+        addBlockChoice(labels, blocks, "outside world?", "isOutsideWorld");
+        addBlockChoice(labels, blocks, "left screen?", "hasLeftScreen");
+
+        GameBlockItem gtBlock = createComparisonPresetBlock("opGt", firstVar, "10");
+        if (gtBlock != null) {
+            labels.add("[" + firstVar + "] > 10");
+            blocks.add(gtBlock);
+        }
+        GameBlockItem ltBlock = createComparisonPresetBlock("opLt", firstVar, "10");
+        if (ltBlock != null) {
+            labels.add("[" + firstVar + "] < 10");
+            blocks.add(ltBlock);
+        }
+        GameBlockItem eqBlock = createComparisonPresetBlock("opEq", firstVar, "0");
+        if (eqBlock != null) {
+            labels.add("[" + firstVar + "] = 0");
+            blocks.add(eqBlock);
+        }
+
+        addBlockChoice(labels, blocks, "< > and < >", "opAnd");
+        addBlockChoice(labels, blocks, "< > or < >", "opOr");
+        addBlockChoice(labels, blocks, "not < >", "opNot");
+
+        new MaterialAlertDialogBuilder(ctx)
+                .setTitle("Choose Condition Block")
+                .setItems(labels.toArray(new String[0]), (d, which) ->
+                        applyNestedSlotBlock(hostItem, paramIndex, blocks.get(which)))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showReporterBlockPickerDialog(GameBlockItem hostItem, int paramIndex, String kind) {
+        Context ctx = getContext();
+        final List<String> labels = new ArrayList<>();
+        final List<GameBlockItem> blocks = new ArrayList<>();
+
+        if (project != null && project.globalVariables != null) {
+            for (String varName : project.globalVariables.keySet()) {
+                if (!TextUtils.isEmpty(varName)) {
+                    GameBlockItem varBlk = GameBlockCatalog.createBlockInstance(
+                            GameBlockCatalog.findByOpCode("getVar"));
+                    if (varBlk != null) {
+                        while (varBlk.parameters.isEmpty()) {
+                            varBlk.parameters.add("");
+                        }
+                        varBlk.parameters.set(0, varName);
+                        labels.add("Variable: " + varName);
+                        blocks.add(varBlk);
+                    }
+                }
+            }
+        } else {
+            addBlockChoice(labels, blocks, "Variable: score", "getVar");
+        }
+
+        addBlockChoice(labels, blocks, "joystick x", "joyX");
+        addBlockChoice(labels, blocks, "joystick y", "joyY");
+        addBlockChoice(labels, blocks, "x position", "getPosX");
+        addBlockChoice(labels, blocks, "y position", "getPosY");
+        addBlockChoice(labels, blocks, "direction", "getDirection");
+        addBlockChoice(labels, blocks, "touch x", "touchX");
+        addBlockChoice(labels, blocks, "touch y", "touchY");
+        addBlockChoice(labels, blocks, "timer", "timer");
+        addBlockChoice(labels, blocks, "pick random 1 to 10", "opRandom");
+        addBlockChoice(labels, blocks, "( ) + ( )", "opAdd");
+        addBlockChoice(labels, blocks, "( ) - ( )", "opSub");
+        addBlockChoice(labels, blocks, "( ) * ( )", "opMul");
+        addBlockChoice(labels, blocks, "( ) / ( )", "opDiv");
+        if (GameBlockCatalog.KIND_TEXT.equals(kind)) {
+            addBlockChoice(labels, blocks, "join [ ] [ ]", "opJoin");
+            addBlockChoice(labels, blocks, "size", "getSize");
+            addBlockChoice(labels, blocks, "costume name", "getSpriteName");
+            addBlockChoice(labels, blocks, "current scene name", "getSceneName");
+        }
+
+        new MaterialAlertDialogBuilder(ctx)
+                .setTitle("Insert Block")
+                .setItems(labels.toArray(new String[0]), (d, which) ->
+                        applyNestedSlotBlock(hostItem, paramIndex, blocks.get(which)))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private static void addBlockChoice(List<String> labels, List<GameBlockItem> blocks,
+                                       String label, String opCode) {
+        GameBlockItem item = GameBlockCatalog.createBlockInstance(GameBlockCatalog.findByOpCode(opCode));
+        if (item != null) {
+            labels.add(label);
+            blocks.add(item);
+        }
     }
 
     private void showColorPickerDialog(String title, String currentValue, ValueCallback callback) {
@@ -2973,6 +3075,10 @@ public class GameBlocksEditorView extends FrameLayout {
     }
 
     private List<String> buildSuggestionsForKind(String kind) {
+        return buildSuggestionsForKind(kind, null);
+    }
+
+    private List<String> buildSuggestionsForKind(String kind, @Nullable String hostOpCode) {
         Set<String> out = new LinkedHashSet<>();
         switch (kind) {
             case GameBlockCatalog.KIND_SPRITE:
@@ -2996,10 +3102,22 @@ public class GameBlocksEditorView extends FrameLayout {
                 break;
 
             case GameBlockCatalog.KIND_OBJECT:
-                out.add("myself");
-                out.add("touch");
-                out.add("random");
-                out.add("edge");
+                if ("propOf".equals(hostOpCode)) {
+                    out.add("myself");
+                } else if ("createClone".equals(hostOpCode)) {
+                    out.add("myself");
+                } else if ("touchingObject".equals(hostOpCode)) {
+                    out.add("touch");
+                    out.add("edge");
+                } else if ("goToTarget".equals(hostOpCode)) {
+                    out.add("random");
+                    out.add("touch");
+                } else if ("pointToward".equals(hostOpCode) || "distanceTo".equals(hostOpCode)) {
+                    out.add("touch");
+                } else {
+                    out.add("myself");
+                    out.add("touch");
+                }
                 if (scene != null && scene.objects != null) {
                     for (GameObjectBean obj : scene.objects) {
                         if (obj != null && !TextUtils.isEmpty(obj.name)) {
@@ -3094,52 +3212,20 @@ public class GameBlocksEditorView extends FrameLayout {
                 out.addAll(Arrays.asList("score", "hp", "coins", "level", "speed", "timer"));
                 break;
 
+            case GameBlockCatalog.KIND_TRANSITION:
+                out.addAll(Arrays.asList("fade", "flash", "instant"));
+                break;
+
             case GameBlockCatalog.KIND_COND:
-                out.addAll(Arrays.asList(
-                        "isOnGround",
-                        "isTouching",
-                        "abs(joyX) > 0.1 || abs(joyY) > 0.1",
-                        "score >= 10",
-                        "hp <= 0",
-                        "isButtonPressed(\"JUMP\")",
-                        "isCollidingTag(\"coin\")",
-                        "selfX > 640",
-                        "true",
-                        "false"
-                ));
-                if (project != null && project.globalVariables != null) {
-                    for (String k : project.globalVariables.keySet()) {
-                        out.add(k + " >= 1");
-                    }
-                }
                 break;
 
             case GameBlockCatalog.KIND_NUMBER:
-                out.addAll(Arrays.asList("0", "1", "-1", "5", "10", "100", "0.5",
-                        "score", "joyX", "joyY", "selfX", "selfY", "selfVX", "selfVY",
-                        "touchX", "touchY", "random(1, 10)"));
-                if (project != null && project.globalVariables != null) {
-                    out.addAll(project.globalVariables.keySet());
-                }
-                break;
-
             case GameBlockCatalog.KIND_EXPR:
-                if (project != null && project.globalVariables != null) {
-                    out.addAll(project.globalVariables.keySet());
-                }
-                out.addAll(Arrays.asList("joyX * 6", "joyY * 6", "random(1, 10)",
-                        "score", "hp", "joyX", "joyY", "selfX", "selfY", "selfVX", "selfVY", "1", "0"));
+                out.addAll(Arrays.asList("0", "1", "5", "10", "50", "100", "-1", "-10"));
                 break;
 
             case GameBlockCatalog.KIND_TEXT:
-                out.add("Score: {score}");
-                out.add("\"Score: \" + score");
-                if (project != null && project.globalVariables != null) {
-                    for (String k : project.globalVariables.keySet()) {
-                        out.add("{" + k + "}");
-                    }
-                }
-                out.addAll(Arrays.asList("HP: {hp}", "Game Over!", "Victory!"));
+                out.addAll(Arrays.asList("Hello!", "Score: 0", "Game Over!", "Victory!"));
                 break;
 
             default:
@@ -4714,7 +4800,7 @@ public class GameBlocksEditorView extends FrameLayout {
             if (hasParam) {
                 GameBlockMenuItem slot = createParamSlotView(
                         TextUtils.isEmpty(paramValue) ? "?" : paramValue,
-                        GameBlockCatalog.KIND_TEXT,
+                        getCurrentEventParamKind(),
                         this.e);
                 slot.setOnClickListener(v -> showEditEventParamDialog());
                 headerRow.addView(slot);
@@ -4887,6 +4973,10 @@ public class GameBlocksEditorView extends FrameLayout {
                 case GameBlockCatalog.KIND_MESSAGE:
                     slotType = "m";
                     menuName = "msg";
+                    break;
+                case GameBlockCatalog.KIND_TRANSITION:
+                    slotType = "m";
+                    menuName = "transition";
                     break;
                 case GameBlockCatalog.KIND_ACTION:
                     slotType = "m";

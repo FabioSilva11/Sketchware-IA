@@ -16,6 +16,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
@@ -343,10 +344,21 @@ public class GamePropertyPanelView extends LinearLayout {
     private void buildSceneBasicCards() {
         addPropertyCard(R.drawable.ic_mtrl_edit, "Scene Name", nonEmpty(scene.name, "Scene"), 0,
                 v -> showTextInputDialog("Scene Name", nonEmpty(scene.name, ""), "e.g., Level 1", value -> {
-                    if (!value.trim().isEmpty()) {
-                        scene.name = value.trim();
-                        notifySceneChanged(false);
+                    String trimmed = value == null ? "" : value.trim();
+                    if (trimmed.isEmpty()) {
+                        Toast.makeText(getContext(), "Scene name cannot be empty.", Toast.LENGTH_SHORT).show();
+                        return;
                     }
+                    pushUndo();
+                    if (project != null) {
+                        if (!project.renameScene(scene, trimmed)) {
+                            Toast.makeText(getContext(), "A scene with that name already exists.", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+                    } else {
+                        scene.name = trimmed;
+                    }
+                    notifySceneChanged(false);
                 }));
 
         int bgColor = scene.backgroundColor != 0 ? scene.backgroundColor : 0xFF1A2232;
@@ -785,15 +797,24 @@ public class GamePropertyPanelView extends LinearLayout {
     private void showTextInputDialog(String title, String initial, String hint, StringConsumer onConfirm) {
         Context context = getContext();
         LinearLayout box = createDialogContainer(context);
-        EditText et = createStyledEditText(context, initial, hint, InputType.TYPE_CLASS_TEXT);
+        EditText et = createStyledEditText(context, initial, hint, InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         box.addView(et);
 
-        new MaterialAlertDialogBuilder(context)
+        androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(context)
                 .setTitle(title)
                 .setView(box)
                 .setPositiveButton("Apply", (d, w) -> onConfirm.accept(et.getText().toString()))
                 .setNegativeButton("Cancel", null)
-                .show();
+                .create();
+        et.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                dialog.dismiss();
+                onConfirm.accept(et.getText().toString());
+                return true;
+            }
+            return false;
+        });
+        dialog.show();
     }
 
     private void showTagDialog() {
@@ -2098,8 +2119,10 @@ public class GamePropertyPanelView extends LinearLayout {
         et.setHint(hint);
         et.setInputType(inputType);
         et.setSingleLine(true);
+        et.setImeOptions(EditorInfo.IME_ACTION_DONE);
         et.setTextColor(colorOnSurface);
         et.setHintTextColor(colorOnSurfaceVariant);
+        et.setSelection(et.getText().length());
         return et;
     }
 

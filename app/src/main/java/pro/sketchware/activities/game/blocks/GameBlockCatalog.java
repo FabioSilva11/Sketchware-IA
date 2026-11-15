@@ -108,7 +108,7 @@ public final class GameBlockCatalog {
                 def("glideToXY", "glide %d secs to x: %d y: %d", " ", COLOR_MOTION,
                         arr("1", "0", "0"), arr(KIND_NUMBER, KIND_NUMBER, KIND_NUMBER)),
                 def("moveBy", "move by x: %d y: %d", " ", COLOR_MOTION,
-                        arr("0", "0"), arr(KIND_EXPR, KIND_EXPR)),
+                        arr("0", "0"), arr(KIND_NUMBER, KIND_NUMBER)),
                 def("changeX", "change x by %d", " ", COLOR_MOTION,
                         arr("10"), arr(KIND_NUMBER)),
                 def("setX", "set x to %d", " ", COLOR_MOTION,
@@ -124,7 +124,7 @@ public final class GameBlockCatalog {
                 def("bounceOnEdge", "if on edge, bounce", " ", COLOR_MOTION,
                         arr(), arr()),
                 def("setVel", "set velocity x: %d y: %d", " ", COLOR_MOTION,
-                        arr("0", "0"), arr(KIND_EXPR, KIND_EXPR)),
+                        arr("0", "0"), arr(KIND_NUMBER, KIND_NUMBER)),
                 def("jumpImpulse", "jump with force %d", " ", COLOR_MOTION,
                         arr("580"), arr(KIND_NUMBER)),
                 def("cameraFollow", "camera follow %m.gameObject smoothness %d", " ", COLOR_MOTION,
@@ -287,10 +287,6 @@ public final class GameBlockCatalog {
         )));
 
         cats.add(new CategoryDef("operators", "Operators", COLOR_OPERATORS, Arrays.asList(
-                def("boolTrue", "true", "b", COLOR_OPERATORS,
-                        arr(), arr()),
-                def("boolFalse", "false", "b", COLOR_OPERATORS,
-                        arr(), arr()),
                 def("opAdd", "%d + %d", "d", COLOR_OPERATORS,
                         arr("0", "0"), arr(KIND_NUMBER, KIND_NUMBER)),
                 def("opSub", "%d - %d", "d", COLOR_OPERATORS,
@@ -302,17 +298,17 @@ public final class GameBlockCatalog {
                 def("opRandom", "pick random %d to %d", "d", COLOR_OPERATORS,
                         arr("1", "10"), arr(KIND_NUMBER, KIND_NUMBER)),
                 def("opGt", "%d > %d", "b", COLOR_OPERATORS,
-                        arr("0", "50"), arr(KIND_EXPR, KIND_EXPR)),
+                        arr("0", "50"), arr(KIND_NUMBER, KIND_NUMBER)),
                 def("opLt", "%d < %d", "b", COLOR_OPERATORS,
-                        arr("0", "50"), arr(KIND_EXPR, KIND_EXPR)),
+                        arr("0", "50"), arr(KIND_NUMBER, KIND_NUMBER)),
                 def("opEq", "%s = %s", "b", COLOR_OPERATORS,
-                        arr("0", "50"), arr(KIND_EXPR, KIND_EXPR)),
+                        arr("0", "50"), arr(KIND_TEXT, KIND_TEXT)),
                 def("opAnd", "%b and %b", "b", COLOR_OPERATORS,
-                        arr("true", "true"), arr(KIND_COND, KIND_COND)),
+                        arr("", ""), arr(KIND_COND, KIND_COND)),
                 def("opOr", "%b or %b", "b", COLOR_OPERATORS,
-                        arr("true", "false"), arr(KIND_COND, KIND_COND)),
+                        arr("", ""), arr(KIND_COND, KIND_COND)),
                 def("opNot", "not %b", "b", COLOR_OPERATORS,
-                        arr("false"), arr(KIND_COND)),
+                        arr(""), arr(KIND_COND)),
                 def("opJoin", "join %s %s", "d", COLOR_OPERATORS,
                         arr("Score: ", "0"), arr(KIND_TEXT, KIND_TEXT)),
                 def("opLetterOf", "letter %d of %s", "d", COLOR_OPERATORS,
@@ -335,7 +331,7 @@ public final class GameBlockCatalog {
                 def("getVar", "%s", "d", COLOR_VARIABLES,
                         arr("score"), arr(KIND_VAR_REF)),
                 def("setVar", "set %m.gameVar to %s", " ", COLOR_VARIABLES,
-                        arr("score", "0"), arr(KIND_VAR, KIND_EXPR)),
+                        arr("score", "0"), arr(KIND_VAR, KIND_TEXT)),
                 def("changeVar", "change %m.gameVar by %d", " ", COLOR_VARIABLES,
                         arr("score", "1"), arr(KIND_VAR, KIND_NUMBER))
         )));
@@ -344,7 +340,7 @@ public final class GameBlockCatalog {
                 def("ifButtonPressed", "if button %m.action pressed", "c", COLOR_HUD,
                         arr("JUMP"), arr(KIND_ACTION)),
                 def("setHudText", "set text of %m.hud to %s", " ", COLOR_HUD,
-                        arr("ScoreText", "Score: {score}"), arr(KIND_HUD, KIND_TEXT)),
+                        arr("ScoreText", "Score: 0"), arr(KIND_HUD, KIND_TEXT)),
                 def("setHudBar", "set bar %m.hud value to %d", " ", COLOR_HUD,
                         arr("HealthBar", "100"), arr(KIND_HUD, KIND_NUMBER)),
                 def("showDialog", "show dialog %s speaker %s", " ", COLOR_HUD,
@@ -373,7 +369,7 @@ public final class GameBlockCatalog {
                 def("getSceneName", "current scene name", "d", COLOR_SCENES,
                         arr(), arr()),
                 def("spawnPrefab", "spawn %m.prefab at x: %d y: %d", " ", COLOR_SCENES,
-                        arr("CoinPrefab", "100", "100"), arr(KIND_PREFAB, KIND_EXPR, KIND_EXPR)),
+                        arr("CoinPrefab", "100", "100"), arr(KIND_PREFAB, KIND_NUMBER, KIND_NUMBER)),
                 def("setDestroyOffscreen", "destroy offscreen %m.bool", " ", COLOR_SCENES,
                         arr("true"), arr(KIND_BOOL)),
                 def("destroySelf", "destroy this object", "f", COLOR_SCENES,
@@ -381,7 +377,7 @@ public final class GameBlockCatalog {
                 def("destroyOther", "destroy collided object", " ", COLOR_SCENES,
                         arr(), arr()),
                 def("saveGameData", "save data key %s value %s", " ", COLOR_SCENES,
-                        arr("unlocked_level", "1"), arr(KIND_TEXT, KIND_EXPR)),
+                        arr("unlocked_level", "1"), arr(KIND_TEXT, KIND_TEXT)),
                 def("loadGameData", "load data key %s default %s", "d", COLOR_SCENES,
                         arr("unlocked_level", "1"), arr(KIND_TEXT, KIND_TEXT))
         )));
@@ -392,6 +388,9 @@ public final class GameBlockCatalog {
                 BY_OPCODE.put(b.opCode, b);
             }
         }
+        // Keep legacy boolean constants resolvable for older saved projects, hidden from Operators palette
+        BY_OPCODE.put("boolTrue", def("boolTrue", "true", "b", COLOR_OPERATORS, arr(), arr()));
+        BY_OPCODE.put("boolFalse", def("boolFalse", "false", "b", COLOR_OPERATORS, arr(), arr()));
     }
 
     private GameBlockCatalog() {

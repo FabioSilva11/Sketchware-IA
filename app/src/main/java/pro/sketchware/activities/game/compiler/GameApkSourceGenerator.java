@@ -171,6 +171,7 @@ public final class GameApkSourceGenerator {
         StringBuilder rawTemplate = new StringBuilder(163840);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART1);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART2);
+        rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART2A);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART2B);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART3);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART4);
@@ -1241,8 +1242,8 @@ public class MainActivity extends Activity {
                                 justPressedButtons.add(key);
                                 latchedButtons.add(key);
                             }
-                            pendingEvents.add(new QueuedEvent("on_button", key, null));
                         }
+                        pendingEvents.add(new QueuedEvent("on_button", key, null, hud.bean.id));
                         rebuildPressedButtons();
                         pendingEvents.add(new QueuedEvent("on_touch", "", hud.bean.id));
                         return;
@@ -1257,8 +1258,8 @@ public class MainActivity extends Activity {
                         if (!key.isEmpty()) {
                             latchedButtons.add(key);
                             justPressedButtons.add(key);
-                            pendingEvents.add(new QueuedEvent("on_button", key, null));
                         }
+                        pendingEvents.add(new QueuedEvent("on_button", key, null, hud.bean.id));
                         pendingEvents.add(new QueuedEvent("on_touch", "", hud.bean.id));
                         return;
                     }
@@ -1364,7 +1365,7 @@ public class MainActivity extends Activity {
             if (!nextDir.isEmpty() && (changed || initial)) {
                 latchedButtons.add(nextDir);
                 justPressedButtons.add(nextDir);
-                pendingEvents.add(new QueuedEvent("on_button", nextDir, null));
+                pendingEvents.add(new QueuedEvent("on_button", nextDir, null, dpadObj.bean.id));
             }
         }
 
@@ -1414,7 +1415,7 @@ public class MainActivity extends Activity {
                         RuntimeEntity targetObj = findById(qe.targetObjectId);
                         enqueueScriptsForTarget(qe.eventType, qe.eventParam, qe.targetObjectId, targetObj, null);
                     } else {
-                        enqueueScriptsForEvent(qe.eventType, qe.eventParam, null, null);
+                        enqueueScriptsForEvent(qe.eventType, qe.eventParam, null, null, qe.sourceObjectId);
                     }
                 }
                 pendingEvents.clear();
@@ -2008,6 +2009,9 @@ public class MainActivity extends Activity {
             }
         }
 
+""";
+
+    private static final String MAIN_ACTIVITY_BODY_TEMPLATE_PART2A = """
         // ==================== Block VM & Expression Engine ====================
 
         private void enqueueUpdateScripts() {
@@ -2037,10 +2041,18 @@ public class MainActivity extends Activity {
         }
 
         private void enqueueScriptsForEvent(String eventType, String param, RuntimeEntity selfObj, RuntimeEntity otherObj) {
+            enqueueScriptsForEvent(eventType, param, selfObj, otherObj, null);
+        }
+
+        private void enqueueScriptsForEvent(String eventType, String param, RuntimeEntity selfObj,
+                                            RuntimeEntity otherObj, String sourceObjectId) {
             for (ScriptData script : sceneScripts) {
                 if (!eventType.equals(script.eventType)) continue;
                 String sp = script.eventParam == null ? "" : script.eventParam.trim();
                 String tp = param == null ? "" : param.trim();
+                if ("on_button".equals(eventType) && sp.isEmpty()) {
+                    if (sourceObjectId == null || !sourceObjectId.equals(script.targetObjectId)) continue;
+                }
                 if (!sp.isEmpty() && !tp.isEmpty() && !sp.equalsIgnoreCase(tp)) continue;
                 if (!sp.isEmpty() && tp.isEmpty()) continue;
                 if (selfObj != null) {
@@ -3094,6 +3106,10 @@ public class MainActivity extends Activity {
             if ("y".equals(p)) return (double) obj.bean.y;
             if ("vx".equals(p)) return (double) obj.bean.velocityX;
             if ("vy".equals(p)) return (double) obj.bean.velocityY;
+            if ("alpha".equals(p)) return (double) obj.bean.alpha;
+            if ("spritename".equals(p) || "costume".equals(p)) {
+                return obj.bean.spriteResName != null ? obj.bean.spriteResName : "";
+            }
             if (p.contains("dir") || p.contains("rot")) return (double) obj.bean.rotation;
             if (p.contains("size") || p.contains("tam")) return (double) (obj.bean.scaleX * 100f);
             if (p.contains("name") || p.contains("nome")) return obj.bean.name;
@@ -4474,7 +4490,11 @@ public class MainActivity extends Activity {
         }
 
         private RuntimeEntity resolveTarget(String expr, RuntimeEntity fallback) {
-            if (expr == null || expr.trim().isEmpty() || "self".equalsIgnoreCase(expr.trim())) return fallback;
+            if (expr == null || expr.trim().isEmpty()
+                    || "self".equalsIgnoreCase(expr.trim())
+                    || "myself".equalsIgnoreCase(expr.trim())) {
+                return fallback;
+            }
             return findByIdOrName(expr.trim());
         }
 
@@ -4753,11 +4773,17 @@ public class MainActivity extends Activity {
             final String eventType;
             final String eventParam;
             final String targetObjectId;
+            final String sourceObjectId;
 
             QueuedEvent(String eventType, String eventParam, String targetObjectId) {
+                this(eventType, eventParam, targetObjectId, null);
+            }
+
+            QueuedEvent(String eventType, String eventParam, String targetObjectId, String sourceObjectId) {
                 this.eventType = eventType;
                 this.eventParam = eventParam;
                 this.targetObjectId = targetObjectId;
+                this.sourceObjectId = sourceObjectId;
             }
         }
 

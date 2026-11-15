@@ -9,6 +9,7 @@ import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.HorizontalScrollView;
@@ -177,11 +178,17 @@ public class GameHierarchyDialog {
                 row.addView(createIconAction(context, R.drawable.ic_mtrl_edit,
                         isCurrent ? colorOnPrimaryContainer : colorOnSurfaceVariant, "Rename", v ->
                                 promptText(context, "Rename Scene", nonEmpty(scene.name, ""), "Scene name", newName -> {
-                                    if (!newName.trim().isEmpty()) {
-                                        scene.name = newName.trim();
-                                        if (callback != null) callback.onProjectUpdated();
-                                        rebuild[0].run();
+                                    String trimmed = newName == null ? "" : newName.trim();
+                                    if (trimmed.isEmpty()) {
+                                        Toast.makeText(context, "Scene name cannot be empty.", Toast.LENGTH_SHORT).show();
+                                        return;
                                     }
+                                    if (!project.renameScene(scene, trimmed)) {
+                                        Toast.makeText(context, "A scene with that name already exists.", Toast.LENGTH_SHORT).show();
+                                        return;
+                                    }
+                                    if (callback != null) callback.onProjectUpdated();
+                                    rebuild[0].run();
                                 })));
 
                 row.addView(createIconAction(context, R.drawable.ic_mtrl_content_copy,
@@ -762,18 +769,35 @@ public class GameHierarchyDialog {
         box.setOrientation(LinearLayout.VERTICAL);
         box.setPadding(dp(20), dp(12), dp(20), dp(8));
 
+        int colorOnSurface = MaterialColors.getColor(context, R.attr.colorOnSurface, 0xFFE5E7EB);
+        int colorOnSurfaceVariant = MaterialColors.getColor(context, R.attr.colorOnSurfaceVariant, 0xFF94A3B8);
+
         EditText et = new EditText(context);
         et.setText(initial);
         et.setHint(hint);
+        et.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         et.setSingleLine(true);
+        et.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        et.setTextColor(colorOnSurface);
+        et.setHintTextColor(colorOnSurfaceVariant);
+        et.setSelection(et.getText().length());
         box.addView(et);
 
-        new MaterialAlertDialogBuilder(context)
+        AlertDialog dialog = new MaterialAlertDialogBuilder(context)
                 .setTitle(title)
                 .setView(box)
-                .setPositiveButton("Save", (d, w) -> onConfirm.accept(et.getText().toString()))
+                .setPositiveButton("Apply", (d, w) -> onConfirm.accept(et.getText().toString()))
                 .setNegativeButton("Cancel", null)
-                .show();
+                .create();
+        et.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                dialog.dismiss();
+                onConfirm.accept(et.getText().toString());
+                return true;
+            }
+            return false;
+        });
+        dialog.show();
     }
 
     private static View createLabeledInput(Context context, String label, EditText editText, int labelColor) {

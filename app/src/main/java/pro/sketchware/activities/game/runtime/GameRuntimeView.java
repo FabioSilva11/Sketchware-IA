@@ -626,8 +626,8 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                             justPressedButtons.add(key);
                             latchedButtons.add(key);
                         }
-                        pendingEvents.add(new PendingEvent(GameScriptNode.EVENT_BUTTON, key, null, null));
                     }
+                    pendingEvents.add(new PendingEvent(GameScriptNode.EVENT_BUTTON, key, null, null, hud.bean.id));
                     rebuildPressedButtons();
                     pendingEvents.add(new PendingEvent(GameScriptNode.EVENT_TOUCH, "", hud.bean.id, null));
                     return;
@@ -643,8 +643,8 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                     if (!key.isEmpty()) {
                         latchedButtons.add(key);
                         justPressedButtons.add(key);
-                        pendingEvents.add(new PendingEvent(GameScriptNode.EVENT_BUTTON, key, null, null));
                     }
+                    pendingEvents.add(new PendingEvent(GameScriptNode.EVENT_BUTTON, key, null, null, hud.bean.id));
                     pendingEvents.add(new PendingEvent(GameScriptNode.EVENT_TOUCH, "", hud.bean.id, null));
                     return;
                 }
@@ -759,7 +759,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         if (!nextDir.isEmpty() && (changed || initial)) {
             latchedButtons.add(nextDir);
             justPressedButtons.add(nextDir);
-            pendingEvents.add(new PendingEvent(GameScriptNode.EVENT_BUTTON, nextDir, null, null));
+            pendingEvents.add(new PendingEvent(GameScriptNode.EVENT_BUTTON, nextDir, null, null, dpadObj.bean.id));
         }
     }
 
@@ -820,7 +820,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                         enqueueScriptsForTarget(pe.eventType, pe.eventParam, pe.targetObjectId, null, null);
                     }
                 } else {
-                    enqueueScriptsForEvent(pe.eventType, pe.eventParam, null, null);
+                    enqueueScriptsForEvent(pe.eventType, pe.eventParam, null, pe.other, pe.sourceObjectId);
                 }
             }
             pendingEvents.clear();
@@ -1498,12 +1498,23 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
     }
 
     private void enqueueScriptsForEvent(String eventType, String param, RuntimeObject selfObj, RuntimeObject otherObj) {
+        enqueueScriptsForEvent(eventType, param, selfObj, otherObj, null);
+    }
+
+    private void enqueueScriptsForEvent(String eventType, String param, RuntimeObject selfObj,
+                                        RuntimeObject otherObj, String sourceObjectId) {
         for (GameScriptNode script : sceneScripts) {
             if (!eventType.equals(script.eventType)) {
                 continue;
             }
             String sp = script.eventParam == null ? "" : script.eventParam.trim();
             String targetParam = param == null ? "" : param.trim();
+            if (GameScriptNode.EVENT_BUTTON.equals(eventType) && sp.isEmpty()) {
+                // "On Click" attached to a specific HUD Button/Toggle only triggers for that button.
+                if (sourceObjectId == null || !sourceObjectId.equals(script.targetObjectId)) {
+                    continue;
+                }
+            }
             if (!sp.isEmpty() && !targetParam.isEmpty() && !sp.equalsIgnoreCase(targetParam)) {
                 continue;
             }
@@ -2626,7 +2637,8 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             case "propOf": {
                 String prop = evalSlotText(b, 0, "x", fiber).trim();
                 String objName = evalSlotText(b, 1, "self", fiber).trim();
-                RuntimeObject t = "self".equalsIgnoreCase(objName) ? self : findRuntimeObjectByIdOrName(objName);
+                RuntimeObject t = ("self".equalsIgnoreCase(objName) || "myself".equalsIgnoreCase(objName))
+                        ? self : findRuntimeObjectByIdOrName(objName);
                 return readObjectProperty(t, prop);
             }
             case "opAdd":
@@ -2718,7 +2730,8 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         switch (fn) {
             case "abs": return Math.abs(x);
             case "floor": return Math.floor(x);
-            case "ceil": return Math.ceil(x);
+            case "ceil":
+            case "ceiling": return Math.ceil(x);
             case "sqrt": return Math.sqrt(Math.max(0.0, x));
             case "sin": return Math.sin(Math.toRadians(x));
             case "cos": return Math.cos(Math.toRadians(x));
@@ -2727,8 +2740,14 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             case "acos": return Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, x))));
             case "atan": return Math.toDegrees(Math.atan(x));
             case "ln": return x > 0.0 ? Math.log(x) : 0.0;
+            case "log":
             case "log10": return x > 0.0 ? Math.log10(x) : 0.0;
-            case "exp": return Math.exp(x);
+            case "exp":
+            case "e^":
+            case "e ^": return Math.exp(x);
+            case "pow10":
+            case "10^":
+            case "10 ^": return Math.pow(10.0, x);
             default: return Math.abs(x);
         }
     }
@@ -2742,10 +2761,12 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             case "y": return (double) t.bean.y;
             case "vx": return (double) t.bean.velocityX;
             case "vy": return (double) t.bean.velocityY;
-            case "rotation": return (double) t.bean.rotation;
+            case "rotation":
+            case "direction": return (double) t.bean.rotation;
             case "size": return (double) (t.bean.scaleX * 100f);
             case "alpha": return (double) t.bean.alpha;
-            case "spriteName": return t.bean.spriteResName != null ? t.bean.spriteResName : "";
+            case "spriteName":
+            case "costume": return t.bean.spriteResName != null ? t.bean.spriteResName : "";
             case "visible": return t.bean.visible;
             default: return 0.0;
         }
@@ -4637,12 +4658,18 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         final String eventParam;
         final String targetObjectId;
         final RuntimeObject other;
+        final String sourceObjectId;
 
         PendingEvent(String eventType, String eventParam, String targetObjectId, RuntimeObject other) {
+            this(eventType, eventParam, targetObjectId, other, null);
+        }
+
+        PendingEvent(String eventType, String eventParam, String targetObjectId, RuntimeObject other, String sourceObjectId) {
             this.eventType = eventType;
             this.eventParam = eventParam;
             this.targetObjectId = targetObjectId;
             this.other = other;
+            this.sourceObjectId = sourceObjectId;
         }
     }
 
