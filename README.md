@@ -1,4 +1,4 @@
-Sketchware IA
+Sketchware IA - Fábio Gatão 
 
 <p align="center">
   <img src="assets/sketchware-ia-icon.png" width="160" alt="Sketchware IA Logo">
