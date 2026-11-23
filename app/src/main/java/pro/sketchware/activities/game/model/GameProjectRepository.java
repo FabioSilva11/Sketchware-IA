@@ -166,6 +166,7 @@ public final class GameProjectRepository {
             if (parsed == null) {
                 return null;
             }
+            if (!safeId.isEmpty()) parsed.scId = safeId;
             parsed.ensureInitialized(safeId);
             return parsed;
         } catch (Throwable ignored) {

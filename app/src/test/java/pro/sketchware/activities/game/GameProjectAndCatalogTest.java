@@ -206,6 +206,18 @@ public class GameProjectAndCatalogTest {
     }
 
     @Test
+    public void importedGameUsesDestinationProjectId() throws Exception {
+        File projectFile = tempFolder.newFile("game_project.json");
+        GameProject source = GameProject.createDefault("601");
+        source.scenes.get(0).name = "Shared level";
+        assertTrue(GameProjectRepository.saveToFile(projectFile, "601", source));
+
+        GameProject imported = GameProjectRepository.loadOrCreateFromFile(projectFile, "702").project;
+        assertEquals("702", imported.scId);
+        assertEquals("Shared level", imported.scenes.get(0).name);
+    }
+
+    @Test
     public void repositoryAtomicSaveBackupRecoveryAndQuarantine() throws Exception {
         File dir = tempFolder.newFolder("game_repo");
         File projectFile = new File(dir, "game_project.json");

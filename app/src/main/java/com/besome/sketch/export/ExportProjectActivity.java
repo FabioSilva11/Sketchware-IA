@@ -48,6 +48,7 @@ import kellinwood.security.zipsigner.optional.LoadKeystoreException;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
 import mod.hey.studios.project.AndroidStudioProjectSettingsDialog;
 import mod.hey.studios.project.ProjectSettings;
+import mod.hey.studios.project.backup.BackupFactory;
 import mod.hey.studios.project.proguard.ProguardHandler;
 import mod.hey.studios.project.stringfog.StringfogHandler;
 import mod.hey.studios.util.Helper;
@@ -147,11 +148,41 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         sc_metadata = RecentProjectsRegistry.b(sc_id);
         project_metadata = new ProjectWorkspaceManager(getApplicationContext(), WorkspacePathManager.d(sc_id), sc_metadata);
 
+        if (RecentProjectsRegistry.isGameProject(sc_metadata)) {
+            findViewById(R.id.export_game_card).setVisibility(View.VISIBLE);
+            findViewById(R.id.export_game_project).setOnClickListener(v -> exportGameProject());
+        }
         initializeOutputDirectories();
         initializeSignApkViews();
         initializeExportSrcViews();
         initializeExportIdeViews();
         initializeAppBundleExportViews();
+    }
+
+    private void exportGameProject() {
+        String name = MapValueUtils.c(sc_metadata, "my_ws_name").replaceAll("[^\\p{L}\\p{N} _-]", "_");
+        k();
+        new Thread(() -> {
+            try {
+                BackupFactory backup = new BackupFactory(sc_id);
+                backup.backup(getApplicationContext(), name.trim().isEmpty() ? sc_id : name);
+                File archive = backup.getOutFile();
+                if (archive == null) throw new java.io.IOException(backup.getError());
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    h();
+                    TextView path = findViewById(R.id.export_game_path);
+                    path.setText(archive.getAbsolutePath());
+                    path.setVisibility(View.VISIBLE);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    h();
+                    SketchwareUtil.toastError(getString(R.string.common_error_failed_to_save) + ": " + e.getMessage());
+                });
+            }
+        }, "export-game-project").start();
     }
 
     @Override
