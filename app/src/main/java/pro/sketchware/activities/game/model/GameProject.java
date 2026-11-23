@@ -8,6 +8,9 @@ import java.util.List;
  * Root 2D game project configuration containing scenes, prefabs, and global variables.
  */
 public class GameProject {
+    public static final int CURRENT_SCHEMA_VERSION = 1;
+
+    public int schemaVersion = CURRENT_SCHEMA_VERSION;
     public String scId;
     public int virtualWidth = 1280;
     public int virtualHeight = 720;
@@ -24,6 +27,9 @@ public class GameProject {
     }
 
     public void ensureInitialized(String fallbackScId) {
+        if (schemaVersion <= 0) {
+            schemaVersion = CURRENT_SCHEMA_VERSION;
+        }
         if (scId == null || scId.isEmpty()) {
             scId = fallbackScId == null ? "" : fallbackScId;
         }
@@ -76,8 +82,77 @@ public class GameProject {
         if (globalVariables == null) {
             globalVariables = new HashMap<>();
         }
-        if (startSceneId == null || startSceneId.isEmpty()) {
+        if (startSceneId == null || startSceneId.isEmpty() || getSceneById(startSceneId) == null) {
             startSceneId = scenes.get(0).id;
+        }
+    }
+
+    /**
+     * Removes a saved prefab by ID and cascades deletion to matching {@link #prefabScripts}.
+     *
+     * @return {@code true} if a prefab was removed.
+     */
+    public boolean removePrefab(String prefabId) {
+        if (prefabId == null || prefabId.isEmpty() || prefabs == null) {
+            return false;
+        }
+        boolean removed = false;
+        for (int i = prefabs.size() - 1; i >= 0; i--) {
+            GameObjectBean p = prefabs.get(i);
+            if (p != null && prefabId.equals(p.id)) {
+                prefabs.remove(i);
+                removed = true;
+            }
+        }
+        if (prefabScripts != null) {
+            for (int i = prefabScripts.size() - 1; i >= 0; i--) {
+                GameScriptNode s = prefabScripts.get(i);
+                if (s != null && prefabId.equals(s.targetObjectId)) {
+                    prefabScripts.remove(i);
+                }
+            }
+        }
+        return removed;
+    }
+
+    /**
+     * Repairs {@link #startSceneId} if it pointed to the deleted scene and resets Goal targets
+     * that referenced the deleted scene (by ID or display name) back to {@code "__next__"}.
+     */
+    public void cleanupDeletedSceneReferences(String deletedSceneId, String deletedSceneName) {
+        String idTrim = deletedSceneId == null ? "" : deletedSceneId.trim();
+        String nameTrim = deletedSceneName == null ? "" : deletedSceneName.trim();
+        if (!idTrim.isEmpty() && idTrim.equals(startSceneId) || getSceneById(startSceneId) == null) {
+            startSceneId = (scenes != null && !scenes.isEmpty() && scenes.get(0) != null)
+                    ? scenes.get(0).id
+                    : "";
+        }
+        if (idTrim.isEmpty() && nameTrim.isEmpty()) {
+            return;
+        }
+        if (scenes != null) {
+            for (GameScene s : scenes) {
+                if (s != null) {
+                    resetDeletedSceneTargets(s.objects, idTrim, nameTrim);
+                }
+            }
+        }
+        resetDeletedSceneTargets(prefabs, idTrim, nameTrim);
+    }
+
+    private static void resetDeletedSceneTargets(List<GameObjectBean> objs, String deletedId, String deletedName) {
+        if (objs == null) {
+            return;
+        }
+        for (GameObjectBean obj : objs) {
+            if (obj == null || obj.targetScene == null) {
+                continue;
+            }
+            String ref = obj.targetScene.trim();
+            if ((!deletedId.isEmpty() && deletedId.equalsIgnoreCase(ref))
+                    || (!deletedName.isEmpty() && deletedName.equalsIgnoreCase(ref))) {
+                obj.targetScene = "__next__";
+            }
         }
     }
 

@@ -1,6 +1,7 @@
 package pro.sketchware.activities.game.model;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -131,6 +132,145 @@ public class GameScene {
     public int getEffectiveWorldHeight(GameProject project) {
         int vh = (project != null && project.virtualHeight > 0) ? project.virtualHeight : 720;
         return worldHeight > 0 ? Math.max(vh, worldHeight) : vh;
+    }
+
+    /**
+     * Removes the object with {@code objectId} from {@link #objects} and cascades deletion
+     * to any {@link GameScriptNode} in {@link #scripts} targeting that object.
+     *
+     * @return the list of removed scripts (never null).
+     */
+    public List<GameScriptNode> removeObjectCascade(String objectId) {
+        List<GameScriptNode> removedScripts = new ArrayList<>();
+        if (objectId == null || objectId.isEmpty()) {
+            return removedScripts;
+        }
+        if (objects != null) {
+            for (int i = objects.size() - 1; i >= 0; i--) {
+                GameObjectBean obj = objects.get(i);
+                if (obj != null && objectId.equals(obj.id)) {
+                    objects.remove(i);
+                }
+            }
+        }
+        if (scripts != null) {
+            for (int i = scripts.size() - 1; i >= 0; i--) {
+                GameScriptNode node = scripts.get(i);
+                if (node != null && objectId.equals(node.targetObjectId)) {
+                    removedScripts.add(scripts.remove(i));
+                }
+            }
+        }
+        return removedScripts;
+    }
+
+    /**
+     * Computes the highest {@code zIndex} scoped to either the HUD layer or the World layer,
+     * preventing World sprites from climbing above HUD widgets.
+     */
+    public int computeTopZIndex(boolean forHud) {
+        int maxZ = forHud ? 99 : 0;
+        if (objects != null) {
+            for (GameObjectBean obj : objects) {
+                if (obj == null) {
+                    continue;
+                }
+                boolean objIsHud = obj.isHud || obj.isHudType();
+                if (objIsHud == forHud && obj.zIndex > maxZ) {
+                    maxZ = obj.zIndex;
+                }
+            }
+        }
+        return maxZ;
+    }
+
+    /**
+     * Ensures {@code candidate} has a unique {@code id} and {@code name} within this scene.
+     */
+    public void ensureUniqueIdentity(GameObjectBean candidate) {
+        if (candidate == null) {
+            return;
+        }
+        candidate.ensureInitialized();
+        String baseId = candidate.id;
+        String candidateId = baseId;
+        int suffix = 1;
+        while (hasObjectWithId(candidateId, candidate)) {
+            candidateId = baseId + "_" + suffix;
+            suffix++;
+        }
+        candidate.id = candidateId;
+
+        String baseName = candidate.name;
+        String candidateName = baseName;
+        int nameSuffix = 2;
+        while (hasObjectWithName(candidateName, candidate)) {
+            candidateName = baseName + "_" + nameSuffix;
+            nameSuffix++;
+        }
+        candidate.name = candidateName;
+    }
+
+    /**
+     * Clones {@code source} with unique scene ID/name, layer-scoped Z-index, and optional
+     * {@code prefabId} link (when instantiating a saved prefab at design time).
+     */
+    public GameObjectBean cloneObjectWithUniqueIdentity(
+            GameObjectBean source, float offsetX, float offsetY, boolean linkToPrefab) {
+        GameObjectBean copy = source.copy();
+        copy.ensureInitialized();
+        if (linkToPrefab && source.id != null && !source.id.isEmpty()) {
+            copy.prefabId = source.id;
+        }
+        copy.x += offsetX;
+        copy.y += offsetY;
+        boolean forHud = copy.isHud || copy.isHudType();
+        if (!GameObjectBean.TYPE_PARALLAX_BG.equals(copy.type)) {
+            copy.zIndex = computeTopZIndex(forHud) + 1;
+        }
+        // Force a fresh ID/name distinct from existing scene objects and source
+        String baseId = copy.id;
+        int idIdx = 1;
+        String candId = baseId + "_" + idIdx;
+        while (hasObjectWithId(candId, null) || candId.equals(source.id)) {
+            idIdx++;
+            candId = baseId + "_" + idIdx;
+        }
+        copy.id = candId;
+
+        String baseName = copy.name;
+        int nameIdx = 1;
+        String candName = baseName;
+        while (hasObjectWithName(candName, null)) {
+            candName = baseName + "_" + nameIdx;
+            nameIdx++;
+        }
+        copy.name = candName;
+        return copy;
+    }
+
+    private boolean hasObjectWithId(String id, GameObjectBean ignore) {
+        if (objects == null || id == null) {
+            return false;
+        }
+        for (GameObjectBean o : objects) {
+            if (o != null && o != ignore && id.equals(o.id)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasObjectWithName(String name, GameObjectBean ignore) {
+        if (objects == null || name == null) {
+            return false;
+        }
+        for (GameObjectBean o : objects) {
+            if (o != null && o != ignore && o.name != null && name.equalsIgnoreCase(o.name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public GameScene copy(String newId, String newName) {

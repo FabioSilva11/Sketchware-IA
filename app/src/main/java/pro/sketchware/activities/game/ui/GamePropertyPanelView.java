@@ -3,7 +3,6 @@ package pro.sketchware.activities.game.ui;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -52,6 +51,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import pro.sketchware.R;
+import pro.sketchware.activities.game.model.GameBitmapUtils;
 import pro.sketchware.activities.game.model.GameObjectBean;
 import pro.sketchware.activities.game.model.GameProject;
 import pro.sketchware.activities.game.model.GameProjectRepository;
@@ -160,6 +160,8 @@ public class GamePropertyPanelView extends LinearLayout {
         colorOutlineVariant = MaterialColors.getColor(context, R.attr.colorOutlineVariant, 0x3394A3B8);
 
         setBackgroundColor(colorSurfaceContainer);
+        setClickable(true);
+        setFocusable(true);
 
         LayoutInflater.from(context).inflate(R.layout.view_property, this, true);
 
@@ -180,12 +182,15 @@ public class GamePropertyPanelView extends LinearLayout {
         }
 
         hcvProperty.setHorizontalScrollBarEnabled(false);
+        hcvProperty.setClickable(true);
         cardsStrip.setGravity(Gravity.CENTER_VERTICAL);
 
-        imgDelete.setImageResource(R.drawable.ic_mtrl_delete);
+        imgDelete.setImageResource(R.drawable.ic_game_trash);
+        imgDelete.setContentDescription("Delete object");
         imgDelete.setOnClickListener(v -> deleteSelectedObject());
 
-        imgSave.setImageResource(R.drawable.ic_mtrl_save);
+        imgSave.setImageResource(R.drawable.ic_mtrl_package);
+        imgSave.setContentDescription("Save as Prefab");
         imgSave.setOnClickListener(v -> promptSavePrefab());
 
         spinnerAdapter = new WidgetSpinnerAdapter(context);
@@ -313,8 +318,35 @@ public class GamePropertyPanelView extends LinearLayout {
         spnWidget.post(() -> suppressSpinnerCallback = false);
     }
 
+    public static boolean supportsPhysics(@Nullable GameObjectBean obj) {
+        if (obj == null) return false;
+        if (obj.isHud || obj.isHudType()) return false;
+        String t = obj.type != null ? obj.type : GameObjectBean.TYPE_SPRITE;
+        return !GameObjectBean.TYPE_CAMERA.equals(t)
+                && !GameObjectBean.TYPE_LIGHT_2D.equals(t)
+                && !GameObjectBean.TYPE_PARALLAX_BG.equals(t)
+                && !GameObjectBean.TYPE_PARTICLES.equals(t)
+                && !GameObjectBean.TYPE_WORLD_TEXT.equals(t)
+                && !GameObjectBean.TYPE_SPAWNER.equals(t);
+    }
+
+    private void updateTabVisibility() {
+        boolean showPhysics = selected == null || supportsPhysics(selected);
+        for (View item : groupTabViews) {
+            int idx = item.getTag() instanceof Integer ? (Integer) item.getTag() : 0;
+            if (idx == TAB_PHYSICS) {
+                item.setVisibility(showPhysics ? VISIBLE : GONE);
+            }
+        }
+        if (!showPhysics && activeTab == TAB_PHYSICS) {
+            activeTab = TAB_BASIC;
+            updateTabStyles();
+        }
+    }
+
     private void rebuildContent() {
         updateActionButtonsVisibility();
+        updateTabVisibility();
         syncSpinnerEntries();
         rebuildCardsOnly();
     }
@@ -408,11 +440,11 @@ public class GamePropertyPanelView extends LinearLayout {
 
     private void buildSceneEventCards() {
         addEventCard(GameScriptNode.SCENE_TARGET_ID, GameScriptNode.EVENT_SCENE_START, "",
-                R.drawable.ic_mtrl_code, "onCreate",
+                R.drawable.ic_mtrl_code, "On Start",
                 v -> openBlocks(null, GameScriptNode.EVENT_SCENE_START, ""));
 
         addEventCard(GameScriptNode.SCENE_TARGET_ID, GameScriptNode.EVENT_UPDATE, "",
-                R.drawable.ic_mtrl_run, "onUpdate",
+                R.drawable.ic_mtrl_run, "On Update",
                 v -> openBlocks(null, GameScriptNode.EVENT_UPDATE, ""));
 
         addEventCard(GameScriptNode.SCENE_TARGET_ID, GameScriptNode.EVENT_MESSAGE, null,
@@ -429,6 +461,45 @@ public class GamePropertyPanelView extends LinearLayout {
     }
 
     private void buildObjectBasicCards() {
+        String type = selected.type != null ? selected.type : GameObjectBean.TYPE_SPRITE;
+        boolean isHud = selected.isHud || selected.isHudType();
+        boolean isLight = GameObjectBean.TYPE_LIGHT_2D.equals(type);
+        boolean isParallax = GameObjectBean.TYPE_PARALLAX_BG.equals(type);
+        boolean isLogicalMarker = GameObjectBean.TYPE_CAMERA.equals(type) || GameObjectBean.TYPE_SPAWNER.equals(type);
+        boolean isParticles = GameObjectBean.TYPE_PARTICLES.equals(type);
+        boolean supportsTextOrAction = GameObjectBean.TYPE_WORLD_TEXT.equals(type)
+                || GameObjectBean.TYPE_HUD_TEXT.equals(type)
+                || GameObjectBean.TYPE_HUD_BUTTON.equals(type)
+                || GameObjectBean.TYPE_HUD_DPAD.equals(type)
+                || GameObjectBean.TYPE_HUD_JOYSTICK.equals(type)
+                || GameObjectBean.TYPE_HUD_TOUCH_AREA.equals(type)
+                || GameObjectBean.TYPE_HUD_DIALOG.equals(type)
+                || GameObjectBean.TYPE_HUD_TOGGLE.equals(type);
+        boolean supportsFont = GameObjectBean.TYPE_WORLD_TEXT.equals(type)
+                || GameObjectBean.TYPE_HUD_TEXT.equals(type)
+                || GameObjectBean.TYPE_HUD_BUTTON.equals(type)
+                || GameObjectBean.TYPE_HUD_DIALOG.equals(type)
+                || GameObjectBean.TYPE_HUD_TOGGLE.equals(type);
+        boolean supportsSprite = !isLight
+                && !isLogicalMarker
+                && !isParticles
+                && !GameObjectBean.TYPE_DEATH_ZONE.equals(type)
+                && !GameObjectBean.TYPE_WORLD_TEXT.equals(type)
+                && !GameObjectBean.TYPE_HUD_TEXT.equals(type)
+                && !GameObjectBean.TYPE_HUD_BAR.equals(type)
+                && !GameObjectBean.TYPE_HUD_TOGGLE.equals(type)
+                && !GameObjectBean.TYPE_HUD_DIALOG.equals(type)
+                && !GameObjectBean.TYPE_HUD_BUTTON.equals(type)
+                && !GameObjectBean.TYPE_HUD_DPAD.equals(type)
+                && !GameObjectBean.TYPE_HUD_JOYSTICK.equals(type)
+                && !GameObjectBean.TYPE_HUD_TOUCH_AREA.equals(type);
+        boolean supportsAutoSound = GameObjectBean.TYPE_COLLECTIBLE.equals(type)
+                || GameObjectBean.TYPE_CHECKPOINT.equals(type)
+                || GameObjectBean.TYPE_BOUNCE_PAD.equals(type)
+                || GameObjectBean.TYPE_GOAL.equals(type)
+                || GameObjectBean.TYPE_HAZARD.equals(type)
+                || GameObjectBean.TYPE_DEATH_ZONE.equals(type);
+
         addPropertyCard(R.drawable.ic_mtrl_edit, "Name", nonEmpty(selected.name, selected.id), 0,
                 v -> showTextInputDialog("Object Name", nonEmpty(selected.name, ""), "e.g., player", value -> {
                     String trimmed = value.trim();
@@ -439,63 +510,85 @@ public class GamePropertyPanelView extends LinearLayout {
                     }
                 }));
 
-        addPropertyCard(R.drawable.ic_mtrl_label, "Tag", nonEmpty(selected.tag, "No tag"), 0,
-                v -> showTagDialog());
+        if (supportsPhysics(selected)) {
+            addPropertyCard(R.drawable.ic_mtrl_label, "Tag", nonEmpty(selected.tag, "No tag"), 0,
+                    v -> showTagDialog());
+        }
 
-        String posSummary = String.format(Locale.US, "%d,%d • %dx%d",
+        String posSummary = String.format(Locale.US, "%d,%d\n%d×%d",
                 Math.round(selected.x), Math.round(selected.y),
                 Math.round(selected.width), Math.round(selected.height));
         addPropertyCard(R.drawable.ic_mtrl_devices, "Pos & Size", posSummary, 0,
                 v -> showBoundsDialog());
 
-        addPropertyCard(R.drawable.ic_mtrl_sort, "Z-Index", String.valueOf(selected.zIndex), 0,
-                v -> showZIndexDialog());
+        if (!isLogicalMarker && !isParticles) {
+            addPropertyCard(R.drawable.ic_mtrl_rotate, "Transform",
+                    String.format(Locale.US, "%.0f° • %d%%", selected.rotation, Math.round(clamp(selected.alpha, 0f, 1f) * 100f)),
+                    0,
+                    v -> showRotationAndScaleDialog());
+        }
 
-        int objColor = selected.color;
-        addPropertyCard(R.drawable.ic_mtrl_palette, "Color",
-                objColor == 0 ? "Default" : String.format(Locale.US, "#%06X", objColor & 0xFFFFFF),
-                objColor != 0 ? objColor : 0xFF3B82F6,
-                v -> showColorPickerDialog("Object Color", selected.color, true, chosen -> {
-                    pushUndo();
-                    selected.color = chosen;
-                    notifySceneChanged(false);
-                }));
+        if (!isLogicalMarker) {
+            addPropertyCard(R.drawable.ic_mtrl_sort, "Z-Index", String.valueOf(selected.zIndex), 0,
+                    v -> showZIndexDialog());
 
-        addPropertyCard(R.drawable.ic_mtrl_image, "Sprite", nonEmpty(selected.spriteResName, "None"), 0,
-                v -> showImagePickerDialog("Object Sprite", selected.spriteResName, chosen -> {
-                    pushUndo();
-                    selected.spriteResName = chosen;
-                    notifySceneChanged(true);
-                }));
+            int objColor = selected.color;
+            addPropertyCard(R.drawable.ic_mtrl_palette, "Color",
+                    objColor == 0 ? "Default" : String.format(Locale.US, "#%06X", objColor & 0xFFFFFF),
+                    objColor != 0 ? objColor : 0xFF3B82F6,
+                    v -> showColorPickerDialog("Object Color", selected.color, true, chosen -> {
+                        pushUndo();
+                        selected.color = chosen;
+                        notifySceneChanged(false);
+                    }));
+        }
 
-        addPropertyCard(R.drawable.ic_mtrl_music, "Sound", nonEmpty(selected.soundResName, "None"), 0,
-                v -> showSoundPickerDialog("Object Sound", selected.soundResName, chosen -> {
-                    pushUndo();
-                    selected.soundResName = chosen;
-                    notifySceneChanged(false);
-                }));
+        if (supportsSprite) {
+            addPropertyCard(R.drawable.ic_mtrl_image, "Sprite", nonEmpty(selected.spriteResName, "None"), 0,
+                    v -> showImagePickerDialog("Object Sprite", selected.spriteResName, chosen -> {
+                        pushUndo();
+                        selected.spriteResName = chosen;
+                        notifySceneChanged(true);
+                    }));
+        }
 
-        addPropertyCard(R.drawable.ic_mtrl_font, "Font", nonEmpty(selected.fontResName, "Default"), 0,
-                v -> showFontPickerDialog("Object Font", selected.fontResName, chosen -> {
-                    pushUndo();
-                    selected.fontResName = chosen;
-                    notifySceneChanged(false);
-                }));
+        if (supportsAutoSound) {
+            addPropertyCard(R.drawable.ic_mtrl_music, "Sound", nonEmpty(selected.soundResName, "None"), 0,
+                    v -> showSoundPickerDialog("Trigger / Pickup Sound", selected.soundResName, chosen -> {
+                        pushUndo();
+                        selected.soundResName = chosen;
+                        notifySceneChanged(false);
+                    }));
+        }
+
+        if (supportsFont) {
+            addPropertyCard(R.drawable.ic_mtrl_font, "Font", nonEmpty(selected.fontResName, "Default"), 0,
+                    v -> showFontPickerDialog("Object Font", selected.fontResName, chosen -> {
+                        pushUndo();
+                        selected.fontResName = chosen;
+                        notifySceneChanged(false);
+                    }));
+        }
 
         buildTypeSpecificCards();
 
-        String textPreview = nonEmpty(selected.text, nonEmpty(selected.actionKey, "Empty"));
-        addPropertyCard(R.drawable.ic_mtrl_formattext, "Text / Action", textPreview, 0,
-                v -> showTextAndActionDialog());
+        if (supportsTextOrAction) {
+            String cardTitle = GameObjectBean.TYPE_HUD_DIALOG.equals(type) ? "Dialog / Speaker" : "Text / Action";
+            String textPreview = nonEmpty(selected.text, nonEmpty(selected.actionKey, "Empty"));
+            addPropertyCard(R.drawable.ic_mtrl_formattext, cardTitle, textPreview, 0,
+                    v -> showTextAndActionDialog());
+        }
 
-        addToggleCard(R.drawable.ic_mtrl_visibility, "Visible", selected.visible ? "Visible" : "Hidden", selected.visible,
-                v -> {
-                    pushUndo();
-                    selected.visible = !selected.visible;
-                    notifySceneChanged(false);
-                });
+        if (!isLogicalMarker) {
+            addToggleCard(R.drawable.ic_mtrl_visibility, "Visible", selected.visible ? "Visible" : "Hidden", selected.visible,
+                    v -> {
+                        pushUndo();
+                        selected.visible = !selected.visible;
+                        notifySceneChanged(false);
+                    });
+        }
 
-        addToggleCard(R.drawable.ic_mtrl_shield_lock, "Locked", selected.locked ? "Locked" : "Unlocked", selected.locked,
+        addToggleCard(R.drawable.ic_game_lock, "Locked", selected.locked ? "Locked" : "Unlocked", selected.locked,
                 v -> {
                     pushUndo();
                     selected.locked = !selected.locked;
@@ -506,65 +599,88 @@ public class GamePropertyPanelView extends LinearLayout {
     }
 
     private void buildObjectPhysicsCards() {
+        String type = selected.type != null ? selected.type : GameObjectBean.TYPE_SPRITE;
+        boolean fixedRoleTrigger = GameObjectBean.TYPE_GOAL.equals(type)
+                || GameObjectBean.TYPE_CHECKPOINT.equals(type)
+                || GameObjectBean.TYPE_TRIGGER.equals(type)
+                || GameObjectBean.TYPE_DEATH_ZONE.equals(type)
+                || GameObjectBean.TYPE_COLLECTIBLE.equals(type)
+                || GameObjectBean.TYPE_BOUNCE_PAD.equals(type);
+
         String physicsSummary = selected.physicsEnabled
                 ? (selected.isSensor ? "Sensor" : (selected.oneWay ? "One-Way" : (selected.isStatic ? "Static" : (selected.circleCollider ? "Circle" : "Dynamic"))))
                 : "Disabled";
-        addPropertyCard(R.drawable.ic_mtrl_tune, "Physics", physicsSummary, 0,
+        addPropertyCard(R.drawable.ic_mtrl_tune, "Body Setup", physicsSummary, 0,
                 v -> showPhysicsDialog());
 
-        addToggleCard(R.drawable.ic_mtrl_view_horizontal, "Static", selected.isStatic ? "Yes" : "No", selected.isStatic,
-                v -> {
-                    pushUndo();
-                    selected.physicsEnabled = true;
-                    selected.isStatic = !selected.isStatic;
-                    notifySceneChanged(false);
-                });
+        if (!fixedRoleTrigger) {
+            addToggleCard(R.drawable.ic_mtrl_view_horizontal, "Static", selected.isStatic ? "Yes" : "No", selected.isStatic,
+                    v -> {
+                        pushUndo();
+                        selected.isStatic = !selected.isStatic;
+                        if (selected.isStatic) {
+                            selected.physicsEnabled = true;
+                        }
+                        notifySceneChanged(false);
+                    });
 
-        addToggleCard(R.drawable.ic_mtrl_sensor, "Sensor", selected.isSensor ? "Active" : "No", selected.isSensor,
-                v -> {
-                    pushUndo();
-                    selected.physicsEnabled = true;
-                    selected.isSensor = !selected.isSensor;
-                    notifySceneChanged(false);
-                });
+            addToggleCard(R.drawable.ic_mtrl_sensor, "Sensor", selected.isSensor ? "Active" : "No", selected.isSensor,
+                    v -> {
+                        pushUndo();
+                        selected.isSensor = !selected.isSensor;
+                        if (selected.isSensor) {
+                            selected.physicsEnabled = true;
+                        }
+                        notifySceneChanged(false);
+                    });
+        }
 
-        addPropertyCard(R.drawable.ic_mtrl_rotate, "Rotation", String.format(Locale.US, "%.0f°", selected.rotation), 0,
-                v -> showRotationAndScaleDialog());
-
-        String gravityLabel = "g=" + formatFloat(selected.gravityScale) + " • q=" + formatFloat(selected.bounce);
-        addPropertyCard(R.drawable.ic_mtrl_box, "Body / Friction", gravityLabel, 0,
-                v -> showPhysicsDialog());
+        if (!selected.isStatic || GameObjectBean.TYPE_PROJECTILE.equals(type)) {
+            String velLabel = "vx=" + formatFloat(selected.velocityX) + "\nvy=" + formatFloat(selected.velocityY);
+            addPropertyCard(R.drawable.ic_mtrl_swipe_horizontal, "Velocity", velLabel, 0,
+                    v -> showVelocityDialog());
+        }
     }
 
     private void buildObjectEventCards() {
         String targetId = selected.id != null ? selected.id : "";
+        String type = selected.type != null ? selected.type : GameObjectBean.TYPE_SPRITE;
+        boolean canCollide = supportsPhysics(selected);
 
         addEventCard(targetId, GameScriptNode.EVENT_SCENE_START, "",
                 R.drawable.ic_mtrl_code, "On Start",
                 v -> openBlocks(selected, GameScriptNode.EVENT_SCENE_START, ""));
 
         addEventCard(targetId, GameScriptNode.EVENT_UPDATE, "",
-                R.drawable.ic_mtrl_run, "Update",
+                R.drawable.ic_mtrl_run, "On Update",
                 v -> openBlocks(selected, GameScriptNode.EVENT_UPDATE, ""));
 
-        addEventCard(targetId, GameScriptNode.EVENT_TOUCH, "",
-                R.drawable.ic_mtrl_touch, "On Touch",
-                v -> openBlocks(selected, GameScriptNode.EVENT_TOUCH, ""));
-
-        addEventCard(targetId, GameScriptNode.EVENT_COLLISION, null,
-                R.drawable.ic_mtrl_sensor, "Collision", "Target tag",
-                v -> promptCollisionTag(selected));
-
-        for (ScriptInfo info : findParameterizedScripts(targetId, GameScriptNode.EVENT_COLLISION)) {
-            String label = info.param.isEmpty() ? "Collision: Any" : "Collide: " + info.param;
-            addEventCard(targetId, GameScriptNode.EVENT_COLLISION, info.param,
-                    R.drawable.ic_mtrl_sensor, label,
-                    v -> openBlocks(selected, GameScriptNode.EVENT_COLLISION, info.param));
+        if (!GameObjectBean.TYPE_CAMERA.equals(type) && !GameObjectBean.TYPE_SPAWNER.equals(type)) {
+            addEventCard(targetId, GameScriptNode.EVENT_TOUCH, "",
+                    R.drawable.ic_mtrl_touch, "On Touch",
+                    v -> openBlocks(selected, GameScriptNode.EVENT_TOUCH, ""));
         }
 
-        if (GameObjectBean.TYPE_HUD_BUTTON.equals(selected.type)) {
+        if (canCollide) {
+            addEventCard(targetId, GameScriptNode.EVENT_COLLISION, null,
+                    R.drawable.ic_mtrl_sensor, "Collision", "Target tag",
+                    v -> promptCollisionTag(selected));
+
+            for (ScriptInfo info : findParameterizedScripts(targetId, GameScriptNode.EVENT_COLLISION)) {
+                String label = info.param.isEmpty() ? "Collision: Any" : "Collide: " + info.param;
+                addEventCard(targetId, GameScriptNode.EVENT_COLLISION, info.param,
+                        R.drawable.ic_mtrl_sensor, label,
+                        v -> openBlocks(selected, GameScriptNode.EVENT_COLLISION, info.param));
+            }
+        }
+
+        boolean isActionHud = GameObjectBean.TYPE_HUD_BUTTON.equals(type)
+                || GameObjectBean.TYPE_HUD_TOGGLE.equals(type)
+                || GameObjectBean.TYPE_HUD_TOUCH_AREA.equals(type);
+        if (isActionHud) {
+            String clickLabel = GameObjectBean.TYPE_HUD_TOGGLE.equals(type) ? "On Toggle" : "On Click";
             addEventCard(targetId, GameScriptNode.EVENT_BUTTON, "",
-                    R.drawable.ic_mtrl_button_click, "On Click",
+                    R.drawable.ic_mtrl_button_click, clickLabel,
                     v -> openBlocks(selected, GameScriptNode.EVENT_BUTTON, ""));
         }
         for (ScriptInfo info : findParameterizedScripts(targetId, GameScriptNode.EVENT_BUTTON)) {
@@ -617,8 +733,16 @@ public class GamePropertyPanelView extends LinearLayout {
         tvTitle.setTextSize(11f);
 
         tvSub.setVisibility(VISIBLE);
+        if (value != null && value.contains("\n")) {
+            tvSub.setSingleLine(false);
+            tvSub.setMaxLines(2);
+            tvSub.setGravity(Gravity.CENTER_HORIZONTAL);
+            tvSub.setTextSize(9.5f);
+        } else {
+            tvSub.setSingleLine(true);
+            tvSub.setTextSize(10f);
+        }
         tvSub.setText(value);
-        tvSub.setTextSize(10f);
     }
 
     private void addToggleCard(@DrawableRes int iconRes, String title, String value, boolean active, OnClickListener click) {
@@ -645,8 +769,16 @@ public class GamePropertyPanelView extends LinearLayout {
         tvTitle.setTextColor(active ? colorPrimary : colorOnSurface);
 
         tvSub.setVisibility(VISIBLE);
+        if (value != null && value.contains("\n")) {
+            tvSub.setSingleLine(false);
+            tvSub.setMaxLines(2);
+            tvSub.setGravity(Gravity.CENTER_HORIZONTAL);
+            tvSub.setTextSize(9.5f);
+        } else {
+            tvSub.setSingleLine(true);
+            tvSub.setTextSize(10f);
+        }
         tvSub.setText(value);
-        tvSub.setTextSize(10f);
         tvSub.setTextColor(active ? colorPrimary : colorOnSurfaceVariant);
     }
 
@@ -992,15 +1124,8 @@ public class GamePropertyPanelView extends LinearLayout {
                 })
                 .setNeutralButton("Bring to Front", (d, w) -> {
                     pushUndo();
-                    int maxZ = selected.zIndex;
-                    if (scene.objects != null) {
-                        for (GameObjectBean o : scene.objects) {
-                            if (o.zIndex > maxZ) {
-                                maxZ = o.zIndex;
-                            }
-                        }
-                    }
-                    selected.zIndex = maxZ + 1;
+                    boolean forHud = selected.isHud || selected.isHudType();
+                    selected.zIndex = scene.computeTopZIndex(forHud) + 1;
                     notifySceneChanged(false);
                 })
                 .setNegativeButton("Cancel", null)
@@ -1010,18 +1135,86 @@ public class GamePropertyPanelView extends LinearLayout {
     private void showTextAndActionDialog() {
         Context context = getContext();
         LinearLayout box = createDialogContainer(context);
-        EditText etText = createStyledEditText(context, nonEmpty(selected.text, ""), "Visible text (HUD/Button)", InputType.TYPE_CLASS_TEXT);
-        EditText etAction = createStyledEditText(context, nonEmpty(selected.actionKey, ""), "ActionKey (e.g., jump, fire)", InputType.TYPE_CLASS_TEXT);
-        box.addView(labeledField(context, "Text", etText));
-        box.addView(labeledField(context, "Action Key", etAction));
+        boolean isDialogBox = GameObjectBean.TYPE_HUD_DIALOG.equals(selected.type);
+        EditText etText = createStyledEditText(context, nonEmpty(selected.text, ""),
+                isDialogBox ? "Dialogue message body" : "Visible text (HUD/Button)", InputType.TYPE_CLASS_TEXT);
+        EditText etAction = createStyledEditText(context, nonEmpty(selected.actionKey, ""),
+                isDialogBox ? "Speaker name (e.g., Hero, NPC)" : "ActionKey (e.g., jump, fire)", InputType.TYPE_CLASS_TEXT);
+        box.addView(labeledField(context, isDialogBox ? "Dialogue Text" : "Text", etText));
+        box.addView(labeledField(context, isDialogBox ? "Speaker Name" : "Action Key", etAction));
 
         new MaterialAlertDialogBuilder(context)
-                .setTitle("Text & Action")
+                .setTitle(isDialogBox ? "Dialog Text & Speaker" : "Text & Action")
                 .setView(box)
                 .setPositiveButton("Save", (d, w) -> {
                     pushUndo();
                     selected.text = etText.getText().toString();
                     selected.actionKey = etAction.getText().toString().trim();
+                    notifySceneChanged(false);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showVelocityDialog() {
+        if (selected == null) return;
+        Context context = getContext();
+        LinearLayout box = createDialogContainer(context);
+        EditText etVx = createStyledEditText(context, formatFloat(selected.velocityX), "0",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        EditText etVy = createStyledEditText(context, formatFloat(selected.velocityY), "0",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        box.addView(labeledField(context, "Initial Velocity X (px/s)", etVx));
+        box.addView(labeledField(context, "Initial Velocity Y (px/s)", etVy));
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Initial Velocity")
+                .setView(box)
+                .setPositiveButton("Apply", (d, w) -> {
+                    pushUndo();
+                    selected.velocityX = parseFloatOr(etVx.getText().toString(), selected.velocityX);
+                    selected.velocityY = parseFloatOr(etVy.getText().toString(), selected.velocityY);
+                    notifySceneChanged(false);
+                })
+                .setNeutralButton("Reset (0,0)", (d, w) -> {
+                    pushUndo();
+                    selected.velocityX = 0f;
+                    selected.velocityY = 0f;
+                    notifySceneChanged(false);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showHudBarValueDialog() {
+        if (selected == null) return;
+        Context context = getContext();
+        LinearLayout box = createDialogContainer(context);
+        float curVal = 100f;
+        float maxVal = 100f;
+        String raw = nonEmpty(selected.text, "100/100").trim();
+        int slash = raw.indexOf('/');
+        if (slash > 0) {
+            curVal = parseFloatOr(raw.substring(0, slash), 100f);
+            maxVal = Math.max(1f, parseFloatOr(raw.substring(slash + 1), 100f));
+        } else {
+            curVal = parseFloatOr(raw, 100f);
+        }
+        EditText etCur = createStyledEditText(context, formatFloat(curVal), "100",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        EditText etMax = createStyledEditText(context, formatFloat(maxVal), "100",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        box.addView(labeledField(context, "Current Value", etCur));
+        box.addView(labeledField(context, "Max Value", etMax));
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("HUD Bar Value")
+                .setView(box)
+                .setPositiveButton("Apply", (d, w) -> {
+                    pushUndo();
+                    float c = Math.max(0f, parseFloatOr(etCur.getText().toString(), 100f));
+                    float m = Math.max(1f, parseFloatOr(etMax.getText().toString(), 100f));
+                    selected.text = formatFloat(c) + "/" + formatFloat(m);
                     notifySceneChanged(false);
                 })
                 .setNegativeButton("Cancel", null)
@@ -1121,10 +1314,25 @@ public class GamePropertyPanelView extends LinearLayout {
                 addPropertyCard(R.drawable.ic_mtrl_pattern, "Parallax / Scroll", pLabel, 0,
                         v -> showMotionConfigDialog(true));
             }
-            case GameObjectBean.TYPE_MOVING_PLATFORM, GameObjectBean.TYPE_PROJECTILE, GameObjectBean.TYPE_BOUNCE_PAD -> {
+            case GameObjectBean.TYPE_MOVING_PLATFORM -> {
+                String mLabel = "spd=" + formatFloat(selected.speed) + "\n(" + formatFloat(selected.moveX) + "," + formatFloat(selected.moveY) + ")";
+                addPropertyCard(R.drawable.ic_mtrl_swipe_horizontal, "Motion / Speed", mLabel, 0,
+                        v -> showMotionConfigDialog(false));
+            }
+            case GameObjectBean.TYPE_BOUNCE_PAD -> {
+                addPropertyCard(R.drawable.ic_mtrl_arrow_up, "Bounce Power", formatFloat(selected.speed), 0,
+                        v -> showBouncePowerDialog());
+            }
+            case GameObjectBean.TYPE_PROJECTILE -> {
                 String mLabel = "spd=" + formatFloat(selected.speed) + " (" + formatFloat(selected.moveX) + "," + formatFloat(selected.moveY) + ")";
                 addPropertyCard(R.drawable.ic_mtrl_swipe_horizontal, "Motion / Speed", mLabel, 0,
                         v -> showMotionConfigDialog(false));
+                addPropertyCard(R.drawable.ic_mtrl_star, "Damage", formatFloat(selected.damage), 0,
+                        v -> showDamageOrValueDialog("Damage"));
+            }
+            case GameObjectBean.TYPE_HUD_BAR -> {
+                addPropertyCard(R.drawable.ic_mtrl_progress_bar, "Bar Value", nonEmpty(selected.text, "100/100"), 0,
+                        v -> showHudBarValueDialog());
             }
             case GameObjectBean.TYPE_ANIMATED_SPRITE -> {
                 String fLabel = nonEmpty(selected.spriteFrames, "No frames") + " @ " + formatFloat(selected.animFps) + "fps";
@@ -1261,7 +1469,7 @@ public class GamePropertyPanelView extends LinearLayout {
                 .setTitle("Ambient Darkness (2D Lights)")
                 .setView(box)
                 .setPositiveButton("Apply", (d, w) -> {
-                    float pct = Math.max(0f, Math.min(100f, parseFloatOr(etPct.getText().toString(), currentPct)));
+                    float pct = Math.max(0f, Math.min(95f, parseFloatOr(etPct.getText().toString(), currentPct)));
                     scene.ambientDarkness = pct / 100f;
                     notifySceneChanged(false);
                 })
@@ -1435,12 +1643,13 @@ public class GamePropertyPanelView extends LinearLayout {
                 .setView(sv)
                 .setPositiveButton("Apply", (d, w) -> {
                     pushUndo();
-                    selected.speed = parseFloatOr(etSpeed.getText().toString(), selected.speed);
                     selected.moveX = parseFloatOr(etMoveX.getText().toString(), selected.moveX);
                     selected.moveY = parseFloatOr(etMoveY.getText().toString(), selected.moveY);
                     if (isParallax) {
                         selected.parallaxX = clamp(parseFloatOr(etParX.getText().toString(), selected.parallaxX), 0f, 3f);
                         selected.parallaxY = clamp(parseFloatOr(etParY.getText().toString(), selected.parallaxY), 0f, 3f);
+                    } else {
+                        selected.speed = parseFloatOr(etSpeed.getText().toString(), selected.speed);
                     }
                     notifySceneChanged(false);
                 })
@@ -1482,6 +1691,25 @@ public class GamePropertyPanelView extends LinearLayout {
                     selected.spriteFrames = etFrames.getText().toString().trim();
                     selected.animFps = Math.max(0.5f, Math.min(60f, parseFloatOr(etFps.getText().toString(), selected.animFps)));
                     notifySceneChanged(true);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showBouncePowerDialog() {
+        if (selected == null) return;
+        Context context = getContext();
+        LinearLayout box = createDialogContainer(context);
+        EditText etPower = createStyledEditText(context, formatFloat(selected.speed), "680",
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        box.addView(labeledField(context, "Jump Impulse (px/sec)", etPower));
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Bounce Pad Power")
+                .setView(box)
+                .setPositiveButton("Apply", (d, w) -> {
+                    pushUndo();
+                    selected.speed = Math.max(50f, parseFloatOr(etPower.getText().toString(), selected.speed));
+                    notifySceneChanged(false);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -1876,33 +2104,7 @@ public class GamePropertyPanelView extends LinearLayout {
             scene.objects = new ArrayList<>();
         }
         pushUndo();
-        GameObjectBean copy = selected.copy();
-        copy.x += 24f;
-        copy.y += 24f;
-        int maxZ = selected.zIndex;
-        for (GameObjectBean o : scene.objects) {
-            if (o.zIndex > maxZ) {
-                maxZ = o.zIndex;
-            }
-        }
-        copy.zIndex = maxZ + 1;
-
-        String baseId = nonEmpty(selected.id, "obj");
-        String candId = baseId + "_copy";
-        int idx = 2;
-        while (scene.findObjectById(candId) != null) {
-            candId = baseId + "_copy" + idx++;
-        }
-        copy.id = candId;
-
-        String baseName = nonEmpty(selected.name, baseId);
-        String candName = baseName + "_copy";
-        int nIdx = 2;
-        while (scene.findObjectByName(candName) != null) {
-            candName = baseName + "_copy" + nIdx++;
-        }
-        copy.name = candName;
-
+        GameObjectBean copy = scene.cloneObjectWithUniqueIdentity(selected, 24f, 24f, false);
         scene.objects.add(copy);
         selected = copy;
         if (stageView != null) {
@@ -1924,24 +2126,29 @@ public class GamePropertyPanelView extends LinearLayout {
             if (project.prefabs == null) {
                 project.prefabs = new ArrayList<>();
             }
+            // Replace existing prefab with same name (case-insensitive) instead of duplicating
+            for (int i = project.prefabs.size() - 1; i >= 0; i--) {
+                GameObjectBean existing = project.prefabs.get(i);
+                if (existing != null && existing.name != null && trimmed.equalsIgnoreCase(existing.name.trim())) {
+                    project.removePrefab(existing.id);
+                }
+            }
             GameObjectBean prefab = selected.copy();
             prefab.name = trimmed;
+            prefab.prefabId = "";
             prefab.id = "prefab_" + System.currentTimeMillis();
             project.prefabs.add(prefab);
             if (scene != null && scene.scripts != null && selected.id != null) {
                 if (project.prefabScripts == null) {
                     project.prefabScripts = new ArrayList<>();
                 }
-                com.google.gson.Gson gson = new com.google.gson.Gson();
                 int sIdx = 1;
                 for (GameScriptNode script : scene.scripts) {
                     if (script != null && selected.id.equals(script.targetObjectId)) {
-                        GameScriptNode copiedScript = gson.fromJson(gson.toJson(script), GameScriptNode.class);
-                        if (copiedScript != null) {
-                            copiedScript.id = "pfscript_" + System.currentTimeMillis() + "_" + (sIdx++);
-                            copiedScript.targetObjectId = prefab.id;
-                            project.prefabScripts.add(copiedScript);
-                        }
+                        GameScriptNode copiedScript = script.copy();
+                        copiedScript.id = "pfscript_" + System.currentTimeMillis() + "_" + (sIdx++);
+                        copiedScript.targetObjectId = prefab.id;
+                        project.prefabScripts.add(copiedScript);
                     }
                 }
             }
@@ -1959,10 +2166,10 @@ public class GamePropertyPanelView extends LinearLayout {
         String name = nonEmpty(selected.name, selected.id);
         new MaterialAlertDialogBuilder(getContext())
                 .setTitle("Delete Object")
-                .setMessage("Delete \"" + name + "\" from scene?")
+                .setMessage("Delete \"" + name + "\" and its attached scripts?")
                 .setPositiveButton("Delete", (d, w) -> {
                     pushUndo();
-                    scene.objects.remove(selected);
+                    scene.removeObjectCascade(selected.id);
                     selected = null;
                     if (stageView != null) {
                         stageView.selectObject(null);
@@ -2144,20 +2351,7 @@ public class GamePropertyPanelView extends LinearLayout {
 
     @Nullable
     private static Bitmap decodeThumb(String path) {
-        try {
-            BitmapFactory.Options opts = new BitmapFactory.Options();
-            opts.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(path, opts);
-            int sample = 1;
-            while (opts.outWidth / sample > 128 || opts.outHeight / sample > 128) {
-                sample *= 2;
-            }
-            opts.inJustDecodeBounds = false;
-            opts.inSampleSize = sample;
-            return BitmapFactory.decodeFile(path, opts);
-        } catch (Throwable t) {
-            return null;
-        }
+        return GameBitmapUtils.decodeSampledPath(path, 128);
     }
 
     private static float parseFloatOr(String s, float fallback) {

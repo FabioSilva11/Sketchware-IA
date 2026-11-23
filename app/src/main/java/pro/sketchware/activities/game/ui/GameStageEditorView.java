@@ -5,7 +5,6 @@ import android.content.ClipData;
 import android.content.ClipDescription;
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
@@ -40,6 +39,7 @@ import java.util.List;
 import java.util.Locale;
 
 import pro.sketchware.R;
+import pro.sketchware.activities.game.model.GameBitmapUtils;
 import pro.sketchware.activities.game.model.GameObjectBean;
 import pro.sketchware.activities.game.model.GameProject;
 import pro.sketchware.activities.game.model.GameProjectRepository;
@@ -79,6 +79,11 @@ public class GameStageEditorView extends View {
     private static final int MODE_RESIZE_OBJECT = 4;
     private static final int MODE_ROTATE_OBJECT = 5;
     private static final int MODE_TWO_FINGER_PAN = 6;
+
+    private static final class SceneUndoSnapshot {
+        ArrayList<GameObjectBean> objects = new ArrayList<>();
+        ArrayList<GameScriptNode> scripts = new ArrayList<>();
+    }
 
     private final Gson gson = new Gson();
     private final Type objectListType = new TypeToken<ArrayList<GameObjectBean>>() {
@@ -419,6 +424,7 @@ public class GameStageEditorView extends View {
         if (obj.height <= 0f) {
             obj.height = 64f;
         }
+        boolean objIsHud = obj.isHudType() || obj.isHud;
         if (GameObjectBean.TYPE_PARALLAX_BG.equals(type)) {
             obj.x = 0f;
             obj.y = 0f;
@@ -428,14 +434,21 @@ public class GameStageEditorView extends View {
         } else {
             obj.x = stageCenterX - obj.width * 0.5f;
             obj.y = stageCenterY - obj.height * 0.5f;
+            // Clamp newly added HUD controls into the virtual viewport so panning a wide world never spawns offscreen HUD
+            if (objIsHud) {
+                int vw = getVirtualWidth();
+                int vh = getVirtualHeight();
+                obj.x = clamp(obj.x, 8f, Math.max(8f, vw - obj.width - 8f));
+                obj.y = clamp(obj.y, 8f, Math.max(8f, vh - obj.height - 8f));
+            }
             if (snapToGrid) {
                 obj.x = snap(obj.x);
                 obj.y = snap(obj.y);
             }
-            obj.zIndex = computeTopZIndex() + 1;
+            obj.zIndex = scene.computeTopZIndex(objIsHud) + 1;
         }
-        ensureUniqueIdentity(obj);
-        if (obj.isHudType()) {
+        scene.ensureUniqueIdentity(obj);
+        if (objIsHud) {
             obj.isHud = true;
             if (layerFilter == LAYER_WORLD_ONLY) {
                 layerFilter = LAYER_ALL;
@@ -459,60 +472,52 @@ public class GameStageEditorView extends View {
         return scene.objects.size() + 1;
     }
 
-    private int computeTopZIndex() {
-        int maxZ = 0;
-        if (scene != null && scene.objects != null) {
-            for (GameObjectBean obj : scene.objects) {
-                if (obj.zIndex > maxZ) {
-                    maxZ = obj.zIndex;
-                }
-            }
-        }
-        return maxZ;
-    }
-
-    private void ensureUniqueIdentity(GameObjectBean obj) {
-        if (scene == null) {
-            return;
-        }
-        String baseId = (obj.id == null || obj.id.trim().isEmpty()) ? "obj" : obj.id.trim();
-        String candidateId = baseId;
-        int i = 1;
-        while (scene.findObjectById(candidateId) != null) {
-            candidateId = baseId + "_" + i++;
-        }
-        obj.id = candidateId;
-
-        String baseName = (obj.name == null || obj.name.trim().isEmpty()) ? baseId : obj.name.trim();
-        String candidateName = baseName;
-        int j = 2;
-        while (scene.findObjectByName(candidateName) != null) {
-            candidateName = baseName + "_" + j++;
-        }
-        obj.name = candidateName;
-    }
-
     private String captureObjectsSnapshot() {
-        if (scene == null || scene.objects == null) {
-            return "[]";
+        if (scene == null) {
+            return "{}";
         }
-        return gson.toJson(scene.objects, objectListType);
+        SceneUndoSnapshot snap = new SceneUndoSnapshot();
+        if (scene.objects != null) {
+            snap.objects = scene.objects;
+        }
+        if (scene.scripts != null) {
+            snap.scripts = scene.scripts;
+        }
+        return gson.toJson(snap);
     }
 
     private void restoreObjectsSnapshot(String json) {
-        if (scene == null) {
+        if (scene == null || json == null) {
             return;
         }
-        ArrayList<GameObjectBean> restored = gson.fromJson(json, objectListType);
-        if (restored == null) {
-            restored = new ArrayList<>();
+        ArrayList<GameObjectBean> restoredObjects = null;
+        ArrayList<GameScriptNode> restoredScripts = null;
+        String trimmed = json.trim();
+        if (trimmed.startsWith("{")) {
+            SceneUndoSnapshot snap = gson.fromJson(trimmed, SceneUndoSnapshot.class);
+            if (snap != null) {
+                restoredObjects = snap.objects;
+                restoredScripts = snap.scripts;
+            }
+        } else {
+            restoredObjects = gson.fromJson(trimmed, objectListType);
+        }
+        if (restoredObjects == null) {
+            restoredObjects = new ArrayList<>();
         }
         if (scene.objects == null) {
             scene.objects = new ArrayList<>();
         }
         String prevSelectedId = selectedObject != null ? selectedObject.id : null;
         scene.objects.clear();
-        scene.objects.addAll(restored);
+        scene.objects.addAll(restoredObjects);
+        if (restoredScripts != null) {
+            if (scene.scripts == null) {
+                scene.scripts = new ArrayList<>();
+            }
+            scene.scripts.clear();
+            scene.scripts.addAll(restoredScripts);
+        }
         selectedObject = prevSelectedId != null ? scene.findObjectById(prevSelectedId) : null;
         if (listener != null) {
             listener.onObjectSelected(selectedObject);
@@ -578,14 +583,27 @@ public class GameStageEditorView extends View {
         // Grid lines across full world
         drawStageGrid(canvas, worldW, worldH, bgColor);
 
-        // Objects sorted by zIndex
+        // Render World pass first, then HUD pass on top (matching GameRuntimeView layer order)
         if (scene != null && scene.objects != null) {
-            ArrayList<GameObjectBean> sorted = new ArrayList<>(scene.objects);
-            Collections.sort(sorted, (a, b) -> Integer.compare(a.zIndex, b.zIndex));
-            for (GameObjectBean obj : sorted) {
-                if (matchesLayerFilter(obj)) {
-                    drawGameObject(canvas, obj);
+            ArrayList<GameObjectBean> worldSorted = new ArrayList<>();
+            ArrayList<GameObjectBean> hudSorted = new ArrayList<>();
+            for (GameObjectBean obj : scene.objects) {
+                if (obj == null || !matchesLayerFilter(obj)) {
+                    continue;
                 }
+                if (isHudObject(obj)) {
+                    hudSorted.add(obj);
+                } else {
+                    worldSorted.add(obj);
+                }
+            }
+            Collections.sort(worldSorted, (a, b) -> Integer.compare(a.zIndex, b.zIndex));
+            Collections.sort(hudSorted, (a, b) -> Integer.compare(a.zIndex, b.zIndex));
+            for (GameObjectBean obj : worldSorted) {
+                drawGameObject(canvas, obj);
+            }
+            for (GameObjectBean obj : hudSorted) {
+                drawGameObject(canvas, obj);
             }
         }
 
@@ -632,8 +650,8 @@ public class GameStageEditorView extends View {
             drawSelectionOverlay(canvas, selectedObject);
         }
 
-        // Top trash drop zone when dragging an existing object
-        if (mode == MODE_DRAG_OBJECT) {
+        // Top trash drop zone only after drag passes touchSlop (prevents tap flash)
+        if (mode == MODE_DRAG_OBJECT && dragMovedBeyondSlop) {
             drawTrashZone(canvas);
         }
 
@@ -722,6 +740,16 @@ public class GameStageEditorView extends View {
         }
 
         canvas.restore();
+
+        // Draw moving_platform travel path in world space (unaffected by rotation/scale and visible even with sprites)
+        if (GameObjectBean.TYPE_MOVING_PLATFORM.equals(type) && (obj.moveX != 0f || obj.moveY != 0f)) {
+            dashedPaint.setColor(applyAlpha(0xFF38BDF8, 220));
+            dashedPaint.setStrokeWidth(Math.max(1.5f, 2f / zoom));
+            dashedPaint.setPathEffect(new DashPathEffect(new float[]{8f / zoom, 6f / zoom}, 0f));
+            canvas.drawLine(cx, cy, cx + obj.moveX, cy + obj.moveY, dashedPaint);
+            fillPaint.setColor(applyAlpha(0xFF38BDF8, 220));
+            canvas.drawCircle(cx + obj.moveX, cy + obj.moveY, Math.max(5f, 6f / zoom), fillPaint);
+        }
     }
 
     private void drawProceduralObject(Canvas canvas, GameObjectBean obj, String type, RectF local, int alpha255) {
@@ -775,12 +803,6 @@ public class GameStageEditorView extends View {
                 strokePaint.setColor(applyAlpha(0xFFFFFFFF, Math.min(180, alpha255)));
                 strokePaint.setStrokeWidth(Math.max(1f, 1.5f / zoom));
                 canvas.drawRoundRect(local, 6f, 6f, strokePaint);
-                dashedPaint.setColor(applyAlpha(0xFF38BDF8, 220));
-                dashedPaint.setStrokeWidth(Math.max(1.5f, 2f / zoom));
-                dashedPaint.setPathEffect(new DashPathEffect(new float[]{8f, 6f}, 0f));
-                canvas.drawLine(0f, 0f, obj.moveX, obj.moveY, dashedPaint);
-                fillPaint.setColor(applyAlpha(0xFF38BDF8, 220));
-                canvas.drawCircle(obj.moveX, obj.moveY, 6f, fillPaint);
                 drawCenteredLabel(canvas, "MOVING", 0f, 0f, applyAlpha(0xFFFFFFFF, alpha255), 10f);
             }
             case GameObjectBean.TYPE_ONEWAY_PLATFORM -> {
@@ -1081,8 +1103,10 @@ public class GameStageEditorView extends View {
         canvas.drawPath(tempPath, strokePaint);
 
         if (!obj.locked) {
-            // Rotate handle stem and knob above top-center
-            PointF topCenter = new PointF((tl.x + tr.x) * 0.5f, (tl.y + tr.y) * 0.5f);
+            // Rotate handle stem and knob above visual top-center (handles scaleY < 0 flip)
+            float hForRot = Math.max(MIN_OBJECT_SIZE, obj.height);
+            float sySign = obj.scaleY < 0f ? -1f : 1f;
+            PointF topCenter = objectLocalToScreen(obj, 0f, -hForRot * 0.5f * sySign);
             PointF rotHandle = getRotateHandleScreenPos(obj);
 
             strokePaint.setColor(colorPrimary);
@@ -1103,36 +1127,43 @@ public class GameStageEditorView extends View {
             canvas.drawCircle(br.x, br.y, resizeR, handleStrokePaint);
         }
 
-        // Info & quick events pill below/above object
-        float minX = Math.min(Math.min(tl.x, tr.x), Math.min(bl.x, br.x));
-        float maxY = Math.max(Math.max(tl.y, tr.y), Math.max(bl.y, br.y));
-        String info = String.format(Locale.US, "%s • %d,%d (%dx%d)",
-                obj.name != null ? obj.name : obj.id,
-                Math.round(obj.x), Math.round(obj.y),
-                Math.round(obj.width), Math.round(obj.height));
-        textPaint.setTextSize(10.5f * density);
-        textPaint.setTextAlign(Paint.Align.LEFT);
-        float infoW = textPaint.measureText(info) + 16f * density;
-        float pillH = 22f * density;
-        float infoX = clamp(minX, 8f * density, Math.max(8f * density, getWidth() - infoW - 76f * density));
-        float infoY = Math.min(getHeight() - pillH - 8f * density, maxY + 10f * density);
+        // Anchor selection info + quick Blocks pill at the top-center of the stage view
+        // so it never overlaps or hides objects inside the 2D canvas (hidden while TrashZone is active).
+        boolean showTrashNow = mode == MODE_DRAG_OBJECT && dragMovedBeyondSlop;
+        if (!showTrashNow) {
+            String info = String.format(Locale.US, "%s • %d,%d (%dx%d)",
+                    obj.name != null ? obj.name : obj.id,
+                    Math.round(obj.x), Math.round(obj.y),
+                    Math.round(obj.width), Math.round(obj.height));
+            textPaint.setTextSize(10.5f * density);
+            textPaint.setTextAlign(Paint.Align.LEFT);
+            String evLabel = "Blocks";
+            float evW = textPaint.measureText(evLabel) + 18f * density;
+            float gap = 6f * density;
+            float maxInfoW = Math.max(80f * density, getWidth() - evW - gap - 16f * density);
+            float infoW = Math.min(maxInfoW, textPaint.measureText(info) + 16f * density);
+            float pillH = 24f * density;
+            float totalW = infoW + gap + evW;
+            float infoX = Math.max(8f * density, (getWidth() - totalW) * 0.5f);
+            float infoY = 10f * density;
 
-        tempRect.set(infoX, infoY, infoX + infoW, infoY + pillH);
-        badgePaint.setColor(0xD90F172A);
-        canvas.drawRoundRect(tempRect, 11f * density, 11f * density, badgePaint);
-        textPaint.setColor(Color.WHITE);
-        canvas.drawText(info, infoX + 8f * density, infoY + 15f * density, textPaint);
+            tempRect.set(infoX, infoY, infoX + infoW, infoY + pillH);
+            badgePaint.setColor(0xD90F172A);
+            canvas.drawRoundRect(tempRect, 12f * density, 12f * density, badgePaint);
+            textPaint.setColor(Color.WHITE);
+            Paint.FontMetrics fm = textPaint.getFontMetrics();
+            float textBase = tempRect.centerY() - (fm.ascent + fm.descent) * 0.5f;
+            canvas.save();
+            canvas.clipRect(tempRect.left + 6f * density, tempRect.top, tempRect.right - 6f * density, tempRect.bottom);
+            canvas.drawText(info, infoX + 8f * density, textBase, textPaint);
+            canvas.restore();
 
-        // Quick event blocks pill next to info pill
-        String evLabel = "Blocks";
-        float evW = textPaint.measureText(evLabel) + 16f * density;
-        float evX = tempRect.right + 6f * density;
-        if (evX + evW <= getWidth() - 6f * density) {
+            float evX = tempRect.right + gap;
             eventChipRect.set(evX, infoY, evX + evW, infoY + pillH);
             badgePaint.setColor(colorPrimary);
-            canvas.drawRoundRect(eventChipRect, 11f * density, 11f * density, badgePaint);
+            canvas.drawRoundRect(eventChipRect, 12f * density, 12f * density, badgePaint);
             textPaint.setColor(colorOnPrimary);
-            canvas.drawText(evLabel, evX + 8f * density, infoY + 15f * density, textPaint);
+            canvas.drawText(evLabel, evX + 9f * density, textBase, textPaint);
             eventChipVisible = true;
         }
     }
@@ -1335,8 +1366,10 @@ public class GameStageEditorView extends View {
                     float sin = (float) Math.sin(rad);
                     float localDx = dx * cos + dy * sin;
                     float localDy = -dx * sin + dy * cos;
-                    float sx = Math.abs(selectedObject.scaleX == 0f ? 1f : selectedObject.scaleX);
-                    float sy = Math.abs(selectedObject.scaleY == 0f ? 1f : selectedObject.scaleY);
+                    float sxSigned = selectedObject.scaleX == 0f ? 1f : selectedObject.scaleX;
+                    float sySigned = selectedObject.scaleY == 0f ? 1f : selectedObject.scaleY;
+                    float sx = Math.abs(sxSigned);
+                    float sy = Math.abs(sySigned);
 
                     float newW = Math.max(MIN_OBJECT_SIZE, origObjW + localDx / sx);
                     float newH = Math.max(MIN_OBJECT_SIZE, origObjH + localDy / sy);
@@ -1344,8 +1377,24 @@ public class GameStageEditorView extends View {
                         newW = Math.max(MIN_OBJECT_SIZE, snap(newW));
                         newH = Math.max(MIN_OBJECT_SIZE, snap(newH));
                     }
+
+                    // Keep the rotated top-left world corner anchored so rotated resize never drifts
+                    float origCx = origObjX + origObjW * 0.5f;
+                    float origCy = origObjY + origObjH * 0.5f;
+                    float lx0 = -origObjW * 0.5f * sxSigned;
+                    float ly0 = -origObjH * 0.5f * sySigned;
+                    float tlWorldX = origCx + (lx0 * cos - ly0 * sin);
+                    float tlWorldY = origCy + (lx0 * sin + ly0 * cos);
+
+                    float lx1 = -newW * 0.5f * sxSigned;
+                    float ly1 = -newH * 0.5f * sySigned;
+                    float newCx = tlWorldX - (lx1 * cos - ly1 * sin);
+                    float newCy = tlWorldY - (lx1 * sin + ly1 * cos);
+
                     selectedObject.width = newW;
                     selectedObject.height = newH;
+                    selectedObject.x = newCx - newW * 0.5f;
+                    selectedObject.y = newCy - newH * 0.5f;
                     invalidate();
                     return true;
                 }
@@ -1387,7 +1436,7 @@ public class GameStageEditorView extends View {
                 if (mode == MODE_DRAG_OBJECT && selectedObject != null) {
                     if (isOverTrashZone && scene != null && scene.objects != null) {
                         pushUndoSnapshot(pendingUndoSnapshot);
-                        scene.objects.remove(selectedObject);
+                        scene.removeObjectCascade(selectedObject.id);
                         selectedObject = null;
                         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
                         if (listener != null) {
@@ -1606,7 +1655,8 @@ public class GameStageEditorView extends View {
 
     private PointF getRotateHandleScreenPos(GameObjectBean obj) {
         float h = Math.max(MIN_OBJECT_SIZE, obj.height);
-        PointF topCenter = objectLocalToScreen(obj, 0f, -h * 0.5f);
+        float sySign = obj.scaleY < 0f ? -1f : 1f;
+        PointF topCenter = objectLocalToScreen(obj, 0f, -h * 0.5f * sySign);
         double rad = Math.toRadians(obj.rotation);
         float ux = (float) Math.sin(rad);
         float uy = (float) -Math.cos(rad);
@@ -1645,22 +1695,7 @@ public class GameStageEditorView extends View {
 
     @Nullable
     private static Bitmap decodeBoundedBitmap(String path, int maxDim) {
-        try {
-            BitmapFactory.Options opts = new BitmapFactory.Options();
-            opts.inJustDecodeBounds = true;
-            BitmapFactory.decodeFile(path, opts);
-            int sampleSize = 1;
-            int w = opts.outWidth;
-            int h = opts.outHeight;
-            while (w / sampleSize > maxDim || h / sampleSize > maxDim) {
-                sampleSize *= 2;
-            }
-            opts.inJustDecodeBounds = false;
-            opts.inSampleSize = sampleSize;
-            return BitmapFactory.decodeFile(path, opts);
-        } catch (Throwable t) {
-            return null;
-        }
+        return GameBitmapUtils.decodeSampledPath(path, maxDim);
     }
 
     private boolean matchesLayerFilter(GameObjectBean obj) {

@@ -1,11 +1,7 @@
 package pro.sketchware.activities.game.compiler;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -141,32 +137,18 @@ public final class GameApkSourceGenerator {
     }
 
     private static String readUtf8File(File file) {
-        try (FileInputStream fis = new FileInputStream(file);
-             ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-            byte[] buf = new byte[4096];
-            int n;
-            while ((n = fis.read(buf)) != -1) {
-                bos.write(buf, 0, n);
-            }
-            return bos.toString(StandardCharsets.UTF_8.name());
+        try {
+            return GameProjectRepository.readUtf8File(file);
         } catch (IOException ignored) {
             return "";
         }
     }
 
     private static void writeUtf8File(File file, String content) {
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists()) {
-            parent.mkdirs();
-        }
-        try (FileOutputStream fos = new FileOutputStream(file, false)) {
-            fos.write((content == null ? "" : content).getBytes(StandardCharsets.UTF_8));
-            fos.flush();
-        } catch (IOException ignored) {
-        }
+        GameProjectRepository.writeUtf8FileAtomic(file, content, false);
     }
 
-    private static String buildMainActivitySource(String packageName, boolean defaultLandscape) {
+    public static String buildMainActivitySource(String packageName, boolean defaultLandscape) {
         String pkgHeader = packageName.isEmpty() ? "" : ("package " + packageName + ";\n\n");
         StringBuilder rawTemplate = new StringBuilder(163840);
         rawTemplate.append(MAIN_ACTIVITY_BODY_TEMPLATE_PART1);
@@ -464,11 +446,12 @@ public class MainActivity extends Activity {
         float speed = 120f;
         float moveX = 0f;
         float moveY = 0f;
-        float parallaxX = 0.5f;
-        float parallaxY = 0.5f;
+        float parallaxX = 1f;
+        float parallaxY = 1f;
         float damage = 1f;
         float cooldownSec = 1.5f;
         String prefabName = "";
+        String prefabId = "";
         String targetScene = "__next__";
         String spriteFrames = "";
         float animFps = 8f;
@@ -517,6 +500,7 @@ public class MainActivity extends Activity {
             c.damage = damage;
             c.cooldownSec = cooldownSec;
             c.prefabName = prefabName;
+            c.prefabId = prefabId;
             c.targetScene = targetScene;
             c.spriteFrames = spriteFrames;
             c.animFps = animFps;
@@ -576,11 +560,12 @@ public class MainActivity extends Activity {
             d.speed = (float) obj.optDouble("speed", 120.0);
             d.moveX = (float) obj.optDouble("moveX", 0.0);
             d.moveY = (float) obj.optDouble("moveY", 0.0);
-            d.parallaxX = (float) obj.optDouble("parallaxX", 0.5);
-            d.parallaxY = (float) obj.optDouble("parallaxY", 0.5);
+            d.parallaxX = (float) obj.optDouble("parallaxX", 1.0);
+            d.parallaxY = (float) obj.optDouble("parallaxY", 1.0);
             d.damage = (float) obj.optDouble("damage", 1.0);
             d.cooldownSec = (float) obj.optDouble("cooldownSec", 1.5);
             d.prefabName = obj.optString("prefabName", "");
+            d.prefabId = obj.optString("prefabId", "");
             d.targetScene = obj.optString("targetScene", "__next__");
             d.spriteFrames = obj.optString("spriteFrames", "");
             d.animFps = (float) obj.optDouble("animFps", 8.0);
@@ -842,11 +827,14 @@ public class MainActivity extends Activity {
         private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
         private final Paint lightCutPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final PorterDuffXfermode dstOutXfermode = new PorterDuffXfermode(PorterDuff.Mode.DST_OUT);
         private final RectF tempRect = new RectF();
         private final Path speechBubblePath = new Path();
         private final Path tempPath = new Path();
         private final ArrayList<RuntimeEntity> drawWorldScratch = new ArrayList<RuntimeEntity>();
         private final ArrayList<RuntimeEntity> drawHudScratch = new ArrayList<RuntimeEntity>();
+        private final HashMap<Long, ArrayList<RuntimeEntity>> spatialGrid = new HashMap<Long, ArrayList<RuntimeEntity>>();
+        private final HashMap<String, RuntimeEntity> objectsByIdScratch = new HashMap<String, RuntimeEntity>();
         private int ambientCounter = 0;
         private int nextSpawnOrder = 0;
 
@@ -859,7 +847,7 @@ public class MainActivity extends Activity {
             setFocusable(true);
             setFocusableInTouchMode(true);
             synchronized (stateLock) {
-                loadSceneInternal(this.project.startSceneId);
+                loadSceneInternal(this.project.startSceneId, true);
             }
         }
 
@@ -1066,7 +1054,7 @@ public class MainActivity extends Activity {
                     : Math.max(1, project.virtualHeight);
         }
 
-        private void loadSceneInternal(String sceneId) {
+        private void loadSceneInternal(String sceneId, boolean resetGlobalsAndTimer) {
             SceneData target = project.getSceneByIdOrName(sceneId);
             if (target == null) target = project.getStartScene();
             currentScene = target;
@@ -1081,9 +1069,11 @@ public class MainActivity extends Activity {
                 sceneScripts.addAll(project.prefabScripts);
             }
 
-            if (variables.isEmpty() || (currentScene.id.equals(project.startSceneId) && pendingSceneLoadId == null && transitionTargetSceneId.isEmpty())) {
+            if (resetGlobalsAndTimer || variables.isEmpty()) {
                 variables.clear();
                 variables.putAll(project.globalVariables);
+            }
+            if (resetGlobalsAndTimer) {
                 gameTimerSeconds = 0f;
             }
 
@@ -1413,7 +1403,8 @@ public class MainActivity extends Activity {
                 for (QueuedEvent qe : pendingEvents) {
                     if (qe.targetObjectId != null) {
                         RuntimeEntity targetObj = findById(qe.targetObjectId);
-                        enqueueScriptsForTarget(qe.eventType, qe.eventParam, qe.targetObjectId, targetObj, null);
+                        String matchKey = targetObj != null ? targetObj.matchKey() : qe.targetObjectId;
+                        enqueueScriptsForTarget(qe.eventType, qe.eventParam, matchKey, targetObj, null);
                     } else {
                         enqueueScriptsForEvent(qe.eventType, qe.eventParam, null, null, qe.sourceObjectId);
                     }
@@ -1466,11 +1457,11 @@ public class MainActivity extends Activity {
                 String id = currentScene.id;
                 pendingSceneRestart = false;
                 pendingSceneLoadId = null;
-                loadSceneInternal(id);
+                loadSceneInternal(id, false);
             } else if (pendingSceneLoadId != null) {
                 String next = pendingSceneLoadId;
                 pendingSceneLoadId = null;
-                loadSceneInternal(next);
+                loadSceneInternal(next, false);
             }
         }
 
@@ -1483,7 +1474,7 @@ public class MainActivity extends Activity {
                     transitionTargetSceneId = "";
                     transitionPhase = "in";
                     if (nextId != null && !nextId.isEmpty()) {
-                        loadSceneInternal(nextId);
+                        loadSceneInternal(nextId, false);
                     }
                 }
             } else if ("in".equals(transitionPhase)) {
@@ -1504,33 +1495,35 @@ public class MainActivity extends Activity {
             for (RuntimeEntity obj : snapshot) {
                 if (obj.destroyed) continue;
                 ObjectData b = obj.bean;
+                // Evaluate destroyOffscreen BEFORE activeOnlyNearCamera skip so projectiles always cull cleanly
+                if (!obj.isHud() && b.destroyOffscreen) {
+                    if ((obj.enteredScreen && !isInCameraViewport(obj, 96f)) || isFarOutsideWorldAndCamera(obj, 900f)) {
+                        obj.destroyed = true;
+                        continue;
+                    }
+                }
                 if (!obj.isHud() && b.activeOnlyNearCamera && !isInCameraViewport(obj, 360f)) {
                     continue;
                 }
                 if ("moving_platform".equals(b.type)) {
-                    float spd = Math.max(1f, b.speed);
-                    float rangeX = Math.abs(b.moveX);
-                    float rangeY = Math.abs(b.moveY);
-                    if (rangeX > 0.5f || rangeY > 0.5f) {
+                    if ((b.moveX != 0f || b.moveY != 0f) && b.speed > 0f && !obj.glideActive) {
+                        float endX = obj.startX + b.moveX;
+                        float endY = obj.startY + b.moveY;
+                        float targetX = obj.patrolDir >= 0f ? endX : obj.startX;
+                        float targetY = obj.patrolDir >= 0f ? endY : obj.startY;
+                        float dx = targetX - b.x;
+                        float dy = targetY - b.y;
+                        float dist = (float) Math.hypot(dx, dy);
+                        float stepDist = b.speed * dt;
                         float oldX = b.x;
                         float oldY = b.y;
-                        float dist = (float) Math.hypot(b.moveX, b.moveY);
-                        float fracStep = (spd * dt) / Math.max(1f, dist);
-                        float nextT = clamp(obj.patrolDir * fracStep, -1f, 1f);
-                        b.x += b.moveX * nextT;
-                        b.y += b.moveY * nextT;
-                        float dxFromStart = b.x - obj.startX;
-                        float dyFromStart = b.y - obj.startY;
-                        float dot = dxFromStart * b.moveX + dyFromStart * b.moveY;
-                        float lenSq = b.moveX * b.moveX + b.moveY * b.moveY;
-                        if (obj.patrolDir > 0f && dot >= lenSq) {
-                            b.x = obj.startX + b.moveX;
-                            b.y = obj.startY + b.moveY;
-                            obj.patrolDir = -1f;
-                        } else if (obj.patrolDir < 0f && dot <= 0f) {
-                            b.x = obj.startX;
-                            b.y = obj.startY;
-                            obj.patrolDir = 1f;
+                        if (dist <= stepDist || dist < 0.5f) {
+                            b.x = targetX;
+                            b.y = targetY;
+                            obj.patrolDir = -obj.patrolDir;
+                        } else {
+                            b.x += (dx / dist) * stepDist;
+                            b.y += (dy / dist) * stepDist;
                         }
                         float platDx = b.x - oldX;
                         float platDy = b.y - oldY;
@@ -1543,20 +1536,23 @@ public class MainActivity extends Activity {
                     obj.scrollOffsetY += b.moveY * dt;
                 } else if ("animated_sprite".equals(b.type)) {
                     if (b.spriteFrames != null && !b.spriteFrames.trim().isEmpty()) {
-                        String[] parts = b.spriteFrames.split(",");
-                        ArrayList<String> valid = new ArrayList<String>();
-                        for (String p : parts) {
-                            String trimmed = p.trim();
-                            if (!trimmed.isEmpty()) valid.add(trimmed);
+                        if (!b.spriteFrames.equals(obj.cachedSpriteFramesRaw)) {
+                            obj.cachedSpriteFramesRaw = b.spriteFrames;
+                            obj.cachedSpriteFrames = new ArrayList<String>();
+                            String[] parts = b.spriteFrames.split(",");
+                            for (String p : parts) {
+                                String trimmed = p.trim();
+                                if (!trimmed.isEmpty()) obj.cachedSpriteFrames.add(trimmed);
+                            }
                         }
-                        if (!valid.isEmpty()) {
+                        if (obj.cachedSpriteFrames != null && !obj.cachedSpriteFrames.isEmpty()) {
                             float frameDur = 1f / Math.max(0.5f, b.animFps);
                             obj.animTimer += dt;
                             while (obj.animTimer >= frameDur) {
                                 obj.animTimer -= frameDur;
-                                obj.animFrameIdx = (obj.animFrameIdx + 1) % valid.size();
+                                obj.animFrameIdx = (obj.animFrameIdx + 1) % obj.cachedSpriteFrames.size();
                             }
-                            b.spriteResName = valid.get(obj.animFrameIdx % valid.size());
+                            b.spriteResName = obj.cachedSpriteFrames.get(obj.animFrameIdx % obj.cachedSpriteFrames.size());
                         }
                     }
                 } else if ("spawner".equals(b.type)) {
@@ -1587,12 +1583,6 @@ public class MainActivity extends Activity {
                         obj.dialogVisibleChars = Math.min(b.text.length(), obj.dialogVisibleChars + 45f * dt);
                     }
                 }
-
-                if (!obj.isHud() && b.destroyOffscreen) {
-                    if ((obj.enteredScreen && !isInCameraViewport(obj, 96f)) || isFarOutsideWorldAndCamera(obj, 900f)) {
-                        obj.destroyed = true;
-                    }
-                }
             }
         }
 
@@ -1612,6 +1602,18 @@ public class MainActivity extends Activity {
                     rider.bean.y += platDy;
                     rider.prevY += platDy;
                     rider.onGround = true;
+                    rider.coyoteTimer = 0.085f;
+                } else if (platDx != 0f
+                        && rider.bean.y + rider.bean.height > plat.bean.y + 2f
+                        && rider.bean.y < plat.bean.y + plat.bean.height - 2f
+                        && rider.bean.x + rider.bean.width > plat.bean.x
+                        && rider.bean.x < plat.bean.x + plat.bean.width) {
+                    if (platDx > 0f) {
+                        rider.bean.x = plat.bean.x + plat.bean.width;
+                    } else {
+                        rider.bean.x = plat.bean.x - rider.bean.width;
+                    }
+                    rider.prevX = rider.bean.x;
                 }
             }
         }
@@ -1629,59 +1631,88 @@ public class MainActivity extends Activity {
                 if (obj.bean.activeOnlyNearCamera && !isInCameraViewport(obj, 360f)) {
                     continue;
                 }
+                if (obj.glideActive) {
+                    obj.bean.velocityY = 0f;
+                    obj.coyoteTimer = Math.max(0f, obj.coyoteTimer - dt);
+                    continue;
+                }
                 float scriptDx = obj.bean.x - obj.prevX;
                 float scriptDy = obj.bean.y - obj.prevY;
+                boolean wasOnGround = obj.onGround;
                 obj.onGround = false;
                 obj.bean.velocityY = clamp(obj.bean.velocityY + gravityY * obj.bean.gravityScale * dt, -2400f, MAX_FALL_SPEED);
 
-                float dx = scriptDx + obj.bean.velocityX * dt;
-                obj.bean.x = obj.prevX + dx;
-                if (!obj.bean.isSensor) {
-                    for (RuntimeEntity other : objects) {
-                        if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled
-                                || other.bean.isSensor || other.bean.oneWay) {
-                            continue;
-                        }
-                        if (overlapsXPass(obj, other)) {
-                            if (dx > 0f) {
-                                obj.bean.x = other.bean.x - obj.bean.width;
-                                if (obj.bean.velocityX > 0f) obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
-                            } else if (dx < 0f) {
-                                obj.bean.x = other.bean.x + other.bean.width;
-                                if (obj.bean.velocityX < 0f) obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
-                            } else {
-                                float ol = (obj.bean.x + obj.bean.width) - other.bean.x;
-                                float or = (other.bean.x + other.bean.width) - obj.bean.x;
-                                obj.bean.x = ol < or ? (other.bean.x - obj.bean.width) : (other.bean.x + other.bean.width);
+                float totalDx = scriptDx + obj.bean.velocityX * dt;
+                float totalDy = scriptDy + obj.bean.velocityY * dt;
+                float minDim = Math.max(8f, Math.min(obj.bean.width, obj.bean.height));
+                float maxMove = Math.max(Math.abs(totalDx), Math.abs(totalDy));
+                int substeps = (!obj.bean.isSensor && maxMove > minDim * 0.5f)
+                        ? Math.min(6, (int) Math.ceil(maxMove / (minDim * 0.5f))) : 1;
+                float stepDx = totalDx / substeps;
+                float stepDy = totalDy / substeps;
+                float subDt = dt / substeps;
+
+                obj.bean.x = obj.prevX;
+                obj.bean.y = obj.prevY;
+
+                for (int s = 0; s < substeps; s++) {
+                    float stepPrevY = obj.bean.y;
+
+                    obj.bean.x += stepDx;
+                    if (!obj.bean.isSensor) {
+                        for (RuntimeEntity other : objects) {
+                            if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled
+                                    || other.bean.isSensor || other.bean.oneWay) {
+                                continue;
+                            }
+                            if (obj.bean.circleCollider || other.bean.circleCollider) {
+                                resolveCircleSolidContact(obj, other, subDt);
+                                continue;
+                            }
+                            if (overlapsXPass(obj, other)) {
+                                if (stepDx > 0f) {
+                                    obj.bean.x = other.bean.x - obj.bean.width;
+                                    if (obj.bean.velocityX > 0f) obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
+                                } else if (stepDx < 0f) {
+                                    obj.bean.x = other.bean.x + other.bean.width;
+                                    if (obj.bean.velocityX < 0f) obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
+                                } else {
+                                    float ol = (obj.bean.x + obj.bean.width) - other.bean.x;
+                                    float or = (other.bean.x + other.bean.width) - obj.bean.x;
+                                    obj.bean.x = ol < or ? (other.bean.x - obj.bean.width) : (other.bean.x + other.bean.width);
+                                }
                             }
                         }
                     }
-                }
 
-                float dy = scriptDy + obj.bean.velocityY * dt;
-                obj.bean.y = obj.prevY + dy;
-                if (!obj.bean.isSensor) {
-                    for (RuntimeEntity other : objects) {
-                        if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled || other.bean.isSensor) {
-                            continue;
-                        }
-                        if (other.bean.oneWay) {
-                            if (dy < 0f || (obj.prevY + obj.bean.height > other.bean.y + 6f)) {
+                    obj.bean.y += stepDy;
+                    if (!obj.bean.isSensor) {
+                        for (RuntimeEntity other : objects) {
+                            if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled || other.bean.isSensor) {
                                 continue;
                             }
-                        }
-                        if (overlapsYPass(obj, other)) {
-                            if (dy >= 0f) {
-                                obj.bean.y = other.bean.y - obj.bean.height;
-                                obj.onGround = true;
-                                if (obj.bean.velocityY > 0f) {
-                                    obj.bean.velocityY = (obj.bean.bounce > 0.05f) ? -obj.bean.velocityY * obj.bean.bounce : 0f;
+                            if (other.bean.oneWay) {
+                                if (stepDy < 0f || (stepPrevY + obj.bean.height > other.bean.y + 6f)) {
+                                    continue;
                                 }
-                                float damp = Math.max(0f, 1f - Math.max(obj.bean.friction, other.bean.friction) * 8f * dt);
-                                obj.bean.velocityX *= damp;
-                            } else {
-                                obj.bean.y = other.bean.y + other.bean.height;
-                                if (obj.bean.velocityY < 0f) obj.bean.velocityY = -obj.bean.velocityY * obj.bean.bounce;
+                            }
+                            if (obj.bean.circleCollider || other.bean.circleCollider) {
+                                resolveCircleSolidContact(obj, other, subDt);
+                                continue;
+                            }
+                            if (overlapsYPass(obj, other)) {
+                                if (stepDy >= 0f) {
+                                    obj.bean.y = other.bean.y - obj.bean.height;
+                                    obj.onGround = true;
+                                    if (obj.bean.velocityY > 0f) {
+                                        obj.bean.velocityY = (obj.bean.bounce > 0.05f) ? -obj.bean.velocityY * obj.bean.bounce : 0f;
+                                    }
+                                    float damp = Math.max(0f, 1f - Math.max(obj.bean.friction, other.bean.friction) * 8f * subDt);
+                                    obj.bean.velocityX *= damp;
+                                } else {
+                                    obj.bean.y = other.bean.y + other.bean.height;
+                                    if (obj.bean.velocityY < 0f) obj.bean.velocityY = -obj.bean.velocityY * obj.bean.bounce;
+                                }
                             }
                         }
                     }
@@ -1690,31 +1721,132 @@ public class MainActivity extends Activity {
                 if (solidEdges && !obj.bean.isSensor && !"projectile".equals(obj.bean.type)) {
                     clampInsideWorldRect(obj, worldW, worldH);
                 }
+                if (obj.onGround) {
+                    obj.coyoteTimer = 0.085f;
+                } else {
+                    obj.coyoteTimer = wasOnGround ? Math.max(0f, 0.085f - dt) : Math.max(0f, obj.coyoteTimer - dt);
+                }
             }
 
+            objectsByIdScratch.clear();
+            spatialGrid.clear();
+            final float cellSize = 128f;
             for (RuntimeEntity obj : objects) {
                 obj.prevColliders.clear();
                 obj.prevColliders.addAll(obj.currentColliders);
                 obj.currentColliders.clear();
+                if (obj.destroyed || obj.isHud()) continue;
+                if (obj.bean.id != null) objectsByIdScratch.put(obj.bean.id, obj);
+                int minCx = (int) Math.floor((obj.bean.x - 2f) / cellSize);
+                int maxCx = (int) Math.floor((obj.bean.x + obj.bean.width + 2f) / cellSize);
+                int minCy = (int) Math.floor((obj.bean.y - 2f) / cellSize);
+                int maxCy = (int) Math.floor((obj.bean.y + obj.bean.height + 2f) / cellSize);
+                for (int cy = minCy; cy <= maxCy; cy++) {
+                    for (int cx = minCx; cx <= maxCx; cx++) {
+                        long key = (((long) cx) << 32) ^ (cy & 0xffffffffL);
+                        ArrayList<RuntimeEntity> bucket = spatialGrid.get(key);
+                        if (bucket == null) {
+                            bucket = new ArrayList<RuntimeEntity>(4);
+                            spatialGrid.put(key, bucket);
+                        }
+                        bucket.add(obj);
+                    }
+                }
             }
 
-            int n = objects.size();
-            for (int i = 0; i < n; i++) {
-                RuntimeEntity a = objects.get(i);
-                if (a.destroyed || a.isHud()) continue;
-                for (int j = i + 1; j < n; j++) {
-                    RuntimeEntity b = objects.get(j);
-                    if (b.destroyed || b.isHud()) continue;
-                    if (aabbTouching(a, b)) {
-                        a.currentColliders.add(b.bean.id);
-                        b.currentColliders.add(a.bean.id);
-                        if (!a.prevColliders.contains(b.bean.id)) enqueueCollisionScripts(a, b);
-                        if (!b.prevColliders.contains(a.bean.id)) enqueueCollisionScripts(b, a);
+            for (ArrayList<RuntimeEntity> bucket : spatialGrid.values()) {
+                int bn = bucket.size();
+                if (bn < 2) continue;
+                for (int i = 0; i < bn; i++) {
+                    RuntimeEntity a = bucket.get(i);
+                    for (int j = i + 1; j < bn; j++) {
+                        RuntimeEntity b = bucket.get(j);
+                        if (a == b || a.currentColliders.contains(b.bean.id)) continue;
+                        if (a.bean.isStatic && b.bean.isStatic && !a.bean.isSensor && !b.bean.isSensor
+                                && !hasCollisionScriptBetween(a, b)) {
+                            continue;
+                        }
+                        if (aabbTouching(a, b)) {
+                            a.currentColliders.add(b.bean.id);
+                            b.currentColliders.add(a.bean.id);
+                            if (!a.prevColliders.contains(b.bean.id)) enqueueCollisionScripts(a, b);
+                            if (!b.prevColliders.contains(a.bean.id)) enqueueCollisionScripts(b, a);
+                        }
                     }
                 }
             }
 
             stepWorldBoundsAndBuiltins(worldW, worldH);
+        }
+
+        private void resolveCircleSolidContact(RuntimeEntity obj, RuntimeEntity other, float dt) {
+            if (obj.bean.circleCollider && other.bean.circleCollider) {
+                float ax = obj.bean.x + obj.bean.width * 0.5f;
+                float ay = obj.bean.y + obj.bean.height * 0.5f;
+                float ar = Math.min(obj.bean.width, obj.bean.height) * 0.5f;
+                float bx = other.bean.x + other.bean.width * 0.5f;
+                float by = other.bean.y + other.bean.height * 0.5f;
+                float br = Math.min(other.bean.width, other.bean.height) * 0.5f;
+                float dx = ax - bx;
+                float dy = ay - by;
+                float distSq = dx * dx + dy * dy;
+                float rSum = ar + br;
+                if (distSq >= rSum * rSum) return;
+                float dist = (float) Math.sqrt(Math.max(0.0001f, distSq));
+                float nx = dx / dist;
+                float ny = dy / dist;
+                float pen = rSum - dist;
+                obj.bean.x += nx * pen;
+                obj.bean.y += ny * pen;
+                applyCircleContactResponse(obj, other, nx, ny, dt);
+            } else {
+                RuntimeEntity circ = obj.bean.circleCollider ? obj : other;
+                RuntimeEntity box = obj.bean.circleCollider ? other : obj;
+                float cx = circ.bean.x + circ.bean.width * 0.5f;
+                float cy = circ.bean.y + circ.bean.height * 0.5f;
+                float r = Math.min(circ.bean.width, circ.bean.height) * 0.5f;
+                float nearX = clamp(cx, box.bean.x, box.bean.x + box.bean.width);
+                float nearY = clamp(cy, box.bean.y, box.bean.y + box.bean.height);
+                float dx = cx - nearX;
+                float dy = cy - nearY;
+                float distSq = dx * dx + dy * dy;
+                if (distSq >= r * r) return;
+                float nx, ny, pen;
+                if (distSq > 0.0001f) {
+                    float dist = (float) Math.sqrt(distSq);
+                    nx = dx / dist;
+                    ny = dy / dist;
+                    pen = r - dist;
+                } else {
+                    nx = 0f;
+                    ny = -1f;
+                    pen = r;
+                }
+                if (circ == obj) {
+                    obj.bean.x += nx * pen;
+                    obj.bean.y += ny * pen;
+                    applyCircleContactResponse(obj, other, nx, ny, dt);
+                } else {
+                    obj.bean.x -= nx * pen;
+                    obj.bean.y -= ny * pen;
+                    applyCircleContactResponse(obj, other, -nx, -ny, dt);
+                }
+            }
+        }
+
+        private void applyCircleContactResponse(RuntimeEntity obj, RuntimeEntity other, float nx, float ny, float dt) {
+            if (ny < -0.45f) obj.onGround = true;
+            float vn = obj.bean.velocityX * nx + obj.bean.velocityY * ny;
+            if (vn < 0f) {
+                float e = obj.bean.bounce > 0.05f ? obj.bean.bounce : 0f;
+                float j = -(1f + e) * vn;
+                obj.bean.velocityX += nx * j;
+                obj.bean.velocityY += ny * j;
+            }
+            if (ny < -0.45f) {
+                float damp = Math.max(0f, 1f - Math.max(obj.bean.friction, other.bean.friction) * 4f * dt);
+                obj.bean.velocityX *= damp;
+            }
         }
 
         private void clampInsideWorldRect(RuntimeEntity obj, float worldW, float worldH) {
@@ -1768,18 +1900,25 @@ public class MainActivity extends Activity {
                     }
                     continue;
                 }
-                for (RuntimeEntity other : objects) {
-                    if (other == actor || other.destroyed || other.isHud()) continue;
-                    if (!actor.currentColliders.contains(other.bean.id)) continue;
+                for (String colliderId : actor.currentColliders) {
+                    RuntimeEntity other = objectsByIdScratch.get(colliderId);
+                    if (other == null || other == actor || other.destroyed || other.isHud()) continue;
 
                     String oType = other.bean.type;
                     if ("checkpoint".equals(oType)) {
-                        if (!actor.hasCheckpoint || Math.abs(actor.checkpointX - other.bean.x) > 4f
-                                || Math.abs(actor.checkpointY - other.bean.y) > 4f) {
-                            actor.checkpointX = other.bean.x + (other.bean.width - actor.bean.width) * 0.5f;
-                            actor.checkpointY = other.bean.y + other.bean.height - actor.bean.height;
+                        float newCpX = other.bean.x + (other.bean.width - actor.bean.width) * 0.5f;
+                        float newCpY = other.bean.y + other.bean.height - actor.bean.height;
+                        boolean sameCheckpoint = other.bean.id != null && other.bean.id.equals(actor.lastCheckpointId);
+                        if (!actor.hasCheckpoint || (!sameCheckpoint && (Math.abs(actor.checkpointX - newCpX) > 1f
+                                || Math.abs(actor.checkpointY - newCpY) > 1f))) {
+                            actor.checkpointX = newCpX;
+                            actor.checkpointY = newCpY;
                             actor.hasCheckpoint = true;
+                            actor.lastCheckpointId = other.bean.id;
                             other.bean.toggled = true;
+                            if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()) {
+                                playSoundInternal(other.bean.soundResName);
+                            }
                             emitParticles(other.bean.x + other.bean.width * 0.5f, other.bean.y + other.bean.height * 0.25f, 0xFF10B981, 10);
                         }
                     } else if ("bounce_pad".equals(oType)) {
@@ -1788,6 +1927,10 @@ public class MainActivity extends Activity {
                             float impulse = other.bean.speed >= 300f ? other.bean.speed : Math.max(480f, other.bean.speed * 5.2f);
                             actor.bean.velocityY = -impulse;
                             actor.onGround = false;
+                            actor.coyoteTimer = 0f;
+                            if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()) {
+                                playSoundInternal(other.bean.soundResName);
+                            }
                         }
                     } else if ("collectible".equals(oType)) {
                         if (!hasCollisionScriptBetween(actor, other)) {
@@ -1802,16 +1945,27 @@ public class MainActivity extends Activity {
                         }
                     } else if ("death_zone".equals(oType)) {
                         if (actor.hitCooldown <= 0f && !hasCollisionScriptBetween(actor, other)) {
+                            if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()) {
+                                playSoundInternal(other.bean.soundResName);
+                            }
                             if (actor.hasCheckpoint || respawnFall) {
                                 respawnObjectAtCheckpoint(actor);
                             } else {
                                 pendingSceneRestart = true;
                             }
                         }
+                    } else if ("hazard".equals(oType)) {
+                        if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()
+                                && !actor.prevColliders.contains(other.bean.id)) {
+                            playSoundInternal(other.bean.soundResName);
+                        }
                     } else if ("goal".equals(oType)) {
                         if (actor.hitCooldown <= 0f && !hasCollisionScriptBetween(actor, other)) {
                             String nextSceneId = resolveGoalSceneId(other.bean.targetScene);
                             if (nextSceneId != null && currentScene != null && !nextSceneId.equals(currentScene.id)) {
+                                if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()) {
+                                    playSoundInternal(other.bean.soundResName);
+                                }
                                 actor.hitCooldown = 1.0f;
                                 startSceneTransition(nextSceneId, "fade");
                             }
@@ -2091,6 +2245,18 @@ public class MainActivity extends Activity {
                     activeFibers.remove(fiber);
                     continue;
                 }
+                if (fiber.waitingFibers != null && !fiber.waitingFibers.isEmpty()) {
+                    for (int w = fiber.waitingFibers.size() - 1; w >= 0; w--) {
+                        Fiber child = fiber.waitingFibers.get(w);
+                        if (child == null || child.finished || !activeFibers.contains(child)) {
+                            fiber.waitingFibers.remove(w);
+                        }
+                    }
+                    if (!fiber.waitingFibers.isEmpty()) {
+                        continue;
+                    }
+                    fiber.waitingFibers = null;
+                }
                 if (fiber.waitTimer > 0f) {
                     fiber.waitTimer -= dt;
                     if (fiber.waitTimer > 0f) continue;
@@ -2113,11 +2279,12 @@ public class MainActivity extends Activity {
                 Frame top = fiber.frames.get(fiber.frames.size() - 1);
                 if (top.nextIndex >= top.blocks.size()) {
                     if (top.whileUntilBlock != null) {
-                        if (evalSlotBool(top.whileUntilBlock, 0, false, fiber)) {
-                            fiber.frames.remove(fiber.frames.size() - 1);
-                        } else {
+                        if (!evalSlotBool(top.whileUntilBlock, 0, true, fiber) && top.remaining > 1) {
+                            top.remaining--;
                             top.nextIndex = 0;
                             return;
+                        } else {
+                            fiber.frames.remove(fiber.frames.size() - 1);
                         }
                         continue;
                     }
@@ -2180,15 +2347,11 @@ public class MainActivity extends Activity {
                 }
                 return false;
             } else if ("repeatUntil".equals(op)) {
-                if (!evalSlotBool(block, 0, false, fiber)) {
-                    if (block.subStack1 != null && !block.subStack1.isEmpty()) {
-                        Frame f = new Frame(block.subStack1, 1);
-                        f.whileUntilBlock = block;
-                        fiber.frames.add(f);
-                    } else {
-                        currentFrame.nextIndex--;
-                        return true;
-                    }
+                if (block.subStack1 != null && !block.subStack1.isEmpty()
+                        && !evalSlotBool(block, 0, true, fiber)) {
+                    Frame f = new Frame(block.subStack1, 10000);
+                    f.whileUntilBlock = block;
+                    fiber.frames.add(f);
                 }
                 return false;
             } else if ("stopScript".equals(op) || "stopAll".equals(op)) {
@@ -2245,7 +2408,7 @@ public class MainActivity extends Activity {
                 }
                 return false;
             } else if ("ifOnGround".equals(op)) {
-                if (self != null && self.onGround) pushStack(fiber, block.subStack1, 1);
+                if (self != null && (self.onGround || self.coyoteTimer > 0f)) pushStack(fiber, block.subStack1, 1);
                 return false;
             } else if ("moveSteps".equals(op)) {
                 if (self != null) {
@@ -2257,10 +2420,13 @@ public class MainActivity extends Activity {
                 return false;
             } else if ("goToTarget".equals(op)) {
                 if (self != null) {
-                    String target = evalSlotText(block, 0, "random", fiber);
+                    String target = evalSlotText(block, 0, "random", fiber).trim();
                     if ("touch".equalsIgnoreCase(target) || "pointer".equalsIgnoreCase(target) || "ponteiro".equalsIgnoreCase(target)) {
                         self.bean.x = touchX - self.bean.width * 0.5f;
                         self.bean.y = touchY - self.bean.height * 0.5f;
+                    } else if ("joystick".equalsIgnoreCase(target)) {
+                        self.bean.x += joyX * 8f;
+                        self.bean.y += joyY * 8f;
                     } else if ("random".equalsIgnoreCase(target) || "aleatorio".equalsIgnoreCase(target) || target.isEmpty()) {
                         float maxX = Math.max(0f, project.virtualWidth - self.bean.width);
                         float maxY = Math.max(0f, project.virtualHeight - self.bean.height);
@@ -2408,11 +2574,13 @@ public class MainActivity extends Activity {
                         float v = evalSlotFloat(block, 1, 550f, fiber);
                         t.bean.velocityY = v > 0f ? -v : v;
                         t.onGround = false;
+                        t.coyoteTimer = 0f;
                     }
                 } else if (self != null) {
                     float v = evalSlotFloat(block, 0, 550f, fiber);
                     self.bean.velocityY = v > 0f ? -v : v;
                     self.onGround = false;
+                    self.coyoteTimer = 0f;
                 }
                 return false;
             } else if ("setRotation".equals(op)) {
@@ -2438,6 +2606,14 @@ public class MainActivity extends Activity {
                         if ("touch".equalsIgnoreCase(ts) || "pointer".equalsIgnoreCase(ts) || "ponteiro".equalsIgnoreCase(ts)) {
                             tx = touchX;
                             ty = touchY;
+                        } else if ("joystick".equalsIgnoreCase(ts)) {
+                            if (Math.hypot(joyX, joyY) > 0.05) {
+                                self.bean.rotation = (float) Math.toDegrees(Math.atan2(joyY, joyX));
+                            }
+                            return false;
+                        } else if ("random".equalsIgnoreCase(ts) || "aleatorio".equalsIgnoreCase(ts)) {
+                            tx = random.nextFloat() * Math.max(1, project.virtualWidth);
+                            ty = random.nextFloat() * Math.max(1, project.virtualHeight);
                         } else {
                             RuntimeEntity t = findByIdOrName(ts);
                             if (t != null) {
@@ -2514,7 +2690,12 @@ public class MainActivity extends Activity {
                     self.animTimer = 0f;
                 }
                 return false;
-            } else if ("setBackdrop".equals(op) || "switchBackdrop".equals(op)) {
+            } else if ("setBackdrop".equals(op)) {
+                if (currentScene != null) {
+                    currentScene.backgroundSprite = evalSlotText(block, 0, "", fiber);
+                }
+                return false;
+            } else if ("switchBackdrop".equals(op)) {
                 String target = evalSlotText(block, 0, "", fiber);
                 SceneData sc = project.getSceneByIdOrName(target);
                 if (sc != null) {
@@ -2549,13 +2730,18 @@ public class MainActivity extends Activity {
             } else if ("setZIndex".equals(op)) {
                 if (self != null) {
                     String arg = evalSlotText(block, 0, "front", fiber).trim().toLowerCase(Locale.ROOT);
+                    boolean selfIsHud = self.isHud();
                     if ("front".equals(arg) || "frente".equals(arg)) {
                         int maxZ = self.bean.zIndex;
-                        for (RuntimeEntity o : objects) maxZ = Math.max(maxZ, o.bean.zIndex);
+                        for (RuntimeEntity o : objects) {
+                            if (o.isHud() == selfIsHud && o.bean.zIndex > maxZ) maxZ = o.bean.zIndex;
+                        }
                         self.bean.zIndex = maxZ + 1;
                     } else if ("back".equals(arg) || "tras".equals(arg)) {
                         int minZ = self.bean.zIndex;
-                        for (RuntimeEntity o : objects) minZ = Math.min(minZ, o.bean.zIndex);
+                        for (RuntimeEntity o : objects) {
+                            if (o.isHud() == selfIsHud && o.bean.zIndex < minZ) minZ = o.bean.zIndex;
+                        }
                         self.bean.zIndex = minZ - 1;
                     } else {
                         self.bean.zIndex = Math.round(evalSlotFloat(block, 0, self.bean.zIndex, fiber));
@@ -2578,7 +2764,11 @@ public class MainActivity extends Activity {
                 if (self != null) self.bean.alpha = clamp(evalSlotFloat(block, 0, 1f, fiber), 0f, 1f);
                 return false;
             } else if ("clearEffects".equals(op)) {
-                if (self != null) self.bean.alpha = 1f;
+                if (self != null) {
+                    self.bean.alpha = 1f;
+                    self.bean.scaleX = 1f;
+                    self.bean.scaleY = 1f;
+                }
                 return false;
             } else if ("setScale".equals(op)) {
                 if (self != null) {
@@ -2591,13 +2781,13 @@ public class MainActivity extends Activity {
             } else if ("changeSize".equals(op)) {
                 if (self != null) {
                     float d = evalSlotFloat(block, 0, 10f, fiber) / 100f;
-                    self.bean.scaleX = Math.max(0.05f, self.bean.scaleX + d);
-                    self.bean.scaleY = Math.max(0.05f, self.bean.scaleY + d);
+                    self.bean.scaleX = clamp(self.bean.scaleX + d, 0.05f, 10f);
+                    self.bean.scaleY = clamp(self.bean.scaleY + d, 0.05f, 10f);
                 }
                 return false;
             } else if ("setSize".equals(op)) {
                 if (self != null) {
-                    float s = Math.max(0.05f, evalSlotFloat(block, 0, 100f, fiber) / 100f);
+                    float s = clamp(evalSlotFloat(block, 0, 100f, fiber) / 100f, 0.05f, 10f);
                     self.bean.scaleX = s;
                     self.bean.scaleY = s;
                 }
@@ -2762,19 +2952,40 @@ public class MainActivity extends Activity {
             } else if ("saveGameData".equals(op)) {
                 String key = evalSlotText(block, 0, "", fiber).trim();
                 if (!key.isEmpty()) {
-                    String val = evalSlotString(block, 1, "", fiber);
+                    String val = block.getParamBlock(1) != null
+                            ? valueToString(evaluateBlockValue(block.getParamBlock(1), fiber))
+                            : evalStringOrRaw(param(block, 1, ""), fiber);
                     SharedPreferences prefs = getSavePrefs();
                     if (prefs != null) {
                         prefs.edit().putString(key, val).apply();
                     }
                 }
                 return false;
-            } else if ("sendMessage".equals(op) || "sendMessageWait".equals(op)) {
+            } else if ("sendMessage".equals(op)) {
                 enqueueScriptsForEvent("on_message", evalSlotText(block, 0, "", fiber), null, self);
+                return false;
+            } else if ("sendMessageWait".equals(op)) {
+                String msg = evalSlotText(block, 0, "", fiber);
+                int before = activeFibers.size();
+                enqueueScriptsForEvent("on_message", msg, null, self);
+                if (activeFibers.size() > before) {
+                    if (fiber.waitingFibers == null) {
+                        fiber.waitingFibers = new ArrayList<Fiber>();
+                    }
+                    for (int idx = before; idx < activeFibers.size(); idx++) {
+                        fiber.waitingFibers.add(activeFibers.get(idx));
+                    }
+                    return true;
+                }
                 return false;
             } else if ("setVar".equals(op)) {
                 String varName = param(block, 0, "").trim();
-                if (!varName.isEmpty()) variables.put(varName, evalSlotString(block, 1, "0", fiber));
+                if (!varName.isEmpty()) {
+                    String val = block.getParamBlock(1) != null
+                            ? valueToString(evaluateBlockValue(block.getParamBlock(1), fiber))
+                            : evalStringOrRaw(param(block, 1, "0"), fiber);
+                    variables.put(varName, val);
+                }
                 return false;
             } else if ("changeVar".equals(op)) {
                 String varName = param(block, 0, "").trim();
@@ -2851,6 +3062,7 @@ public class MainActivity extends Activity {
             copy.x = x;
             copy.y = y;
             RuntimeEntity spawned = new RuntimeEntity(copy);
+            spawned.isClone = true;
             spawned.templateId = (resolvedTemplateId != null && !resolvedTemplateId.isEmpty()) ? resolvedTemplateId : template.id;
             spawned.enteredScreen = isInCameraViewport(spawned, 0f);
             objects.add(spawned);
@@ -2986,7 +3198,15 @@ public class MainActivity extends Activity {
                 if (lo > hi) { double t = lo; lo = hi; hi = t; }
                 return Math.max(lo, Math.min(hi, val));
             }
-            if ("getVar".equals(op)) return resolveBuiltInOrVar(param(b, 0, "").trim(), fiber);
+            if ("getVar".equals(op)) {
+                String varKey = param(b, 0, "").trim();
+                if (variables.containsKey(varKey)) {
+                    String raw = variables.get(varKey);
+                    if (isNumericString(raw)) return Double.parseDouble(raw);
+                    return raw == null ? "" : raw;
+                }
+                return resolveBuiltInOrVar(varKey, fiber);
+            }
             if ("getX".equals(op) || "getPosX".equals(op)) return self != null ? (double) self.bean.x : 0.0;
             if ("getY".equals(op) || "getPosY".equals(op)) return self != null ? (double) self.bean.y : 0.0;
             if ("getVelX".equals(op)) return self != null ? (double) self.bean.velocityX : 0.0;
@@ -2999,7 +3219,7 @@ public class MainActivity extends Activity {
             if ("getTimer".equals(op) || "timer".equals(op)) return (double) gameTimerSeconds;
             if ("getJoyX".equals(op) || "joyX".equals(op)) return (double) joyX;
             if ("getJoyY".equals(op) || "joyY".equals(op)) return (double) joyY;
-            if ("getJoyAngle".equals(op) || "joyAngle".equals(op)) return (joyX == 0f && joyY == 0f) ? 0.0 : Math.toDegrees(Math.atan2(joyY, joyX));
+            if ("getJoyAngle".equals(op) || "joyAngle".equals(op)) return (Math.hypot(joyX, joyY) > 0.05) ? Math.toDegrees(Math.atan2(joyY, joyX)) : 0.0;
             if ("isJoyActive".equals(op) || "isJoystickActive".equals(op)) return joystickPointerId != -1 || Math.hypot(joyX, joyY) > 0.05;
             if ("getTouchX".equals(op) || "touchX".equals(op)) return (double) touchX;
             if ("getTouchY".equals(op) || "touchY".equals(op)) return (double) touchY;
@@ -3008,7 +3228,7 @@ public class MainActivity extends Activity {
                 String k = normalizeActionKey(evalSlotText(b, 0, "JUMP", fiber));
                 return pressedButtons.contains(k) || latchedButtons.contains(k);
             }
-            if ("isOnGround".equals(op)) return self != null && self.onGround;
+            if ("isOnGround".equals(op)) return self != null && (self.onGround || self.coyoteTimer > 0f);
             if ("getWorldWidth".equals(op)) return (double) getWorldWidth();
             if ("getWorldHeight".equals(op)) return (double) getWorldHeight();
             if ("getSceneName".equals(op)) return currentScene != null ? currentScene.name : "";
@@ -3063,14 +3283,21 @@ public class MainActivity extends Activity {
             if (self == null || self.destroyed) return false;
             String t = target == null ? "" : target.trim();
             if ("edge".equalsIgnoreCase(t) || "borda".equalsIgnoreCase(t)) {
-                return self.bean.x <= 0.5f || self.bean.y <= 0.5f
-                        || self.bean.x + self.bean.width >= project.virtualWidth - 0.5f
-                        || self.bean.y + self.bean.height >= project.virtualHeight - 0.5f;
+                float ww = getWorldWidth();
+                float wh = getWorldHeight();
+                return self.bean.x <= 1f || self.bean.y <= 1f
+                        || self.bean.x + self.bean.width >= ww - 1f
+                        || self.bean.y + self.bean.height >= wh - 1f;
             }
             if ("touch".equalsIgnoreCase(t) || "pointer".equalsIgnoreCase(t) || "ponteiro".equalsIgnoreCase(t)) {
                 return isTouchingWorld
                         && touchX >= self.bean.x && touchX <= self.bean.x + self.bean.width
                         && touchY >= self.bean.y && touchY <= self.bean.y + self.bean.height;
+            }
+            RuntimeEntity direct = findByIdOrName(t);
+            if (direct != null && !direct.destroyed && direct != self && aabbTouching(self, direct)) {
+                if (fiber != null) fiber.other = direct;
+                return true;
             }
             RuntimeEntity match = findCollidingWithTag(self, t);
             if (match != null) {
@@ -3147,7 +3374,7 @@ public class MainActivity extends Activity {
             if (trimmed.isEmpty()) return "";
             char first = trimmed.charAt(0);
             if (trimmed.contains("{") && trimmed.contains("}") && first != '"' && first != 39) {
-                return interpolateTemplate(trimmed);
+                return interpolateTemplate(trimmed, fiber);
             }
             try {
                 Object val = new ExprParser(trimmed, fiber).parse();
@@ -3155,7 +3382,7 @@ public class MainActivity extends Activity {
                 if (val instanceof Boolean) return ((Boolean) val) ? "true" : "false";
                 return val == null ? "" : val.toString();
             } catch (Throwable ignored) {
-                return interpolateTemplate(trimmed);
+                return interpolateTemplate(trimmed, fiber);
             }
         }
 
@@ -3168,6 +3395,9 @@ public class MainActivity extends Activity {
                 if ((f == '"' && l == '"') || (f == 39 && l == 39)) {
                     return trimmed.substring(1, trimmed.length() - 1);
                 }
+            }
+            if (trimmed.contains("{") && trimmed.contains("}")) {
+                return interpolateTemplate(trimmed, fiber);
             }
             if (variables.containsKey(trimmed)) return variables.get(trimmed);
             if (trimmed.contains("+") || trimmed.contains("(")) return evalString(trimmed, fiber);
@@ -3183,7 +3413,7 @@ public class MainActivity extends Activity {
             }
         }
 
-        private String interpolateTemplate(String text) {
+        private String interpolateTemplate(String text, Fiber fiber) {
             StringBuilder sb = new StringBuilder();
             int i = 0;
             while (i < text.length()) {
@@ -3192,7 +3422,7 @@ public class MainActivity extends Activity {
                     int end = text.indexOf('}', i + 1);
                     if (end > i + 1) {
                         String key = text.substring(i + 1, end).trim();
-                        Object o = resolveBuiltInOrVar(key, null);
+                        Object o = resolveBuiltInOrVar(key, fiber);
                         sb.append(o instanceof Double ? formatNumber((Double) o) : (o == null ? "0" : o.toString()));
                         i = end + 1;
                         continue;
@@ -3204,12 +3434,32 @@ public class MainActivity extends Activity {
             return sb.toString();
         }
 
+        private static boolean isKnownBuiltInIdentifier(String name) {
+            if (name == null) return false;
+            switch (name) {
+                case "joyX": case "joystickX": case "joyY": case "joystickY":
+                case "joyAngle": case "joystickAngle": case "joyActive": case "joystickActive":
+                case "touchX": case "touchY": case "isTouching": case "touchDown":
+                case "timer": case "volume": case "fps": case "dt":
+                case "camX": case "camY": case "virtualWidth": case "screenWidth":
+                case "virtualHeight": case "screenHeight": case "worldWidth": case "worldHeight":
+                case "sceneName": case "backdrop": case "hasNextScene": case "outsideWorld":
+                case "leftScreen": case "isOnGround": case "onGround": case "true": case "false":
+                case "selfX": case "x": case "selfY": case "y": case "selfVX": case "vx":
+                case "selfVY": case "vy": case "selfRot": case "rotation": case "direction": case "rot":
+                case "size": case "spriteName": case "selfWidth": case "selfHeight":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private Object resolveBuiltInOrVar(String name, Fiber fiber) {
             if (name == null) return 0.0;
             if ("joyX".equals(name) || "joystickX".equals(name)) return (double) joyX;
             if ("joyY".equals(name) || "joystickY".equals(name)) return (double) joyY;
             if ("joyAngle".equals(name) || "joystickAngle".equals(name)) {
-                return (joyX == 0f && joyY == 0f) ? 0.0 : Math.toDegrees(Math.atan2(joyY, joyX));
+                return (Math.hypot(joyX, joyY) > 0.05) ? Math.toDegrees(Math.atan2(joyY, joyX)) : 0.0;
             }
             if ("joyActive".equals(name) || "joystickActive".equals(name)) {
                 return joystickPointerId != -1 || Math.hypot(joyX, joyY) > 0.05;
@@ -3231,14 +3481,14 @@ public class MainActivity extends Activity {
             if ("hasNextScene".equals(name)) return resolveAdjacentSceneId(1) != null;
             if ("outsideWorld".equals(name)) return isOutsideWorld(fiber != null ? fiber.self : null);
             if ("leftScreen".equals(name)) return hasLeftScreen(fiber != null ? fiber.self : null);
-            if ("isOnGround".equals(name) || "onGround".equals(name)) return fiber != null && fiber.self != null && fiber.self.onGround;
+            if ("isOnGround".equals(name) || "onGround".equals(name)) return fiber != null && fiber.self != null && (fiber.self.onGround || fiber.self.coyoteTimer > 0f);
             if ("true".equals(name)) return true;
             if ("false".equals(name)) return false;
             if ("selfX".equals(name) || "x".equals(name)) return fiber != null && fiber.self != null ? (double) fiber.self.bean.x : 0.0;
             if ("selfY".equals(name) || "y".equals(name)) return fiber != null && fiber.self != null ? (double) fiber.self.bean.y : 0.0;
             if ("selfVX".equals(name) || "vx".equals(name)) return fiber != null && fiber.self != null ? (double) fiber.self.bean.velocityX : 0.0;
             if ("selfVY".equals(name) || "vy".equals(name)) return fiber != null && fiber.self != null ? (double) fiber.self.bean.velocityY : 0.0;
-            if ("selfRot".equals(name) || "rotation".equals(name) || "direction".equals(name)) return fiber != null && fiber.self != null ? (double) fiber.self.bean.rotation : 0.0;
+            if ("selfRot".equals(name) || "rotation".equals(name) || "direction".equals(name) || "rot".equals(name)) return fiber != null && fiber.self != null ? (double) fiber.self.bean.rotation : 0.0;
             if ("size".equals(name)) return fiber != null && fiber.self != null ? (double) (fiber.self.bean.scaleX * 100f) : 100.0;
             if ("spriteName".equals(name)) return fiber != null && fiber.self != null ? fiber.self.bean.spriteResName : "";
             if ("selfWidth".equals(name)) return fiber != null && fiber.self != null ? (double) fiber.self.bean.width : 0.0;
@@ -3443,7 +3693,8 @@ public class MainActivity extends Activity {
                             while (pos < src.length() && (Character.isLetterOrDigit(src.charAt(pos)) || src.charAt(pos) == '_')) pos++;
                             String rawIdent = src.substring(idStart, pos);
                             rawArgs.add(rawIdent);
-                            evalArgs.add(variables.containsKey(rawIdent) ? resolveBuiltInOrVar(rawIdent, fiber) : rawIdent);
+                            evalArgs.add((variables.containsKey(rawIdent) || isKnownBuiltInIdentifier(rawIdent))
+                                    ? resolveBuiltInOrVar(rawIdent, fiber) : rawIdent);
                         } else {
                             Object val = parseOr();
                             rawArgs.add(src.substring(argStart, pos).trim());
@@ -3482,7 +3733,7 @@ public class MainActivity extends Activity {
                 } else if ("exp".equals(fn)) return evalArgs.isEmpty() ? 1.0 : Math.exp(toDouble(evalArgs.get(0)));
                 else if ("pow10".equals(fn)) return evalArgs.isEmpty() ? 1.0 : Math.pow(10.0, toDouble(evalArgs.get(0)));
                 else if ("floor".equals(fn)) return evalArgs.isEmpty() ? 0.0 : Math.floor(toDouble(evalArgs.get(0)));
-                else if ("ceil".equals(fn)) return evalArgs.isEmpty() ? 0.0 : Math.ceil(toDouble(evalArgs.get(0)));
+                else if ("ceil".equals(fn) || "ceiling".equals(fn)) return evalArgs.isEmpty() ? 0.0 : Math.ceil(toDouble(evalArgs.get(0)));
                 else if ("round".equals(fn)) return evalArgs.isEmpty() ? 0.0 : (double) Math.round(toDouble(evalArgs.get(0)));
                 else if ("min".equals(fn)) return evalArgs.size() < 2 ? 0.0 : Math.min(toDouble(evalArgs.get(0)), toDouble(evalArgs.get(1)));
                 else if ("max".equals(fn)) return evalArgs.size() < 2 ? 0.0 : Math.max(toDouble(evalArgs.get(0)), toDouble(evalArgs.get(1)));
@@ -3520,7 +3771,7 @@ public class MainActivity extends Activity {
                     String target = evalArgs.size() >= 2 ? valueToString(evalArgs.get(1)) : "self";
                     return evalObjectProperty(target, prop, fiber != null ? fiber.self : null);
                 } else if ("isOnGround".equals(fn) || "onGround".equals(fn)) {
-                    return fiber != null && fiber.self != null && fiber.self.onGround;
+                    return fiber != null && fiber.self != null && (fiber.self.onGround || fiber.self.coyoteTimer > 0f);
                 } else if ("joystickX".equals(fn) || "joyX".equals(fn)) return (double) joyX;
                 else if ("joystickY".equals(fn) || "joyY".equals(fn)) return (double) joyY;
                 else if ("worldWidth".equals(fn)) return (double) getWorldWidth();
@@ -3536,14 +3787,22 @@ public class MainActivity extends Activity {
                     String k = evalArgs.size() >= 1 ? valueToString(evalArgs.get(0)) : "unlocked_level";
                     String def = evalArgs.size() >= 2 ? valueToString(evalArgs.get(1)) : "1";
                     return loadSavedValue(k, def);
-                } else if ("joyAngle".equals(fn)) return (joyX == 0f && joyY == 0f) ? 0.0 : Math.toDegrees(Math.atan2(joyY, joyX));
+                } else if ("joyAngle".equals(fn)) return (Math.hypot(joyX, joyY) > 0.05) ? Math.toDegrees(Math.atan2(joyY, joyX)) : 0.0;
                 else if ("joyActive".equals(fn)) return joystickPointerId != -1 || Math.hypot(joyX, joyY) > 0.05;
                 else if ("touchDown".equals(fn)) return isTouchingWorld;
                 else if ("timer".equals(fn)) return (double) gameTimerSeconds;
                 else if ("volume".equals(fn)) return (double) masterVolumePercent;
                 else if ("size".equals(fn)) return fiber != null && fiber.self != null ? (double) (fiber.self.bean.scaleX * 100f) : 100.0;
                 else if ("spriteName".equals(fn)) return fiber != null && fiber.self != null ? fiber.self.bean.spriteResName : "";
-                else if ("getVar".equals(fn) || "var".equals(fn)) return resolveBuiltInOrVar(evalArgs.isEmpty() ? "" : valueToString(evalArgs.get(0)), fiber);
+                else if ("getVar".equals(fn) || "var".equals(fn)) {
+                    String varName = evalArgs.isEmpty() ? "" : valueToString(evalArgs.get(0));
+                    if (variables.containsKey(varName)) {
+                        String raw = variables.get(varName);
+                        if (isNumericString(raw)) return Double.parseDouble(raw);
+                        return raw == null ? "" : raw;
+                    }
+                    return resolveBuiltInOrVar(varName, fiber);
+                }
                 return 0.0;
             }
 
@@ -3714,7 +3973,7 @@ public class MainActivity extends Activity {
             fillPaint.setColor(Color.argb(Math.round(darkAlpha * 255f), 0, 0, 0));
             canvas.drawRect(left, top, right, bottom, fillPaint);
 
-            lightCutPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
+            lightCutPaint.setXfermode(dstOutXfermode);
             for (RuntimeEntity obj : world) {
                 if (obj.destroyed || !obj.bean.visible || obj.bean.alpha <= 0f
                         || !"light_2d".equals(obj.bean.type)) {
@@ -4320,7 +4579,21 @@ public class MainActivity extends Activity {
                     InputStream is = null;
                     try {
                         is = appContext.getAssets().open(key);
-                        bmp = BitmapFactory.decodeStream(is);
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        byte[] buf = new byte[8192];
+                        int read;
+                        while ((read = is.read(buf)) != -1) {
+                            baos.write(buf, 0, read);
+                        }
+                        byte[] data = baos.toByteArray();
+                        BitmapFactory.Options opts = new BitmapFactory.Options();
+                        opts.inJustDecodeBounds = true;
+                        BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+                        int sample = 1;
+                        while (opts.outWidth / sample > 2048 || opts.outHeight / sample > 2048) sample *= 2;
+                        opts.inJustDecodeBounds = false;
+                        opts.inSampleSize = sample;
+                        bmp = BitmapFactory.decodeByteArray(data, 0, data.length, opts);
                     } catch (Throwable ignored) {
                     } finally {
                         if (is != null) try { is.close(); } catch (Throwable ignored) {}
@@ -4673,8 +4946,10 @@ public class MainActivity extends Activity {
             float checkpointX;
             float checkpointY;
             boolean hasCheckpoint = false;
+            String lastCheckpointId = null;
             boolean enteredScreen = false;
             boolean onGround = false;
+            float coyoteTimer = 0f;
             boolean destroyed = false;
             boolean isClone = false;
             String templateId = "";
@@ -4690,6 +4965,8 @@ public class MainActivity extends Activity {
             float glideDuration = 0f;
             int animFrameIdx = 0;
             float animTimer = 0f;
+            String cachedSpriteFramesRaw = null;
+            ArrayList<String> cachedSpriteFrames = null;
             float spawnTimer = 0f;
             float patrolDir = 1f;
             float hitCooldown = 0f;
@@ -4702,7 +4979,9 @@ public class MainActivity extends Activity {
             RuntimeEntity(ObjectData source) {
                 this.bean = source.copy();
                 this.spawnOrder = nextSpawnOrder++;
-                this.templateId = this.bean.id != null ? this.bean.id : "";
+                this.templateId = (this.bean.prefabId != null && !this.bean.prefabId.isEmpty())
+                        ? this.bean.prefabId
+                        : (this.bean.id != null ? this.bean.id : "");
                 this.prevX = this.bean.x;
                 this.prevY = this.bean.y;
                 this.startX = this.bean.x;
@@ -4755,6 +5034,7 @@ public class MainActivity extends Activity {
             RuntimeEntity other;
             final ArrayList<Frame> frames = new ArrayList<Frame>();
             float waitTimer = 0f;
+            ArrayList<Fiber> waitingFibers = null;
             boolean finished = false;
 
             Fiber(ScriptData script, RuntimeEntity self, RuntimeEntity other) {

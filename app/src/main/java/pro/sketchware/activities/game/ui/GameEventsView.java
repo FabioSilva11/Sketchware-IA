@@ -220,8 +220,8 @@ public class GameEventsView extends FrameLayout {
                     sceneLabel,
                     "SCENE",
                     R.drawable.bg_event_type_activity,
-                    "onCreate",
-                    formatBlockDescription("initializeLogic", onCreateNode),
+                    "On Start",
+                    formatBlockDescription("Runs when scene starts", onCreateNode),
                     R.drawable.ic_mtrl_code,
                     0,
                     false,
@@ -240,18 +240,14 @@ public class GameEventsView extends FrameLayout {
                     sceneLabel,
                     "SCENE",
                     R.drawable.bg_event_type_activity,
-                    "onUpdate",
-                    formatBlockDescription("onGameLoop (60 FPS)", onUpdateNode),
+                    "On Update",
+                    formatBlockDescription("Runs every frame (60 FPS)", onUpdateNode),
                     R.drawable.ic_mtrl_run,
                     0,
                     false,
                     existingOnUpdate != null,
                     false
             ));
-
-            for (GameScriptNode node : scene.scripts) {
-                if (node == null || node == existingOnCreate || node == existingOnUpdate) continue;
-            }
         } else if (currentCategoryId == R.id.view) {
             for (GameScriptNode node : scene.scripts) {
                 if (node == null) continue;
@@ -267,7 +263,7 @@ public class GameEventsView extends FrameLayout {
                     boolean missing = !isSceneTarget && obj == null;
                     String targetType = isSceneTarget ? "Scene" : (missing ? "Removed object" : formatTypeName(obj.type));
                     String targetId = isSceneTarget ? sceneLabel : (missing ? node.targetObjectId : nonEmpty(obj.name, obj.id));
-                    String eventTitle = isTouch ? "onTouchDown" : "onClick";
+                    String eventTitle = isTouch ? "On Touch" : "On Click";
                     String baseDesc = isTouch ? "When object is touched"
                             : (nonEmpty(node.eventParam, "").isEmpty() ? "When button is clicked" : "Action: " + node.eventParam);
                     visibleEntries.add(new EventEntry(
@@ -297,8 +293,8 @@ public class GameEventsView extends FrameLayout {
                             targetId,
                             "OBJECT",
                             R.drawable.bg_event_type_view,
-                            isObjStart ? "onCreate" : "onUpdate",
-                            formatBlockDescription(isObjStart ? "When object starts" : "onGameLoop (60 FPS)", node),
+                            isObjStart ? "On Start" : "On Update",
+                            formatBlockDescription(isObjStart ? "Runs when object starts" : "Runs every frame (60 FPS)", node),
                             obj != null ? getObjectIconRes(obj.type)
                                     : (isObjStart ? R.drawable.ic_mtrl_code : R.drawable.ic_mtrl_run),
                             isObjStart ? R.drawable.ic_mtrl_code : R.drawable.ic_mtrl_run,
@@ -328,7 +324,7 @@ public class GameEventsView extends FrameLayout {
                             targetId,
                             "COLLISION",
                             R.drawable.bg_event_type_component,
-                            "onCollision",
+                            "On Collision",
                             formatBlockDescription(tagDesc, node),
                             R.drawable.ic_mtrl_sensor,
                             R.drawable.ic_mtrl_sensor,

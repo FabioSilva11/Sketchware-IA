@@ -20,7 +20,7 @@ public class GameScriptNode {
     public String eventType = EVENT_SCENE_START;
     public String eventParam = "";
     public ArrayList<GameBlockItem> blocks = new ArrayList<>();
-    public transient ArrayList<ArrayList<GameBlockItem>> floatingStacks = new ArrayList<>();
+    public ArrayList<ArrayList<GameBlockItem>> floatingStacks = new ArrayList<>();
 
     public GameScriptNode() {
         this.id = "scr_" + UUID.randomUUID().toString().substring(0, 8);

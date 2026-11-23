@@ -1,7 +1,6 @@
 package pro.sketchware.activities.game.blocks;
 
 import android.content.Context;
-import android.text.TextUtils;
 import android.view.View;
 
 import androidx.annotation.NonNull;
@@ -38,11 +37,74 @@ public final class GameBlockBeanConverter {
     private GameBlockBeanConverter() {
     }
 
+    private static boolean isEmpty(@Nullable String s) {
+        return s == null || s.isEmpty();
+    }
+
+    /**
+     * Parses a nested block reference of the exact form {@code "@<non-negative-digits>"}.
+     * Returns {@code -1} for ordinary text starting with {@code "@"} (e.g. {@code "@player"}).
+     */
+    public static int parseBlockRefId(@Nullable String param) {
+        if (param == null || param.length() < 2 || param.charAt(0) != '@') {
+            return -1;
+        }
+        for (int i = 1; i < param.length(); i++) {
+            char c = param.charAt(i);
+            if (c < '0' || c > '9') {
+                return -1;
+            }
+        }
+        try {
+            return Integer.parseInt(param.substring(1));
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
+    }
+
+    /**
+     * Computes the highest numeric {@code @<digits>} literal across a tree of blocks so newly
+     * allocated bean IDs never collide with literal user text such as {@code "@12"}.
+     */
+    private static int findMaxLiteralAtRef(@Nullable List<GameBlockItem> chain) {
+        int max = 9;
+        if (chain == null) {
+            return max;
+        }
+        for (GameBlockItem item : chain) {
+            if (item == null) {
+                continue;
+            }
+            if (item.parameters != null) {
+                for (int i = 0; i < item.parameters.size(); i++) {
+                    if (item.getParamBlock(i) == null) {
+                        int ref = parseBlockRefId(item.parameters.get(i));
+                        if (ref > max) {
+                            max = ref;
+                        }
+                    }
+                }
+            }
+            max = Math.max(max, findMaxLiteralAtRef(item.paramBlocks));
+            max = Math.max(max, findMaxLiteralAtRef(item.subStack1));
+            max = Math.max(max, findMaxLiteralAtRef(item.subStack2));
+        }
+        return max;
+    }
+
     @NonNull
-    public static ConversionResult toBlockBeans(@NonNull Context context,
+    public static ConversionResult toBlockBeans(@Nullable Context context,
                                                 @Nullable List<GameBlockItem> rootChain) {
+        return toBlockBeans(context, rootChain, 10);
+    }
+
+    @NonNull
+    public static ConversionResult toBlockBeans(@Nullable Context context,
+                                                @Nullable List<GameBlockItem> rootChain,
+                                                int minStartId) {
         ConversionResult result = new ConversionResult();
-        int[] nextId = new int[]{10};
+        int safeStart = Math.max(Math.max(10, minStartId), findMaxLiteralAtRef(rootChain) + 1);
+        int[] nextId = new int[]{safeStart};
         if (rootChain != null && !rootChain.isEmpty()) {
             result.rootNextId = emitChain(context, rootChain, result.beans, nextId);
         }
@@ -50,7 +112,7 @@ public final class GameBlockBeanConverter {
         return result;
     }
 
-    private static int emitChain(@NonNull Context context,
+    private static int emitChain(@Nullable Context context,
                                  @Nullable List<GameBlockItem> chain,
                                  @NonNull ArrayList<BlockBean> out,
                                  @NonNull int[] nextId) {
@@ -59,7 +121,7 @@ public final class GameBlockBeanConverter {
         }
         List<GameBlockItem> valid = new ArrayList<>();
         for (GameBlockItem item : chain) {
-            if (item != null && !TextUtils.isEmpty(item.opCode)) {
+            if (item != null && !isEmpty(item.opCode)) {
                 valid.add(item);
             }
         }
@@ -77,7 +139,7 @@ public final class GameBlockBeanConverter {
         return ids[0];
     }
 
-    private static void emitBlock(@NonNull Context context,
+    private static void emitBlock(@Nullable Context context,
                                   @NonNull GameBlockItem item,
                                   int id,
                                   int nextBlockId,
@@ -92,18 +154,29 @@ public final class GameBlockBeanConverter {
         ArrayList<String> params = new ArrayList<>();
 
         if ("getVar".equals(opCode)) {
-            String varName = (!item.parameters.isEmpty() && !TextUtils.isEmpty(item.parameters.get(0)))
+            String varName = (!item.parameters.isEmpty() && !isEmpty(item.parameters.get(0)))
                     ? item.parameters.get(0)
-                    : ((!TextUtils.isEmpty(item.spec) && !item.spec.contains("%")) ? item.spec : "score");
+                    : ((!isEmpty(item.spec) && !item.spec.contains("%")) ? item.spec : "score");
             spec = varName;
         } else {
-            spec = def != null
-                    ? def.spec
-                    : (!TextUtils.isEmpty(item.spec) ? item.spec : opCode);
+            // Preserve legacy multi-arity specs when item carries more placeholders/params than def.spec
+            int defPlaceholders = def != null ? GameBlockCatalog.countPlaceholders(def.spec) : 0;
+            int itemPlaceholders = !isEmpty(item.spec) ? GameBlockCatalog.countPlaceholders(item.spec) : 0;
+            boolean keepLegacySpec = def != null
+                    && itemPlaceholders > defPlaceholders
+                    && item.parameters != null
+                    && item.parameters.size() >= itemPlaceholders;
+            if (keepLegacySpec) {
+                spec = item.spec;
+            } else {
+                spec = def != null
+                        ? def.spec
+                        : (!isEmpty(item.spec) ? item.spec : opCode);
+            }
             int pCount = GameBlockCatalog.countPlaceholders(spec);
             for (int p = 0; p < pCount; p++) {
                 GameBlockItem nested = item.getParamBlock(p);
-                if (nested != null && !TextUtils.isEmpty(nested.opCode)) {
+                if (nested != null && !isEmpty(nested.opCode)) {
                     int childId = nextId[0]++;
                     params.add("@" + childId);
                     emitBlock(context, nested, childId, -1, out, nextId);
@@ -119,11 +192,21 @@ public final class GameBlockBeanConverter {
             }
         }
 
-        BlockBean bean = new BlockBean(String.valueOf(id), spec, type, "", opCode);
+        BlockBean bean;
+        if (context != null) {
+            bean = new BlockBean(String.valueOf(id), spec, type, "", opCode);
+        } else {
+            bean = new BlockBean();
+            bean.id = String.valueOf(id);
+            bean.spec = spec;
+            bean.type = type;
+            bean.typeName = "";
+            bean.opCode = opCode;
+        }
         int rawColor = def != null
                 ? def.color
                 : (item.color != 0 ? item.color : GameBlockCatalog.COLOR_CONTROL);
-        bean.color = MaterialColors.harmonizeWithPrimary(context, rawColor);
+        bean.color = context != null ? MaterialColors.harmonizeWithPrimary(context, rawColor) : rawColor;
         bean.parameters = params;
         bean.subStack1 = emitChain(context, item.subStack1, out, nextId);
         bean.subStack2 = emitChain(context, item.subStack2, out, nextId);
@@ -131,25 +214,23 @@ public final class GameBlockBeanConverter {
         out.add(bean);
     }
 
-    public static void populatePane(@NonNull Context context,
-                                    @NonNull BlockPane pane,
-                                    @Nullable List<BlockBean> beans,
-                                    int rootNextId,
-                                    @Nullable View.OnTouchListener touchListener) {
-        if (beans == null || beans.isEmpty()) {
-            BlockView root = pane.getRoot();
-            if (root != null) {
-                root.ha = -1;
-                root.k();
-            }
-            pane.b();
-            return;
-        }
-
+    /**
+     * Instantiates and wires a collection of {@link BlockBean}s onto {@code pane} safely,
+     * shared by initial pane load, subtree duplication, nested block insertion, and floating stack restore.
+     */
+    @NonNull
+    public static Map<Integer, BlockView> materializeBeans(@NonNull Context context,
+                                                           @NonNull BlockPane pane,
+                                                           @Nullable List<BlockBean> beans,
+                                                           @Nullable View.OnTouchListener touchListener,
+                                                           boolean measureNow) {
         Map<Integer, BlockView> viewById = new HashMap<>();
+        if (beans == null || beans.isEmpty()) {
+            return viewById;
+        }
         int maxId = pane.g;
         for (BlockBean bean : beans) {
-            if (bean == null || TextUtils.isEmpty(bean.id)) {
+            if (bean == null || isEmpty(bean.id)) {
                 continue;
             }
             int id;
@@ -178,7 +259,7 @@ public final class GameBlockBeanConverter {
         pane.g = maxId;
 
         for (BlockBean bean : beans) {
-            if (bean == null || TextUtils.isEmpty(bean.id)) {
+            if (bean == null || isEmpty(bean.id)) {
                 continue;
             }
             int id;
@@ -195,15 +276,10 @@ public final class GameBlockBeanConverter {
                 for (int p = 0; p < bean.parameters.size() && p < parent.V.size(); p++) {
                     String val = bean.parameters.get(p);
                     View slot = parent.V.get(p);
-                    if (val != null && val.startsWith("@")) {
-                        try {
-                            int childId = Integer.parseInt(val.substring(1));
-                            BlockView child = viewById.get(childId);
-                            if (child != null && slot instanceof BlockCanvasView) {
-                                parent.a((BlockCanvasView) slot, child);
-                            }
-                        } catch (NumberFormatException ignored) {
-                        }
+                    int childId = parseBlockRefId(val);
+                    BlockView child = childId >= 0 ? viewById.get(childId) : null;
+                    if (child != null && child != parent && slot instanceof BlockCanvasView) {
+                        parent.a((BlockCanvasView) slot, child);
                     } else if (slot instanceof BlockMenuItem) {
                         ((BlockMenuItem) slot).setArgValue(val != null ? val : "");
                     }
@@ -228,6 +304,38 @@ public final class GameBlockBeanConverter {
                 }
             }
         }
+
+        if (measureNow) {
+            for (BlockView bv : viewById.values()) {
+                if (bv.fa) {
+                    bv.o();
+                }
+            }
+            for (BlockView bv : viewById.values()) {
+                if (!bv.fa) {
+                    bv.o();
+                }
+            }
+        }
+        return viewById;
+    }
+
+    public static void populatePane(@NonNull Context context,
+                                    @NonNull BlockPane pane,
+                                    @Nullable List<BlockBean> beans,
+                                    int rootNextId,
+                                    @Nullable View.OnTouchListener touchListener) {
+        if (beans == null || beans.isEmpty()) {
+            BlockView root = pane.getRoot();
+            if (root != null) {
+                root.ha = -1;
+                root.k();
+            }
+            pane.b();
+            return;
+        }
+
+        Map<Integer, BlockView> viewById = materializeBeans(context, pane, beans, touchListener, false);
 
         BlockView root = pane.getRoot();
         if (root != null) {
@@ -260,37 +368,146 @@ public final class GameBlockBeanConverter {
         pane.b();
     }
 
+    /**
+     * Populates detached/floating stacks persisted on {@code GameScriptNode.floatingStacks} onto {@code pane}.
+     */
+    public static void populateFloatingStacks(@NonNull Context context,
+                                              @NonNull BlockPane pane,
+                                              @Nullable List<ArrayList<GameBlockItem>> floatingStacks,
+                                              @Nullable View.OnTouchListener touchListener) {
+        if (floatingStacks == null || floatingStacks.isEmpty()) {
+            return;
+        }
+        for (ArrayList<GameBlockItem> stack : floatingStacks) {
+            if (stack == null || stack.isEmpty()) {
+                continue;
+            }
+            ConversionResult conv = toBlockBeans(context, stack, Math.max(10, pane.g));
+            if (conv.beans.isEmpty() || conv.rootNextId < 0) {
+                continue;
+            }
+            Map<Integer, BlockView> created = materializeBeans(context, pane, conv.beans, touchListener, true);
+            BlockView top = created.get(conv.rootNextId);
+            if (top != null) {
+                GameBlockItem head = stack.get(0);
+                int fx = head != null && head.freeX > 0 ? head.freeX : 48;
+                int fy = head != null && head.freeY > 0 ? head.freeY : 220;
+                top.setX(fx);
+                top.setY(fy);
+                top.k();
+            }
+        }
+        pane.b();
+    }
+
     @NonNull
     public static ArrayList<GameBlockItem> fromBlockPane(@NonNull BlockPane pane) {
-        ArrayList<GameBlockItem> out = new ArrayList<>();
         BlockView root = pane.getRoot();
         if (root == null || root.ha < 0) {
-            return out;
+            return new ArrayList<>();
         }
         @SuppressWarnings("unchecked")
         ArrayList<BlockBean> flat = pane.getBlocks();
-        if (flat == null || flat.isEmpty()) {
+        return fromBlockBeans(flat, root.ha);
+    }
+
+    /**
+     * Extracts all detached/floating block stacks sitting on {@code pane} (preserving {@code freeX}/{@code freeY}).
+     */
+    @NonNull
+    public static ArrayList<ArrayList<GameBlockItem>> extractFloatingStacksFromPane(@NonNull BlockPane pane) {
+        ArrayList<ArrayList<GameBlockItem>> stacks = new ArrayList<>();
+        BlockView root = pane.getRoot();
+        for (int i = 0; i < pane.getChildCount(); i++) {
+            View child = pane.getChildAt(i);
+            if (!(child instanceof BlockView)) {
+                continue;
+            }
+            BlockView bv = (BlockView) child;
+            if (bv == root || bv.ea || bv.E != null) {
+                continue;
+            }
+            int topId;
+            try {
+                topId = Integer.parseInt(String.valueOf(bv.getTag()));
+            } catch (Exception e) {
+                continue;
+            }
+            @SuppressWarnings("unchecked")
+            ArrayList<BlockView> sub = bv.getAllChildren();
+            if (sub == null || sub.isEmpty()) {
+                continue;
+            }
+            ArrayList<BlockBean> subBeans = new ArrayList<>(sub.size());
+            for (BlockView sb : sub) {
+                if (sb != null && sb.getBean() != null) {
+                    subBeans.add(sb.getBean().clone());
+                }
+            }
+            ArrayList<GameBlockItem> converted = fromBlockBeans(subBeans, topId);
+            if (!converted.isEmpty()) {
+                converted.get(0).freeX = Math.max(0, Math.round(bv.getX()));
+                converted.get(0).freeY = Math.max(0, Math.round(bv.getY()));
+                stacks.add(converted);
+            }
+        }
+        return stacks;
+    }
+
+    /**
+     * Pure JVM-testable converter from a flat {@link BlockBean} list to a {@link GameBlockItem} chain.
+     * Prevents literal {@code "@12"} strings from hijacking statement blocks by verifying structural ownership.
+     */
+    @NonNull
+    public static ArrayList<GameBlockItem> fromBlockBeans(@Nullable List<BlockBean> flat, int startId) {
+        ArrayList<GameBlockItem> out = new ArrayList<>();
+        if (flat == null || flat.isEmpty() || startId < 0) {
             return out;
         }
         Map<Integer, BlockBean> byId = new HashMap<>();
         for (BlockBean b : flat) {
-            if (b != null && !TextUtils.isEmpty(b.id)) {
+            if (b != null && !isEmpty(b.id)) {
                 try {
                     byId.put(Integer.parseInt(b.id), b);
                 } catch (NumberFormatException ignored) {
                 }
             }
         }
+        // Collect all statement-chain IDs reachable via nextBlock/subStack1/subStack2 so literal "@<id>"
+        // text parameters can never hijack an unrelated statement block.
+        Set<Integer> statementIds = new HashSet<>();
+        collectStatementChainIds(startId, byId, statementIds);
+
         Set<Integer> visited = new HashSet<>();
-        readChain(root.ha, byId, out, visited);
+        readChain(startId, byId, statementIds, out, visited);
         for (GameBlockItem item : out) {
             GameBlockCatalog.syncNestedExpressions(item);
         }
         return out;
     }
 
+    private static void collectStatementChainIds(int startId,
+                                                 @NonNull Map<Integer, BlockBean> byId,
+                                                 @NonNull Set<Integer> outIds) {
+        int curId = startId;
+        while (curId >= 0 && outIds.add(curId)) {
+            BlockBean bean = byId.get(curId);
+            if (bean == null) {
+                break;
+            }
+            if (bean.subStack1 >= 0) {
+                collectStatementChainIds(bean.subStack1, byId, outIds);
+            }
+            if (bean.subStack2 >= 0) {
+                collectStatementChainIds(bean.subStack2, byId, outIds);
+            }
+            curId = bean.nextBlock;
+        }
+    }
+
     private static void readChain(int startId,
                                   @NonNull Map<Integer, BlockBean> byId,
+                                  @NonNull Set<Integer> statementIds,
                                   @NonNull ArrayList<GameBlockItem> out,
                                   @NonNull Set<Integer> visited) {
         int curId = startId;
@@ -300,7 +517,7 @@ public final class GameBlockBeanConverter {
                 break;
             }
             visited.add(curId);
-            GameBlockItem item = singleFromBean(bean, byId, visited);
+            GameBlockItem item = singleFromBean(bean, byId, statementIds, visited);
             if (item != null) {
                 out.add(item);
             }
@@ -311,21 +528,31 @@ public final class GameBlockBeanConverter {
     @Nullable
     private static GameBlockItem singleFromBean(@NonNull BlockBean bean,
                                                 @NonNull Map<Integer, BlockBean> byId,
+                                                @NonNull Set<Integer> statementIds,
                                                 @NonNull Set<Integer> visited) {
-        if (TextUtils.isEmpty(bean.opCode)) {
+        if (isEmpty(bean.opCode)) {
             return null;
         }
+        GameBlockCatalog.BlockDef def = GameBlockCatalog.findByOpCode(bean.opCode);
+        // Never leak transient Material You harmonized theme colors into persisted game_project.json
+        int canonicalColor = def != null
+                ? def.color
+                : (bean.color != 0 ? bean.color : GameBlockCatalog.COLOR_CONTROL);
+        String canonicalSpec = "getVar".equals(bean.opCode)
+                ? (def != null ? def.spec : "%s")
+                : (bean.spec != null ? bean.spec : (def != null ? def.spec : ""));
+
         GameBlockItem item = new GameBlockItem(
                 bean.id != null ? bean.id : "",
                 bean.opCode,
-                bean.spec != null ? bean.spec : "",
+                canonicalSpec,
                 bean.type != null ? bean.type : " ",
-                bean.color,
+                canonicalColor,
                 new String[0]);
         item.ensureInitialized();
 
         if ("getVar".equals(bean.opCode)) {
-            if (bean.parameters != null && !bean.parameters.isEmpty() && !TextUtils.isEmpty(bean.parameters.get(0))) {
+            if (bean.parameters != null && !bean.parameters.isEmpty() && !isEmpty(bean.parameters.get(0))) {
                 item.parameters.add(bean.parameters.get(0));
             } else {
                 item.parameters.add(bean.spec != null ? bean.spec : "score");
@@ -334,17 +561,12 @@ public final class GameBlockBeanConverter {
             for (int i = 0; i < bean.parameters.size(); i++) {
                 String p = bean.parameters.get(i);
                 GameBlockItem nestedItem = null;
-                if (p != null && p.startsWith("@")) {
-                    try {
-                        int childId = Integer.parseInt(p.substring(1));
-                        if (!visited.contains(childId)) {
-                            BlockBean childBean = byId.get(childId);
-                            if (childBean != null) {
-                                visited.add(childId);
-                                nestedItem = singleFromBean(childBean, byId, visited);
-                            }
-                        }
-                    } catch (NumberFormatException ignored) {
+                int childId = parseBlockRefId(p);
+                if (childId >= 0 && !visited.contains(childId) && !statementIds.contains(childId)) {
+                    BlockBean childBean = byId.get(childId);
+                    if (childBean != null) {
+                        visited.add(childId);
+                        nestedItem = singleFromBean(childBean, byId, statementIds, visited);
                     }
                 }
                 while (item.paramBlocks.size() <= i) {
@@ -356,10 +578,10 @@ public final class GameBlockBeanConverter {
         }
 
         if (bean.subStack1 >= 0) {
-            readChain(bean.subStack1, byId, item.subStack1, visited);
+            readChain(bean.subStack1, byId, statementIds, item.subStack1, visited);
         }
         if (bean.subStack2 >= 0) {
-            readChain(bean.subStack2, byId, item.subStack2, visited);
+            readChain(bean.subStack2, byId, statementIds, item.subStack2, visited);
         }
         return item;
     }
@@ -367,11 +589,11 @@ public final class GameBlockBeanConverter {
     @NonNull
     public static String normalizeBlockType(@Nullable String rawType,
                                             @Nullable GameBlockCatalog.BlockDef def) {
-        String t = !TextUtils.isEmpty(rawType) ? rawType : (def != null ? def.type : " ");
+        String t = !isEmpty(rawType) ? rawType : (def != null ? def.type : " ");
         if ("n".equals(t)) {
             return "d";
         }
-        if ("v".equals(t) || TextUtils.isEmpty(t)) {
+        if ("v".equals(t) || isEmpty(t)) {
             return " ";
         }
         return t;

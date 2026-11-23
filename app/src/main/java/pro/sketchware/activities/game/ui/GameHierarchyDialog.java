@@ -168,8 +168,8 @@ public class GameHierarchyDialog {
                 row.addView(textCol, textLp);
 
                 // Action icons: Set Start, Rename, Duplicate, Delete
-                row.addView(createIconAction(context, R.drawable.ic_mtrl_star,
-                        isStart ? 0xFFFACC15 : colorOnSurfaceVariant, "Set as start scene", v -> {
+                row.addView(createIconAction(context, R.drawable.ic_game_star,
+                        isStart ? 0xFFF59E0B : colorOnSurfaceVariant, "Set as start scene", v -> {
                             project.startSceneId = scene.id;
                             if (callback != null) callback.onProjectUpdated();
                             rebuild[0].run();
@@ -202,8 +202,8 @@ public class GameHierarchyDialog {
                         }));
 
                 boolean canDelete = project.scenes.size() > 1;
-                ImageView btnDel = createIconAction(context, R.drawable.ic_mtrl_delete,
-                        canDelete ? colorError : colorOutlineVariant, "Delete", v -> {
+                ImageView btnDel = createIconAction(context, R.drawable.ic_game_trash,
+                        canDelete ? colorError : colorOnSurfaceVariant, "Delete", v -> {
                             if (!canDelete) {
                                 Toast.makeText(context, "The project must have at least 1 scene.", Toast.LENGTH_SHORT).show();
                                 return;
@@ -213,6 +213,7 @@ public class GameHierarchyDialog {
                                     .setMessage("Delete \"" + nonEmpty(scene.name, scene.id) + "\"?")
                                     .setPositiveButton("Delete", (d2, w2) -> {
                                         project.scenes.remove(scene);
+                                        project.cleanupDeletedSceneReferences(scene.id, scene.name);
                                         if (scene.id != null && scene.id.equals(project.startSceneId)) {
                                             project.startSceneId = project.scenes.get(0).id;
                                         }
@@ -370,7 +371,7 @@ public class GameHierarchyDialog {
                     row.addView(btnVis);
 
                     // Lock toggle
-                    ImageView btnLock = createIconAction(context, R.drawable.ic_mtrl_shield_lock,
+                    ImageView btnLock = createIconAction(context, R.drawable.ic_game_lock,
                             obj.locked ? colorError : colorOnSurfaceVariant, "Lock", v -> {
                                 obj.locked = !obj.locked;
                                 if (callback != null) callback.onSceneUpdated();
@@ -396,21 +397,24 @@ public class GameHierarchyDialog {
                     // Duplicate
                     row.addView(createIconAction(context, R.drawable.ic_mtrl_content_copy,
                             colorOnSurfaceVariant, "Duplicate", v -> {
-                                GameObjectBean copy = cloneWithUniqueIdentity(currentScene, obj);
-                                copy.x += 20f;
-                                copy.y += 20f;
+                                GameObjectBean copy = currentScene.cloneObjectWithUniqueIdentity(obj, 20f, 20f, false);
                                 currentScene.objects.add(copy);
                                 if (callback != null) callback.onSceneUpdated();
                                 rebuild[0].run();
                             }));
 
-                    // Delete
-                    row.addView(createIconAction(context, R.drawable.ic_mtrl_delete,
-                            colorError, "Delete", v -> {
-                                currentScene.objects.remove(obj);
-                                if (callback != null) callback.onSceneUpdated();
-                                rebuild[0].run();
-                            }));
+                    // Delete (with confirmation & cascade script cleanup)
+                    row.addView(createIconAction(context, R.drawable.ic_game_trash,
+                            colorError, "Delete", v -> new MaterialAlertDialogBuilder(context)
+                                    .setTitle("Delete Object")
+                                    .setMessage("Delete \"" + nonEmpty(obj.name, obj.id) + "\" and its attached scripts?")
+                                    .setPositiveButton("Delete", (d2, w2) -> {
+                                        currentScene.removeObjectCascade(obj.id);
+                                        if (callback != null) callback.onSceneUpdated();
+                                        rebuild[0].run();
+                                    })
+                                    .setNegativeButton("Cancel", null)
+                                    .show()));
 
                     card.addView(row);
                     card.setOnClickListener(v -> {
@@ -487,7 +491,7 @@ public class GameHierarchyDialog {
 
                     MaterialButton btnSpawn = GamePropertyPanelView.createCompactOutlinedButton(context, "Spawn", 12f);
                     btnSpawn.setOnClickListener(v -> {
-                        GameObjectBean instance = cloneWithUniqueIdentity(currentScene, prefab);
+                        GameObjectBean instance = currentScene.cloneObjectWithUniqueIdentity(prefab, 0f, 0f, true);
                         int vw = project.virtualWidth > 0 ? project.virtualWidth : 1280;
                         int vh = project.virtualHeight > 0 ? project.virtualHeight : 720;
                         instance.x = (vw - instance.width) * 0.5f;
@@ -503,9 +507,12 @@ public class GameHierarchyDialog {
                     });
                     row.addView(btnSpawn);
 
-                    row.addView(createIconAction(context, R.drawable.ic_mtrl_delete,
+                    row.addView(createIconAction(context, R.drawable.ic_game_trash,
                             colorError, "Remove prefab", v -> {
-                                project.prefabs.remove(prefab);
+                                project.removePrefab(prefab.id);
+                                if (callback != null) {
+                                    callback.onSceneUpdated();
+                                }
                                 rebuild[0].run();
                             }));
 
@@ -741,9 +748,11 @@ public class GameHierarchyDialog {
                             newScene.worldHeight = 1280;
                             newScene.gravityY = 0f;
                             newScene.worldBoundsMode = GameScene.WORLD_BOUNDS_SOLID;
-                            project.landscape = false;
-                            project.virtualWidth = 720;
-                            project.virtualHeight = 1280;
+                            if (project.scenes.isEmpty()) {
+                                project.landscape = false;
+                                project.virtualWidth = 720;
+                                project.virtualHeight = 1280;
+                            }
                         }
                         case 3 -> {
                             newScene.worldWidth = 2560;
@@ -842,34 +851,6 @@ public class GameHierarchyDialog {
         iv.setOnClickListener(click);
         iv.setLayoutParams(new LinearLayout.LayoutParams(dp(32), dp(32)));
         return iv;
-    }
-
-    private static GameObjectBean cloneWithUniqueIdentity(GameScene scene, GameObjectBean source) {
-        GameObjectBean copy = source.copy();
-        int maxZ = 0;
-        if (scene.objects != null) {
-            for (GameObjectBean o : scene.objects) {
-                if (o.zIndex > maxZ) maxZ = o.zIndex;
-            }
-        }
-        copy.zIndex = maxZ + 1;
-
-        String baseId = nonEmpty(source.id, "obj");
-        String candId = baseId + "_1";
-        int idx = 2;
-        while (scene.findObjectById(candId) != null) {
-            candId = baseId + "_" + idx++;
-        }
-        copy.id = candId;
-
-        String baseName = nonEmpty(source.name, "obj");
-        String candName = baseName;
-        int nIdx = 2;
-        while (scene.findObjectByName(candName) != null) {
-            candName = baseName + "_" + nIdx++;
-        }
-        copy.name = candName;
-        return copy;
     }
 
     private static String generateUniqueSceneId(GameProject project) {

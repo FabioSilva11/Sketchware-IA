@@ -3,7 +3,6 @@ package pro.sketchware.activities.game.runtime;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -36,6 +35,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
+import pro.sketchware.activities.game.model.GameBitmapUtils;
 import pro.sketchware.activities.game.model.GameBlockItem;
 import pro.sketchware.activities.game.model.GameObjectBean;
 import pro.sketchware.activities.game.model.GameProject;
@@ -139,10 +139,13 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
     private final Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint bitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
     private final Paint lightCutPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final PorterDuffXfermode dstOutXfermode = new PorterDuffXfermode(PorterDuff.Mode.DST_OUT);
     private final Path tempPath = new Path();
     private final RectF tempRect = new RectF();
     private final ArrayList<RuntimeObject> drawWorldScratch = new ArrayList<>();
     private final ArrayList<RuntimeObject> drawHudScratch = new ArrayList<>();
+    private final HashMap<Long, ArrayList<RuntimeObject>> spatialGrid = new HashMap<>();
+    private final HashMap<String, RuntimeObject> objectsByIdScratch = new HashMap<>();
     private int ambientParticleCounter = 0;
 
     public GameRuntimeView(Context context, String scId, GameProject project, String initialSceneId) {
@@ -160,7 +163,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         synchronized (stateLock) {
             String startId = (initialSceneId != null && !initialSceneId.isEmpty())
                     ? initialSceneId : this.project.startSceneId;
-            loadSceneInternal(startId);
+            loadSceneInternal(startId, true);
         }
     }
 
@@ -209,7 +212,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
     public void restartCurrentScene() {
         synchronized (stateLock) {
             String id = currentScene != null ? currentScene.id : project.startSceneId;
-            loadSceneInternal(id);
+            loadSceneInternal(id, true);
         }
     }
 
@@ -382,7 +385,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
 
     // ==================== Scene Management ====================
 
-    private void loadSceneInternal(String sceneId) {
+    private void loadSceneInternal(String sceneId, boolean resetGlobalsAndTimer) {
         GameScene target = project.getSceneById(sceneId);
         if (target == null) {
             target = findSceneByName(sceneId);
@@ -420,13 +423,14 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             }
         }
 
-        // Reset global variables only when loading the initial/start scene or keep persistent vars?
-        // Resetting from project.globalVariables on scene restart / start scene ensures clean replay!
-        if (variables.isEmpty() || (currentScene.id.equals(project.startSceneId) && pendingSceneLoadId == null && transitionTargetSceneId.isEmpty())) {
+        if (resetGlobalsAndTimer || variables.isEmpty()) {
             variables.clear();
             if (project.globalVariables != null) {
                 variables.putAll(project.globalVariables);
             }
+        }
+        if (resetGlobalsAndTimer) {
+            gameTimerSeconds = 0f;
         }
 
         activeFibers.clear();
@@ -556,7 +560,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                     worldTouchPointerId = -1;
                     isTouchingWorld = false;
                     pointerButtons.clear();
-                    pressedButtons.clear();
+                    rebuildPressedButtons();
                     break;
                 }
                 default:
@@ -799,15 +803,15 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         if (currentScene == null) {
             return;
         }
-        gameTimerSeconds += dt;
 
-        // 0. Advance active screen transition
+        // 0. Advance active screen transition (pauses timer & simulation while fading/flashing out)
         if (!transitionPhase.isEmpty()) {
             stepTransition(dt);
             if ("out".equals(transitionPhase)) {
                 return;
             }
         }
+        gameTimerSeconds += dt;
 
         // 1. Drain pending touch/button events into fibers
         if (!pendingEvents.isEmpty()) {
@@ -885,11 +889,11 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             String id = currentScene.id;
             pendingSceneRestart = false;
             pendingSceneLoadId = null;
-            loadSceneInternal(id);
+            loadSceneInternal(id, false);
         } else if (pendingSceneLoadId != null) {
             String nextId = pendingSceneLoadId;
             pendingSceneLoadId = null;
-            loadSceneInternal(nextId);
+            loadSceneInternal(nextId, false);
         }
     }
 
@@ -901,7 +905,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 String nextId = transitionTargetSceneId;
                 transitionTargetSceneId = "";
                 transitionPhase = "in";
-                loadSceneInternal(nextId);
+                loadSceneInternal(nextId, false);
             }
         } else if ("in".equals(transitionPhase)) {
             transitionProgress = Math.max(0f, transitionProgress - step);
@@ -954,22 +958,25 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 obj.scrollOffsetY += b.moveY * dt;
             } else if (GameObjectBean.TYPE_ANIMATED_SPRITE.equals(b.type)) {
                 if (b.spriteFrames != null && !b.spriteFrames.trim().isEmpty()) {
-                    String[] parts = b.spriteFrames.split(",");
-                    ArrayList<String> validFrames = new ArrayList<>();
-                    for (String p : parts) {
-                        String trimmed = p.trim();
-                        if (!trimmed.isEmpty()) {
-                            validFrames.add(trimmed);
+                    if (!b.spriteFrames.equals(obj.cachedSpriteFramesRaw)) {
+                        obj.cachedSpriteFramesRaw = b.spriteFrames;
+                        obj.cachedSpriteFrames = new ArrayList<>();
+                        String[] parts = b.spriteFrames.split(",");
+                        for (String p : parts) {
+                            String trimmed = p.trim();
+                            if (!trimmed.isEmpty()) {
+                                obj.cachedSpriteFrames.add(trimmed);
+                            }
                         }
                     }
-                    if (!validFrames.isEmpty()) {
+                    if (obj.cachedSpriteFrames != null && !obj.cachedSpriteFrames.isEmpty()) {
                         float frameDur = 1f / Math.max(0.5f, b.animFps);
                         obj.animTimer += dt;
                         while (obj.animTimer >= frameDur) {
                             obj.animTimer -= frameDur;
-                            obj.animFrameIdx = (obj.animFrameIdx + 1) % validFrames.size();
+                            obj.animFrameIdx = (obj.animFrameIdx + 1) % obj.cachedSpriteFrames.size();
                         }
-                        b.spriteResName = validFrames.get(obj.animFrameIdx % validFrames.size());
+                        b.spriteResName = obj.cachedSpriteFrames.get(obj.animFrameIdx % obj.cachedSpriteFrames.size());
                     }
                 }
             } else if (GameObjectBean.TYPE_SPAWNER.equals(b.type)) {
@@ -1025,6 +1032,19 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 rider.bean.y += platDy;
                 rider.prevY += platDy;
                 rider.onGround = true;
+                rider.coyoteTimer = 0.085f;
+            } else if (platDx != 0f
+                    && rider.bean.y + rider.bean.height > plat.bean.y + 2f
+                    && rider.bean.y < plat.bean.y + plat.bean.height - 2f
+                    && rider.bean.x + rider.bean.width > plat.bean.x
+                    && rider.bean.x < plat.bean.x + plat.bean.width) {
+                // Horizontal side-sweep push prevents abrupt dx==0 pop-out snaps
+                if (platDx > 0f) {
+                    rider.bean.x = plat.bean.x + plat.bean.width;
+                } else {
+                    rider.bean.x = plat.bean.x - rider.bean.width;
+                }
+                rider.prevX = rider.bean.x;
             }
         }
     }
@@ -1043,71 +1063,103 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             if (obj.bean.activeOnlyNearCamera && !isInCameraViewport(obj, 360f)) {
                 continue;
             }
+            // Suspend gravity & velocity integration during active glideToXY to prevent glide drift/slam
+            if (obj.glideActive) {
+                obj.bean.velocityY = 0f;
+                obj.coyoteTimer = Math.max(0f, obj.coyoteTimer - dt);
+                continue;
+            }
             float scriptDx = obj.bean.x - obj.prevX;
             float scriptDy = obj.bean.y - obj.prevY;
 
+            boolean wasOnGround = obj.onGround;
             obj.onGround = false;
             obj.bean.velocityY = clamp(obj.bean.velocityY + gravityY * obj.bean.gravityScale * dt, -2400f, MAX_FALL_SPEED);
 
-            // Integrate X
-            float dx = scriptDx + obj.bean.velocityX * dt;
-            obj.bean.x = obj.prevX + dx;
-            if (!obj.bean.isSensor) {
-                for (RuntimeObject other : objects) {
-                    if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled
-                            || other.bean.isSensor || other.bean.oneWay) {
-                        continue;
-                    }
-                    if (overlapsXPass(obj, other)) {
-                        if (dx > 0f) {
-                            obj.bean.x = other.bean.x - obj.bean.width;
-                            if (obj.bean.velocityX > 0f) {
-                                obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
-                            }
-                        } else if (dx < 0f) {
-                            obj.bean.x = other.bean.x + other.bean.width;
-                            if (obj.bean.velocityX < 0f) {
-                                obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
-                            }
-                        } else {
-                            float overlapLeft = (obj.bean.x + obj.bean.width) - other.bean.x;
-                            float overlapRight = (other.bean.x + other.bean.width) - obj.bean.x;
-                            if (overlapLeft < overlapRight) {
+            float totalDx = scriptDx + obj.bean.velocityX * dt;
+            float totalDy = scriptDy + obj.bean.velocityY * dt;
+
+            // Velocity-adaptive anti-tunneling substepping for fast bodies
+            float minDim = Math.max(8f, Math.min(obj.bean.width, obj.bean.height));
+            float maxMove = Math.max(Math.abs(totalDx), Math.abs(totalDy));
+            int substeps = (!obj.bean.isSensor && maxMove > minDim * 0.5f)
+                    ? Math.min(6, (int) Math.ceil(maxMove / (minDim * 0.5f))) : 1;
+            float stepDx = totalDx / substeps;
+            float stepDy = totalDy / substeps;
+            float subDt = dt / substeps;
+
+            obj.bean.x = obj.prevX;
+            obj.bean.y = obj.prevY;
+
+            for (int s = 0; s < substeps; s++) {
+                float stepPrevY = obj.bean.y;
+
+                // Integrate X
+                obj.bean.x += stepDx;
+                if (!obj.bean.isSensor) {
+                    for (RuntimeObject other : objects) {
+                        if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled
+                                || other.bean.isSensor || other.bean.oneWay) {
+                            continue;
+                        }
+                        if (obj.bean.circleCollider || other.bean.circleCollider) {
+                            resolveCircleSolidContact(obj, other, subDt);
+                            continue;
+                        }
+                        if (overlapsXPass(obj, other)) {
+                            if (stepDx > 0f) {
                                 obj.bean.x = other.bean.x - obj.bean.width;
-                            } else {
+                                if (obj.bean.velocityX > 0f) {
+                                    obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
+                                }
+                            } else if (stepDx < 0f) {
                                 obj.bean.x = other.bean.x + other.bean.width;
+                                if (obj.bean.velocityX < 0f) {
+                                    obj.bean.velocityX = -obj.bean.velocityX * obj.bean.bounce;
+                                }
+                            } else {
+                                float overlapLeft = (obj.bean.x + obj.bean.width) - other.bean.x;
+                                float overlapRight = (other.bean.x + other.bean.width) - obj.bean.x;
+                                if (overlapLeft < overlapRight) {
+                                    obj.bean.x = other.bean.x - obj.bean.width;
+                                } else {
+                                    obj.bean.x = other.bean.x + other.bean.width;
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            // Integrate Y
-            float dy = scriptDy + obj.bean.velocityY * dt;
-            obj.bean.y = obj.prevY + dy;
-            if (!obj.bean.isSensor) {
-                for (RuntimeObject other : objects) {
-                    if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled || other.bean.isSensor) {
-                        continue;
-                    }
-                    if (other.bean.oneWay) {
-                        if (dy < 0f || (obj.prevY + obj.bean.height > other.bean.y + 6f)) {
+                // Integrate Y
+                obj.bean.y += stepDy;
+                if (!obj.bean.isSensor) {
+                    for (RuntimeObject other : objects) {
+                        if (other == obj || other.destroyed || other.isHud() || !other.bean.physicsEnabled || other.bean.isSensor) {
                             continue;
                         }
-                    }
-                    if (overlapsYPass(obj, other)) {
-                        if (dy >= 0f) {
-                            obj.bean.y = other.bean.y - obj.bean.height;
-                            obj.onGround = true;
-                            if (obj.bean.velocityY > 0f) {
-                                obj.bean.velocityY = (obj.bean.bounce > 0.05f) ? -obj.bean.velocityY * obj.bean.bounce : 0f;
+                        if (other.bean.oneWay) {
+                            if (stepDy < 0f || (stepPrevY + obj.bean.height > other.bean.y + 6f)) {
+                                continue;
                             }
-                            float damp = Math.max(0f, 1f - Math.max(obj.bean.friction, other.bean.friction) * 8f * dt);
-                            obj.bean.velocityX *= damp;
-                        } else {
-                            obj.bean.y = other.bean.y + other.bean.height;
-                            if (obj.bean.velocityY < 0f) {
-                                obj.bean.velocityY = -obj.bean.velocityY * obj.bean.bounce;
+                        }
+                        if (obj.bean.circleCollider || other.bean.circleCollider) {
+                            resolveCircleSolidContact(obj, other, subDt);
+                            continue;
+                        }
+                        if (overlapsYPass(obj, other)) {
+                            if (stepDy >= 0f) {
+                                obj.bean.y = other.bean.y - obj.bean.height;
+                                obj.onGround = true;
+                                if (obj.bean.velocityY > 0f) {
+                                    obj.bean.velocityY = (obj.bean.bounce > 0.05f) ? -obj.bean.velocityY * obj.bean.bounce : 0f;
+                                }
+                                float damp = Math.max(0f, 1f - Math.max(obj.bean.friction, other.bean.friction) * 8f * subDt);
+                                obj.bean.velocityX *= damp;
+                            } else {
+                                obj.bean.y = other.bean.y + other.bean.height;
+                                if (obj.bean.velocityY < 0f) {
+                                    obj.bean.velocityY = -obj.bean.velocityY * obj.bean.bounce;
+                                }
                             }
                         }
                     }
@@ -1117,37 +1169,149 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             if (solidEdges && !obj.bean.isSensor && !GameObjectBean.TYPE_PROJECTILE.equals(obj.bean.type)) {
                 clampInsideWorldRect(obj, worldW, worldH);
             }
+            if (obj.onGround) {
+                obj.coyoteTimer = 0.085f;
+            } else {
+                obj.coyoteTimer = wasOnGround ? Math.max(0f, 0.085f - dt) : Math.max(0f, obj.coyoteTimer - dt);
+            }
         }
 
-        // Update current collision sets for ALL world objects (including triggers & static solids)
+        // Update current collision sets using 128px Spatial Hash Grid broadphase
+        objectsByIdScratch.clear();
+        spatialGrid.clear();
+        final float cellSize = 128f;
         for (RuntimeObject obj : objects) {
             obj.prevColliders.clear();
             obj.prevColliders.addAll(obj.currentColliders);
             obj.currentColliders.clear();
+            if (obj.destroyed || obj.isHud()) {
+                continue;
+            }
+            if (obj.bean.id != null) {
+                objectsByIdScratch.put(obj.bean.id, obj);
+            }
+            int minCx = (int) Math.floor((obj.bean.x - 2f) / cellSize);
+            int maxCx = (int) Math.floor((obj.bean.x + obj.bean.width + 2f) / cellSize);
+            int minCy = (int) Math.floor((obj.bean.y - 2f) / cellSize);
+            int maxCy = (int) Math.floor((obj.bean.y + obj.bean.height + 2f) / cellSize);
+            for (int cy = minCy; cy <= maxCy; cy++) {
+                for (int cx = minCx; cx <= maxCx; cx++) {
+                    long key = (((long) cx) << 32) ^ (cy & 0xffffffffL);
+                    ArrayList<RuntimeObject> bucket = spatialGrid.get(key);
+                    if (bucket == null) {
+                        bucket = new ArrayList<>(4);
+                        spatialGrid.put(key, bucket);
+                    }
+                    bucket.add(obj);
+                }
+            }
         }
 
-        int n = objects.size();
-        for (int i = 0; i < n; i++) {
-            RuntimeObject a = objects.get(i);
-            if (a.destroyed || a.isHud()) continue;
-            for (int j = i + 1; j < n; j++) {
-                RuntimeObject b = objects.get(j);
-                if (b.destroyed || b.isHud()) continue;
-                if (aabbTouchingOrOverlapping(a, b)) {
-                    a.currentColliders.add(b.bean.id);
-                    b.currentColliders.add(a.bean.id);
-
-                    if (!a.prevColliders.contains(b.bean.id)) {
-                        enqueueCollisionScripts(a, b);
+        for (ArrayList<RuntimeObject> bucket : spatialGrid.values()) {
+            int bn = bucket.size();
+            if (bn < 2) continue;
+            for (int i = 0; i < bn; i++) {
+                RuntimeObject a = bucket.get(i);
+                for (int j = i + 1; j < bn; j++) {
+                    RuntimeObject b = bucket.get(j);
+                    if (a == b || a.currentColliders.contains(b.bean.id)) continue;
+                    // Skip static-vs-static pairs unless a collision script explicitly listens for them
+                    if (a.bean.isStatic && b.bean.isStatic && !a.bean.isSensor && !b.bean.isSensor
+                            && !hasCollisionScriptBetween(a, b)) {
+                        continue;
                     }
-                    if (!b.prevColliders.contains(a.bean.id)) {
-                        enqueueCollisionScripts(b, a);
+                    if (aabbTouchingOrOverlapping(a, b)) {
+                        a.currentColliders.add(b.bean.id);
+                        b.currentColliders.add(a.bean.id);
+
+                        if (!a.prevColliders.contains(b.bean.id)) {
+                            enqueueCollisionScripts(a, b);
+                        }
+                        if (!b.prevColliders.contains(a.bean.id)) {
+                            enqueueCollisionScripts(b, a);
+                        }
                     }
                 }
             }
         }
 
         stepWorldBoundsAndBuiltins(worldW, worldH);
+    }
+
+    /**
+     * Analytical Circle-vs-Circle and Circle-vs-AABB solid contact resolution so {@code physics_circle}
+     * bodies roll cleanly off platform corners instead of snagging on invisible AABB edges.
+     */
+    private void resolveCircleSolidContact(RuntimeObject obj, RuntimeObject other, float dt) {
+        if (obj.bean.circleCollider && other.bean.circleCollider) {
+            float ax = obj.bean.x + obj.bean.width * 0.5f;
+            float ay = obj.bean.y + obj.bean.height * 0.5f;
+            float ar = Math.min(obj.bean.width, obj.bean.height) * 0.5f;
+            float bx = other.bean.x + other.bean.width * 0.5f;
+            float by = other.bean.y + other.bean.height * 0.5f;
+            float br = Math.min(other.bean.width, other.bean.height) * 0.5f;
+            float dx = ax - bx;
+            float dy = ay - by;
+            float distSq = dx * dx + dy * dy;
+            float rSum = ar + br;
+            if (distSq >= rSum * rSum) return;
+            float dist = (float) Math.sqrt(Math.max(0.0001f, distSq));
+            float nx = dx / dist;
+            float ny = dy / dist;
+            float pen = rSum - dist;
+            obj.bean.x += nx * pen;
+            obj.bean.y += ny * pen;
+            applyCircleContactResponse(obj, other, nx, ny, dt);
+        } else {
+            RuntimeObject circ = obj.bean.circleCollider ? obj : other;
+            RuntimeObject box = obj.bean.circleCollider ? other : obj;
+            float cx = circ.bean.x + circ.bean.width * 0.5f;
+            float cy = circ.bean.y + circ.bean.height * 0.5f;
+            float r = Math.min(circ.bean.width, circ.bean.height) * 0.5f;
+            float nearX = clamp(cx, box.bean.x, box.bean.x + box.bean.width);
+            float nearY = clamp(cy, box.bean.y, box.bean.y + box.bean.height);
+            float dx = cx - nearX;
+            float dy = cy - nearY;
+            float distSq = dx * dx + dy * dy;
+            if (distSq >= r * r) return;
+            float nx, ny, pen;
+            if (distSq > 0.0001f) {
+                float dist = (float) Math.sqrt(distSq);
+                nx = dx / dist;
+                ny = dy / dist;
+                pen = r - dist;
+            } else {
+                nx = 0f;
+                ny = -1f;
+                pen = r;
+            }
+            if (circ == obj) {
+                obj.bean.x += nx * pen;
+                obj.bean.y += ny * pen;
+                applyCircleContactResponse(obj, other, nx, ny, dt);
+            } else {
+                obj.bean.x -= nx * pen;
+                obj.bean.y -= ny * pen;
+                applyCircleContactResponse(obj, other, -nx, -ny, dt);
+            }
+        }
+    }
+
+    private void applyCircleContactResponse(RuntimeObject obj, RuntimeObject other, float nx, float ny, float dt) {
+        if (ny < -0.45f) {
+            obj.onGround = true;
+        }
+        float vn = obj.bean.velocityX * nx + obj.bean.velocityY * ny;
+        if (vn < 0f) {
+            float e = obj.bean.bounce > 0.05f ? obj.bean.bounce : 0f;
+            float j = -(1f + e) * vn;
+            obj.bean.velocityX += nx * j;
+            obj.bean.velocityY += ny * j;
+        }
+        if (ny < -0.45f) {
+            float damp = Math.max(0f, 1f - Math.max(obj.bean.friction, other.bean.friction) * 4f * dt);
+            obj.bean.velocityX *= damp;
+        }
     }
 
     private void clampInsideWorldRect(RuntimeObject obj, float worldW, float worldH) {
@@ -1201,17 +1365,24 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 }
                 continue;
             }
-            for (RuntimeObject other : objects) {
-                if (other == actor || other.destroyed || other.isHud()) continue;
-                if (!actor.currentColliders.contains(other.bean.id)) continue;
+            for (String colliderId : actor.currentColliders) {
+                RuntimeObject other = objectsByIdScratch.get(colliderId);
+                if (other == null || other == actor || other.destroyed || other.isHud()) continue;
 
                 String oType = other.bean.type;
                 if (GameObjectBean.TYPE_CHECKPOINT.equals(oType)) {
-                    if (!actor.hasCheckpoint || Math.abs(actor.checkpointX - other.bean.x) > 4f || Math.abs(actor.checkpointY - other.bean.y) > 4f) {
-                        actor.checkpointX = other.bean.x + (other.bean.width - actor.bean.width) * 0.5f;
-                        actor.checkpointY = other.bean.y + other.bean.height - actor.bean.height;
+                    float newCpX = other.bean.x + (other.bean.width - actor.bean.width) * 0.5f;
+                    float newCpY = other.bean.y + other.bean.height - actor.bean.height;
+                    boolean sameCheckpoint = other.bean.id != null && other.bean.id.equals(actor.lastCheckpointId);
+                    if (!actor.hasCheckpoint || (!sameCheckpoint && (Math.abs(actor.checkpointX - newCpX) > 1f || Math.abs(actor.checkpointY - newCpY) > 1f))) {
+                        actor.checkpointX = newCpX;
+                        actor.checkpointY = newCpY;
                         actor.hasCheckpoint = true;
+                        actor.lastCheckpointId = other.bean.id;
                         other.bean.toggled = true;
+                        if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()) {
+                            playSoundInternal(other.bean.soundResName);
+                        }
                         emitParticleBurst(other.bean.x + other.bean.width * 0.5f, other.bean.y + other.bean.height * 0.25f, 0xFF10B981, 10);
                     }
                 } else if (GameObjectBean.TYPE_BOUNCE_PAD.equals(oType)) {
@@ -1220,6 +1391,10 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                         float impulse = other.bean.speed >= 300f ? other.bean.speed : Math.max(480f, other.bean.speed * 5.2f);
                         actor.bean.velocityY = -impulse;
                         actor.onGround = false;
+                        actor.coyoteTimer = 0f;
+                        if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()) {
+                            playSoundInternal(other.bean.soundResName);
+                        }
                     }
                 } else if (GameObjectBean.TYPE_COLLECTIBLE.equals(oType)) {
                     if (!hasCollisionScriptBetween(actor, other)) {
@@ -1234,16 +1409,27 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                     }
                 } else if (GameObjectBean.TYPE_DEATH_ZONE.equals(oType)) {
                     if (actor.hitCooldown <= 0f && !hasCollisionScriptBetween(actor, other)) {
+                        if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()) {
+                            playSoundInternal(other.bean.soundResName);
+                        }
                         if (actor.hasCheckpoint || respawnFall) {
                             respawnObjectAtCheckpoint(actor);
                         } else {
                             pendingSceneRestart = true;
                         }
                     }
+                } else if (GameObjectBean.TYPE_HAZARD.equals(oType)) {
+                    if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()
+                            && !actor.prevColliders.contains(other.bean.id)) {
+                        playSoundInternal(other.bean.soundResName);
+                    }
                 } else if (GameObjectBean.TYPE_GOAL.equals(oType)) {
                     if (actor.hitCooldown <= 0f && !hasCollisionScriptBetween(actor, other)) {
                         String nextSceneId = resolveGoalSceneId(other.bean.targetScene);
                         if (nextSceneId != null && currentScene != null && !nextSceneId.equals(currentScene.id)) {
+                            if (other.bean.soundResName != null && !other.bean.soundResName.isEmpty()) {
+                                playSoundInternal(other.bean.soundResName);
+                            }
                             actor.hitCooldown = 1.0f;
                             startSceneTransition(nextSceneId, "fade");
                         }
@@ -1565,6 +1751,18 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 activeFibers.remove(fiber);
                 continue;
             }
+            if (fiber.waitingFibers != null && !fiber.waitingFibers.isEmpty()) {
+                for (int w = fiber.waitingFibers.size() - 1; w >= 0; w--) {
+                    ScriptFiber child = fiber.waitingFibers.get(w);
+                    if (child == null || child.finished || !activeFibers.contains(child)) {
+                        fiber.waitingFibers.remove(w);
+                    }
+                }
+                if (!fiber.waitingFibers.isEmpty()) {
+                    continue;
+                }
+                fiber.waitingFibers = null;
+            }
             if (fiber.waitTimer > 0f) {
                 fiber.waitTimer -= dt;
                 if (fiber.waitTimer > 0f) {
@@ -1727,7 +1925,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 return false;
             }
             case "ifOnGround": {
-                if (self != null && self.onGround) {
+                if (self != null && (self.onGround || self.coyoteTimer > 0f)) {
                     pushSubStack(fiber, block.subStack1, 1);
                 }
                 return false;
@@ -1905,11 +2103,13 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                         float v = evalSlotFloat(block, 1, "550", fiber);
                         t.bean.velocityY = v > 0f ? -v : v;
                         t.onGround = false;
+                        t.coyoteTimer = 0f;
                     }
                 } else if (self != null) {
                     float v = evalSlotFloat(block, 0, "550", fiber);
                     self.bean.velocityY = v > 0f ? -v : v;
                     self.onGround = false;
+                    self.coyoteTimer = 0f;
                 }
                 return false;
             }
@@ -2078,16 +2278,17 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             case "setZIndex": {
                 if (self != null) {
                     String layer = evalSlotText(block, 0, "front", fiber).trim();
+                    boolean selfIsHud = self.isHud();
                     if ("front".equalsIgnoreCase(layer)) {
                         int maxZ = self.bean.zIndex;
                         for (RuntimeObject o : objects) {
-                            if (!o.isHud() && o.bean.zIndex > maxZ) maxZ = o.bean.zIndex;
+                            if (o.isHud() == selfIsHud && o.bean.zIndex > maxZ) maxZ = o.bean.zIndex;
                         }
                         self.bean.zIndex = maxZ + 1;
                     } else if ("back".equalsIgnoreCase(layer)) {
                         int minZ = self.bean.zIndex;
                         for (RuntimeObject o : objects) {
-                            if (!o.isHud() && o.bean.zIndex < minZ) minZ = o.bean.zIndex;
+                            if (o.isHud() == selfIsHud && o.bean.zIndex < minZ) minZ = o.bean.zIndex;
                         }
                         self.bean.zIndex = minZ - 1;
                     } else {
@@ -2194,7 +2395,8 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             }
             case "playBgm": {
                 String res = evalSlotText(block, 0, "", fiber);
-                boolean loop = !hasParam(block, 1) || evalSlotBool(block, 1, "true", fiber);
+                boolean hasLoopSlot = hasParam(block, 1) || block.getParamBlock(1) != null;
+                boolean loop = !hasLoopSlot || evalSlotBool(block, 1, "true", fiber);
                 playBgmInternal(res, loop);
                 return false;
             }
@@ -2357,10 +2559,24 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 }
                 return false;
             }
-            case "sendMessage":
-            case "sendMessageWait": {
+            case "sendMessage": {
                 String msg = evalSlotText(block, 0, "", fiber);
                 enqueueScriptsForEvent(GameScriptNode.EVENT_MESSAGE, msg, null, self);
+                return false;
+            }
+            case "sendMessageWait": {
+                String msg = evalSlotText(block, 0, "", fiber);
+                int before = activeFibers.size();
+                enqueueScriptsForEvent(GameScriptNode.EVENT_MESSAGE, msg, null, self);
+                if (activeFibers.size() > before) {
+                    if (fiber.waitingFibers == null) {
+                        fiber.waitingFibers = new ArrayList<>();
+                    }
+                    for (int idx = before; idx < activeFibers.size(); idx++) {
+                        fiber.waitingFibers.add(activeFibers.get(idx));
+                    }
+                    return true;
+                }
                 return false;
             }
 
@@ -2370,7 +2586,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 if (!varName.isEmpty()) {
                     String val = block.getParamBlock(1) != null
                             ? valueToString(evaluateBlockValue(block.getParamBlock(1), fiber))
-                            : evalString(param(block, 1, "0"), fiber);
+                            : evalStringOrRaw(param(block, 1, "0"), fiber);
                     variables.put(varName, val);
                 }
                 return false;
@@ -2532,6 +2748,13 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         switch (b.opCode.trim()) {
             case "getVar": {
                 String name = param(b, 0, "score").trim();
+                if (variables.containsKey(name)) {
+                    String raw = variables.get(name);
+                    if (isNumericString(raw)) {
+                        return Double.parseDouble(raw);
+                    }
+                    return raw == null ? "" : raw;
+                }
                 return resolveBuiltInOrVar(name, fiber);
             }
             case "getPosX":
@@ -2568,7 +2791,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             case "isTouchingScreen":
                 return isTouchingWorld;
             case "isOnGround":
-                return self != null && self.onGround;
+                return self != null && (self.onGround || self.coyoteTimer > 0f);
             case "getWorldWidth":
                 return (double) getWorldWidth();
             case "getWorldHeight":
@@ -2611,13 +2834,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             case "touchingObject": {
                 if (self == null) return false;
                 String targetName = evalSlotText(b, 0, "touch", fiber).trim();
-                if ("touch".equalsIgnoreCase(targetName) || "pointer".equalsIgnoreCase(targetName)) {
-                    return isTouchingWorld
-                            && touchX >= self.bean.x && touchX <= self.bean.x + self.bean.width
-                            && touchY >= self.bean.y && touchY <= self.bean.y + self.bean.height;
-                }
-                RuntimeObject other = findRuntimeObjectByIdOrName(targetName);
-                return other != null && !other.destroyed && aabbOverlap(self.bean, other.bean);
+                return isTouchingTarget(self, targetName);
             }
             case "distanceTo": {
                 if (self == null) return 0.0;
@@ -2802,7 +3019,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             return "";
         }
         if (trimmed.contains("{") && trimmed.contains("}") && !trimmed.startsWith("\"") && !trimmed.startsWith("'")) {
-            return interpolateTemplate(trimmed);
+            return interpolateTemplate(trimmed, fiber);
         }
         try {
             Object val = new ExprParser(trimmed, fiber).parse();
@@ -2814,7 +3031,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             }
             return val == null ? "" : val.toString();
         } catch (Throwable ignored) {
-            return interpolateTemplate(trimmed);
+            return interpolateTemplate(trimmed, fiber);
         }
     }
 
@@ -2826,6 +3043,9 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         if ((trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2)
                 || (trimmed.startsWith("'") && trimmed.endsWith("'") && trimmed.length() >= 2)) {
             return trimmed.substring(1, trimmed.length() - 1);
+        }
+        if (trimmed.contains("{") && trimmed.contains("}")) {
+            return interpolateTemplate(trimmed, fiber);
         }
         if (variables.containsKey(trimmed)) {
             return variables.get(trimmed);
@@ -2847,7 +3067,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         }
     }
 
-    private String interpolateTemplate(String text) {
+    private String interpolateTemplate(String text, ScriptFiber fiber) {
         StringBuilder sb = new StringBuilder();
         int i = 0;
         while (i < text.length()) {
@@ -2856,7 +3076,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 int end = text.indexOf('}', i + 1);
                 if (end > i + 1) {
                     String key = text.substring(i + 1, end).trim();
-                    String val = resolveBuiltInOrVarString(key, null);
+                    String val = resolveBuiltInOrVarString(key, fiber);
                     sb.append(val);
                     i = end + 1;
                     continue;
@@ -2866,6 +3086,50 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             i++;
         }
         return sb.toString();
+    }
+
+    private boolean isTouchingTarget(RuntimeObject self, String targetName) {
+        if (self == null || targetName == null) {
+            return false;
+        }
+        if ("touch".equalsIgnoreCase(targetName) || "pointer".equalsIgnoreCase(targetName)) {
+            return isTouchingWorld
+                    && touchX >= self.bean.x && touchX <= self.bean.x + self.bean.width
+                    && touchY >= self.bean.y && touchY <= self.bean.y + self.bean.height;
+        }
+        if ("edge".equalsIgnoreCase(targetName) || "borda".equalsIgnoreCase(targetName)) {
+            float ww = getWorldWidth();
+            float wh = getWorldHeight();
+            return self.bean.x <= 1f || self.bean.y <= 1f
+                    || self.bean.x + self.bean.width >= ww - 1f
+                    || self.bean.y + self.bean.height >= wh - 1f;
+        }
+        RuntimeObject other = findRuntimeObjectByIdOrName(targetName);
+        if (other != null && !other.destroyed) {
+            return aabbTouchingOrOverlapping(self, other);
+        }
+        return findCollidingWithTag(self, targetName) != null;
+    }
+
+    private static boolean isKnownBuiltInIdentifier(String name) {
+        if (name == null) return false;
+        switch (name) {
+            case "joyX": case "joystickX": case "joyY": case "joystickY":
+            case "joyAngle": case "joystickAngle": case "joyActive": case "joystickActive":
+            case "touchX": case "touchY":
+            case "isTouching": case "touchDown": case "timer": case "volume":
+            case "size": case "spriteName": case "fps": case "dt":
+            case "camX": case "camY": case "virtualWidth": case "screenWidth":
+            case "virtualHeight": case "screenHeight": case "worldWidth": case "worldHeight":
+            case "sceneName": case "backdrop": case "hasNextScene": case "outsideWorld":
+            case "leftScreen": case "isOnGround": case "onGround": case "true": case "false":
+            case "selfX": case "x": case "selfY": case "y": case "selfVX": case "vx":
+            case "selfVY": case "vy": case "selfRot": case "rotation": case "direction": case "rot":
+            case "selfWidth": case "selfHeight":
+                return true;
+            default:
+                return false;
+        }
     }
 
     private String resolveBuiltInOrVarString(String name, ScriptFiber fiber) {
@@ -2886,9 +3150,11 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             case "joystickY":
                 return (double) joyY;
             case "joyAngle":
+            case "joystickAngle":
                 return (Math.hypot(joyX, joyY) > 0.05)
                         ? Math.toDegrees(Math.atan2(joyY, joyX)) : 0.0;
             case "joyActive":
+            case "joystickActive":
                 return !joystickObjectId.isEmpty() || Math.hypot(joyX, joyY) > 0.05;
             case "touchX":
                 return (double) touchX;
@@ -2935,7 +3201,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 return hasLeftScreen(fiber != null ? fiber.self : null);
             case "isOnGround":
             case "onGround":
-                return fiber != null && fiber.self != null && fiber.self.onGround;
+                return fiber != null && fiber.self != null && (fiber.self.onGround || fiber.self.coyoteTimer > 0f);
             case "true":
                 return true;
             case "false":
@@ -2954,6 +3220,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 return fiber != null && fiber.self != null ? (double) fiber.self.bean.velocityY : 0.0;
             case "selfRot":
             case "rotation":
+            case "direction":
             case "rot":
                 return fiber != null && fiber.self != null ? (double) fiber.self.bean.rotation : 0.0;
             case "selfWidth":
@@ -3203,7 +3470,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                         }
                         String rawIdent = src.substring(idStart, pos);
                         rawArgs.add(rawIdent);
-                        if (variables.containsKey(rawIdent)) {
+                        if (variables.containsKey(rawIdent) || isKnownBuiltInIdentifier(rawIdent)) {
                             evalArgs.add(resolveBuiltInOrVar(rawIdent, fiber));
                         } else {
                             evalArgs.add(rawIdent);
@@ -3253,6 +3520,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 case "floor":
                     return evalArgs.isEmpty() ? 0.0 : Math.floor(toDouble(evalArgs.get(0)));
                 case "ceil":
+                case "ceiling":
                     return evalArgs.isEmpty() ? 0.0 : Math.ceil(toDouble(evalArgs.get(0)));
                 case "round":
                     return evalArgs.isEmpty() ? 0.0 : (double) Math.round(toDouble(evalArgs.get(0)));
@@ -3292,13 +3560,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 case "touchingObj": {
                     if (fiber == null || fiber.self == null) return false;
                     String targetName = evalArgs.isEmpty() ? "touch" : valueToString(evalArgs.get(0)).trim();
-                    if ("touch".equalsIgnoreCase(targetName) || "pointer".equalsIgnoreCase(targetName)) {
-                        return isTouchingWorld
-                                && touchX >= fiber.self.bean.x && touchX <= fiber.self.bean.x + fiber.self.bean.width
-                                && touchY >= fiber.self.bean.y && touchY <= fiber.self.bean.y + fiber.self.bean.height;
-                    }
-                    RuntimeObject other = findRuntimeObjectByIdOrName(targetName);
-                    return other != null && !other.destroyed && aabbOverlap(fiber.self.bean, other.bean);
+                    return isTouchingTarget(fiber.self, targetName);
                 }
                 case "dist": {
                     if (fiber == null || fiber.self == null) return 0.0;
@@ -3328,8 +3590,10 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 case "acos":
                 case "atan":
                 case "ln":
+                case "log":
                 case "log10":
                 case "exp":
+                case "pow10":
                     return evalArgs.isEmpty() ? 0.0 : evalMathFn(fnName, toDouble(evalArgs.get(0)));
                 case "join": {
                     String a = evalArgs.size() >= 1 ? valueToString(evalArgs.get(0)) : "";
@@ -3352,7 +3616,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 }
                 case "isOnGround":
                 case "onGround":
-                    return fiber != null && fiber.self != null && fiber.self.onGround;
+                    return fiber != null && fiber.self != null && (fiber.self.onGround || fiber.self.coyoteTimer > 0f);
                 case "joystickX":
                 case "joyX":
                     return (double) joyX;
@@ -3384,6 +3648,11 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
                 case "var":
                 case "getVar": {
                     String varName = evalArgs.isEmpty() ? "" : valueToString(evalArgs.get(0));
+                    if (variables.containsKey(varName)) {
+                        String raw = variables.get(varName);
+                        if (isNumericString(raw)) return Double.parseDouble(raw);
+                        return raw == null ? "" : raw;
+                    }
                     return resolveBuiltInOrVar(varName, fiber);
                 }
                 default:
@@ -3461,6 +3730,12 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         }
         drawParticles(canvas);
         drawLighting2DPass(canvas, world, camX + visLeft, camY + visTop, camX + visRight, camY + visBottom);
+        // Draw speech bubbles after lighting pass so dialogue stays readable in dark scenes (APK parity)
+        for (RuntimeObject obj : world) {
+            if (!obj.destroyed && obj.bean.visible && obj.speechText != null && !obj.speechText.isEmpty()) {
+                drawSpeechBubble(canvas, obj);
+            }
+        }
         canvas.restore();
 
         // Draw HUD objects in virtual screen space
@@ -3572,7 +3847,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         fillPaint.setColor(Color.argb(Math.round(darkAlpha * 255f), 0, 0, 0));
         canvas.drawRect(left, top, right, bottom, fillPaint);
 
-        lightCutPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.DST_OUT));
+        lightCutPaint.setXfermode(dstOutXfermode);
         for (RuntimeObject obj : world) {
             if (obj.destroyed || !obj.bean.visible || obj.bean.alpha <= 0f
                     || !GameObjectBean.TYPE_LIGHT_2D.equals(obj.bean.type)) {
@@ -3786,10 +4061,6 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
             }
         }
         canvas.restore();
-
-        if (obj.speechText != null && !obj.speechText.isEmpty()) {
-            drawSpeechBubble(canvas, obj);
-        }
 
         if (project.showDebugHitboxes) {
             drawDebugHitbox(canvas, obj);
@@ -4190,18 +4461,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         Bitmap bmp = null;
         try {
             File file = GameProjectRepository.getImageFile(scId, key);
-            if (file != null && file.exists() && file.isFile()) {
-                BitmapFactory.Options opts = new BitmapFactory.Options();
-                opts.inJustDecodeBounds = true;
-                BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
-                int sample = 1;
-                while (opts.outWidth / sample > 2048 || opts.outHeight / sample > 2048) {
-                    sample *= 2;
-                }
-                opts.inJustDecodeBounds = false;
-                opts.inSampleSize = sample;
-                bmp = BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
-            }
+            bmp = GameBitmapUtils.decodeSampledFile(file, 2048);
         } catch (Throwable ignored) {
         }
         bitmapCache.put(key, bmp);
@@ -4265,6 +4525,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         if (key.equals(currentBgmResName) && bgmPlayer != null) {
             try {
                 bgmPlayer.setLooping(loop);
+                applyVolumeToBgm();
                 bgmWantedPlaying = true;
                 if (!paused && !bgmPlayer.isPlaying()) {
                     bgmPlayer.start();
@@ -4559,8 +4820,10 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         float checkpointX;
         float checkpointY;
         boolean hasCheckpoint = false;
+        String lastCheckpointId = null;
         boolean enteredScreen = false;
         boolean onGround = false;
+        float coyoteTimer = 0f;
         boolean destroyed = false;
         boolean isClone = false;
         String speechText = "";
@@ -4574,6 +4837,8 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         float glideTargetY = 0f;
         int animFrameIdx = 0;
         float animTimer = 0f;
+        String cachedSpriteFramesRaw = null;
+        ArrayList<String> cachedSpriteFrames = null;
         float spawnTimer = 0f;
         float patrolDir = 1f;
         float hitCooldown = 0f;
@@ -4586,7 +4851,9 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         RuntimeObject(GameObjectBean source) {
             this.bean = source.copy();
             this.spawnOrder = nextSpawnOrder++;
-            this.templateId = this.bean.id != null ? this.bean.id : "";
+            this.templateId = (this.bean.prefabId != null && !this.bean.prefabId.isEmpty())
+                    ? this.bean.prefabId
+                    : (this.bean.id != null ? this.bean.id : "");
             this.prevX = this.bean.x;
             this.prevY = this.bean.y;
             this.startX = this.bean.x;
@@ -4638,6 +4905,7 @@ public class GameRuntimeView extends SurfaceView implements SurfaceHolder.Callba
         final RuntimeObject self;
         RuntimeObject other;
         final ArrayList<StackFrame> frames = new ArrayList<>();
+        ArrayList<ScriptFiber> waitingFibers = null;
         float waitTimer = 0f;
         boolean finished = false;
 

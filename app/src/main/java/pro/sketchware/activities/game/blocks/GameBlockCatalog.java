@@ -97,9 +97,9 @@ public final class GameBlockCatalog {
         cats.add(new CategoryDef("motion", "Motion", COLOR_MOTION, Arrays.asList(
                 def("moveSteps", "move %d steps", " ", COLOR_MOTION,
                         arr("10"), arr(KIND_NUMBER)),
-                def("rotateBy", "turn ↻ %d degrees", " ", COLOR_MOTION,
+                def("rotateBy", "turn right ↻ %d degrees", " ", COLOR_MOTION,
                         arr("15"), arr(KIND_NUMBER)),
-                def("rotateLeftBy", "turn ↺ %d degrees", " ", COLOR_MOTION,
+                def("rotateLeftBy", "turn left ↺ %d degrees", " ", COLOR_MOTION,
                         arr("15"), arr(KIND_NUMBER)),
                 def("goToTarget", "go to %m.gameObject", " ", COLOR_MOTION,
                         arr("random"), arr(KIND_OBJECT)),
@@ -534,10 +534,11 @@ public final class GameBlockCatalog {
     }
 
     /**
-     * Returns true if {@code block} is a value reporter ("d", "n") or boolean ("b") that can nest.
+     * Returns true if {@code block} is a value reporter ("d", "n", "s") or boolean ("b") that can nest.
      */
     public static boolean isReporterBlock(GameBlockItem block) {
-        return block != null && ("d".equals(block.type) || "n".equals(block.type) || "b".equals(block.type));
+        return block != null && ("d".equals(block.type) || "n".equals(block.type)
+                || "b".equals(block.type) || "s".equals(block.type));
     }
 
     /**
@@ -652,10 +653,7 @@ public final class GameBlockCatalog {
                         + slotExpr(block, 1, "0") + ", "
                         + slotExpr(block, 2, "100") + ")";
             case "opMathFn": {
-                String fn = slotRaw(block, 0, "abs");
-                if (fn.isEmpty()) {
-                    fn = "abs";
-                }
+                String fn = normalizeMathFnForExpr(slotRaw(block, 0, "abs"));
                 return fn + "(" + slotExpr(block, 1, "0") + ")";
             }
             case "opGt":
@@ -663,7 +661,7 @@ public final class GameBlockCatalog {
             case "opLt":
                 return "(" + slotExpr(block, 0, "0") + " < " + slotExpr(block, 1, "0") + ")";
             case "opEq":
-                return "(" + slotExpr(block, 0, "0") + " == " + slotExpr(block, 1, "0") + ")";
+                return "(" + slotScalarOrText(block, 0, "0") + " == " + slotScalarOrText(block, 1, "0") + ")";
             case "opAnd":
                 return "(" + slotExpr(block, 0, "false") + " && " + slotExpr(block, 1, "false") + ")";
             case "opOr":
@@ -734,6 +732,40 @@ public final class GameBlockCatalog {
         }
         String raw = slotRaw(block, idx, fallback).trim();
         return raw.isEmpty() ? fallback : raw;
+    }
+
+    private static String normalizeMathFnForExpr(String rawFn) {
+        if (rawFn == null) {
+            return "abs";
+        }
+        String f = rawFn.trim();
+        if (f.isEmpty()) {
+            return "abs";
+        }
+        return switch (f) {
+            case "ceiling" -> "ceil";
+            case "log" -> "log10";
+            case "e ^", "e^" -> "exp";
+            case "10 ^", "10^" -> "pow10";
+            default -> f;
+        };
+    }
+
+    private static String slotScalarOrText(GameBlockItem block, int idx, String fallback) {
+        GameBlockItem nested = block.getParamBlock(idx);
+        if (nested != null) {
+            return toExpression(nested);
+        }
+        String raw = slotRaw(block, idx, fallback);
+        String trimmed = raw.trim();
+        if (trimmed.isEmpty()) {
+            return quoteExprStr("");
+        }
+        if ("true".equals(trimmed) || "false".equals(trimmed)
+                || trimmed.matches("-?\\d+(\\.\\d+)?")) {
+            return trimmed;
+        }
+        return quoteExprStr(raw);
     }
 
     private static String slotTextOrExpr(GameBlockItem block, int idx, String fallback) {

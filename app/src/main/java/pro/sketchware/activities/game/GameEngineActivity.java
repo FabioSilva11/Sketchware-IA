@@ -1321,7 +1321,7 @@ public class GameEngineActivity extends BaseAppCompatActivity {
         private final String[] labels = new String[]{
                 getString(R.string.design_tab_title_view),
                 getString(R.string.design_tab_title_event),
-                getString(R.string.design_tab_title_component)
+                "Objects"
         };
 
         @Override

@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
@@ -32,9 +31,12 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.view.inputmethod.EditorInfo;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.RelativeLayout;
@@ -87,6 +89,7 @@ import java.util.regex.Pattern;
 import pro.sketchware.R;
 import pro.sketchware.activities.game.blocks.GameBlockBeanConverter;
 import pro.sketchware.activities.game.blocks.GameBlockCatalog;
+import pro.sketchware.activities.game.model.GameBitmapUtils;
 import pro.sketchware.activities.game.model.GameBlockItem;
 import pro.sketchware.activities.game.model.GameObjectBean;
 import pro.sketchware.activities.game.model.GameProject;
@@ -119,7 +122,6 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
     public static final String EXTRA_EVENT_TITLE = "event_title";
     public static final String EXTRA_EVENT_SUBTITLE = "event_subtitle";
 
-    private static final String CLIPBOARD_PREFIX = "SWGAME_BLOCKS:";
     private static final int MAX_UNDO_HISTORY = 60;
 
     private String scId = "";
@@ -375,6 +377,9 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
         GameBlockBeanConverter.ConversionResult conv =
                 GameBlockBeanConverter.toBlockBeans(this, initialBlocks);
         GameBlockBeanConverter.populatePane(this, blockPane, conv.beans, conv.rootNextId, this);
+        if (currentScript != null && currentScript.floatingStacks != null && !currentScript.floatingStacks.isEmpty()) {
+            GameBlockBeanConverter.populateFloatingStacks(this, blockPane, currentScript.floatingStacks, this);
+        }
         undoStack.clear();
         redoStack.clear();
 
@@ -384,7 +389,7 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
         fabTogglePalette.setOnClickListener(v -> setPaletteOpen(!isPaletteOpen, true));
         View searchHeader = findViewById(R.id.search_header);
         if (searchHeader != null) {
-            searchHeader.setOnClickListener(v -> paletteSelector.showSearchDialog());
+            searchHeader.setOnClickListener(v -> showSearchAllBlocksDialog());
         }
 
         configurePaletteOrientation(getResources().getConfiguration().orientation);
@@ -667,7 +672,12 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
         if (touchedBlock.getBlockType() == 1) {
             setPaletteOpen(false, true);
         } else {
-            topMenu.toggleLayoutVisibility(false);
+            // Show Delete + Duplicate (Copy) while hiding Favorite/Detail
+            topMenu.toggleLayoutVisibility(true);
+            View favLayout = topMenu.findViewById(R.id.layout_favorite);
+            if (favLayout != null) {
+                favLayout.setVisibility(View.GONE);
+            }
             topMenu.setFavoriteActive(false);
             topMenu.setDetailActive(false);
             topMenu.setDeleteActive(false);
@@ -864,83 +874,25 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
             if (b.parameters != null) {
                 for (int i = 0; i < b.parameters.size(); i++) {
                     String p = b.parameters.get(i);
-                    if (p != null && p.startsWith("@")) {
-                        try {
-                            int refId = Integer.parseInt(p.substring(1));
-                            if (idRemap.containsKey(refId)) {
-                                b.parameters.set(i, "@" + idRemap.get(refId));
-                            } else {
-                                b.parameters.set(i, "");
-                            }
-                        } catch (NumberFormatException ignored) {
-                        }
+                    int refId = GameBlockBeanConverter.parseBlockRefId(p);
+                    if (refId >= 0 && idRemap.containsKey(refId)) {
+                        b.parameters.set(i, "@" + idRemap.get(refId));
                     }
                 }
             }
         }
 
-        Map<Integer, BlockView> created = new HashMap<>();
+        Map<Integer, BlockView> created = GameBlockBeanConverter.materializeBeans(
+                this, blockPane, sourceBeans, this, true);
         BlockView clonedRoot = null;
-        for (BlockBean b : sourceBeans) {
-            int newId = Integer.parseInt(b.id);
-            BlockView bv = new BlockView(
-                    this,
-                    newId,
-                    b.spec != null ? b.spec : "",
-                    b.type != null ? b.type : " ",
-                    b.typeName != null ? b.typeName : "",
-                    b.opCode != null ? b.opCode : "",
-                    b.color);
-            bv.pa = blockPane;
-            bv.setOnTouchListener(this);
-            blockPane.addView(bv);
-            created.put(newId, bv);
-            if (clonedRoot == null) {
-                clonedRoot = bv;
-            }
-        }
-
-        for (BlockBean b : sourceBeans) {
-            BlockView parent = created.get(Integer.parseInt(b.id));
-            if (parent == null) {
-                continue;
-            }
-            if (b.parameters != null && parent.V != null) {
-                for (int p = 0; p < b.parameters.size() && p < parent.V.size(); p++) {
-                    String val = b.parameters.get(p);
-                    View slot = parent.V.get(p);
-                    if (val != null && val.startsWith("@")) {
-                        BlockView child = created.get(Integer.parseInt(val.substring(1)));
-                        if (child != null && slot instanceof BlockCanvasView) {
-                            parent.a((BlockCanvasView) slot, child);
-                        }
-                    } else if (slot instanceof BlockMenuItem) {
-                        ((BlockMenuItem) slot).setArgValue(val != null ? val : "");
-                    }
-                }
-            }
-            if (b.subStack1 >= 0 && created.containsKey(b.subStack1)) {
-                parent.e(created.get(b.subStack1));
-            }
-            if (b.subStack2 >= 0 && created.containsKey(b.subStack2)) {
-                parent.f(created.get(b.subStack2));
-            }
-            if (b.nextBlock >= 0 && created.containsKey(b.nextBlock)) {
-                parent.b(created.get(b.nextBlock));
+        if (!sourceBeans.isEmpty()) {
+            try {
+                clonedRoot = created.get(Integer.parseInt(sourceBeans.get(0).id));
+            } catch (NumberFormatException ignored) {
             }
         }
 
         if (clonedRoot != null) {
-            for (BlockView bv : created.values()) {
-                if (bv.fa) {
-                    bv.o();
-                }
-            }
-            for (BlockView bv : created.values()) {
-                if (!bv.fa) {
-                    bv.o();
-                }
-            }
             clonedRoot.setX(source.getX() + dp(24));
             clonedRoot.setY(source.getY() + dp(24));
             clonedRoot.k();
@@ -1356,52 +1308,16 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
             if (b.parameters != null) {
                 for (int i = 0; i < b.parameters.size(); i++) {
                     String p = b.parameters.get(i);
-                    if (p != null && p.startsWith("@")) {
-                        try {
-                            int refId = Integer.parseInt(p.substring(1));
-                            b.parameters.set(i, idRemap.containsKey(refId) ? "@" + idRemap.get(refId) : "");
-                        } catch (NumberFormatException ignored) {
-                        }
+                    int refId = GameBlockBeanConverter.parseBlockRefId(p);
+                    if (refId >= 0 && idRemap.containsKey(refId)) {
+                        b.parameters.set(i, "@" + idRemap.get(refId));
                     }
                 }
             }
         }
 
-        Map<Integer, BlockView> created = new HashMap<>();
-        for (BlockBean b : remapped) {
-            int newId = Integer.parseInt(b.id);
-            BlockView bv = new BlockView(
-                    this,
-                    newId,
-                    b.spec != null ? b.spec : "",
-                    b.type != null ? b.type : " ",
-                    b.typeName != null ? b.typeName : "",
-                    b.opCode != null ? b.opCode : "",
-                    b.color);
-            bv.pa = blockPane;
-            bv.setOnTouchListener(this);
-            blockPane.addView(bv);
-            created.put(newId, bv);
-        }
-
-        for (BlockBean b : remapped) {
-            BlockView parent = created.get(Integer.parseInt(b.id));
-            if (parent == null || b.parameters == null || parent.V == null) {
-                continue;
-            }
-            for (int p = 0; p < b.parameters.size() && p < parent.V.size(); p++) {
-                String val = b.parameters.get(p);
-                View slot = parent.V.get(p);
-                if (val != null && val.startsWith("@")) {
-                    BlockView child = created.get(Integer.parseInt(val.substring(1)));
-                    if (child != null && slot instanceof BlockCanvasView) {
-                        parent.a((BlockCanvasView) slot, child);
-                    }
-                } else if (slot instanceof BlockMenuItem) {
-                    ((BlockMenuItem) slot).setArgValue(val != null ? val : "");
-                }
-            }
-        }
+        Map<Integer, BlockView> created = GameBlockBeanConverter.materializeBeans(
+                this, blockPane, remapped, this, false);
 
         Integer mappedRootId = idRemap.get(conv.rootNextId);
         BlockView nestedRoot = mappedRootId != null ? created.get(mappedRootId) : null;
@@ -2131,20 +2047,7 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
 
         @Nullable
         private Bitmap decodeSampledThumb(@NonNull File file, int maxDimPx) {
-            try {
-                BitmapFactory.Options opts = new BitmapFactory.Options();
-                opts.inJustDecodeBounds = true;
-                BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
-                int sample = 1;
-                while (opts.outWidth / sample > maxDimPx || opts.outHeight / sample > maxDimPx) {
-                    sample *= 2;
-                }
-                opts.inJustDecodeBounds = false;
-                opts.inSampleSize = sample;
-                return BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
-            } catch (Throwable t) {
-                return null;
-            }
+            return GameBitmapUtils.decodeSampledFile(file, maxDimPx);
         }
 
         final class ViewHolder extends RecyclerView.ViewHolder {
@@ -2197,6 +2100,7 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
                 binding.tiInput.setError("Enter a value");
                 return;
             }
+            preDragSnapshot = captureSnapshot();
             eventParam = next;
             if (currentScript != null) {
                 currentScript.eventParam = next;
@@ -2206,8 +2110,7 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
                 blockPane.getRoot().k();
             }
             toolbar.setSubtitle(buildDefaultSubtitle(eventType, eventParam));
-            hasUnsavedChanges = true;
-            saveProjectSafely();
+            recordHistoryCommit();
             dialog.dismiss();
         }));
         dialog.show();
@@ -2342,68 +2245,10 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
     }
 
     private void restoreFloatingStack(@NonNull FloatingStackSnapshot f) {
-        Map<Integer, BlockView> created = new HashMap<>();
-        int maxId = blockPane.g;
-        for (BlockBean b : f.beans) {
-            int id = Integer.parseInt(b.id);
-            maxId = Math.max(maxId, id + 1);
-            BlockView bv = new BlockView(
-                    this,
-                    id,
-                    b.spec != null ? b.spec : "",
-                    b.type != null ? b.type : " ",
-                    b.typeName != null ? b.typeName : "",
-                    b.opCode != null ? b.opCode : "",
-                    b.color != 0 ? b.color : GameBlockBeanConverter.resolveHarmonizedColor(this, b.opCode));
-            bv.pa = blockPane;
-            bv.setOnTouchListener(this);
-            blockPane.addView(bv);
-            created.put(id, bv);
-        }
-        blockPane.g = maxId;
-
-        for (BlockBean b : f.beans) {
-            BlockView parent = created.get(Integer.parseInt(b.id));
-            if (parent == null) {
-                continue;
-            }
-            if (b.parameters != null && parent.V != null) {
-                for (int p = 0; p < b.parameters.size() && p < parent.V.size(); p++) {
-                    String val = b.parameters.get(p);
-                    View slot = parent.V.get(p);
-                    if (val != null && val.startsWith("@")) {
-                        BlockView child = created.get(Integer.parseInt(val.substring(1)));
-                        if (child != null && slot instanceof BlockCanvasView) {
-                            parent.a((BlockCanvasView) slot, child);
-                        }
-                    } else if (slot instanceof BlockMenuItem) {
-                        ((BlockMenuItem) slot).setArgValue(val != null ? val : "");
-                    }
-                }
-            }
-            if (b.subStack1 >= 0 && created.containsKey(b.subStack1)) {
-                parent.e(created.get(b.subStack1));
-            }
-            if (b.subStack2 >= 0 && created.containsKey(b.subStack2)) {
-                parent.f(created.get(b.subStack2));
-            }
-            if (b.nextBlock >= 0 && created.containsKey(b.nextBlock)) {
-                parent.b(created.get(b.nextBlock));
-            }
-        }
-
+        Map<Integer, BlockView> created = GameBlockBeanConverter.materializeBeans(
+                this, blockPane, f.beans, this, true);
         BlockView top = created.get(f.topId);
         if (top != null) {
-            for (BlockView bv : created.values()) {
-                if (bv.fa) {
-                    bv.o();
-                }
-            }
-            for (BlockView bv : created.values()) {
-                if (!bv.fa) {
-                    bv.o();
-                }
-            }
             top.setX(f.x);
             top.setY(f.y);
             top.k();
@@ -2415,6 +2260,141 @@ public class GameLogicEditorActivity extends BaseAppCompatActivity implements Vi
             return;
         }
         currentScript.blocks = GameBlockBeanConverter.fromBlockPane(blockPane);
+        currentScript.floatingStacks = GameBlockBeanConverter.extractFloatingStacksFromPane(blockPane);
+    }
+
+    /**
+     * Searches across all 129 catalog blocks (spec, opCode, category) and project variables,
+     * letting the user jump directly to the matching category or append statement blocks to the root chain.
+     */
+    private void showSearchAllBlocksDialog() {
+        List<GameBlockCatalog.CategoryDef> cats = GameBlockCatalog.getCategories();
+        List<String> labels = new ArrayList<>();
+        List<String> searchKeys = new ArrayList<>();
+        List<Integer> categoryIndices = new ArrayList<>();
+        List<GameBlockCatalog.BlockDef> defs = new ArrayList<>();
+
+        for (int cIdx = 0; cIdx < cats.size(); cIdx++) {
+            GameBlockCatalog.CategoryDef cat = cats.get(cIdx);
+            for (GameBlockCatalog.BlockDef def : cat.blocks) {
+                GameBlockItem sample = GameBlockCatalog.createBlockInstance(def);
+                String readable = GameBlockCatalog.formatBlockDisplay(sample);
+                labels.add("[" + cat.title + "] " + readable);
+                searchKeys.add((cat.title + " " + def.opCode + " " + def.spec + " " + readable)
+                        .toLowerCase(Locale.ROOT));
+                categoryIndices.add(cIdx);
+                defs.add(def);
+            }
+        }
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(dp(16), dp(12), dp(16), dp(4));
+
+        EditText etSearch = new EditText(this);
+        etSearch.setHint("Search blocks (jump, var, sound...)");
+        etSearch.setSingleLine(true);
+        container.addView(etSearch);
+
+        ListView listView = new ListView(this);
+        List<Integer> filteredIndices = new ArrayList<>();
+        List<String> filteredLabels = new ArrayList<>();
+        for (int i = 0; i < labels.size(); i++) {
+            filteredIndices.add(i);
+            filteredLabels.add(labels.get(i));
+        }
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this, android.R.layout.simple_list_item_1, filteredLabels);
+        listView.setAdapter(adapter);
+        LinearLayout.LayoutParams lvLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(320));
+        lvLp.topMargin = dp(8);
+        container.addView(listView, lvLp);
+
+        etSearch.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override public void afterTextChanged(Editable s) {
+                String q = s != null ? s.toString().trim().toLowerCase(Locale.ROOT) : "";
+                filteredIndices.clear();
+                filteredLabels.clear();
+                for (int i = 0; i < searchKeys.size(); i++) {
+                    if (q.isEmpty() || searchKeys.get(i).contains(q)) {
+                        filteredIndices.add(i);
+                        filteredLabels.add(labels.get(i));
+                    }
+                }
+                adapter.notifyDataSetChanged();
+            }
+        });
+
+        AlertDialog dialog = new MaterialAlertDialogBuilder(this)
+                .setTitle("Search Blocks (" + defs.size() + ")")
+                .setView(container)
+                .setNegativeButton("Close", null)
+                .create();
+
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            if (position < 0 || position >= filteredIndices.size()) {
+                return;
+            }
+            int idx = filteredIndices.get(position);
+            GameBlockCatalog.BlockDef chosen = defs.get(idx);
+            int catIdx = categoryIndices.get(idx);
+            if (GameBlockCatalog.isReporterBlock(GameBlockCatalog.createBlockInstance(chosen))) {
+                // Reporters must be dragged into a slot: jump directly to their category
+                showCategory(catIdx);
+                setPaletteOpen(true, true);
+                Toast.makeText(this, "Opened " + cats.get(catIdx).title + " — drag block into a slot.", Toast.LENGTH_SHORT).show();
+            } else {
+                appendCatalogBlockToRoot(chosen);
+                setPaletteOpen(false, true);
+            }
+            dialog.dismiss();
+        });
+        dialog.show();
+    }
+
+    private void appendCatalogBlockToRoot(@NonNull GameBlockCatalog.BlockDef def) {
+        BlockView root = blockPane.getRoot();
+        if (root == null) {
+            return;
+        }
+        preDragSnapshot = captureSnapshot();
+        GameBlockItem item = GameBlockCatalog.createBlockInstance(def);
+        GameBlockBeanConverter.ConversionResult conv =
+                GameBlockBeanConverter.toBlockBeans(this, Collections.singletonList(item), Math.max(10, blockPane.g));
+        if (conv.beans.isEmpty() || conv.rootNextId < 0) {
+            preDragSnapshot = null;
+            return;
+        }
+        Map<Integer, BlockView> created = GameBlockBeanConverter.materializeBeans(
+                this, blockPane, conv.beans, this, true);
+        BlockView newBlock = created.get(conv.rootNextId);
+        if (newBlock == null) {
+            preDragSnapshot = null;
+            return;
+        }
+        // Walk down to tail of root chain (unless tail is a terminal cap block)
+        BlockView tail = root;
+        int guard = 0;
+        while (tail.ha >= 0 && guard++ < 2000) {
+            BlockView next = blockPane.a(tail.ha);
+            if (next == null) {
+                break;
+            }
+            tail = next;
+        }
+        if (tail.ga) {
+            newBlock.setX(tail.getX() + dp(24));
+            newBlock.setY(tail.getY() + dp(48));
+            newBlock.k();
+        } else {
+            tail.b(newBlock);
+            root.k();
+        }
+        blockPane.b();
+        recordHistoryCommit();
     }
 
     // -------------------------------------------------------------------------

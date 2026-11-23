@@ -185,7 +185,10 @@ public class GameObjectsTabView extends FrameLayout {
         for (int i = 0; i < paletteEntries.size(); i++) {
             GamePaletteView.PaletteEntry entry = paletteEntries.get(i);
             types[i] = entry.type;
-            labels[i] = GameObjectBean.getTypeDisplayName(entry.type) + " (" + entry.label + ")";
+            String displayName = GameObjectBean.getTypeDisplayName(entry.type);
+            labels[i] = displayName.equalsIgnoreCase(entry.label)
+                    ? displayName
+                    : displayName + " (" + entry.label + ")";
         }
 
         LinearLayout box = new LinearLayout(context);
@@ -230,6 +233,11 @@ public class GameObjectsTabView extends FrameLayout {
                     if (!customName.isEmpty()) {
                         created.name = customName;
                     }
+                    if (!GameObjectBean.TYPE_PARALLAX_BG.equals(chosenType)) {
+                        boolean isHud = created.isHud || created.isHudType();
+                        created.zIndex = scene.computeTopZIndex(isHud) + 1;
+                    }
+                    scene.ensureUniqueIdentity(created);
                     scene.objects.add(created);
                     refreshData();
                     if (listener != null) {
@@ -242,12 +250,21 @@ public class GameObjectsTabView extends FrameLayout {
 
     private List<QuickEventDef> getQuickEventsForObject(GameObjectBean obj) {
         List<QuickEventDef> defs = new ArrayList<>();
-        defs.add(new QuickEventDef(GameScriptNode.EVENT_TOUCH, "On Touch", "onTouchDown", R.drawable.ic_mtrl_touch));
-        defs.add(new QuickEventDef(GameScriptNode.EVENT_COLLISION, "Collision", "onCollision", R.drawable.ic_mtrl_sensor));
-        defs.add(new QuickEventDef(GameScriptNode.EVENT_UPDATE, "Update", "onUpdate", R.drawable.ic_mtrl_run));
-        defs.add(new QuickEventDef(GameScriptNode.EVENT_SCENE_START, "On Start", "onCreate", R.drawable.ic_mtrl_code));
-        if (GameObjectBean.TYPE_HUD_BUTTON.equals(obj.type) || findFirstScript(obj.id, GameScriptNode.EVENT_BUTTON) != null) {
-            defs.add(new QuickEventDef(GameScriptNode.EVENT_BUTTON, "On Click", "onClick", R.drawable.ic_mtrl_button_click));
+        String type = obj != null && obj.type != null ? obj.type : GameObjectBean.TYPE_SPRITE;
+        if (!GameObjectBean.TYPE_CAMERA.equals(type) && !GameObjectBean.TYPE_SPAWNER.equals(type)) {
+            defs.add(new QuickEventDef(GameScriptNode.EVENT_TOUCH, "On Touch", "On Touch", R.drawable.ic_mtrl_touch));
+        }
+        if (GamePropertyPanelView.supportsPhysics(obj)) {
+            defs.add(new QuickEventDef(GameScriptNode.EVENT_COLLISION, "Collision", "On Collision", R.drawable.ic_mtrl_sensor));
+        }
+        defs.add(new QuickEventDef(GameScriptNode.EVENT_UPDATE, "On Update", "On Update", R.drawable.ic_mtrl_run));
+        defs.add(new QuickEventDef(GameScriptNode.EVENT_SCENE_START, "On Start", "On Start", R.drawable.ic_mtrl_code));
+        boolean isActionHud = GameObjectBean.TYPE_HUD_BUTTON.equals(type)
+                || GameObjectBean.TYPE_HUD_TOGGLE.equals(type)
+                || GameObjectBean.TYPE_HUD_TOUCH_AREA.equals(type);
+        if (isActionHud || (obj != null && findFirstScript(obj.id, GameScriptNode.EVENT_BUTTON) != null)) {
+            String clickLabel = GameObjectBean.TYPE_HUD_TOGGLE.equals(type) ? "On Toggle" : "On Click";
+            defs.add(new QuickEventDef(GameScriptNode.EVENT_BUTTON, clickLabel, clickLabel, R.drawable.ic_mtrl_button_click));
         }
         return defs;
     }
@@ -322,8 +339,8 @@ public class GameObjectsTabView extends FrameLayout {
                         notifyItemChanged(pos);
                     } else if (v.getId() == R.id.confirm_yes) {
                         row.isConfirmation = false;
-                        if (scene != null && scene.objects != null) {
-                            scene.objects.remove(row.obj);
+                        if (scene != null && row.obj != null) {
+                            scene.removeObjectCascade(row.obj.id);
                         }
                         items.remove(pos);
                         notifyItemRemoved(pos);
@@ -360,10 +377,10 @@ public class GameObjectsTabView extends FrameLayout {
                 tvComponentType.setText(formatTypeName(obj.type));
 
                 String displayId = nonEmpty(obj.name, obj.id);
-                if (obj.tag != null && !obj.tag.trim().isEmpty()) {
-                    displayId = displayId + " : #" + obj.tag.trim();
+                if (GamePropertyPanelView.supportsPhysics(obj) && obj.tag != null && !obj.tag.trim().isEmpty()) {
+                    displayId = displayId + "  •  Tag: " + obj.tag.trim();
                 } else if (obj.actionKey != null && !obj.actionKey.trim().isEmpty()) {
-                    displayId = displayId + " : " + obj.actionKey.trim();
+                    displayId = displayId + "  •  Key: " + obj.actionKey.trim();
                 }
                 tvComponentId.setText(displayId);
 

@@ -84,6 +84,7 @@ public class GameObjectBean {
     public float damage = 1f;
     public float cooldownSec = 1.5f;
     public String prefabName = "";
+    public String prefabId = "";
     public String targetScene = "__next__";
     public String spriteFrames = "";
     public float animFps = 8f;
@@ -119,6 +120,7 @@ public class GameObjectBean {
         if (actionKey == null) actionKey = "JUMP";
         if (tag == null) tag = "default";
         if (prefabName == null) prefabName = "";
+        if (prefabId == null) prefabId = "";
         if (targetScene == null) targetScene = "__next__";
         if (spriteFrames == null) spriteFrames = "";
         if (animFps <= 0f) animFps = 8f;
@@ -177,6 +179,7 @@ public class GameObjectBean {
         clone.damage = damage;
         clone.cooldownSec = cooldownSec;
         clone.prefabName = prefabName;
+        clone.prefabId = prefabId;
         clone.targetScene = targetScene;
         clone.spriteFrames = spriteFrames;
         clone.animFps = animFps;

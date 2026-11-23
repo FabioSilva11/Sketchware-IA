@@ -661,11 +661,12 @@ public class BlockPane extends RelativeLayout {
    }
 
     public Object[] b(BlockView var1, int var2, int var3) {
-       byte threshold;
-       if (var1.fa) {
-          threshold = 40;
+       int threshold;
+       if (this.isGameMode) {
+          float density = Math.max(1f, getResources().getDisplayMetrics().density);
+          threshold = Math.round((var1.fa ? 22f : 32f) * density);
        } else {
-          threshold = 60;
+          threshold = var1.fa ? 40 : 60;
        }
 
        int bestScore = 100000;
