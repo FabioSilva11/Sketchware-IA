@@ -49,6 +49,7 @@ import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
 import mod.hey.studios.project.AndroidStudioProjectSettingsDialog;
 import mod.hey.studios.project.ProjectSettings;
 import mod.hey.studios.project.backup.BackupFactory;
+import mod.hey.studios.project.backup.BackupRestoreManager;
 import mod.hey.studios.project.proguard.ProguardHandler;
 import mod.hey.studios.project.stringfog.StringfogHandler;
 import mod.hey.studios.util.Helper;
@@ -146,12 +147,20 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         }
 
         sc_metadata = RecentProjectsRegistry.b(sc_id);
-        project_metadata = new ProjectWorkspaceManager(getApplicationContext(), WorkspacePathManager.d(sc_id), sc_metadata);
+        boolean isStudioProject = RecentProjectsRegistry.isAndroidStudioProject(sc_metadata);
+        boolean isGameProject = RecentProjectsRegistry.isGameProject(sc_metadata);
 
-        if (RecentProjectsRegistry.isGameProject(sc_metadata)) {
-            findViewById(R.id.export_game_card).setVisibility(View.VISIBLE);
-            findViewById(R.id.export_game_project).setOnClickListener(v -> exportGameProject());
+        setupEditableSwbExportCard(isStudioProject, isGameProject);
+
+        if (isStudioProject) {
+            setCardVisibility(R.id.sign_apk_card, View.GONE);
+            setCardVisibility(R.id.export_ide_card, View.GONE);
+            setCardVisibility(R.id.export_source_card, View.GONE);
+            setCardVisibility(R.id.export_aab_card, View.GONE);
+            return;
         }
+
+        project_metadata = new ProjectWorkspaceManager(getApplicationContext(), WorkspacePathManager.d(sc_id), sc_metadata);
         initializeOutputDirectories();
         initializeSignApkViews();
         initializeExportSrcViews();
@@ -159,13 +168,51 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
         initializeAppBundleExportViews();
     }
 
-    private void exportGameProject() {
-        String name = MapValueUtils.c(sc_metadata, "my_ws_name").replaceAll("[^\\p{L}\\p{N} _-]", "_");
+    private void setCardVisibility(int viewId, int visibility) {
+        View view = findViewById(viewId);
+        if (view != null) {
+            view.setVisibility(visibility);
+        }
+    }
+
+    private void setupEditableSwbExportCard(boolean isStudioProject, boolean isGameProject) {
+        View card = findViewById(R.id.export_game_card);
+        TextView title = findViewById(R.id.export_game_title);
+        Button exportButton = findViewById(R.id.export_game_project);
+        if (card == null || exportButton == null) {
+            return;
+        }
+        card.setVisibility(View.VISIBLE);
+        if (isStudioProject) {
+            if (title != null) title.setText(R.string.editable_studio_project_title);
+            exportButton.setText(R.string.export_editable_studio_project);
+        } else if (isGameProject) {
+            if (title != null) title.setText(R.string.editable_game_project_title);
+            exportButton.setText(R.string.export_editable_game_project);
+        } else {
+            if (title != null) title.setText(R.string.editable_sketchware_project_title);
+            exportButton.setText(R.string.export_editable_sketchware_project);
+        }
+        exportButton.setOnClickListener(v -> exportEditableSwbProject(isStudioProject, isGameProject));
+    }
+
+    private void exportEditableSwbProject(boolean isStudioProject, boolean isGameProject) {
+        String rawName = sc_metadata != null ? MapValueUtils.c(sc_metadata, "my_ws_name") : "";
+        String name = rawName.replaceAll("[^\\p{L}\\p{N} _-]", "_");
         k();
         new Thread(() -> {
             try {
                 BackupFactory backup = new BackupFactory(sc_id);
-                backup.backup(getApplicationContext(), name.trim().isEmpty() ? sc_id : name);
+                backup.setBackupLocalLibs(true);
+                if (!isStudioProject && !isGameProject) {
+                    backup.setBackupCustomBlocks(true);
+                }
+                String safeName = name.trim().isEmpty() ? sc_id : name;
+                if (isStudioProject) {
+                    backup.backupAndroidStudioProject(safeName);
+                } else {
+                    backup.backup(getApplicationContext(), safeName);
+                }
                 File archive = backup.getOutFile();
                 if (archive == null) throw new java.io.IOException(backup.getError());
                 runOnUiThread(() -> {
@@ -174,6 +221,11 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
                     TextView path = findViewById(R.id.export_game_path);
                     path.setText(archive.getAbsolutePath());
                     path.setVisibility(View.VISIBLE);
+                    Button shareBtn = findViewById(R.id.export_game_share);
+                    if (shareBtn != null) {
+                        shareBtn.setVisibility(View.VISIBLE);
+                        shareBtn.setOnClickListener(v -> BackupRestoreManager.shareBackupFile(this, archive));
+                    }
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -182,7 +234,7 @@ public class ExportProjectActivity extends BaseAppCompatActivity {
                     SketchwareUtil.toastError(getString(R.string.common_error_failed_to_save) + ": " + e.getMessage());
                 });
             }
-        }, "export-game-project").start();
+        }, "export-swb-project").start();
     }
 
     @Override

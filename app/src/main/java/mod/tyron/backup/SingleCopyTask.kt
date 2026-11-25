@@ -46,7 +46,14 @@ class SingleCopyTask(private val context: Context, private val callback: CallBac
             val size = returnCursor?.use {
                 if (it.moveToFirst()) {
                     when (uri.scheme) {
-                        "content" -> it.getLong(it.getColumnIndex(OpenableColumns.SIZE)).toInt()
+                        "content" -> {
+                            val sizeIndex = it.getColumnIndex(OpenableColumns.SIZE)
+                            if (sizeIndex != -1 && !it.isNull(sizeIndex)) {
+                                it.getLong(sizeIndex).toInt()
+                            } else {
+                                -1
+                            }
+                        }
                         "file" -> File(uri.path!!).length().toInt()
                         else -> -1
                     }

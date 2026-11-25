@@ -123,11 +123,15 @@ public class RecentProjectsRegistry {
     public static void deleteAndroidStudioProject(String str) {
         String projectPath = WorkspacePathManager.getAndroidStudioProjectPath(str);
         // Run the legacy helper first, then guarantee removal with a recursive
-
-        // delete so the project folder under .sketcware_ide is always cleared.
-
-        new FileCryptoUtils().b(projectPath);
+        // delete so the project folder under .sketcware_ide and auxiliary files are cleared.
+        FileCryptoUtils fileCryptoUtils = new FileCryptoUtils();
+        fileCryptoUtils.b(projectPath);
         deleteRecursively(new File(projectPath));
+        deleteRecursively(new File(WorkspacePathManager.b(str)));
+        deleteRecursively(new File(WorkspacePathManager.e() + File.separator + str));
+        deleteRecursively(new File(WorkspacePathManager.g() + File.separator + str));
+        deleteRecursively(new File(WorkspacePathManager.t() + File.separator + str));
+        deleteRecursively(new File(WorkspacePathManager.d() + File.separator + str));
     }
 
     private static void deleteRecursively(File file) {

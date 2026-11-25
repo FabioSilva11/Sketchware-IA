@@ -31,6 +31,7 @@ import pro.sketchware.workspace.RecentProjectsRegistry;
 import mod.hey.studios.project.ProjectTracker;
 import mod.hey.studios.project.backup.BackupFactory;
 import pro.sketchware.R;
+import pro.sketchware.activities.game.GameEngineActivity;
 import pro.sketchware.utility.AdManager;
 import pro.sketchware.activities.main.MainSearchable;
 import pro.sketchware.activities.studio.AndroidStudioProjectActivity;
@@ -142,14 +143,20 @@ public class ProjectsStoreFragment extends Fragment implements MainSearchable {
         empty.setText(query.isEmpty() ? "Nenhum modelo disponível nesta categoria."
                 : "Nenhum modelo encontrado.");
         String folder = ROOT + (studio ? "/studio" : "/sketchware");
-        String extension = studio ? ".zip" : ".swb";
         try {
             String[] files = requireContext().getAssets().list(folder);
             if (files == null) return;
             Arrays.sort(files);
             for (String file : files) {
-                if (!file.endsWith(extension)) continue;
-                String title = file.substring(0, file.length() - extension.length());
+                String lower = file.toLowerCase(Locale.ROOT);
+                String matchedExtension = null;
+                if (lower.endsWith(".swb")) {
+                    matchedExtension = ".swb";
+                } else if (studio && lower.endsWith(".zip")) {
+                    matchedExtension = ".zip";
+                }
+                if (matchedExtension == null) continue;
+                String title = file.substring(0, file.length() - matchedExtension.length());
                 if (title.toLowerCase(Locale.ROOT).contains(query)) {
                     adapter.add(new Model(title, folder + "/" + file, studio));
                 }
@@ -203,7 +210,8 @@ public class ProjectsStoreFragment extends Fragment implements MainSearchable {
         new Thread(() -> {
             File archive = null;
             try {
-                archive = File.createTempFile("template-", androidStudio ? ".zip" : ".swb", context.getCacheDir());
+                String suffix = asset.toLowerCase(Locale.ROOT).endsWith(".zip") ? ".zip" : ".swb";
+                archive = File.createTempFile("template-", suffix, context.getCacheDir());
                 try (var input = context.getAssets().open(asset);
                      var output = Files.newOutputStream(archive.toPath())) {
                     byte[] buffer = new byte[8192];
@@ -212,16 +220,22 @@ public class ProjectsStoreFragment extends Fragment implements MainSearchable {
                 }
                 String id = RecentProjectsRegistry.b();
                 BackupFactory backup = new BackupFactory(id);
+                backup.setBackupLocalLibs(true);
                 if (androidStudio) backup.restoreAndroidStudioProject(archive);
                 else backup.restore(archive);
                 if (!backup.isRestoreSuccess()) throw new IOException(backup.getError());
+                var restoredMetadata = RecentProjectsRegistry.b(id);
                 activity.runOnUiThread(() -> {
                     importing = false;
                     if (!isAdded() || activity.isFinishing()) return;
                     Intent intent;
-                    if (androidStudio) {
+                    if (androidStudio || RecentProjectsRegistry.isAndroidStudioProject(restoredMetadata)) {
                         intent = new Intent(activity, AndroidStudioProjectActivity.class)
                                 .putExtra(AndroidStudioProjectActivity.EXTRA_SC_ID, id);
+                    } else if (RecentProjectsRegistry.isGameProject(restoredMetadata)) {
+                        ProjectTracker.setScId(id);
+                        DesignActivity.sc_id = id;
+                        intent = new Intent(activity, GameEngineActivity.class).putExtra("sc_id", id);
                     } else {
                         ProjectTracker.setScId(id);
                         intent = new Intent(activity, DesignActivity.class).putExtra("sc_id", id);

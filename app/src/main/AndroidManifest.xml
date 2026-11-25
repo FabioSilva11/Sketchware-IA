@@ -151,10 +151,13 @@
                 <data android:scheme="content" />
                 <data android:mimeType="*/*" />
                 <data android:host="*" />
+                <data android:pathSuffix=".swb" tools:targetApi="s" />
                 <data android:pathPattern=".*\\.swb" />
                 <data android:pathPattern=".*\\..*\\.swb" />
                 <data android:pathPattern=".*\\..*\\..*\\.swb" />
                 <data android:pathPattern=".*\\..*\\..*\\..*\\.swb" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\.swb" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\..*\\..*\\.swb" />
             </intent-filter>
         </activity>
         <activity

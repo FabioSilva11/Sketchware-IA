@@ -230,6 +230,7 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
         new Thread(() -> {
             if (RecentProjectsRegistry.isAndroidStudioProject(projectMap)) {
                 RecentProjectsRegistry.deleteAndroidStudioProject(scId);
+                new ChatHistoryManager(activity.getApplicationContext()).deleteProjectHistory(scId);
             } else {
                 RecentProjectsRegistry.a(activity, scId);
                 new ChatHistoryManager(activity.getApplicationContext()).deleteProjectHistory(scId);
@@ -298,6 +299,8 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
         BackupRestoreManager backupRestoreManager = new BackupRestoreManager(activity);
         if (RecentProjectsRegistry.isAndroidStudioProject(project)) {
             backupRestoreManager.backupAndroidStudioProject(scId, appName);
+        } else if (RecentProjectsRegistry.isGameProject(project)) {
+            backupRestoreManager.backupGameProject(scId, appName);
         } else {
             backupRestoreManager.backup(scId, appName);
         }
@@ -343,10 +346,6 @@ public class ProjectsAdapter extends RecyclerView.Adapter<ProjectsAdapter.Projec
             projectIdText += " - Game 2D";
         }
         binding.tvProjectId.setText(projectIdText);
-
-        if (RecentProjectsRegistry.isAndroidStudioProject(projectMap)) {
-            binding.exportSign.setVisibility(View.GONE);
-        }
 
         binding.projectSettings.setOnClickListener(v -> {
             toProjectSettingOrRequestPermission(projectMap, position);

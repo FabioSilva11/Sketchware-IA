@@ -77,6 +77,8 @@ import io.github.rosemoe.sora.widget.schemes.EditorColorScheme;
 import mod.hey.studios.compiler.kotlin.KotlinCompilerBridge;
 import mod.jbk.build.compiler.manifest.ManifestNamespaces;
 import mod.hey.studios.build.BuildSettings;
+import mod.hey.studios.project.backup.BackupFactory;
+import mod.hey.studios.project.backup.BackupRestoreManager;
 import mod.jbk.build.BuiltInLibraries;
 import mod.jbk.build.BuildProgressReceiver;
 import mod.jbk.code.CodeEditorColorSchemes;
@@ -128,6 +130,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
     private static final int MENU_SMOOTH_MODE = 26;
     private static final int MENU_PREFERENCES = 27;
     private static final int MENU_GITHUB = 28;
+    private static final int MENU_EXPORT_SWB = 29;
     private static final int REQUEST_PICK_STUDIO_ICON = 23051;
     private static final int MAX_TREE_NODES = 900;
     private static final int MAX_INITIAL_SCAN_FILES = 1200;
@@ -266,6 +269,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
                 .setCheckable(true);
         addToolbarAction(menu, MENU_PREFERENCES, R.string.studio_action_preferences, R.drawable.ic_mtrl_settings, MenuItem.SHOW_AS_ACTION_NEVER);
         addToolbarAction(menu, MENU_DEPENDENCIES, R.string.studio_action_dependencies, R.drawable.ic_mtrl_package, MenuItem.SHOW_AS_ACTION_NEVER);
+        addToolbarAction(menu, MENU_EXPORT_SWB, R.string.studio_action_export_swb, R.drawable.ic_mtrl_export, MenuItem.SHOW_AS_ACTION_NEVER);
         addToolbarAction(menu, MENU_GITHUB, getString(R.string.github_versioning_menu), R.drawable.ic_github, MenuItem.SHOW_AS_ACTION_NEVER);
 
         binding.studioToolbar.setOnMenuItemClickListener(item -> {
@@ -317,6 +321,11 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             if (item.getItemId() == MENU_DEPENDENCIES) {
                 logStudioAction("dependencies");
                 showDependencyActions();
+                return true;
+            }
+            if (item.getItemId() == MENU_EXPORT_SWB) {
+                logStudioAction("export_swb");
+                exportStudioProjectAsSwb();
                 return true;
             }
             if (item.getItemId() == MENU_GITHUB) {
@@ -457,6 +466,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         setToolbarItem(menu, MENU_ADD_RESOURCE, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_ADD_ICON, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_DEPENDENCIES, projectLoaded, projectLoaded);
+        setToolbarItem(menu, MENU_EXPORT_SWB, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_GITHUB, projectLoaded, projectLoaded);
         setToolbarItem(menu, MENU_RENAME, canModifySelected, canModifySelected);
         setToolbarItem(menu, MENU_DELETE, canModifySelected, canModifySelected);
@@ -477,6 +487,55 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
             return;
         }
         item.setChecked(checked);
+    }
+
+    private void exportStudioProjectAsSwb() {
+        if (projectRoot == null || !projectRoot.isDirectory() || scId == null || scId.trim().isEmpty()) {
+            SketchwareUtil.toast(getString(R.string.studio_project_missing));
+            return;
+        }
+        if (hasUnsavedChanges()) {
+            saveCurrentFile(false);
+        }
+
+        HashMap<String, Object> project = RecentProjectsRegistry.b(scId);
+        String rawName = valueOf(project, "my_ws_name", scId);
+        String safeName = rawName.replaceAll("[^\\p{L}\\p{N} _-]", "_");
+
+        k();
+        new Thread(() -> {
+            try {
+                BackupFactory backup = new BackupFactory(scId);
+                backup.setBackupLocalLibs(true);
+                backup.backupAndroidStudioProject(safeName.trim().isEmpty() ? scId : safeName);
+                File archive = backup.getOutFile();
+                if (archive == null) {
+                    throw new IOException(backup.getError());
+                }
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    h();
+                    new MaterialAlertDialogBuilder(this)
+                            .setIcon(R.drawable.open_box_48)
+                            .setTitle(R.string.editable_studio_project_title)
+                            .setMessage(archive.getAbsolutePath())
+                            .setPositiveButton(R.string.share_editable_project_swb, (d, which) ->
+                                    BackupRestoreManager.shareBackupFile(this, archive))
+                            .setNegativeButton(R.string.common_word_ok, null)
+                            .show();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (isFinishing() || isDestroyed()) {
+                        return;
+                    }
+                    h();
+                    SketchwareUtil.toastError(getString(R.string.common_error_failed_to_save) + ": " + e.getMessage());
+                });
+            }
+        }, "export-studio-swb").start();
     }
 
     private void showGitHubVersioningDialog() {

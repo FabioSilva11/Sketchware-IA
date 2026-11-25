@@ -3520,4 +3520,10 @@ Please try again later"</string>
     <string name="game_engine_hierarchy_button">Objetos</string>
     <string name="editable_game_project_title">Editable Game Project (.swb)</string>
     <string name="export_editable_game_project">Export Game Project</string>
+    <string name="editable_sketchware_project_title">Editable Sketchware Project (.swb)</string>
+    <string name="export_editable_sketchware_project">Export Sketchware Project</string>
+    <string name="editable_studio_project_title">Editable Android Studio Project (.swb)</string>
+    <string name="export_editable_studio_project">Export Android Studio Project</string>
+    <string name="share_editable_project_swb">Share Project (.swb)</string>
+    <string name="studio_action_export_swb">Export / Share (.swb)</string>
 </resources>
