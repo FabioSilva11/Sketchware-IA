@@ -127,6 +127,20 @@ public class GameStageEditorView extends View {
     private float dragStartStageY;
     private float origObjX;
     private float origObjY;
+    private enum ResizeHandle {
+        TOP_LEFT(-1, -1), TOP(0, -1), TOP_RIGHT(1, -1), RIGHT(1, 0),
+        BOTTOM_RIGHT(1, 1), BOTTOM(0, 1), BOTTOM_LEFT(-1, 1), LEFT(-1, 0);
+
+        final int x, y;
+
+        ResizeHandle(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    private static final ResizeHandle[] RESIZE_HANDLES = ResizeHandle.values();
+    private ResizeHandle resizeHandle;
     private float origObjW;
     private float origObjH;
     private float origObjRot;
@@ -1119,12 +1133,16 @@ public class GameStageEditorView extends View {
             canvas.drawCircle(rotHandle.x, rotHandle.y, rotR, handleFillPaint);
             canvas.drawCircle(rotHandle.x, rotHandle.y, rotR, handleStrokePaint);
 
-            // Resize handle at bottom-right
-            float resizeR = 9f * density;
+            float shortestSide = Math.min(distance(tl.x, tl.y, tr.x, tr.y),
+                    distance(tl.x, tl.y, bl.x, bl.y));
+            float radius = Math.min(5f * density, shortestSide / 6f);
             handleFillPaint.setColor(colorPrimary);
             handleStrokePaint.setColor(Color.WHITE);
-            canvas.drawCircle(br.x, br.y, resizeR, handleFillPaint);
-            canvas.drawCircle(br.x, br.y, resizeR, handleStrokePaint);
+            for (ResizeHandle handle : RESIZE_HANDLES) {
+                PointF point = resizeHandlePosition(obj, handle);
+                canvas.drawCircle(point.x, point.y, radius, handleFillPaint);
+                canvas.drawCircle(point.x, point.y, radius, handleStrokePaint);
+            }
         }
 
         // Anchor selection info + quick Blocks pill at the top-center of the stage view
@@ -1286,10 +1304,8 @@ public class GameStageEditorView extends View {
                         return true;
                     }
 
-                    PointF brPos = objectLocalToScreen(selectedObject,
-                            Math.max(MIN_OBJECT_SIZE, selectedObject.width) * 0.5f,
-                            Math.max(MIN_OBJECT_SIZE, selectedObject.height) * 0.5f);
-                    if (distance(vx, vy, brPos.x, brPos.y) <= 22f * density) {
+                    resizeHandle = findResizeHandle(selectedObject, vx, vy);
+                    if (resizeHandle != null) {
                         mode = MODE_RESIZE_OBJECT;
                         pendingUndoSnapshot = captureObjectsSnapshot();
                         dragStartStageX = screenToStageX(vx);
@@ -1368,28 +1384,14 @@ public class GameStageEditorView extends View {
                     float localDy = -dx * sin + dy * cos;
                     float sxSigned = selectedObject.scaleX == 0f ? 1f : selectedObject.scaleX;
                     float sySigned = selectedObject.scaleY == 0f ? 1f : selectedObject.scaleY;
-                    float sx = Math.abs(sxSigned);
-                    float sy = Math.abs(sySigned);
+                    float newW = resizedDimension(origObjW, localDx / sxSigned, resizeHandle.x);
+                    float newH = resizedDimension(origObjH, localDy / sySigned, resizeHandle.y);
 
-                    float newW = Math.max(MIN_OBJECT_SIZE, origObjW + localDx / sx);
-                    float newH = Math.max(MIN_OBJECT_SIZE, origObjH + localDy / sy);
-                    if (snapToGrid) {
-                        newW = Math.max(MIN_OBJECT_SIZE, snap(newW));
-                        newH = Math.max(MIN_OBJECT_SIZE, snap(newH));
-                    }
-
-                    // Keep the rotated top-left world corner anchored so rotated resize never drifts
-                    float origCx = origObjX + origObjW * 0.5f;
-                    float origCy = origObjY + origObjH * 0.5f;
-                    float lx0 = -origObjW * 0.5f * sxSigned;
-                    float ly0 = -origObjH * 0.5f * sySigned;
-                    float tlWorldX = origCx + (lx0 * cos - ly0 * sin);
-                    float tlWorldY = origCy + (lx0 * sin + ly0 * cos);
-
-                    float lx1 = -newW * 0.5f * sxSigned;
-                    float ly1 = -newH * 0.5f * sySigned;
-                    float newCx = tlWorldX - (lx1 * cos - ly1 * sin);
-                    float newCy = tlWorldY - (lx1 * sin + ly1 * cos);
+                    // Shift the center by half the applied change to anchor the opposite edge.
+                    float shiftX = (newW - origObjW) * resizeHandle.x * sxSigned * 0.5f;
+                    float shiftY = (newH - origObjH) * resizeHandle.y * sySigned * 0.5f;
+                    float newCx = origObjX + origObjW * 0.5f + shiftX * cos - shiftY * sin;
+                    float newCy = origObjY + origObjH * 0.5f + shiftX * sin + shiftY * cos;
 
                     selectedObject.width = newW;
                     selectedObject.height = newH;
@@ -1651,6 +1653,34 @@ public class GameStageEditorView extends View {
         float stX = cx + (px * cos - py * sin);
         float stY = cy + (px * sin + py * cos);
         return new PointF(stageToScreenX(stX), stageToScreenY(stY));
+    }
+
+    private float resizedDimension(float original, float delta, int direction) {
+        if (direction == 0 || delta == 0f) return original;
+        float value = original + delta * direction;
+        return Math.max(MIN_OBJECT_SIZE, snapToGrid ? snap(value) : value);
+    }
+
+    private PointF resizeHandlePosition(GameObjectBean obj, ResizeHandle handle) {
+        return objectLocalToScreen(obj, handle.x * Math.max(MIN_OBJECT_SIZE, obj.width) * 0.5f,
+                handle.y * Math.max(MIN_OBJECT_SIZE, obj.height) * 0.5f);
+    }
+
+    @Nullable
+    private ResizeHandle findResizeHandle(GameObjectBean obj, float x, float y) {
+        // Reserve the center for moving even when small objects have overlapping touch targets.
+        PointF center = objectLocalToScreen(obj, 0, 0);
+        float nearest = Math.min(22f * density, distance(x, y, center.x, center.y));
+        ResizeHandle result = null;
+        for (ResizeHandle handle : RESIZE_HANDLES) {
+            PointF point = resizeHandlePosition(obj, handle);
+            float d = distance(x, y, point.x, point.y);
+            if (d < nearest) {
+                nearest = d;
+                result = handle;
+            }
+        }
+        return result;
     }
 
     private PointF getRotateHandleScreenPos(GameObjectBean obj) {

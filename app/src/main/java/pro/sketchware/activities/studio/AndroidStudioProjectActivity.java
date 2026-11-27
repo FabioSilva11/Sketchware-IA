@@ -3845,7 +3845,7 @@ public class AndroidStudioProjectActivity extends BaseAppCompatActivity {
         }
     }
 
-    /** Path shown to the user: relative to the IDE projects folder, e.g. ".sketcware_ide/601/app/build.gradle". */
+    /** Path shown to the user: relative to the IDE projects folder, e.g. ".sketchware/mysc/list/601/app/build.gradle". */
     private static String studioDisplayPath(String scId, File file) {
         if (file == null) {
             return "";

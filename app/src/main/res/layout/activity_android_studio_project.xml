@@ -30,7 +30,7 @@
                 app:navigationIconTint="@color/chat_text_primary"
                 app:titleTextColor="@color/chat_text_primary"
                 app:subtitleTextColor="@color/chat_text_secondary"
-                tools:subtitle=".sketcware_ide/601"
+                tools:subtitle=".sketchware/mysc/list/601"
                 tools:title="Android Studio Project" />
 
             <com.google.android.material.progressindicator.LinearProgressIndicator
@@ -516,7 +516,7 @@
             android:singleLine="true"
             android:textColor="@color/studio_text_secondary"
             android:textSize="11sp"
-            tools:text=".sketcware_ide/601" />
+            tools:text=".sketchware/mysc/list/601" />
 
         <LinearLayout
             android:id="@+id/studio_search_box"

@@ -25,43 +25,16 @@ public class RecentProjectsRegistry {
 
     public static ArrayList<HashMap<String, Object>> a() {
         ArrayList<HashMap<String, Object>> arrayList = new ArrayList<>();
-        FileCryptoUtils oBVar = new FileCryptoUtils();
-        Set<String> knownProjectIds = new HashSet<>();
-        addProjectsFromRoot(arrayList, new File(WorkspacePathManager.n()), oBVar, knownProjectIds, PROJECT_KIND_SKETCHWARE);
-        addProjectsFromRoot(arrayList, new File(WorkspacePathManager.getAndroidStudioProjectsRoot()), oBVar, knownProjectIds, PROJECT_KIND_ANDROID_STUDIO);
-        return arrayList;
-    }
-
-    private static void addProjectsFromRoot(ArrayList<HashMap<String, Object>> projects, File root, FileCryptoUtils fileUtil,
-                                            Set<String> knownProjectIds, String projectKind) {
-        File[] listFiles = root.listFiles();
-        if (listFiles == null) {
-            return;
-        }
-        for (File file : listFiles) {
-            try {
-                if (knownProjectIds.contains(file.getName())) {
-                    continue;
+        File[] directories = new File(WorkspacePathManager.n()).listFiles();
+        if (directories != null) {
+            for (File directory : directories) {
+                HashMap<String, Object> metadata = readProjectMetadata(directory, directory.getName());
+                if (metadata != null) {
+                    arrayList.add(metadata);
                 }
-                File projectMetadata = new File(file, "project");
-                if (projectMetadata.exists()) {
-                    HashMap<String, Object> metadata = MapJsonCodec.a(fileUtil.a(fileUtil.h(projectMetadata.getAbsolutePath())));
-                    if (MapValueUtils.c(metadata, "sc_id").equals(file.getName())) {
-                        if (MapValueUtils.c(metadata, PROJECT_KIND_KEY).isEmpty()) {
-                            metadata.put(PROJECT_KIND_KEY, projectKind);
-                        }
-                        if (PROJECT_KIND_ANDROID_STUDIO.equals(projectKind)) {
-                            metadata.put("proj_type", 2);
-                            metadata.put("studio_path", file.getAbsolutePath());
-                        }
-                        projects.add(metadata);
-                        knownProjectIds.add(file.getName());
-                    }
-                }
-            } catch (Throwable e) {
-                Log.e("ERROR", e.getMessage(), e);
             }
         }
+        return arrayList;
     }
 
     public static HashMap<String, Object> a(String str) {
@@ -123,7 +96,7 @@ public class RecentProjectsRegistry {
     public static void deleteAndroidStudioProject(String str) {
         String projectPath = WorkspacePathManager.getAndroidStudioProjectPath(str);
         // Run the legacy helper first, then guarantee removal with a recursive
-        // delete so the project folder under .sketcware_ide and auxiliary files are cleared.
+        // delete so the project folder under the project list and auxiliary files are cleared.
         FileCryptoUtils fileCryptoUtils = new FileCryptoUtils();
         fileCryptoUtils.b(projectPath);
         deleteRecursively(new File(projectPath));
@@ -192,7 +165,6 @@ public class RecentProjectsRegistry {
         int parseInt = Integer.parseInt("600") + 1;
         Set<String> reservedProjectIds = new HashSet<>();
         collectProjectDirectoryNames(reservedProjectIds, new File(WorkspacePathManager.n()));
-        collectProjectDirectoryNames(reservedProjectIds, new File(WorkspacePathManager.getAndroidStudioProjectsRoot()));
         // A project removed outside Sketchware can leave data/<id> or mysc/<id> behind; reusing that id would hand
 
         // the new project the old project's generated code and build output.
@@ -232,19 +204,15 @@ public class RecentProjectsRegistry {
     }
 
     public static HashMap<String, Object> b(String str) {
-        HashMap<String, Object> nativeProject = readProjectMetadata(new File(WorkspacePathManager.c(str)), str, PROJECT_KIND_SKETCHWARE);
-        if (nativeProject != null) {
-            return nativeProject;
-        }
-        return readProjectMetadata(new File(WorkspacePathManager.getAndroidStudioProjectPath(str)), str, PROJECT_KIND_ANDROID_STUDIO);
+        return readProjectMetadata(new File(WorkspacePathManager.c(str)), str);
     }
 
-    private static HashMap<String, Object> readProjectMetadata(File projectDirectory, String expectedId, String projectKind) {
+    private static HashMap<String, Object> readProjectMetadata(File projectDirectory, String expectedId) {
         Throwable e;
         FileCryptoUtils oBVar = new FileCryptoUtils();
         HashMap<String, Object> hashMap = null;
         try {
-            if (!projectDirectory.exists()) {
+            if (!new File(projectDirectory, "project").isFile()) {
                 return null;
             }
             String path = projectDirectory.getAbsolutePath() + File.separator + "project";
@@ -254,9 +222,10 @@ public class RecentProjectsRegistry {
                     return null;
                 }
                 if (MapValueUtils.c(a, PROJECT_KIND_KEY).isEmpty()) {
-                    a.put(PROJECT_KIND_KEY, projectKind);
+                    a.put(PROJECT_KIND_KEY, PROJECT_KIND_SKETCHWARE);
                 }
-                if (PROJECT_KIND_ANDROID_STUDIO.equals(projectKind)) {
+                if (isAndroidStudioProject(a)) {
+                    a.put(PROJECT_KIND_KEY, PROJECT_KIND_ANDROID_STUDIO);
                     a.put("proj_type", 2);
                     a.put("studio_path", projectDirectory.getAbsolutePath());
                 }
@@ -275,7 +244,7 @@ public class RecentProjectsRegistry {
     }
 
     public static void b(String str, HashMap<String, Object> hashMap) {
-        File file = getProjectDirectoryForUpdate(str, hashMap);
+        File file = new File(WorkspacePathManager.c(str));
         if (file.exists()) {
             String path = file + File.separator + "project";
             FileCryptoUtils fileUtil = new FileCryptoUtils();
@@ -314,18 +283,6 @@ public class RecentProjectsRegistry {
                 Log.e("DEBUG", e.getMessage(), e);
             }
         }
-    }
-
-    private static File getProjectDirectoryForUpdate(String scId, HashMap<String, Object> hashMap) {
-        File nativeProject = new File(WorkspacePathManager.c(scId));
-        File androidStudioProject = new File(WorkspacePathManager.getAndroidStudioProjectPath(scId));
-        if (isAndroidStudioProject(hashMap) && androidStudioProject.exists()) {
-            return androidStudioProject;
-        }
-        if (nativeProject.exists()) {
-            return nativeProject;
-        }
-        return androidStudioProject;
     }
 
     public static boolean isAndroidStudioProject(HashMap<String, Object> projectMap) {

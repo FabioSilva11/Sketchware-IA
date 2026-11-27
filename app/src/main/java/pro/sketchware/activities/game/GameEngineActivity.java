@@ -250,6 +250,15 @@ public class GameEngineActivity extends BaseAppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        if (currentTab == TAB_DESIGN) {
+            getMenuInflater().inflate(R.menu.design_view_menu, menu);
+            menu.findItem(R.id.menu_view_undo)
+                    .setTitle(R.string.game_engine_action_undo)
+                    .setEnabled(projectLoaded && gameStage != null && gameStage.canUndo());
+            menu.findItem(R.id.menu_view_redo)
+                    .setTitle(R.string.game_engine_action_redo)
+                    .setEnabled(projectLoaded && gameStage != null && gameStage.canRedo());
+        }
         getMenuInflater().inflate(R.menu.game_design_menu, menu);
         return true;
     }
@@ -257,7 +266,13 @@ public class GameEngineActivity extends BaseAppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int itemId = item.getItemId();
-        if (itemId == R.id.design_actionbar_titleopen_drawer) {
+        if (itemId == R.id.menu_view_undo) {
+            gameStage.undo();
+            return true;
+        } else if (itemId == R.id.menu_view_redo) {
+            gameStage.redo();
+            return true;
+        } else if (itemId == R.id.design_actionbar_titleopen_drawer) {
             if (!drawerLayout.isDrawerOpen(GravityCompat.END)) {
                 drawerLayout.openDrawer(GravityCompat.END);
             }
@@ -573,13 +588,6 @@ public class GameEngineActivity extends BaseAppCompatActivity {
         PopupMenu popup = new PopupMenu(this, anchor);
         Menu menu = popup.getMenu();
 
-        menu.add(1, 1, 0, R.string.game_engine_action_undo)
-                .setIcon(R.drawable.ic_mtrl_undo)
-                .setEnabled(gameStage.canUndo());
-        menu.add(1, 2, 1, R.string.game_engine_action_redo)
-                .setIcon(R.drawable.ic_mtrl_redo)
-                .setEnabled(gameStage.canRedo());
-
         menu.add(2, 3, 2, R.string.game_engine_toggle_grid)
                 .setIcon(R.drawable.ic_mtrl_grid)
                 .setCheckable(true)
@@ -615,18 +623,6 @@ public class GameEngineActivity extends BaseAppCompatActivity {
         popup.setOnDismissListener(m -> btnCanvasTools.setChecked(false));
         popup.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
-                case 1:
-                    gameStage.undo();
-                    gamePropertyPanel.updateSelection(gameStage.getSelectedObject());
-                    refreshTabsAfterMutation();
-                    markGameModified();
-                    return true;
-                case 2:
-                    gameStage.redo();
-                    gamePropertyPanel.updateSelection(gameStage.getSelectedObject());
-                    refreshTabsAfterMutation();
-                    markGameModified();
-                    return true;
                 case 3:
                     gameStage.setSnapToGrid(!gameStage.isSnapToGrid());
                     return true;
@@ -832,6 +828,7 @@ public class GameEngineActivity extends BaseAppCompatActivity {
             gameStage.selectObject(toSelect);
         }
 
+        invalidateOptionsMenu();
         gamePropertyPanel.bind(scId, gameProject, currentScene, gameStage, createPropertyActionListener());
         gamePropertyPanel.updateSelection(gameStage.getSelectedObject());
 
@@ -1039,6 +1036,7 @@ public class GameEngineActivity extends BaseAppCompatActivity {
         if (!projectLoaded || gameProject == null) {
             return;
         }
+        invalidateOptionsMenu();
         GameProjectRepository.save(scId, gameProject);
         refreshSceneLabel();
     }

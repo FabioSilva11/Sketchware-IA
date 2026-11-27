@@ -21,7 +21,6 @@ import java.util.HashMap;
 import pro.sketchware.activities.game.model.GameProject;
 import pro.sketchware.activities.game.model.GameProjectRepository;
 import pro.sketchware.workspace.RecentProjectsRegistry;
-import pro.sketchware.workspace.WorkspacePathManager;
 
 public class BackupFactoryThreeModesTest {
 
@@ -33,7 +32,7 @@ public class BackupFactoryThreeModesTest {
         File senderStorage = tempFolder.newFolder("sender_storage");
         File recipientStorage = tempFolder.newFolder("recipient_storage");
 
-        File studioRoot = new File(senderStorage, WorkspacePathManager.ANDROID_STUDIO_PROJECTS + "/605");
+        File studioRoot = new File(senderStorage, ".sketchware/mysc/list/605");
         writeUtf8(new File(studioRoot, "settings.gradle"), "rootProject.name = \"EstudioAgil\"\ninclude ':app'\n");
         writeUtf8(new File(studioRoot, "build.gradle"), "// top-level build\n");
         writeUtf8(new File(studioRoot, "local.properties"), "sdk.dir=/Users/secret/Android/Sdk\n");
@@ -114,7 +113,7 @@ public class BackupFactoryThreeModesTest {
         importer.restore(swbFile);
         assertTrue(importer.getError(), importer.isRestoreSuccess());
 
-        File restoredStudioRoot = new File(recipientStorage, WorkspacePathManager.ANDROID_STUDIO_PROJECTS + "/710");
+        File restoredStudioRoot = new File(recipientStorage, ".sketchware/mysc/list/710");
         assertTrue(new File(restoredStudioRoot, "app/src/main/java/com/shared/estudio/MainActivity.java").isFile());
         assertTrue(new File(restoredStudioRoot, "app/src/main/java/com/shared/estudio/build/BuildInfo.java").isFile());
         assertFalse(new File(restoredStudioRoot, "bin").exists());
@@ -155,7 +154,7 @@ public class BackupFactoryThreeModesTest {
         importer.restore(legacyZip);
         assertTrue(importer.getError(), importer.isRestoreSuccess());
 
-        File restoredDir = new File(recipientStorage, WorkspacePathManager.ANDROID_STUDIO_PROJECTS + "/711");
+        File restoredDir = new File(recipientStorage, ".sketchware/mysc/list/711");
         HashMap<String, Object> restoredMeta = BackupFactory.readEncryptedProjectFile(new File(restoredDir, "project"));
         assertNotNull(restoredMeta);
         assertEquals("711", restoredMeta.get("sc_id"));

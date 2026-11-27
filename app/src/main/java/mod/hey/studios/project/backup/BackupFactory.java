@@ -411,7 +411,7 @@ public class BackupFactory {
     public void backup(Context context, String project_name) {
         HashMap<String, Object> currentMetadata = readCurrentProjectMetadata();
         if ((currentMetadata != null && RecentProjectsRegistry.isAndroidStudioProject(currentMetadata))
-                || (!getProjectPath().exists() && getAndroidStudioProjectDir().isDirectory())) {
+                || (!getProjectPath().exists() && looksLikeAndroidStudioProject(getProjectDirectory()))) {
             backupAndroidStudioProject(project_name);
             return;
         }
@@ -511,7 +511,7 @@ public class BackupFactory {
     }
 
     public void backupAndroidStudioProject(String project_name) {
-        File sourceFolder = getAndroidStudioProjectDir();
+        File sourceFolder = getProjectDirectory();
         if (!sourceFolder.exists() || !sourceFolder.isDirectory()) {
             error = "Android Studio project folder not found";
             outPath = null;
@@ -615,7 +615,7 @@ public class BackupFactory {
             deleteRecursivelyQuiet(tempFolder);
         }
 
-        File targetFolder = getAndroidStudioProjectDir();
+        File targetFolder = getProjectDirectory();
         if (targetFolder.exists()) {
             error = "project id already exists";
             restoreSuccess = false;
@@ -788,15 +788,6 @@ public class BackupFactory {
                 if (metadataString(map, RecentProjectsRegistry.PROJECT_KIND_KEY).isEmpty()) {
                     map.put(RecentProjectsRegistry.PROJECT_KIND_KEY, RecentProjectsRegistry.PROJECT_KIND_SKETCHWARE);
                 }
-                return map;
-            }
-        }
-        File studioProject = new File(getAndroidStudioProjectDir(), "project");
-        if (studioProject.isFile()) {
-            HashMap<String, Object> map = getProject(studioProject);
-            if (map != null) {
-                map.put(RecentProjectsRegistry.PROJECT_KIND_KEY, RecentProjectsRegistry.PROJECT_KIND_ANDROID_STUDIO);
-                map.put("proj_type", 2);
                 return map;
             }
         }
@@ -1369,11 +1360,8 @@ public class BackupFactory {
                 .replace("&amp;", "&");
     }
 
-    private File getAndroidStudioProjectDir() {
-        if (storageRoot != null) {
-            return new File(storageRoot, WorkspacePathManager.ANDROID_STUDIO_PROJECTS + File.separator + sc_id);
-        }
-        return new File(WorkspacePathManager.getAndroidStudioProjectPath(sc_id));
+    private File getProjectDirectory() {
+        return new File(new File(resolveStorageRoot(), WorkspacePathManager.c), sc_id);
     }
 
     private File getDataDir() {
@@ -1385,7 +1373,7 @@ public class BackupFactory {
     }
 
     private File getProjectPath() {
-        return new File(resolveStorageRoot(), ".sketchware/mysc/list/" + sc_id + "/project");
+        return new File(getProjectDirectory(), "project");
     }
 
     private File getLocalLibsPath() {

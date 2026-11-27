@@ -3,18 +3,14 @@ package pro.sketchware.activities.game.ui;
 import android.annotation.SuppressLint;
 import android.content.ClipData;
 import android.content.Context;
-import android.content.res.ColorStateList;
 import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.view.Gravity;
 import android.view.HapticFeedbackConstants;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -23,6 +19,7 @@ import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.besome.sketch.editor.view.palette.IconBase;
 import com.google.android.material.color.MaterialColors;
 
 import java.util.ArrayList;
@@ -118,7 +115,6 @@ public class GamePaletteView extends LinearLayout {
     private PaletteListener paletteListener;
 
     private int colorSurface;
-    private int colorOnSurface;
     private int colorOutlineVariant;
     private int colorPrimary;
 
@@ -139,7 +135,6 @@ public class GamePaletteView extends LinearLayout {
         setOrientation(HORIZONTAL);
 
         colorSurface = MaterialColors.getColor(context, R.attr.colorSurface, 0xFF141821);
-        colorOnSurface = MaterialColors.getColor(context, R.attr.colorOnSurface, 0xFFE5E7EB);
         colorOutlineVariant = MaterialColors.getColor(context, R.attr.colorOutlineVariant, 0x3394A3B8);
         colorPrimary = MaterialColors.getColor(context, R.attr.colorPrimary, 0xFF3B82F6);
 
@@ -209,28 +204,10 @@ public class GamePaletteView extends LinearLayout {
 
     @SuppressLint("ClickableViewAccessibility")
     private View createPaletteItem(Context context, PaletteEntry entry) {
-        LinearLayout item = new LinearLayout(context);
-        item.setOrientation(HORIZONTAL);
-        item.setGravity(Gravity.CENTER_VERTICAL);
-        item.setBackgroundResource(R.drawable.icon_bg);
-        item.setClickable(true);
+        IconBase item = new IconBase(context);
+        item.setText(entry.label);
+        item.setWidgetImage(entry.iconRes);
         item.setFocusable(true);
-        item.setMinimumHeight(dp(40));
-
-        LayoutInflater.from(context).inflate(R.layout.widget_layout, item, true);
-
-        ImageView imgWidget = item.findViewById(R.id.img_widget);
-        imgWidget.setImageResource(entry.iconRes);
-        imgWidget.setImageTintList(ColorStateList.valueOf(entry.accentColor));
-
-        TextView tvWidget = item.findViewById(R.id.tv_widget);
-        tvWidget.setText(entry.label);
-        tvWidget.setTextColor(colorOnSurface);
-        tvWidget.setSingleLine(true);
-        tvWidget.setEllipsize(TextUtils.TruncateAt.END);
-
-        LayoutParams itemLp = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT);
-        item.setLayoutParams(itemLp);
 
         item.setOnClickListener(v -> {
             if (paletteListener != null) {

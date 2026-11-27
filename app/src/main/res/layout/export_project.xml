@@ -22,8 +22,6 @@
             android:padding="8dp">
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/export_game_card"
-                android:visibility="gone"
                 style="?attr/materialCardViewFilledStyle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -53,25 +51,24 @@
                             android:src="@drawable/open_box_48" />
 
                         <TextView
-                            android:id="@+id/export_game_title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginLeft="8dp"
-                            android:text="@string/editable_game_project_title"
+                            android:text="@string/editable_swb_project_title"
                             android:textAppearance="?attr/textAppearanceBodyMedium"
                             android:textSize="16sp"
                             android:textStyle="bold" />
                     </LinearLayout>
 
                     <Button
-                        android:id="@+id/export_game_project"
+                        android:id="@+id/export_swb_project"
                         style="@style/Widget.Material3Expressive.Button"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/export_editable_game_project"
+                        android:text="@string/myprojects_export_project_actionbar_title"
                         android:textSize="14sp" />
                     <TextView
-                        android:id="@+id/export_game_path"
+                        android:id="@+id/export_swb_path"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
@@ -82,7 +79,7 @@
                         android:textSize="13sp"
                         android:visibility="gone" />
                     <Button
-                        android:id="@+id/export_game_share"
+                        android:id="@+id/export_swb_share"
                         style="@style/Widget.Material3Expressive.Button"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

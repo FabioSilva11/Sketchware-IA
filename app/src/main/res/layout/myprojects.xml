@@ -102,7 +102,7 @@
                         android:transitionGroup="true"
                         android:visibility="gone"
                         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                        tools:listitem="@layout/chat_project_item"
+                        tools:listitem="@layout/myprojects_item"
                         tools:visibility="visible" />
                 </LinearLayout>
             </LinearLayout>

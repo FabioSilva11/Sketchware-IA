@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.RecyclerView;
@@ -22,7 +23,7 @@ import pro.sketchware.workspace.WorkspacePathManager;
 import pro.sketchware.core.MapValueUtils;
 import mod.hey.studios.util.ProjectMapUtils;
 import pro.sketchware.R;
-import pro.sketchware.databinding.ChatProjectItemBinding;
+import pro.sketchware.databinding.MyprojectsItemBinding;
 
 public class ChatProjectsAdapter extends RecyclerView.Adapter<ChatProjectsAdapter.ProjectViewHolder> {
     private final ChatFragment chatFragment;
@@ -140,7 +141,7 @@ public class ChatProjectsAdapter extends RecyclerView.Adapter<ChatProjectsAdapte
         holder.binding.packageName.setText(MapValueUtils.c(projectMap, "my_sc_pkg_name"));
         holder.binding.tvPublished.setVisibility(View.VISIBLE);
         holder.binding.tvPublished.setText(scId);
-        holder.binding.threadBadge.setText(R.string.chat_list_badge);
+
         holder.itemView.setTag("custom");
 
         // Clique abre ChatActivity ao invés de DesignActivity
@@ -156,16 +157,22 @@ public class ChatProjectsAdapter extends RecyclerView.Adapter<ChatProjectsAdapte
     @NonNull
     @Override
     public ProjectViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ChatProjectItemBinding binding = ChatProjectItemBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+        MyprojectsItemBinding binding = MyprojectsItemBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
         return new ProjectViewHolder(binding);
     }
 
     static class ProjectViewHolder extends RecyclerView.ViewHolder {
-        final ChatProjectItemBinding binding;
+        final MyprojectsItemBinding binding;
 
-        ProjectViewHolder(@NonNull ChatProjectItemBinding binding) {
+        ProjectViewHolder(@NonNull MyprojectsItemBinding binding) {
             super(binding.getRoot());
             this.binding = binding;
+            binding.imgPin.setVisibility(View.GONE);
+            binding.expand.setImageResource(R.drawable.kelivo_lucide_chevron_right);
+            binding.projectTypeBadge.setText(R.string.chat_list_badge);
+            binding.projectTypeBadge.setTextColor(ContextCompat.getColor(
+                    itemView.getContext(), R.color.chat_accent));
+            binding.projectTypeBadge.setBackgroundResource(R.drawable.bg_chat_status_chip);
         }
     }
 }
